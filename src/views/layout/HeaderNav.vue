@@ -1,0 +1,68 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import useStylingStore from '@/stores/styling'
+
+const stylingStore = useStylingStore()
+</script>
+
+<template lang="pug">
+header
+  RouterLink(to="/")
+    img.logo(
+      alt="Puzler Logo"
+      src="@/assets/puzler.png"
+    )
+  nav
+    RouterLink(
+      to="/"
+    ) Home
+    RouterLink(
+      to="/about"
+    ) About
+    .spacer
+    //- TODO: implement css for light/dark mode toggle
+    //- a(
+    //-   href="#"
+    //-   v-on:click="stylingStore.toggleDarkMode()"
+    //- )
+    //-   fa(
+    //-     :icon="['fas', stylingStore.darkMode ? 'moon' : 'sun']"
+    //-   )
+    RouterLink(
+      to="/api-explorer"
+    ) API
+</template>
+
+<style scoped lang="stylus">
+header
+  line-height 1.5
+  max-height 100vh
+  padding 0 10px
+  display flex
+  align-items center
+
+  .logo
+    size = 65px
+    display block
+    filter invert(1)
+    height size
+    width size
+    margin 5px
+
+  nav
+    width 100%
+    margin-left 5px
+    font-size 1.25rem
+    display flex
+
+    a
+      padding 0 1rem
+
+      &.router-link-exact-active
+        color var(--color-text)
+        &:hover
+          background-color transparent
+
+    .spacer
+      width 100%
+</style>

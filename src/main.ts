@@ -2,13 +2,19 @@ import './assets/main.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { RouterView } from 'vue-router'
+import { FaIcon } from '@/utils/font-awesome';
 
-import App from './App.vue'
 import router from './router'
 
-const app = createApp(App)
+const app = createApp(RouterView)
 
 app.use(createPinia())
 app.use(router)
+
+app.component(
+  'fa',
+  FaIcon,
+)
 
 app.mount('#app')

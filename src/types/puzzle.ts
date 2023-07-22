@@ -1,9 +1,14 @@
 import { unzip } from '../utils/puzzleZipper'
+import type {
+  ExtraRegion,
+} from './constraints'
 
 export default class Puzzle {
   size: number
   cells: Array<Array<Cell>>
   selectedAddresses: Array<string> = []
+  solution?: Array<Array<number|null>>
+  extraRegions?: Array<ExtraRegion>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -12,7 +17,7 @@ export default class Puzzle {
     this.cells = []
 
     const { height, width } = this.dimensionsForSize(size)
-    const regionsPerRow = size / width;
+    const regionsPerRow = size / width
 
     for (let i = 0; i < size; i += 1) {
       this.cells.push([])
@@ -49,8 +54,8 @@ export default class Puzzle {
       json.grid.forEach((row, i) => {
         row.forEach((cell, j) => {
           const puzzCell = puzzle.cells[i][j]
-          if (cell.region) puzzCell.region = cell.region
-          if (cell.value) puzzCell.digit = cell.value
+          if (cell.region !== undefined) puzzCell.region = cell.region
+          if (cell.value !== undefined) puzzCell.digit = cell.value
           if (cell.given !== undefined) puzzCell.given = cell.given
         })
       })
@@ -97,7 +102,7 @@ export default class Puzzle {
       }
     }
     factors.sort((a, b) => a - b)
-    
+
     return {
       width: factors[Math.ceil((factors.length - 1) / 2)],
       height: factors[Math.floor((factors.length - 1) / 2)],
@@ -105,38 +110,43 @@ export default class Puzzle {
   }
 }
 
-interface FPuzz {
-  size: number;
-  grid: Array<Array<FPuzzCell>>;
+type FPuzz = {
+  size: number
+  grid: Array<Array<FPuzzCell>>
+  extraregion?: Array<ExtraRegion>
 }
 
-interface FPuzzCell {
-  value?: number;
-  region?: number;
-  given?: boolean;
+type FPuzzCell = {
+  value?: number
+  region?: number
+  given?: boolean
 }
 
-interface CellConstructor {
-  digit: number|null;
-  region: number;
+type CellConstructor = {
+  digit: number|null
+  region: number
   coordinates: {
-    row: number;
-    col: number;
-  };
+    row: number
+    col: number
+  }
+}
+
+type CellNeighbors = {
+  left?: Cell
+  right?: Cell
+  up?: Cell
+  down?: Cell
 }
 
 class Cell {
   digit: number|null
   centerMarks: Array<number> = []
+  cornerMarks: Array<number> = []
+  cellColors: Array<string> = []
   region: number
   address: string
   coordinates: { row: number; col: number }
-  neighbors: {
-    left?: Cell;
-    right?: Cell;
-    up?: Cell;
-    down?: Cell;
-  } = {}
+  neighbors: CellNeighbors = {}
 
   given = false
   selected = false
@@ -151,5 +161,12 @@ class Cell {
 
 export {
   Cell,
-  Puzzle
+  Puzzle,
+}
+
+export type {
+  FPuzz,
+  FPuzzCell,
+  CellConstructor,
+  CellNeighbors,
 }

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import Grid from '../components/grid/Grid.vue'
+import Player from '../components/player/Player.vue'
 
 const fPuzzle = useRoute().query.fPuzzle
 </script>
 
 <template lang="pug">
-Grid(
-  :base64String="props.fPuzzle"
+Player(
+  :base64String="fPuzzle"
 )
 </template>
 

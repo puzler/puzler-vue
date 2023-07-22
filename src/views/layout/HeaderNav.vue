@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import useStylingStore from '@/stores/styling'
-
-const stylingStore = useStylingStore()
 </script>
 
 <template lang="pug">
@@ -20,14 +17,6 @@ header
       to="/about"
     ) About
     .spacer
-    //- TODO: implement css for light/dark mode toggle
-    //- a(
-    //-   href="#"
-    //-   v-on:click="stylingStore.toggleDarkMode()"
-    //- )
-    //-   fa(
-    //-     :icon="['fas', stylingStore.darkMode ? 'moon' : 'sun']"
-    //-   )
     RouterLink(
       to="/api-explorer"
     ) API
@@ -40,6 +29,8 @@ header
   padding 0 10px
   display flex
   align-items center
+  background-color #2d2d2d
+  --color-text: var(--vt-c-text-dark-2);
 
   .logo
     size = 65px

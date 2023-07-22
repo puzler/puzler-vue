@@ -10,15 +10,15 @@ import HeaderNav from './HeaderNav.vue'
     RouterView
 </template>
 
-<style scoped lang="stylus">
+<style lang="stylus">
 .app-container
   display flex
   flex-direction column
-  min-height 100vh
+  height 100vh
+  width 100vw
 
   .main-content
-    max-width 1280px
-    padding 0 20px
-    margin 0 auto
     flex-grow 1
+    display flex
+    flex-direction column
 </style>

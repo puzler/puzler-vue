@@ -309,13 +309,9 @@ function cellEnter(event: PointerEvent, cell: Cell) {
   lastSelected.value = cell.coordinates
 }
 
-function cellClick(event: PointerEvent|MouseEvent, cell?: Cell) {
-  console.log('cellClick', cell, event.target)
-  event.stopPropagation()
-  if (event instanceof PointerEvent) {
-    if (event.target instanceof HTMLElement) {
-      event.target.releasePointerCapture(event.pointerId)
-    }
+function cellClick(event: PointerEvent, cell?: Cell) {
+  if (event.target instanceof HTMLElement) {
+    event.target.releasePointerCapture(event.pointerId)
   }
 
   selecting.value = true

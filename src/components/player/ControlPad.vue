@@ -14,9 +14,9 @@ const modes = computed(() => {
 
 const numpad = computed(() => {
   const pad = [
-    [7, 8, 9],
-    [4, 5, 6],
     [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
     [0, 'delete'],
   ] as Array<Array<number|string>>
 
@@ -48,8 +48,7 @@ const actionIcons = {
 <template lang="pug">
 .control-pad
   .mode-selectors(
-    v-on:mousedown.stop
-    v-on:pointerdown="(e) => e.stopPropagation()"
+    v-on:pointerdown.stop
   )
     v-btn.mode-selector-btn(
       v-for="mode in modes"
@@ -66,8 +65,7 @@ const actionIcons = {
       v-btn.numpad-btn(
         v-for="digit in row"
         v-on:click="handleClick(digit)"
-        v-on:mousedown.stop
-        v-on:pointerdown="(e) => e.stopPropagation()"
+        v-on:pointerdown.stop
       )
         .btn-content-container
           fa.action-btn(
@@ -99,6 +97,7 @@ const actionIcons = {
   .mode-selectors
     display flex
     gap 4px
+    touch-action none
     .mode-selector-btn
       height calc(25cqmin - 3px)
       width calc(25cqmin - 3px)

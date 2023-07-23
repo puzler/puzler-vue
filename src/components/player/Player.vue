@@ -303,13 +303,21 @@ function keyboardInput(event: KeyboardEvent) {
   }
 }
 
-function cellEnter(event: MouseEvent, cell: Cell) {
+function cellEnter(event: PointerEvent, cell: Cell) {
   if (!selecting.value) return
   cell.selected = true
   lastSelected.value = cell.coordinates
 }
 
-function cellClick(event: MouseEvent, cell?: Cell) {
+function cellClick(event: PointerEvent|MouseEvent, cell?: Cell) {
+  console.log('cellClick', cell, event.target)
+  event.stopPropagation()
+  if (event instanceof PointerEvent) {
+    if (event.target instanceof HTMLElement) {
+      event.target.releasePointerCapture(event.pointerId)
+    }
+  }
+
   selecting.value = true
   const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
   if (!addToCurrentSelections) {
@@ -326,7 +334,7 @@ function cellClick(event: MouseEvent, cell?: Cell) {
 </script>
 
 <template lang="pug">
-.player-container(v-on:mousedown="cellClick")
+.player-container(v-on:pointerdown="cellClick")
   Grid(
     :puzzle="puzzle"
     v-on:cell-enter="cellEnter"
@@ -354,4 +362,5 @@ function cellClick(event: MouseEvent, cell?: Cell) {
 @media screen and (max-width: 900px)
   .player-container
     flex-direction column
+    padding 10px
 </style>

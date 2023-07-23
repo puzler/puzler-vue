@@ -46,6 +46,7 @@ const gridStyle = computed(() => ({
   display flex
   container-type inline-size
   user-select none
+  touch-action none
 
   .grid
     display grid

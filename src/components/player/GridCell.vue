@@ -8,6 +8,8 @@ const { cell } = defineProps<{
 }>()
 
 const emit = defineEmits(['mousedown', 'mouseenter'])
+const onMouseDown = (event: PointerEvent) => emit('mousedown', event, cell)
+const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, cell)
 
 const { palette: { colors } } = useColorStore()
 
@@ -160,7 +162,7 @@ const cellColorStyle = computed(() => {
 .cell-container(:style="cellColorStyle")
   .cell(
     :class="cellClasses"
-    v-on:mousedown.stop="(event) => emit('mousedown', event, cell)"
+    v-on:pointerdown.stop="onMouseDown"
   )
     .corner-selected-dot.top.left
     .corner-selected-dot.top.right
@@ -172,7 +174,7 @@ const cellColorStyle = computed(() => {
     .corner-region-dot.bottom.right
 
     .selected-border(
-      v-on:mouseenter="(event) => emit('mouseenter', event, cell)"
+      v-on:pointerenter="onMouseEnter"
     )
       .digit(
         :class="{ given: cell.given }"
@@ -345,4 +347,9 @@ const cellColorStyle = computed(() => {
         padding-bottom 0px
       &.bottom-region .selected-border
         border-bottom-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
+
+@media screen and (max-width: 900px)
+  .cell-container .cell
+    --regionBorderWidth 1px
+    --outerBorderWidth 2px
 </style>

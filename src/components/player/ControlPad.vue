@@ -46,8 +46,11 @@ const actionIcons = {
 </script>
 
 <template lang="pug">
-.control-pad(v-on:mousedown.stop)
-  .mode-selectors
+.control-pad
+  .mode-selectors(
+    v-on:mousedown.stop
+    v-on:pointerdown="(e) => e.stopPropagation()"
+  )
     v-btn.mode-selector-btn(
       v-for="mode in modes"
       :ripple="false"
@@ -63,6 +66,8 @@ const actionIcons = {
       v-btn.numpad-btn(
         v-for="digit in row"
         v-on:click="handleClick(digit)"
+        v-on:mousedown.stop
+        v-on:pointerdown="(e) => e.stopPropagation()"
       )
         .btn-content-container
           fa.action-btn(

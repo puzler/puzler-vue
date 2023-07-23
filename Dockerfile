@@ -10,5 +10,6 @@ RUN npm install
 COPY . ./
 RUN npm run build
 
-EXPOSE 8080
-CMD ["http-server", "./dist", "--proxy", "https://puzler.app?", "-p", "8080", "-a", "0.0.0.0"]
+ARG PORT
+EXPOSE $PORT
+CMD ["http-server", "./dist", "--proxy", "https://puzler.app?", "-p", $PORT, "-a", "0.0.0.0"]

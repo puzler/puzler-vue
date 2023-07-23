@@ -12,4 +12,4 @@ RUN npm run build
 
 ARG PORT
 EXPOSE $PORT
-CMD ["http-server", "./dist", "--proxy", "https://puzler.app?", "-p", $PORT, "-a", "0.0.0.0"]
+CMD ["http-server", "./dist", "--proxy", "https://puzler.app?", "-p", "$PORT", "-a", "0.0.0.0"]

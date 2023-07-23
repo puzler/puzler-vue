@@ -62,6 +62,7 @@ const actionIcons = {
     )
       v-btn.numpad-btn(
         v-for="digit in row"
+        :ripple="false"
         v-on:pointerdown.stop="handleClick(digit)"
       )
         .btn-content-container

@@ -140,18 +140,7 @@ function handleActionInput(action: string) {
   }
 }
 
-const flash = () => {
-  const target = document.getElementsByClassName('main-content')[0] as HTMLElement
-  target.style.transition = ''
-  target.style.boxShadow = 'inset 0px 10px 10px -4px green'
-  setTimeout(() => {
-    target.style.transition = 'box-shadow 1s'
-    target.style.boxShadow = ''
-  }, 50)
-}
-
 function handleDigitInput(digit: number) {
-  flash()
   let targetCells = puzzle.value.selectedCells
   if (controller.value.activeMode !== ControllerMode.color) {
     targetCells = targetCells.filter((cell) => !cell.given)

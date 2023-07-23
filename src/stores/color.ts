@@ -1,21 +1,21 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { ColorPallete } from '../types'
+import type { ColorPalette } from '../types'
 
-const LOCAL_STORAGE_COLORS_KEY = 'puzler-color-pallete'
+const LOCAL_STORAGE_COLORS_KEY = 'puzler-color-palette'
 
 const DEFAULT_COLOR_PALLETE = {
   colors: {
     '0': 'rgb(255, 255, 255)',
-    '1': 'rgb(123, 56, 204)',
-    '2': 'rgb(0, 255, 191)',
-    '3': 'rgb(217, 217, 217)',
-    '4': 'rgb(30, 179, 0)',
-    '5': 'rgb(255, 102, 242)',
-    '6': 'rgb(255, 123, 0)',
-    '7': 'rgb(255, 34, 31)',
-    '8': 'rgb(255, 221, 0)',
-    '9': 'rgb(20, 185, 255)',
+    '1': 'rgb(167, 112, 231)',
+    '2': 'rgb(116, 245, 201)',
+    '3': 'rgb(218, 218, 218)',
+    '4': 'rgb(125, 200, 113)',
+    '5': 'rgb(239, 146, 233)',
+    '6': 'rgb(246, 142, 73)',
+    '7': 'rgb(251, 96, 98)',
+    '8': 'rgb(253, 230, 114)',
+    '9': 'rgb(117, 206, 255)',
     'a': 'transparent',
     'b': 'rgb(204, 51, 17)',
     'c': 'rgb(17, 119, 51)',
@@ -42,32 +42,32 @@ const DEFAULT_COLOR_PALLETE = {
     ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'],
     ['k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't'],
   ],
-} as ColorPallete
+} as ColorPalette
 
 const useColorStore = defineStore('color', () => {
   const strFromStorage = localStorage.getItem(
     LOCAL_STORAGE_COLORS_KEY
   )
 
-  let storageJson: ColorPallete|undefined
+  let storageJson: ColorPalette|undefined
   if (strFromStorage !== null) {
     storageJson = JSON.parse(strFromStorage)
   }
 
-  const _pallete = (storageJson || DEFAULT_COLOR_PALLETE) as ColorPallete
-  const pallete = ref(_pallete)
+  const _palette = (storageJson || DEFAULT_COLOR_PALLETE) as ColorPalette
+  const palette = ref(_palette)
 
-  function importFromString(stringPallete: string) {
+  function importFromString(stringPalette: string) {
     localStorage.setItem(
       LOCAL_STORAGE_COLORS_KEY,
-      stringPallete,
+      stringPalette,
     )
-    const json = JSON.parse(stringPallete) as ColorPallete
-    pallete.value = json
+    const json = JSON.parse(stringPalette) as ColorPalette
+    palette.value = json
   }
 
   return {
-    pallete,
+    palette,
     importFromString,
   }
 })

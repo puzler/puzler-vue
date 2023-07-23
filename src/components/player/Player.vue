@@ -17,7 +17,7 @@ const props = defineProps<{
 }>()
 
 const colorStore = useColorStore()
-const colorPallete = colorStore.pallete
+const colorPalette = colorStore.palette
 
 let _puzzle: Puzzle
 if (props.base64String) {
@@ -30,7 +30,7 @@ if (props.base64String) {
 _puzzle ||= new Puzzle(9)
 
 const puzzle = ref(_puzzle)
-const controller = ref(new Controller(colorPallete))
+const controller = ref(new Controller(colorPalette))
 const selecting = ref(false)
 const lastSelected = ref(null as null|{ row: number; col: number })
 
@@ -48,14 +48,6 @@ onUnmounted(() => {
 
 function resetSelecting() {
   selecting.value = false
-}
-
-function controlPadClick(digit: number|null) {
-  if (digit === null) {
-    handleEraseInput()
-  } else {
-    handleDigitInput(digit)
-  }
 }
 
 const clearDigits = (cells: Array<Cell>) => cells.forEach(
@@ -93,7 +85,7 @@ function handleEraseInput() {
     (cell) => cell.digit === null && cell.cornerMarks.length > 0,
   )
   const anyColor = selected.some(
-    (cell) => cell.cellColors.length < 0
+    (cell) => cell.cellColors.length > 0
   )
 
   switch (controller.value.activeMode) {
@@ -137,6 +129,13 @@ function handleEraseInput() {
   }
   if (anyColor) {
     clearColor(selected)
+  }
+}
+
+function handleActionInput(action: string) {
+  switch (action) {
+    case 'delete':
+      return handleEraseInput()
   }
 }
 
@@ -236,11 +235,17 @@ function keyboardInput(event: KeyboardEvent) {
   } else if (event.code === 'Backspace') {
     handleEraseInput()
   } else if (event.code === 'Space') {
-    let newMode = controller.value.mode + 1
-    if (ControllerMode[newMode] === undefined) {
-      newMode = 0
+    const active = document.activeElement
+    if (active instanceof HTMLElement && active.tagName !== 'BODY') {
+      active.click()
+      active.blur()
+    } else {
+      let newMode = controller.value.mode + 1
+      if (ControllerMode[newMode] === undefined) {
+        newMode = 0
+      }
+      controller.value.mode = newMode
     }
-    controller.value.mode = newMode
   } else if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
     if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
       puzzle.value.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
@@ -329,16 +334,24 @@ function cellClick(event: MouseEvent, cell?: Cell) {
   )
   ControlPad(
     :controller="controller"
-    v-on:numpad-click="controlPadClick"
+    v-on:numpad-click="handleDigitInput"
+    v-on:action-click="handleActionInput"
   )
 </template>
 
 <style scoped lang="stylus">
 .player-container
   display flex
-  flex 1
+  align-items center
+  justify-content center
+  width 100cqw
+  height 100cqh
   padding 20px
   container-type size
   container-name player
-  justify-content space-between
+  gap 20px
+
+@media screen and (max-width: 900px)
+  .player-container
+    flex-direction column
 </style>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Cell } from '../../types'
+import useColorStore from '../../stores/color'
 
 const { cell } = defineProps<{
   cell: Cell
 }>()
 
 const emit = defineEmits(['mousedown', 'mouseenter'])
+
+const { palette: { colors } } = useColorStore()
 
 function sideClasses(neighbor: Cell|undefined, key: string): Array<string> {
   const classes = [] as Array<string>
@@ -89,20 +92,22 @@ const centerMarkFontSize = computed(() => {
 })
 
 const CORNER_FILL_ORDER = {
-  1: { sort: 1, pos: { align: 'start', justify: 'start' } },
-  2: { sort: 3, pos: { align: 'start', justify: 'end' } },
-  3: { sort: 7, pos: { align: 'end', justify: 'start' } },
-  4: { sort: 9, pos: { align: 'end', justify: 'end' } },
-  5: { sort: 2, pos: { align: 'start', justify: 'center' } },
-  6: { sort: 8, pos: { align: 'end', justify: 'center' } },
-  7: { sort: 4, pos: { align: 'center', justify: 'start' } },
-  8: { sort: 6, pos: { align: 'center', justify: 'end' } },
-  9: { sort: 3, pos: { align: 'center', justify: 'center' } },
+  1: { sort: 1, pos: { align: 'start', justify: 'start', row: 1, col: 1 } },
+  2: { sort: 3, pos: { align: 'start', justify: 'end', row: 1, col: 3 } },
+  3: { sort: 7, pos: { align: 'end', justify: 'start', row: 3, col: 1 } },
+  4: { sort: 9, pos: { align: 'end', justify: 'end', row: 3, col: 3 } },
+  5: { sort: 2, pos: { align: 'start', justify: 'center', row: 1, col: 2 } },
+  6: { sort: 8, pos: { align: 'end', justify: 'center', row: 3, col: 2 } },
+  7: { sort: 4, pos: { align: 'center', justify: 'start', row: 2, col: 1 } },
+  8: { sort: 6, pos: { align: 'center', justify: 'end', row: 2, col: 3 } },
+  9: { sort: 5, pos: { align: 'center', justify: 'center', row: 2, col: 2 } },
 } as Record<number, {
   sort: number
   pos: {
     align: 'start'|'end'|'center'
     justify: 'start'|'end'|'center'
+    row: 1|2|3
+    col: 1|2|3
   }
 }>
 
@@ -111,7 +116,9 @@ const cornerDigits = computed(() => {
     sort: number
     pos: {
       align: 'start'|'end'|'center'
-      justify: 'start'|'end'|'center'
+      justify: 'start'|'end'|'center',
+      row: 1|2|3,
+      col: 1|2|3,
     }
   }>
   for (let i = 1; i <= cell.cornerMarks.length; i += 1) {
@@ -123,14 +130,34 @@ const cornerDigits = computed(() => {
       digit: cell.cornerMarks[i],
       align: pos.align,
       justify: pos.justify,
+      row: pos.row,
+      col: pos.col,
     })
   )
+})
+
+const cellColorStyle = computed(() => {
+  if (cell.cellColors.length === 0) return {}
+  if (cell.cellColors.length === 1) return { backgroundColor: colors[cell.cellColors[0]] }
+
+  const portionPerColor = 100 / cell.cellColors.length
+  const colorPortion = cell.cellColors.map((color, i) => {
+    const start = (portionPerColor * i) - 5
+    let end = start + portionPerColor
+    if (i === 0) return `${colors[color]} ${end}%`
+    return `${colors[color]} ${start}% ${end}%`
+  })
+  colorPortion.push(`${colors[cell.cellColors[0]]} ${((portionPerColor * (cell.cellColors.length)) - 5)}% 100%`)
+
+  return {
+    background: `conic-gradient(${colorPortion.join(',')})`,
+  }
 })
 
 </script>
 
 <template lang="pug">
-.cell-container
+.cell-container(:style="cellColorStyle")
   .cell(
     :class="cellClasses"
     v-on:mousedown.stop="(event) => emit('mousedown', event, cell)"
@@ -143,6 +170,7 @@ const cornerDigits = computed(() => {
     .corner-region-dot.top.right
     .corner-region-dot.bottom.left
     .corner-region-dot.bottom.right
+
     .selected-border(
       v-on:mouseenter="(event) => emit('mouseenter', event, cell)"
     )
@@ -153,11 +181,11 @@ const cornerDigits = computed(() => {
         v-if="cell.digit === null"
         :style="{ fontSize: centerMarkFontSize }"
       ) {{ cell.centerMarks.join('') }}
-      .corner(
-        v-if="cell.digit === null"
-        v-for="{ digit, align, justify } in cornerDigits"
-        :style="{ alignSelf: align, justifySelf: justify }"
-      ) {{ digit }}
+      .corner-marks(v-if="cell.digit === null")
+        .corner(
+          v-for="{ digit, align, justify, row, col } in cornerDigits"
+          :style="{ alignSelf: align, justifySelf: justify, gridRow: row, gridColumn: col }"
+        ) {{ digit }}
 </template>
 
 <style scoped lang="stylus">
@@ -165,6 +193,7 @@ const cornerDigits = computed(() => {
 .cell-container
   position relative
   --selectedBorderColor #62A4FF
+  --digitColor #1D69E5
   --cellBorderWidth 0.5px
   --regionBorderWidth 2px
   --outerBorderWidth 4px
@@ -256,6 +285,18 @@ const cornerDigits = computed(() => {
       &.right
         right 0
 
+    .corner-marks
+      position absolute
+      top 0
+      bottom 0
+      right 0
+      left 0
+      padding 1.2cqw
+      display grid
+      .corner
+        font-size 2.5cqw
+        line-height 2cqw
+        color var(--digitColor)
     .selected-border
       flex 1
       display flex
@@ -265,13 +306,13 @@ const cornerDigits = computed(() => {
       padding var(--selectedBorderWidth)
       .digit
         font-size 0.7em
-        color #1D69E5
+        color var(--digitColor)
         line-height 0
 
         &.given
           color black
-      .corner
-        font-size 0.25em
+      .center
+        color var(--digitColor)
     &.top-selected.left-selected .selected-border
       border-top-left-radius var(--selectedCornerRadius)
     &.top-selected.right-selected .selected-border

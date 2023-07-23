@@ -1,4 +1,4 @@
-import type { ColorPallete } from '../types'
+import type { ColorPalette } from '../types'
 
 enum ControllerMode {
   digit,
@@ -16,31 +16,31 @@ class Controller {
     meta: false,
   }
   colorPageIndex = 0
-  colorPallete: ColorPallete
+  colorPalette: ColorPalette
 
-  constructor(colorPallete: ColorPallete) {
-    this.colorPallete = colorPallete
+  constructor(colorPalette: ColorPalette) {
+    this.colorPalette = colorPalette
   }
 
   get colorPage() {
-    let pageColors = this.colorPallete.pages[this.colorPageIndex]
+    let pageColors = this.colorPalette.pages[this.colorPageIndex]
     if (!pageColors) {
       this.colorPageIndex = 0
-      pageColors = this.colorPallete.pages[this.colorPageIndex]
+      pageColors = this.colorPalette.pages[this.colorPageIndex]
       if (!pageColors) {
-        throw 'Pallete is Invalid'
+        throw 'Palette is Invalid'
       }
     }
 
-    const pagePallete = {} as Record<number, { key: string; color: string }>
+    const pagePalette = {} as Record<number, { key: string; color: string }>
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach((i: number) => {
       const key = pageColors[i] || '0'
-      pagePallete[i] = {
+      pagePalette[i] = {
         key,
-        color: this.colorPallete.colors[key] || 'transparent',
+        color: this.colorPalette.colors[key] || 'transparent',
       }
     })
-    return pagePallete
+    return pagePalette
   }
 
   get activeMode() {

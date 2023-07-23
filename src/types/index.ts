@@ -2,7 +2,7 @@ import { Puzzle, Cell } from './puzzle'
 import { Controller, ControllerMode } from './controller'
 import type { CellNeighbors } from './puzzle'
 
-type ColorPallete = {
+type ColorPalette = {
   colors: Record<string, string>
   pages: Array<Array<string>>
 }
@@ -16,5 +16,5 @@ export {
 
 export type {
   CellNeighbors,
-  ColorPallete,
+  ColorPalette,
 }

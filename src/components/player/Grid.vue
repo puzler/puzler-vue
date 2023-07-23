@@ -41,6 +41,8 @@ const gridStyle = computed(() => ({
 .grid-container
   height 100cqmin
   width 100cqmin
+  max-height calc(79cqw - 20px)
+  max-width calc(79cqw - 20px)
   display flex
   container-type inline-size
   user-select none
@@ -51,13 +53,9 @@ const gridStyle = computed(() => ({
 
     .row
       display grid
-</style>
 
-<style scoped>
-@container player (min-width: none) {
-  .grid-container {
-    height: 100cqmin;
-    width: 100cqmin;
-  }
-}
+@media screen and (max-width: 900px)
+  .grid-container
+    max-height calc(60cqh - 20px)
+    max-width calc(60cqh - 20px)
 </style>

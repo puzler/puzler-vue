@@ -33,11 +33,11 @@ header
   --color-text: var(--vt-c-text-dark-2);
 
   .logo
-    size = 65px
+    --logo-size 65px
     display block
     filter invert(1)
-    height size
-    width size
+    height var(--logo-size)
+    width var(--logo-size)
     margin 5px
 
   nav
@@ -56,4 +56,8 @@ header
 
     .spacer
       width 100%
+
+@media screen and (max-width: 900px)
+  header .logo
+    --logo-size 40px
 </style>

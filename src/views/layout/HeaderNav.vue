@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+const mode = import.meta.env.MODE
 </script>
 
 <template lang="pug">
@@ -17,6 +18,8 @@ header
       to="/about"
     ) About
     .spacer
+    .current-mode Current Mode: {{ mode }}
+    .spacer
     RouterLink(
       to="/api-explorer"
     ) API
@@ -31,6 +34,10 @@ header
   align-items center
   background-color #2d2d2d
   --color-text: var(--vt-c-text-dark-2);
+
+  .current-mode
+    white-space nowrap
+    color white
 
   .logo
     size = 65px

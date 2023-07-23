@@ -47,13 +47,11 @@ const actionIcons = {
 
 <template lang="pug">
 .control-pad
-  .mode-selectors(
-    v-on:pointerdown.stop
-  )
+  .mode-selectors
     v-btn.mode-selector-btn(
       v-for="mode in modes"
       :ripple="false"
-      v-on:click="controller.mode = ControllerMode[mode]"
+      v-on:pointerdown.stop="controller.mode = ControllerMode[mode]"
       :active="controller.activeMode === ControllerMode[mode]"
       :class="{ 'bg-blue-grey': controller.activeMode === ControllerMode[mode] }"
     )
@@ -64,8 +62,7 @@ const actionIcons = {
     )
       v-btn.numpad-btn(
         v-for="digit in row"
-        v-on:click="handleClick(digit)"
-        v-on:pointerdown.stop
+        v-on:pointerdown.stop="handleClick(digit)"
       )
         .btn-content-container
           fa.action-btn(

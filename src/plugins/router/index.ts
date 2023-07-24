@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/views/layout/MainLayout.vue'
-import HomeView from '@/views/HomeView.vue'
 import SolverView from '@/views/SolverView.vue'
 import ApiExplorer from '@/views/ApiExplorer.vue'
 

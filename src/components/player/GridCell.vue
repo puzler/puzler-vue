@@ -143,13 +143,14 @@ const cellColorStyle = computed(() => {
   if (cell.cellColors.length === 1) return { backgroundColor: colors[cell.cellColors[0]] }
 
   const portionPerColor = 100 / cell.cellColors.length
-  const colorPortion = cell.cellColors.map((color, i) => {
+  const orderedColors = cell.cellColors.reverse()
+  const colorPortion = orderedColors.map((color, i) => {
     const start = (portionPerColor * i) - 5
     let end = start + portionPerColor
     if (i === 0) return `${colors[color]} ${end}%`
     return `${colors[color]} ${start}% ${end}%`
   })
-  colorPortion.push(`${colors[cell.cellColors[0]]} ${((portionPerColor * (cell.cellColors.length)) - 5)}% 100%`)
+  colorPortion.push(`${colors[orderedColors[0]]} ${((portionPerColor * (orderedColors.length)) - 5)}% 100%`)
 
   return {
     background: `conic-gradient(${colorPortion.join(',')})`,
@@ -186,6 +187,7 @@ const cellColorStyle = computed(() => {
       .corner-marks(v-if="cell.digit === null")
         .corner(
           v-for="{ digit, align, justify, row, col } in cornerDigits"
+          :key="'cell-corner-digit-' + digit"
           :style="{ alignSelf: align, justifySelf: justify, gridRow: row, gridColumn: col }"
         ) {{ digit }}
 </template>

@@ -31,6 +31,19 @@ const numpad = computed(() => {
   return pad
 })
 
+function setMode(mode: ControllerMode) {
+  if (props.controller.mode === ControllerMode.color && mode === ControllerMode.color) {
+    let nextPageIndex = props.controller.colorPageIndex + 1
+    if (nextPageIndex >= props.controller.colorPalette.pages.length) {
+      nextPageIndex = 0
+    }
+
+    props.controller.colorPageIndex = nextPageIndex
+  }
+
+  props.controller.mode = mode
+}
+
 function handleClick(clickTarget: string|number) {
   if (typeof clickTarget === 'string') {
     emit('action-click', clickTarget)
@@ -50,18 +63,30 @@ const actionIcons = {
   .mode-selectors
     v-btn.mode-selector-btn(
       v-for="mode in modes"
+      :key="'mode-btn-' + mode"
       :ripple="false"
-      v-on:pointerdown.stop="controller.mode = ControllerMode[mode]"
+      v-on:pointerdown.stop="setMode(ControllerMode[mode])"
       :active="controller.activeMode === ControllerMode[mode]"
-      :class="{ 'bg-blue-grey': controller.activeMode === ControllerMode[mode] }"
+      :color="controller.activeMode === ControllerMode[mode] ? 'blue-grey' : 'light'"
     )
-      .mode {{ mode }}
+      .mode-btn-content
+        .mode {{ mode }}
+        .page-indicators(
+          v-if="mode === ControllerMode[ControllerMode.color] && controller.activeMode === ControllerMode[mode]"
+        )
+          .indicator(
+            v-for="i in controller.colorPalette.pages.length"
+            :key="'color-page-indicator-' + i"
+            :class="{ active: controller.colorPageIndex === i - 1 }"
+          )
   .numpad
     .row(
-      v-for="row in numpad"
+      v-for="row, i in numpad"
+      :key="'numpad-row-' + i"
     )
       v-btn.numpad-btn(
         v-for="digit in row"
+        :key="'numpad-btn-' + digit"
         :ripple="false"
         v-on:pointerdown.stop="handleClick(digit)"
       )
@@ -101,8 +126,27 @@ const actionIcons = {
       width calc(25cqmin - 3px)
       padding 0 5cqmin
       min-width unset
-      .mode
+      .mode-btn-content
+        display flex
+        flex-direction column
+        justify-content center
+        gap 2px
         font-size 4cqmin
+        .page-indicators
+          display flex
+          justify-content center
+          position absolute
+          bottom 10%
+          left 0
+          right 0
+          gap 5px
+          .indicator
+            height 5px
+            width 5px
+            background-color #dddddd
+            border-radius 50%
+            &.active
+              background-color #333333
   .numpad
     display flex
     flex-direction column

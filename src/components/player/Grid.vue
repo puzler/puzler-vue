@@ -25,12 +25,12 @@ const gridStyle = computed(() => ({
   )
     .row(
       v-for="row, r in puzzle.cells"
-      :key="r"
+      :key="'grid-row-' + r"
       :style="{ gridTemplateColumns: `repeat(${puzzle.size}, auto)` }"
     )
       GridCell(
         v-for="cell in row"
-        :key="cell.address"
+        :key="'cell-' + cell.address"
         :cell="cell"
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"

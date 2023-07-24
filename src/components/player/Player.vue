@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import useColorStore from '../../stores/color'
 import Grid from './Grid.vue'
 import ControlPad from './ControlPad.vue'
+import ColorPaletteEditor from './ColorPaletteEditor.vue'
 import {
   Cell,
   Puzzle,
@@ -10,6 +11,7 @@ import {
   ControllerMode,
 } from '../../types'
 import { faLinkSlash } from '@fortawesome/free-solid-svg-icons'
+import { createElementBlock } from 'vue'
 
 const props = defineProps<{
   base64String?: string;
@@ -34,6 +36,10 @@ const puzzle = ref(_puzzle)
 const controller = ref(new Controller(colorPalette))
 const selecting = ref(false)
 const lastSelected = ref(null as null|{ row: number; col: number })
+
+const modalActivators = {
+  colorPaletteEditor: document.createElement('button')
+}
 
 onMounted(() => {
   window.addEventListener('keydown', keyboardInput)
@@ -137,6 +143,8 @@ function handleActionInput(action: string) {
   switch (action) {
     case 'delete':
       return handleEraseInput()
+    case 'editColors':
+      return modalActivators.colorPaletteEditor.click()
   }
 }
 
@@ -331,6 +339,10 @@ function cellClick(event: PointerEvent, cell?: Cell) {
 
 <template lang="pug">
 .player-container(v-on:pointerdown="cellClick")
+  ColorPaletteEditor(
+    :activator="modalActivators.colorPaletteEditor"
+    :selectedPageIndex="controller.colorPageIndex"
+  )
   Grid(
     :puzzle="puzzle"
     v-on:cell-enter="cellEnter"

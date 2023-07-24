@@ -13,13 +13,8 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'home',
-          component: HomeView,
-        },
-        {
-          path: 'about',
-          name: 'about',
-          component: () => import('@/views/AboutView.vue'),
+          name: 'root',
+          component: SolverView,
         },
         {
           path: 'solve',

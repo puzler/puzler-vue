@@ -10,12 +10,6 @@ header
       src="@/assets/puzler.png"
     )
   nav
-    RouterLink(
-      to="/"
-    ) Home
-    RouterLink(
-      to="/about"
-    ) About
     .spacer
     RouterLink(
       to="/api-explorer"

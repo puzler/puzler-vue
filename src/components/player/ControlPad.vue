@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Controller, ControllerMode } from '../../types'
+import useColorStore from '@/stores/color'
 const props = defineProps<{
   controller: Controller
 }>();
 const emit = defineEmits(['numpad-click', 'action-click'])
+
+const colorStore = useColorStore()
+const colorPalette = colorStore.palette
+const colorPage = computed(() => colorPalette.pages[props.controller.colorPageIndex])
 
 const modes = computed(() => {
   return Object.keys(ControllerMode).filter(
@@ -33,15 +38,10 @@ const numpad = computed(() => {
 
 function setMode(mode: ControllerMode) {
   if (props.controller.mode === ControllerMode.color && mode === ControllerMode.color) {
-    let nextPageIndex = props.controller.colorPageIndex + 1
-    if (nextPageIndex >= props.controller.colorPalette.pages.length) {
-      nextPageIndex = 0
-    }
-
-    props.controller.colorPageIndex = nextPageIndex
+    emit('action-click', 'cycleColorPage')
   }
 
-  props.controller.mode = mode
+  emit('action-click', 'setControllerMode', { mode })
 }
 
 function handleClick(clickTarget: string|number) {
@@ -55,11 +55,31 @@ function handleClick(clickTarget: string|number) {
 const actionIcons = {
   delete: ['fas', 'delete-left'],
   editColors: ['fas', 'palette'],
+  checkSolution: 'mdi-check',
 }
+
+const actionBtns = [
+  {
+    action: 'checkSolution',
+    tooltip: 'Answer Check',
+  },
+]
 </script>
 
 <template lang="pug">
 .control-pad
+  .action-btns
+    v-btn.action-btn(
+      v-for="btn in actionBtns"
+      :key="btn"
+      v-on:click="emit('action-click', btn.action)"
+      color="blue-grey"
+    )
+      v-icon(
+        :icon="actionIcons[btn.action]"
+        :size="30"
+      )
+  .spacer
   .mode-selectors
     v-btn.mode-selector-btn(
       v-for="mode in modes"
@@ -75,7 +95,7 @@ const actionIcons = {
           v-if="mode === ControllerMode[ControllerMode.color] && controller.activeMode === ControllerMode[mode]"
         )
           .indicator(
-            v-for="i in controller.colorPalette.pages.length"
+            v-for="i in colorPalette.pages.length"
             :key="'color-page-indicator-' + i"
             :class="{ active: controller.colorPageIndex === i - 1 }"
           )
@@ -91,13 +111,13 @@ const actionIcons = {
         v-on:pointerdown.stop="handleClick(digit)"
       )
         .btn-content-container
-          fa.action-btn(
+          faIcon.action-btn(
             v-if="typeof digit === 'string'"
             :icon="actionIcons[digit]"
           )
           .cell-preview.color-swatch(
             v-else-if="controller.activeMode === ControllerMode.color"
-            :style="{ backgroundColor: controller.colorPage[digit].color }"
+            :style="{ backgroundColor: colorPalette.colors[colorPage[digit]] }"
           )
           .cell-preview.number-input(
             v-else
@@ -116,6 +136,19 @@ const actionIcons = {
   height 100cqh
   max-height calc(79cqw - 20px)
   container-type inline-size
+
+  .spacer
+    flex 1
+
+  .action-btns
+    display flex
+    flex-direction column
+    align-items start
+    button.action-btn
+      min-width unset
+      height unset
+      padding 5px
+      border-radius 15%
 
   .mode-selectors
     display flex

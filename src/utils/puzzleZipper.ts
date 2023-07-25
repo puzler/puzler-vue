@@ -15,18 +15,18 @@ const unzip = (raw: string) => {
   const resetValue = 32
   const getNextValue = (index: number) => base64ReverseDict[input.charAt(index)]
 
-  var dictionary = [],
-    next,
-    enlargeIn = 4,
+  const dictionary = []
+  const result = []
+  const data = {val: getNextValue(0), position: resetValue, index:1}
+
+  let enlargeIn = 4,
     dictSize = 4,
     numBits = 3,
     entry = "",
-    result = [],
     i,
     w,
     bits, resb, maxpower, power,
-    c,
-    data = {val: getNextValue(0), position: resetValue, index:1};
+    c;
 
   for(i = 0; i < 3; i++)
     dictionary[i] = i;
@@ -45,7 +45,7 @@ const unzip = (raw: string) => {
     power <<= 1;
   }
 
-  switch(next = bits){
+  switch(bits){
     case 0:
       bits = 0;
       maxpower = Math.pow(2, 8);
@@ -84,7 +84,9 @@ const unzip = (raw: string) => {
   dictionary[3] = c;
   w = c;
   result.push(c);
-  while(true){
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
     if(data.index > length)
       return "";
 

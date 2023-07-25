@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import useColorStore from '../../stores/color'
-import Grid from './Grid.vue'
+import PuzzleGrid from './PuzzleGrid.vue'
 import ControlPad from './ControlPad.vue'
 import ColorPaletteEditor from './ColorPaletteEditor.vue'
 import {
@@ -10,8 +10,6 @@ import {
   Controller,
   ControllerMode,
 } from '../../types'
-import { faLinkSlash } from '@fortawesome/free-solid-svg-icons'
-import { createElementBlock } from 'vue'
 
 const props = defineProps<{
   base64String?: string;
@@ -22,24 +20,35 @@ const props = defineProps<{
 const colorStore = useColorStore()
 const colorPalette = colorStore.palette
 
-let _puzzle: Puzzle
-if (props.base64String) {
-  _puzzle = Puzzle.fromBase64String(props.base64String)
-} else if (props.puzzleId) {
-  // TODO Puzler API Implementation
-} else if (props.puzzle) {
-  _puzzle = props.puzzle
-}
-_puzzle ||= new Puzzle(9)
+const puzzle = ref(
+  (() => {
+    if (props.base64String) return Puzzle.fromBase64String(props.base64String)
+    // if (props.puzzleId) {} TODO Puzler API Implementation
+    if (props.puzzle) return props.puzzle
 
-const puzzle = ref(_puzzle)
-const controller = ref(new Controller(colorPalette))
+    return new Puzzle(9)
+  })()
+)
+
+const controller = ref(new Controller())
 const selecting = ref(false)
 const lastSelected = ref(null as null|{ row: number; col: number })
 
-const modalActivators = {
-  colorPaletteEditor: document.createElement('button')
-}
+const modals = [
+  'correctSolution',
+  'incorrectSolution',
+  'colorPaletteEditor',
+]
+
+const modalActivators = modals.reduce(
+  (activators, modalId) => {
+    return {
+      ...activators,
+      [modalId]: document.createElement('button'),
+    }
+  },
+  {} as Record<string, HTMLElement>,
+)
 
 onMounted(() => {
   window.addEventListener('keydown', keyboardInput)
@@ -139,12 +148,28 @@ function handleEraseInput() {
   }
 }
 
-function handleActionInput(action: string) {
+function handleActionInput(action: string, args = {} as Record<string, any>) {
   switch (action) {
     case 'delete':
       return handleEraseInput()
     case 'editColors':
       return modalActivators.colorPaletteEditor.click()
+    case 'cycleColorPage': {
+      let nextPageIndex = controller.value.colorPageIndex + 1
+      if (nextPageIndex >= colorPalette.pages.length) {
+        nextPageIndex = 0
+      }
+      return controller.value.colorPageIndex = nextPageIndex
+    }
+    case 'setControllerMode':
+      return controller.value.mode = args.mode
+    case 'checkSolution': {
+      if (puzzle.value.checkSolution()) {
+        return modalActivators.correctSolution.click()
+      } else {
+        return modalActivators.incorrectSolution.click()
+      }
+    }
   }
 }
 
@@ -164,6 +189,8 @@ function handleDigitInput(digit: number) {
       } else {
         targetCells.forEach((cell) => cell.digit = digit)
       }
+
+      if (puzzle.value.checkSolution()) modalActivators.correctSolution.click()
       break
     case ControllerMode.center:
       if (targetCells.every((cell) => cell.centerMarks.includes(digit))) {
@@ -199,8 +226,8 @@ function handleDigitInput(digit: number) {
         )
       }
       break
-    case ControllerMode.color:
-      const colorKey = controller.value.colorPage[digit].key
+    case ControllerMode.color: {
+      const colorKey = colorPalette.pages[controller.value.colorPageIndex][digit]
       if (targetCells.every((cell) => cell.cellColors.includes(colorKey))) {
         targetCells.forEach((cell) => {
           cell.cellColors = cell.cellColors.filter((key) => key !== colorKey)
@@ -216,6 +243,7 @@ function handleDigitInput(digit: number) {
         })
       }
       break
+    }
   }
 }
 
@@ -232,10 +260,6 @@ function releaseTempMode(event: KeyboardEvent) {
 }
 
 function keyboardInput(event: KeyboardEvent) {
-  console.log(event.code)
-  const selected = puzzle.value.selectedCells
-  const nonGiven = selected.filter((cell) => !cell.given)
-
   if (/^(Digit|Numpad)\d$/.test(event.code)) {
     handleDigitInput(
       parseInt(event.code.charAt(event.code.length - 1), 10),
@@ -326,11 +350,11 @@ function cellClick(event: PointerEvent, cell?: Cell) {
   const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
   if (!addToCurrentSelections) {
     puzzle.value.deselectAll()
-    if (!!cell) {
+    if (cell) {
       cell.selected = true
       lastSelected.value = cell.coordinates
     }
-  } else if (!!cell) {
+  } else if (cell) {
     cell.selected = !cell.selected
     lastSelected.value = cell.coordinates
   }
@@ -343,7 +367,17 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     :activator="modalActivators.colorPaletteEditor"
     :selectedPageIndex="controller.colorPageIndex"
   )
-  Grid(
+  v-dialog(
+    :activator="modalActivators.correctSolution"
+  )
+    .message-modal
+      .set-solution(v-if="puzzle.solution") Your solution is correct
+      .no-set-solution(v-else) No solution was provided, but that looks correct!
+  v-dialog(
+    :activator="modalActivators.incorrectSolution"
+  )
+    .message-modal Something seems wrong
+  PuzzleGrid(
     :puzzle="puzzle"
     v-on:cell-enter="cellEnter"
     v-on:cell-click="cellClick"
@@ -366,6 +400,16 @@ function cellClick(event: PointerEvent, cell?: Cell) {
   container-type size
   container-name player
   gap 20px
+
+.message-modal
+  background-color white
+  padding 20px 25px
+  display flex
+  align-items center
+  justify-content center
+  border-radius 10px
+  width fit-content
+  align-self center
 
 @media screen and (max-width: 900px)
   .player-container

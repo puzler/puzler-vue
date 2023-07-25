@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import GridCell from './GridCell.vue'
 import { computed } from 'vue';
-import { Puzzle, Cell } from '../../types'
+import { Puzzle } from '@/types'
 
-const { puzzle } = defineProps<{
+const props = defineProps<{
   puzzle: Puzzle;
 }>()
-
+ 
 const emit = defineEmits(
   ['cell-click', 'cell-enter'],
 )
 
 const gridStyle = computed(() => ({
-  gridTemplateRows: `repeat(${puzzle.size}, auto)`,
-  fontSize: `${100 / puzzle.size}cqw`,
-  '--selectedBorderWidth': `${10 / puzzle.size}cqw`,
+  gridTemplateRows: `repeat(${props.puzzle.size}, auto)`,
+  fontSize: `${100 / props.puzzle.size}cqw`,
+  '--selectedBorderWidth': `${10 / props.puzzle.size}cqw`,
 }))
 </script>
 
@@ -24,7 +24,7 @@ const gridStyle = computed(() => ({
     :style="gridStyle"
   )
     .row(
-      v-for="row, r in puzzle.cells"
+      v-for="row, r in props.puzzle.cells"
       :key="'grid-row-' + r"
       :style="{ gridTemplateColumns: `repeat(${puzzle.size}, auto)` }"
     )

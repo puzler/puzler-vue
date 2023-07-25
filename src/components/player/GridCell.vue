@@ -3,26 +3,27 @@ import { computed } from 'vue'
 import { Cell } from '../../types'
 import useColorStore from '../../stores/color'
 
-const { cell } = defineProps<{
+const props = defineProps<{
   cell: Cell
 }>()
 
 const emit = defineEmits(['mousedown', 'mouseenter'])
-const onMouseDown = (event: PointerEvent) => emit('mousedown', event, cell)
-const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, cell)
+const onMouseDown = (event: PointerEvent) => emit('mousedown', event, props.cell)
+const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, props.cell)
 
-const { palette: { colors } } = useColorStore()
+const colorStore = useColorStore()
+const colors = computed(() => colorStore.palette.colors)
 
 function sideClasses(neighbor: Cell|undefined, key: string): Array<string> {
   const classes = [] as Array<string>
 
   if (neighbor === undefined) {
     classes.push(`${key}-outer`)
-  } else if (cell.region !== neighbor.region) {
+  } else if (props.cell.region !== neighbor.region) {
     classes.push(`${key}-region`)
   }
 
-  if (cell.selected && !neighbor?.selected) classes.push(`${key}-selected`)
+  if (props.cell.selected && !neighbor?.selected) classes.push(`${key}-selected`)
 
   return classes
 }
@@ -34,13 +35,13 @@ function cornerClasses(
 ): Array<string> {
   const classes = [] as Array<string>
 
-  if (neighbors.every((n) => n?.region === cell.region)) {
-    if (cell.region !== cornerNeighbor?.region) {
+  if (neighbors.every((n) => n?.region === props.cell.region)) {
+    if (props.cell.region !== cornerNeighbor?.region) {
       classes.push(`${key}-region-dot`)
     }
   }
 
-  if (cell.selected) {
+  if (props.cell.selected) {
     if (neighbors.every((n) => n?.selected) && !cornerNeighbor?.selected) {
       classes.push(`${key}-selected-dot`)
     }
@@ -55,7 +56,7 @@ const cellClasses = computed(() => {
     right,
     up,
     down,
-  } = cell.neighbors
+  } = props.cell.neighbors
 
   return [
     ...sideClasses(left, 'left'),
@@ -70,7 +71,7 @@ const cellClasses = computed(() => {
 })
 
 const centerMarkFontSize = computed(() => {
-  const { length } = cell.centerMarks
+  const { length } = props.cell.centerMarks
   switch (length) {
     case 0:
     case 1:
@@ -123,13 +124,13 @@ const cornerDigits = computed(() => {
       col: 1|2|3,
     }
   }>
-  for (let i = 1; i <= cell.cornerMarks.length; i += 1) {
+  for (let i = 1; i <= props.cell.cornerMarks.length; i += 1) {
     positions.push(CORNER_FILL_ORDER[i])
   }
 
   return positions.sort((a, b) => a.sort - b.sort).map(
     ({ pos }, i) => ({
-      digit: cell.cornerMarks[i],
+      digit: props.cell.cornerMarks[i],
       align: pos.align,
       justify: pos.justify,
       row: pos.row,
@@ -139,18 +140,18 @@ const cornerDigits = computed(() => {
 })
 
 const cellColorStyle = computed(() => {
-  if (cell.cellColors.length === 0) return {}
-  if (cell.cellColors.length === 1) return { backgroundColor: colors[cell.cellColors[0]] }
+  if (props.cell.cellColors.length === 0) return {}
+  if (props.cell.cellColors.length === 1) return { backgroundColor: colors.value[props.cell.cellColors[0]] }
 
-  const portionPerColor = 100 / cell.cellColors.length
-  const orderedColors = cell.cellColors.reverse()
+  const portionPerColor = 100 / props.cell.cellColors.length
+  const orderedColors = [...props.cell.cellColors].reverse()
   const colorPortion = orderedColors.map((color, i) => {
     const start = (portionPerColor * i) - 5
     let end = start + portionPerColor
-    if (i === 0) return `${colors[color]} ${end}%`
-    return `${colors[color]} ${start}% ${end}%`
+    if (i === 0) return `${colors.value[color]} ${end}%`
+    return `${colors.value[color]} ${start}% ${end}%`
   })
-  colorPortion.push(`${colors[orderedColors[0]]} ${((portionPerColor * (orderedColors.length)) - 5)}% 100%`)
+  colorPortion.push(`${colors.value[orderedColors[0]]} ${((portionPerColor * (orderedColors.length)) - 5)}% 100%`)
 
   return {
     background: `conic-gradient(${colorPortion.join(',')})`,

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import useColorStore from '@/stores/color';
-import type { ColorPalette } from '@/types'
-import { computed } from 'vue';
 
 const props = defineProps<{
   activator: Element
@@ -10,30 +8,12 @@ const props = defineProps<{
 }>()
 
 const colorStore = useColorStore()
-function paletteFromStore() {
-  return {
-    colors: { ...colorStore.palette.colors },
-    pages: [
-      ...colorStore.palette.pages.map(
-        (page) => [...page],
-      ),
-    ],
-  } as ColorPalette
-}
-
-const modalOpen = ref(false)
-const originalPalette = ref(paletteFromStore())
 const palette = colorStore.palette
+
+const originalPaletteStr = ref(palette.toJson())
+const modalOpen = ref(false)
 const pageIndex = ref(props.selectedPageIndex)
 const selectedKey = ref(palette.pages[pageIndex.value][1])
-
-const usableKeys = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-  'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-  'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D',
-  'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-]
 
 const icons = {
   delete: 'mdi-delete',
@@ -46,109 +26,60 @@ const tooltips = {
   delete: 'Delete Page',
 }
 
-const availableKeys = computed(() => {
-  const usedKeys = Object.keys(palette.colors)
-  return usableKeys.filter((k) => !usedKeys.includes(k))
-})
-
 function resetValues() {
   pageIndex.value = props.selectedPageIndex
-  selectedKey.value = originalPalette.value.pages[pageIndex.value][1]
-
-  const originalKeys = Object.keys(originalPalette.value.colors)
-  originalKeys.forEach((key) => colorStore.palette.colors[key] = originalPalette.value.colors[key])
-  Object.keys(colorStore.palette.colors).filter(
-    (key) => !originalKeys.includes(key),
-  ).forEach(
-    (key) => delete colorStore.palette.colors[key],
-  )
-
-  const originalPageCount = originalPalette.value.pages.length
-  if (originalPageCount < colorStore.palette.pages.length) {
-    colorStore.palette.pages.splice(originalPageCount, colorStore.palette.pages.length - originalPageCount) 
-  }
-  while (originalPageCount > colorStore.palette.pages.length) {
-    colorStore.palette.pages.push([])
-  }
-
-  originalPalette.value.pages.forEach((page, i) => {
-    page.forEach((key, j) => {
-      colorStore.palette.pages[i][j] = key
-    })
-  })
+  palette.resetFromString(originalPaletteStr.value);
+  selectedKey.value = palette.pages[pageIndex.value][1]
 
   modalOpen.value = false
 }
 
 function savePalette() {
   colorStore.savePalette()
-  originalPalette.value = paletteFromStore()
+  originalPaletteStr.value = palette.toJson()
   modalOpen.value = false
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function movePageLeft(index: number) {
-  const pageToMove = palette.pages[index]
-  const pageToReplace = palette.pages[index - 1]
-  if (pageToMove === undefined || pageToReplace === undefined) return
-
-  const temp = [...pageToMove]
-  palette.pages[index] = [...pageToReplace]
-  palette.pages[index - 1] = temp
+  if (!palette.movePageLeft(index)) return
 
   if (pageIndex.value === index) {
-    pageIndex.value -= 1
+    selectPage(index - 1)
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function movePageRight(index: number) {
-  const pageToMove = palette.pages[index]
-  const pageToReplace = palette.pages[index + 1]
-  if (pageToMove === undefined || pageToReplace === undefined) return
-
-  const temp = [...pageToMove]
-  palette.pages[index] = [...pageToReplace]
-  palette.pages[index + 1] = temp
+  if (!palette.movePageRight(index)) return
 
   if (pageIndex.value === index) {
-    pageIndex.value += 1
+    selectPage(index + 1)
   }
 }
 
 function deletePage(index: number) {
-  if (palette.pages.length === 1) return
-  if (palette.pages[index] === undefined) return
-
-  palette.pages[index].forEach(
-    (k) => delete palette.colors[k]
-  )
-
-  palette.pages.splice(index, 1)
+  if (!palette.deletePage(index)) return
 
   if (pageIndex.value === index && index > 0) {
-    pageIndex.value -= 1
+    selectPage(index - 1)
   }
 }
 
 function newPage() {
-  if (palette.pages.length >= 5) return
+  const newKeys = palette.newPage()
+  if (!newKeys) return
 
-  const newKeys = availableKeys.value.slice(0, 9)
-  newKeys.forEach((k) => palette.colors[k] = 'rgba(255, 255, 255, 255)')
-  palette.pages.push(newKeys)
-  pageIndex.value = palette.pages.length - 1
-  selectedKey.value = newKeys[1]
+  selectPage(palette.pages.length - 1)
 }
 
 function duplicatePage(index: number) {
-  if (palette.pages.length >= 5) return
+  const newKeys = palette.duplicatePage(index)
+  if (!newKeys) return
 
-  const pageToDuplicate = palette.pages[index]
-  if (pageToDuplicate === undefined) return
-
-  const newKeys = availableKeys.value.slice(0, 9)
-  newKeys.forEach((k, i) => palette.colors[k] = palette.colors[pageToDuplicate[i]])
-  palette.pages.splice(index, 0, newKeys)
-  pageIndex.value += 1
+  if (pageIndex.value > index) {
+    selectPage(pageIndex.value + 1)
+  }
 }
 
 function selectPage(index: number) {
@@ -261,6 +192,7 @@ v-dialog(
         )
           v-btn(
             v-for="page, i in palette.pages"
+            :key="'page' + i"
             :active="pageIndex === i"
             v-on:click="selectPage(i)"
             :icon="`mdi-numeric-${i + 1}`"

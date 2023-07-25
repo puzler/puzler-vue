@@ -93,6 +93,44 @@ export default class Puzzle {
     return this.cells[row][col]
   }
 
+  get checkGroups() {
+    const rows = {} as Record<number, Array<number|null>>
+    const columns = {} as Record<number, Array<number|null>>
+    const regions = {} as Record<number, Array<number|null>>
+
+    this.cells.forEach((rowCells, row) => {
+      rowCells.forEach((cell, col) => {
+        (rows[row] ||= []).push(cell.digit);
+        (columns[col] ||= []).push(cell.digit);
+        (regions[cell.region] ||= []).push(cell.digit)
+      })
+    })
+
+    return {
+      rows,
+      columns,
+      regions,
+    }
+  }
+
+  checkSolution(): boolean {
+    if (this.solution == this.digits) {
+      return true
+    }
+
+    return Object.values(this.checkGroups).every(
+      (groupType) => Object.values(groupType).every(
+        (group) => group.every(
+          (digit, i) => digit !== null && group.indexOf(digit) === i,
+        ),
+      ),
+    )
+  }
+
+  get digits(): Array<Array<number|null>> {
+    return this.cells.map((row) => row.map((cell) => cell.digit))
+  }
+
   private dimensionsForSize(size: number): { width: number; height: number } {
     const factors = []
     for (let i = 1; i <= Math.floor(Math.sqrt(size)); i += 1) {

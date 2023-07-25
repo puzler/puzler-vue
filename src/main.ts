@@ -14,7 +14,7 @@ app.use(router)
 app.use(vuetify)
 
 app.component(
-  'fa',
+  'faIcon',
   FaIcon,
 )
 

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ColorPalette } from '../types'
+import { ColorPalette } from '@/types'
 
 const useColorStore = defineStore('color', () => {
   const LOCAL_STORAGE_COLORS_KEY = 'puzler-color-palette'

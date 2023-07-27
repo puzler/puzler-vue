@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Controller, ControllerMode } from '../../types'
+import { Controller, ControllerMode } from '@/types'
 import useColorStore from '@/stores/color'
 const props = defineProps<{
   controller: Controller
@@ -56,6 +56,7 @@ const actionIcons = {
   delete: ['fas', 'delete-left'],
   editColors: ['fas', 'palette'],
   checkSolution: 'mdi-check',
+  editSettings: 'mdi-cog',
 }
 
 const actionBtns = [
@@ -63,6 +64,10 @@ const actionBtns = [
     action: 'checkSolution',
     tooltip: 'Answer Check',
   },
+  {
+    action: 'editSettings',
+    tooltip: 'Settings',
+  }
 ]
 </script>
 
@@ -77,7 +82,7 @@ const actionBtns = [
     )
       v-icon(
         :icon="actionIcons[btn.action]"
-        :size="30"
+        :size="25"
       )
   .spacer
   .mode-selectors
@@ -131,6 +136,7 @@ const actionBtns = [
   flex-direction column
   justify-content end
   gap 4px
+  padding 20px 0
   max-width 275px
   width 21cqw
   height 100cqh
@@ -144,6 +150,7 @@ const actionBtns = [
     display flex
     flex-direction column
     align-items start
+    gap 2px
     button.action-btn
       min-width unset
       height unset
@@ -190,22 +197,23 @@ const actionBtns = [
       justify-content space-between
       .numpad-btn
         min-width unset
-        padding 4cqmin
-        height calc(33cqmin - 2px)
-        width calc(33cqmin - 2px)
-        container-type inline-size
+        --btn-padding 4cqmin
+        padding var(--btn-padding)
+        --btn-size calc(33cqmin - 2px)
+        --btn-content-size calc(25cqmin - 2px)
+        height var(--btn-size)
+        width var(--btn-size)
         .btn-content-container
-          preview-size = 92cqmin
-          height preview-size
-          width preview-size
-          container-type size
+          --preview-size calc(var(--btn-content-size) * 0.98)
+          height var(--preview-size)
+          width var(--preview-size)
           .action-btn
-            height 60cqmin
-            width 60cqmin
-            padding 20cqmin
+            height calc(var(--btn-content-size) * 0.6)
+            width calc(var(--btn-content-size) * 0.6)
+            padding calc(var(--btn-content-size) / 5)
           .cell-preview
-            height 100cqmin
-            width 100cqmin
+            height var(--btn-content-size)
+            width var(--btn-content-size)
             border 0.5px solid #b2b2b2
             border-radius 4px
             &.number-input
@@ -213,31 +221,33 @@ const actionBtns = [
               align-items center
               justify-content center
               &.digit
-                font-size 75cqmin
+                font-size calc(var(--btn-content-size) * 0.75)
               &.center
-                font-size 40cqmin
+                font-size calc(var(--btn-content-size) * 0.4)
               &.corner
                 padding 3px
                 line-height 1
-                font-size 35cqmin
+                font-size calc(var(--btn-content-size) * 0.35)
                 align-items start
                 justify-content start
 
 @media screen and (max-width: 900px)
   .control-pad
-    container-type size
     flex-direction row
     height 40cqh
     width 100cqw
     max-width calc(60cqh - 20px)
     justify-content center
     gap 10px
+    container-type size
     .mode-selectors
       flex-direction column
+    .spacer
+      flex 0
     .numpad
       padding-right calc(10px + (25cqmin - 3px))
       .row
         .numpad-btn
-          height calc(25cqh - 3px)
-          width calc(25cqh - 3px)
+          --btn-size calc(25cqh - 3px)
+          --btn-content-size calc((25cqh - var(--btn-padding) - var(--btn-padding) - 3px))
 </style>

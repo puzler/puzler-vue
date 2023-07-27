@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Cell } from '../../types'
-import useColorStore from '../../stores/color'
+import { Cell } from '@/types'
+import useColorStore from '@/stores/color'
+import useSettingStore from '@/stores/setting'
 
 const props = defineProps<{
   cell: Cell
+  error: boolean
 }>()
 
 const emit = defineEmits(['mousedown', 'mouseenter'])
 const onMouseDown = (event: PointerEvent) => emit('mousedown', event, props.cell)
 const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, props.cell)
 
+const settingStore = useSettingStore()
 const colorStore = useColorStore()
 const colors = computed(() => colorStore.palette.colors)
 
@@ -58,7 +61,7 @@ const cellClasses = computed(() => {
     down,
   } = props.cell.neighbors
 
-  return [
+  const classes = [
     ...sideClasses(left, 'left'),
     ...sideClasses(right, 'right'),
     ...sideClasses(up, 'top'),
@@ -68,6 +71,12 @@ const cellClasses = computed(() => {
     ...cornerClasses([down, left], down?.neighbors.left, 'bottom-left'),
     ...cornerClasses([down, right], down?.neighbors.right, 'bottom-right'),
   ]
+
+  if (props.error && settingStore.userSettings.highlightConflicts) {
+    classes.push('error')
+  }
+
+  return classes
 })
 
 const centerMarkFontSize = computed(() => {
@@ -212,6 +221,13 @@ const cellColorStyle = computed(() => {
     left 0
     border var(--cellBorderWidth) solid black
     display flex
+
+    &.error .selected-border
+      background-color rgba(255, 0, 0, 0.25)
+      .digit
+        color #5829ac
+        &.given
+          color #480000
 
     &.left-region
       border-left-width var(--regionBorderWidth)

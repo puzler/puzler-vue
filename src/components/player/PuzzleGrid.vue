@@ -32,6 +32,7 @@ const gridStyle = computed(() => ({
         v-for="cell in row"
         :key="'cell-' + cell.address"
         :cell="cell"
+        :error="puzzle.errorAddresses.includes(cell.address)"
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
@@ -41,10 +42,10 @@ const gridStyle = computed(() => ({
 .grid-container
   height 100cqmin
   width 100cqmin
+  padding 20px 0
   max-height calc(79cqw - 20px)
   max-width calc(79cqw - 20px)
   display flex
-  container-type inline-size
   user-select none
   touch-action none
 
@@ -59,4 +60,5 @@ const gridStyle = computed(() => ({
   .grid-container
     max-height calc(60cqh - 20px)
     max-width calc(60cqh - 20px)
+    padding 20px 20px 0
 </style>

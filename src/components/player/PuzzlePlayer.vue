@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import useColorStore from '../../stores/color'
+import useColorStore from '@/stores/color'
+import useSettingStore from '@/stores/setting'
 import PuzzleGrid from './PuzzleGrid.vue'
 import ControlPad from './ControlPad.vue'
 import ColorPaletteEditor from './ColorPaletteEditor.vue'
+import SettingsEditor from './SettingsEditor.vue'
 import {
   Cell,
   Puzzle,
   Controller,
   ControllerMode,
-} from '../../types'
+} from '@/types'
 
 const props = defineProps<{
   base64String?: string;
@@ -17,6 +19,7 @@ const props = defineProps<{
   puzzle?: Puzzle;
 }>()
 
+const settingsStore = useSettingStore()
 const colorStore = useColorStore()
 const colorPalette = colorStore.palette
 
@@ -38,6 +41,7 @@ const modals = [
   'correctSolution',
   'incorrectSolution',
   'colorPaletteEditor',
+  'editSettings',
 ]
 
 const modalActivators = modals.reduce(
@@ -154,6 +158,8 @@ function handleActionInput(action: string, args = {} as Record<string, any>) {
       return handleEraseInput()
     case 'editColors':
       return modalActivators.colorPaletteEditor.click()
+    case 'editSettings':
+      return modalActivators.editSettings.click()
     case 'cycleColorPage': {
       let nextPageIndex = controller.value.colorPageIndex + 1
       if (nextPageIndex >= colorPalette.pages.length) {
@@ -190,7 +196,10 @@ function handleDigitInput(digit: number) {
         targetCells.forEach((cell) => cell.digit = digit)
       }
 
-      if (puzzle.value.checkSolution()) modalActivators.correctSolution.click()
+      if (settingsStore.userSettings.checkOnFinish && puzzle.value.checkSolution()) {
+        modalActivators.correctSolution.click()
+      }
+
       break
     case ControllerMode.center:
       if (targetCells.every((cell) => cell.centerMarks.includes(digit))) {
@@ -367,6 +376,9 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     :activator="modalActivators.colorPaletteEditor"
     :selectedPageIndex="controller.colorPageIndex"
   )
+  SettingsEditor(
+    :activator="modalActivators.editSettings"
+  )
   v-dialog(
     :activator="modalActivators.correctSolution"
   )
@@ -397,7 +409,6 @@ function cellClick(event: PointerEvent, cell?: Cell) {
   width 100cqw
   height 100cqh
   padding 20px
-  container-type size
   container-name player
   gap 20px
 

@@ -1,4 +1,4 @@
-import { unzip } from '../utils/puzzleZipper'
+import { unzip } from '@/utils/puzzleZipper'
 import type {
   ExtraRegion,
 } from './constraints'
@@ -111,6 +111,31 @@ export default class Puzzle {
       columns,
       regions,
     }
+  }
+
+  get errorAddresses(): Array<string> {
+    const { rows, columns, regions } = this.checkGroups
+    const errors = [] as Array<string>
+
+    this.cells.forEach((rowCells, row) => {
+      rowCells.forEach((cell, col) => {
+        if (cell.digit !== null) {
+          const groups = [
+            rows[row],
+            columns[col],
+            regions[cell.region],
+          ]
+
+          const duplicateFound = groups.some(
+            (group) => group.filter((d) => d === cell.digit).length > 1
+          )
+
+          if (duplicateFound) errors.push(cell.address)
+        }
+      })
+    })
+
+    return errors
   }
 
   checkSolution(): boolean {

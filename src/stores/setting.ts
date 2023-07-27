@@ -17,8 +17,16 @@ const useSettingStore = defineStore('setting', () => {
     })(),
   );
 
+  function saveSettings() {
+    localStorage.setItem(
+      LOCAL_STORAGE_SETTINGS_KEY,
+      userSettings.value.toJson(),
+    )
+  }
+
   return {
-    userSettings
+    userSettings,
+    saveSettings,
   }
 })
 

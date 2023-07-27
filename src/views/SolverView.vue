@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import PuzzlePlayer from '../components/player/PuzzlePlayer.vue'
+import PuzzlePlayer from '@/components/player/PuzzlePlayer.vue'
 
 const fPuzzle = useRoute().query.fPuzzle
 </script>

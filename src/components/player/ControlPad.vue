@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Controller, ControllerMode } from '@/types'
+import { Controller, ControllerMode, Timer } from '@/types'
 import useColorStore from '@/stores/color'
+import TimerControls from './TimerControls.vue'
+
 const props = defineProps<{
   controller: Controller
+  timer: Timer
 }>();
 const emit = defineEmits(['numpad-click', 'action-click'])
 
@@ -73,17 +76,19 @@ const actionBtns = [
 
 <template lang="pug">
 .control-pad
-  .action-btns
-    v-btn.action-btn(
-      v-for="btn in actionBtns"
-      :key="btn"
-      v-on:click="emit('action-click', btn.action)"
-      color="blue-grey"
-    )
-      v-icon(
-        :icon="actionIcons[btn.action]"
-        :size="25"
+  .top
+    .action-btns
+      v-btn.action-btn(
+        v-for="btn in actionBtns"
+        :key="btn"
+        v-on:click="emit('action-click', btn.action)"
+        color="blue-grey"
       )
+        v-icon(
+          :icon="actionIcons[btn.action]"
+          :size="25"
+        )
+    TimerControls(:timer="timer")
   .spacer
   .mode-selectors
     v-btn.mode-selector-btn(
@@ -146,16 +151,19 @@ const actionBtns = [
   .spacer
     flex 1
 
-  .action-btns
+  .top
     display flex
-    flex-direction column
-    align-items start
-    gap 2px
-    button.action-btn
-      min-width unset
-      height unset
-      padding 5px
-      border-radius 15%
+    justify-content space-between
+    .action-btns
+      display flex
+      flex-direction column
+      align-items start
+      gap 2px
+      button.action-btn
+        min-width unset
+        height unset
+        padding 5px
+        border-radius 15%
 
   .mode-selectors
     display flex

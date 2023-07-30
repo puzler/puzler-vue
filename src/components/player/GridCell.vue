@@ -312,11 +312,11 @@ const cellColorStyle = computed(() => {
       bottom 0
       right 0
       left 0
-      padding 1.2cqw
+      padding 0.1em 0.05em
       display grid
       .corner
-        font-size 2.5cqw
-        line-height 2cqw
+        font-size 0.25em
+        line-height 0.25em
         color var(--digitColor)
     .selected-border
       flex 1
@@ -326,7 +326,7 @@ const cellColorStyle = computed(() => {
       border 0px solid var(--selectedBorderColor)
       padding var(--selectedBorderWidth)
       .digit
-        font-size 0.7em
+        font-size 0.8em
         color var(--digitColor)
         line-height 0
 

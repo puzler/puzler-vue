@@ -9,6 +9,9 @@ export default class Puzzle {
   selectedAddresses: Array<string> = []
   solution?: Array<Array<number|null>>
   extraRegions?: Array<ExtraRegion>
+  title?: string
+  author?: string
+  rules?: string
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -50,7 +53,13 @@ export default class Puzzle {
     const unzipped = unzip(base64String)
     if (unzipped) {
       const json = JSON.parse(unzipped) as FPuzz
+      console.log(json)
       const puzzle = new Puzzle(json.size)
+
+      puzzle.title = json.title
+      puzzle.author = json.author
+      puzzle.rules = json.ruleset
+
       json.grid.forEach((row, i) => {
         row.forEach((cell, j) => {
           const puzzCell = puzzle.cells[i][j]
@@ -177,6 +186,9 @@ type FPuzz = {
   size: number
   grid: Array<Array<FPuzzCell>>
   extraregion?: Array<ExtraRegion>
+  title?: string
+  author?: string
+  ruleset?: string
 }
 
 type FPuzzCell = {

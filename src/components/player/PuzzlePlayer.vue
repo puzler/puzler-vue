@@ -11,6 +11,7 @@ import {
   Puzzle,
   Controller,
   ControllerMode,
+  Timer,
 } from '@/types'
 
 const props = defineProps<{
@@ -28,14 +29,35 @@ const puzzle = ref(
     if (props.base64String) return Puzzle.fromBase64String(props.base64String)
     // if (props.puzzleId) {} TODO Puzler API Implementation
     if (props.puzzle) return props.puzzle
-
+    
     return new Puzzle(9)
-  })()
+  })(),
 )
 
+
+const playTimerOnVisible = ref(false)
+const timer = ref(new Timer())
 const controller = ref(new Controller())
 const selecting = ref(false)
 const lastSelected = ref(null as null|{ row: number; col: number })
+
+if (!settingsStore.userSettings.startPaused) {
+  if (document.visibilityState === 'visible') {
+    timer.value.play()
+  } else {
+    playTimerOnVisible.value = true
+  }
+}
+
+function setTimerByVisibility() {
+  if (document.visibilityState === 'visible' && timer.value.paused && playTimerOnVisible.value) {
+    timer.value.play()
+    playTimerOnVisible.value = false
+  } else if (document.visibilityState === 'hidden' && !timer.value.paused) {
+    timer.value.pause()
+    playTimerOnVisible.value = true
+  }
+}
 
 const modals = [
   'correctSolution',
@@ -58,12 +80,14 @@ onMounted(() => {
   window.addEventListener('keydown', keyboardInput)
   window.addEventListener('keyup', releaseTempMode)
   window.addEventListener('mouseup', resetSelecting)
+  document.addEventListener('visibilitychange', setTimerByVisibility)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', keyboardInput)
   window.removeEventListener('keyup', releaseTempMode)
   window.removeEventListener('mouseup', resetSelecting)
+  document.removeEventListener('visibilitychange', setTimerByVisibility)
 })
 
 function resetSelecting() {
@@ -391,10 +415,12 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     .message-modal Something seems wrong
   PuzzleGrid(
     :puzzle="puzzle"
+    :gamePaused="timer.paused"
     v-on:cell-enter="cellEnter"
     v-on:cell-click="cellClick"
   )
   ControlPad(
+    :timer="timer"
     :controller="controller"
     v-on:numpad-click="handleDigitInput"
     v-on:action-click="handleActionInput"

@@ -4,17 +4,20 @@ import { computed } from 'vue';
 import { Puzzle } from '@/types'
 
 const props = defineProps<{
-  puzzle: Puzzle;
+  puzzle: Puzzle
+  gamePaused: boolean
 }>()
- 
-const emit = defineEmits(
-  ['cell-click', 'cell-enter'],
-)
+
+const emit = defineEmits([
+  'cell-click',
+  'cell-enter',
+  'play-puzzle',
+])
 
 const gridStyle = computed(() => ({
   gridTemplateRows: `repeat(${props.puzzle.size}, auto)`,
-  fontSize: `${100 / props.puzzle.size}cqw`,
-  '--selectedBorderWidth': `${10 / props.puzzle.size}cqw`,
+  fontSize: `${100 / props.puzzle.size}cqmin`,
+  '--selectedBorderWidth': `${10 / props.puzzle.size}cqmin`,
 }))
 </script>
 
@@ -36,6 +39,18 @@ const gridStyle = computed(() => ({
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
+    .grid-overlay(v-if="gamePaused")
+      .overlay-details
+        .puzzle-info
+          .title {{ puzzle.title || 'No Title Given' }}
+          .author(v-if="puzzle.author") By: {{ puzzle.author }}
+          .rules
+            span Rules
+            .ruleset {{ puzzle.rules || 'No Rules Given' }}
+        v-btn.play-btn(
+          v-on:mousedown="emit('play-puzzle')"
+          :append-icon="'mdi-play'"
+        ) Play
 </template>
 
 <style scoped lang="stylus">
@@ -48,13 +63,51 @@ const gridStyle = computed(() => ({
   display flex
   user-select none
   touch-action none
+  container-type inline-size
 
   .grid
     display grid
+    position relative
     flex 1
 
     .row
       display grid
+
+    .grid-overlay
+      position absolute
+      top -10px
+      bottom -10px
+      left -10px
+      right -10px
+      z-index 1
+      backdrop-filter blur(10px)
+      border 10px solid var(--color-background-soft)
+      background-color rgba(0, 0, 0, 0.3)
+      display flex
+      align-items center
+      justify-content center
+      font-size 0.25em
+      .overlay-details
+        background-color var(--color-background-soft)
+        width 60%
+        border-radius 10px
+        padding 20px
+        display flex
+        flex-direction column
+        .title
+          line-height 1
+          font-size 1.25em
+        .rules
+          margin 10px 0
+          .ruleset
+            font-size 0.75em
+            background-color #e2f0f6
+            border-radius 5px
+            padding 5px 10px
+            min-height 15cqw
+            max-height 25cqw
+            overflow-y auto
+            white-space pre-wrap
 
 @media screen and (max-width: 900px)
   .grid-container

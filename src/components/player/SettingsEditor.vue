@@ -17,6 +17,15 @@ v-dialog(
   .modal-container
     .settings
       .setting
+        .label Start Paused
+        v-switch(
+          inset
+          v-model="settings.startPaused"
+          :color="settings.startPaused ? 'green' : 'light'"
+          :hide-details="true"
+          density="compact"
+        )
+      .setting
         .label Highlight Conflicts
         v-switch(
           inset

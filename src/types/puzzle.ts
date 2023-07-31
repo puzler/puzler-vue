@@ -61,7 +61,6 @@ export default class Puzzle {
     const unzipped = unzip(base64String)
     if (unzipped) {
       const json = JSON.parse(unzipped) as FPuzzle
-      console.log(json)
       return Puzzle.fromFPuzzle(json)
     }
 
@@ -69,6 +68,7 @@ export default class Puzzle {
   }
 
   static fromFPuzzle(fPuzzle: FPuzzle) {
+    console.log(fPuzzle)
     const puzzle = new Puzzle(fPuzzle.size)
 
     puzzle.title = fPuzzle.title

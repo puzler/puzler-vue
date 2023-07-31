@@ -1,5 +1,5 @@
-import type { ExtraRegion } from './extra-region'
+import type { KillerCage } from './killer-cage'
 
 export type {
-  ExtraRegion,
+  KillerCage,
 }

@@ -9,8 +9,19 @@ const props = defineProps<{
   error: boolean
 }>()
 
-const emit = defineEmits(['mousedown', 'mouseenter'])
-const onMouseDown = (event: PointerEvent) => emit('mousedown', event, props.cell)
+const emit = defineEmits(['mousedown', 'mouseenter', 'double-click'])
+
+let lastMouseDown = null as null|number
+function onMouseDown(event: PointerEvent) {
+  const clickTime = Date.now()
+  if (!!lastMouseDown && clickTime - lastMouseDown <= 500) {
+    emit('double-click', event, props.cell)
+    lastMouseDown = null
+  } else {
+    emit('mousedown', event, props.cell)
+    lastMouseDown = Date.now()
+  }
+}
 const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, props.cell)
 
 const settingStore = useSettingStore()
@@ -279,7 +290,7 @@ const cellColorPaths = computed(() => {
 
 .cell-container
   position relative
-  --selectedBorderColor #62A4FF
+  --selectedBorderColor rgba(0 107 255 0.5)
   --digitColor #1D69E5
   --cellBorderWidth 0.5px
   --regionBorderWidth 2px

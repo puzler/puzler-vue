@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GridCell from './GridCell.vue'
+import KillerCage from './constraints/KillerCage.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
 
@@ -9,6 +10,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits([
+  'cell-double--click',
   'cell-click',
   'cell-enter',
   'play-puzzle',
@@ -26,6 +28,18 @@ const gridStyle = computed(() => ({
   .grid(
     :style="gridStyle"
   )
+    svg.constraints(
+        height="100%"
+        width="100%"
+        :viewBox="`0 0 ${puzzle.size * 100} ${puzzle.size * 100}`"
+        preserveAspectRatio="none"
+      )
+        KillerCage(
+          v-for="cage, i in puzzle.cages"
+          :key="'cage-' + i"
+          :cage="cage"
+          :puzzle-size="puzzle.size"
+        )
     .row(
       v-for="row, r in props.puzzle.cells"
       :key="'grid-row-' + r"
@@ -36,6 +50,7 @@ const gridStyle = computed(() => ({
         :key="'cell-' + cell.address"
         :cell="cell"
         :error="puzzle.errorAddresses.includes(cell.address)"
+        v-on:double-click="(event, cell) => emit('cell-double-click', event, cell)"
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
@@ -75,6 +90,10 @@ const gridStyle = computed(() => ({
 
     .row
       display grid
+
+    .constraints
+      position absolute
+      pointer-events none
 
     .grid-overlay
       position absolute

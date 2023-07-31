@@ -1,17 +1,21 @@
 import { unzip } from '@/utils/puzzleZipper'
 import type {
-  ExtraRegion,
+  FPuzzle,
+} from './f-puzzle'
+import type {
+  KillerCage,
 } from './constraints'
 
 export default class Puzzle {
   size: number
   cells: Array<Array<Cell>>
   selectedAddresses: Array<string> = []
-  solution?: Array<Array<number|null>>
-  extraRegions?: Array<ExtraRegion>
+  solution?: Array<number|null>
+  successMessage?: string
   title?: string
   author?: string
   rules?: string
+  cages?: Array<KillerCage>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -52,27 +56,59 @@ export default class Puzzle {
   static fromBase64String(base64String: string): Puzzle {
     const unzipped = unzip(base64String)
     if (unzipped) {
-      const json = JSON.parse(unzipped) as FPuzz
+      const json = JSON.parse(unzipped) as FPuzzle
       console.log(json)
-      const puzzle = new Puzzle(json.size)
-
-      puzzle.title = json.title
-      puzzle.author = json.author
-      puzzle.rules = json.ruleset
-
-      json.grid.forEach((row, i) => {
-        row.forEach((cell, j) => {
-          const puzzCell = puzzle.cells[i][j]
-          if (cell.region !== undefined) puzzCell.region = cell.region
-          if (cell.value !== undefined) puzzCell.digit = cell.value
-          if (cell.given !== undefined) puzzCell.given = cell.given
-        })
-      })
-
-      return puzzle
+      return Puzzle.fromFPuzzle(json)
     }
 
     return new Puzzle(9)
+  }
+
+  static fromFPuzzle(fPuzzle: FPuzzle) {
+    const puzzle = new Puzzle(fPuzzle.size)
+
+    puzzle.title = fPuzzle.title
+    puzzle.author = fPuzzle.author
+    puzzle.rules = fPuzzle.ruleset
+    puzzle.solution = fPuzzle.solution
+
+    fPuzzle.grid.forEach((row, i) => {
+      row.forEach((cell, j) => {
+        const puzzCell = puzzle.cells[i][j]
+        if (cell.region !== undefined) puzzCell.region = cell.region
+        if (cell.value !== undefined) puzzCell.digit = cell.value
+        if (cell.given !== undefined) puzzCell.given = cell.given
+      })
+    })
+
+    puzzle.cages = [
+      ...fPuzzle.cage?.reduce((cages, cage) => {
+          if (cage.value?.startsWith('msgcorrect')) {
+            puzzle.successMessage = cage.value.replace('msgcorrect: ', '')
+            return cages
+          }
+
+          return [
+            ...cages,
+            {
+              ...cage,
+              cosmetic: true,
+            },
+          ]
+        },
+        [] as Array<KillerCage>,
+      ) || [],
+      ...fPuzzle.killercage?.map((cage) => ({
+        ...cage,
+        cosmetic: false,
+      })) || [],
+      ...fPuzzle.extraregion?.map((region) => ({
+        ...region,
+        cosmetic: false,
+      })) || [],
+    ]
+
+    return puzzle
   }
 
   deselectAll() {
@@ -148,7 +184,7 @@ export default class Puzzle {
   }
 
   checkSolution(): boolean {
-    if (this.solution == this.digits) {
+    if (this.solution === this.digits) {
       return true
     }
 
@@ -161,8 +197,8 @@ export default class Puzzle {
     )
   }
 
-  get digits(): Array<Array<number|null>> {
-    return this.cells.map((row) => row.map((cell) => cell.digit))
+  get digits(): Array<number|null> {
+    return this.cells.flatMap((row) => row.map((cell) => cell.digit))
   }
 
   private dimensionsForSize(size: number): { width: number; height: number } {
@@ -180,21 +216,6 @@ export default class Puzzle {
       height: factors[Math.floor((factors.length - 1) / 2)],
     }
   }
-}
-
-type FPuzz = {
-  size: number
-  grid: Array<Array<FPuzzCell>>
-  extraregion?: Array<ExtraRegion>
-  title?: string
-  author?: string
-  ruleset?: string
-}
-
-type FPuzzCell = {
-  value?: number
-  region?: number
-  given?: boolean
 }
 
 type CellConstructor = {
@@ -240,8 +261,6 @@ export {
 }
 
 export type {
-  FPuzz,
-  FPuzzCell,
   CellConstructor,
   CellNeighbors,
 }

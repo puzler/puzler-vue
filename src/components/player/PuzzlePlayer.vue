@@ -394,6 +394,67 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     lastSelected.value = cell.coordinates
   }
 }
+
+function cellDoubleClick(event: PointerEvent, cell: Cell) {
+  if (event.target instanceof HTMLElement) {
+    event.target.releasePointerCapture(event.pointerId)
+  }
+
+  selecting.value = true
+  const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
+  if (!addToCurrentSelections) {
+    puzzle.value.deselectAll()
+  }
+  lastSelected.value = cell.coordinates
+
+  let modeToTarget: ControllerMode
+  if (controller.value.mode === ControllerMode.color && cell.cellColors.length) {
+    modeToTarget = ControllerMode.color
+  } else if (cell.digit !== null) {
+    modeToTarget = ControllerMode.digit
+  } else if (controller.value.mode === ControllerMode.center && cell.centerMarks.length) {
+    modeToTarget = ControllerMode.center
+  } else if (controller.value.mode === ControllerMode.corner && cell.cornerMarks.length) {
+    modeToTarget = ControllerMode.corner
+  } else if (cell.centerMarks.length) {
+    modeToTarget = ControllerMode.center
+  } else if (cell.cornerMarks.length) {
+    modeToTarget = ControllerMode.corner
+  } else if (cell.cellColors.length) {
+    modeToTarget = ControllerMode.color
+  } else {
+    cell.selected = true
+    return
+  }
+
+  puzzle.value.cells.forEach((row) => {
+    row.forEach((checkCell) => {
+      switch (modeToTarget) {
+        case ControllerMode.digit:
+          if (checkCell.digit === cell.digit) checkCell.selected = true
+          break
+        case ControllerMode.center: {
+          if (cell.centerMarks.every((num) => checkCell.centerMarks.includes(num))) {
+            checkCell.selected = true
+          }
+          break
+        }
+        case ControllerMode.corner: {
+          if (cell.cornerMarks.every((num) => checkCell.cornerMarks.includes(num))) {
+            checkCell.selected = true
+          }
+          break
+        }
+        case ControllerMode.color: {
+          if (cell.cellColors.every((key) => checkCell.cellColors.includes(key))) {
+            checkCell.selected = true
+          }
+          break
+        }
+      }
+    })
+  })
+}
 </script>
 
 <template lang="pug">
@@ -420,6 +481,7 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     :timer="timer"
     v-on:cell-enter="cellEnter"
     v-on:cell-click="cellClick"
+    v-on:cell-double-click="cellDoubleClick"
     v-on:play-puzzle="timer.play()"
   )
   ControlPad(

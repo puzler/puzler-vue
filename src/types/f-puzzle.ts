@@ -1,6 +1,9 @@
 import type {
   KillerCage,
 } from './constraints'
+import type {
+  Text
+} from './cosmetics'
 
 type FPuzzle = {
   size: number
@@ -9,9 +12,10 @@ type FPuzzle = {
   author?: string
   ruleset?: string
   solution?: Array<number|null>
-  cage: Array<KillerCage>
-  killercage: Array<KillerCage>
-  extraregion: Array<KillerCage>
+  cage?: Array<KillerCage>
+  killercage?: Array<KillerCage>
+  extraregion?: Array<KillerCage>
+  text?: Array<Text>
 }
 
 type FPuzzleCell = {

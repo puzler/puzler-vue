@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { KillerCage } from '../../../types'
+import { Puzzle, type KillerCage } from '../../../types'
 const props = defineProps<{
   cage: KillerCage
-  puzzleSize: number
+  puzzle: Puzzle
 }>()
 
 type Coordinates = {
@@ -30,6 +30,14 @@ const topLeftCoords = cellCoordinates.reduce(
   cellCoordinates[0],
 )
 
+const startXY = computed(() => {
+  return xyForLocation({
+    coords: topLeftCoords,
+    right: false,
+    bottom: false,
+  })
+})
+
 function coordsInCage(coords: Coordinates) {
   return props.cage.cells.includes(
     coordsToAddress(coords)
@@ -46,43 +54,47 @@ function xyForLocation(location: GridLocation) {
   let x = location.coords.col * 100 + 5
   let y = location.coords.row * 100 + 5
 
+  if (props.puzzle.hasOuterElements) {
+    x += 100
+    y += 100
+  }
+
   if (location.right) x += 90
   if (location.bottom) y += 90
 
   if (location.coords.col === 0 && !location.right) {
     x += 2
-  } else if (location.coords.col === props.puzzleSize - 1 && location.right) {
+  } else if (location.coords.col === props.puzzle.size - 1 && location.right) {
     x -= 2
   }
 
   if (location.coords.row === 0 && !location.bottom) {
     y += 2
-  } else if (location.coords.row === props.puzzleSize - 1 && location.bottom) {
+  } else if (location.coords.row === props.puzzle.size - 1 && location.bottom) {
     y -= 2
   }
 
-  return `${x} ${y}`
+  return { x, y, forSvg: `${x} ${y}` }
 }
 
 const pathData = computed(() => {
-  console.log('calculating for cage', props.cage.cells)
   let currentLocation = {
     coords: { ...topLeftCoords },
     bottom: false,
     right: false,
   } as GridLocation
-  console.log(currentLocation)
 
-  const startXY = xyForLocation(currentLocation)
   let direction = 'right'
 
-  const data = [`M${startXY}`]
+  const data = [`M${startXY.value.forSvg}`]
+  if (props.cage.value) {
+    data[0] = `M${startXY.value.x + ((115 / props.puzzle.size) * props.cage.value.length)} ${startXY.value.y}`
+  }
 
   currentLocation.right = true
-  data.push(`L${xyForLocation(currentLocation)}`)
+  data.push(`L${xyForLocation(currentLocation).forSvg}`)
 
-  while (xyForLocation(currentLocation) !== startXY) {
-    console.log(currentLocation)
+  while (xyForLocation(currentLocation).forSvg !== startXY.value.forSvg) {
     switch (direction) {
       case 'right': {
         if (currentLocation.right) {
@@ -206,7 +218,11 @@ const pathData = computed(() => {
       }
     }
 
-    data.push(`L${xyForLocation(currentLocation)}`)
+    data.push(`L${xyForLocation(currentLocation).forSvg}`)
+  }
+
+  if (props.cage.value) {
+    data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + (145 / props.puzzle.size)}`
   }
   
   return data
@@ -217,17 +233,10 @@ const pathData = computed(() => {
 path.cage-path(
   :d="pathData"
 )
-rect.cage-value-back(
-  v-if="cage.value"
-  :x="topLeftCoords.col * 100 + 2"
-  :y="topLeftCoords.row * 100 + 2"
-  :width="cage.value.length * 10"
-  height="15"
-)
 text.cage-value(
   v-if="cage.value"
-  :x="topLeftCoords.col * 100 + 2"
-  :y="topLeftCoords.row * 100 + 2"
+  :x="startXY.x - 2"
+  :y="startXY.y - 2"
 ) {{ cage.value }}
 </template>
 
@@ -237,15 +246,11 @@ text.cage-value(
   stroke #000000
   stroke-width 1.5
   stroke-dasharray 10 5
+  shape-rendering geometric-precision
   vector-effect non-scaling-stroke
 .cage-value
-  font-size 0.15em
-  font-weight 500
+  font-size 0.2em
   text-anchor start
   dominant-baseline hanging
-  stroke #ffffff
-  stroke-width 0.5
   fill #000000
-.cage-value-back
-  fill rgba(255, 255, 255, 0.9)
 </style>

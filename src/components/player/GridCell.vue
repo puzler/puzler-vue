@@ -220,11 +220,8 @@ const cellColorPaths = computed(() => {
 
     let currentPoint = start
     while (currentPoint < end) {
-      const offset = (currentPoint + 75) % 100
-      const toAdd = 100 - offset
-      console.log(currentPoint, offset, toAdd, lineToValue(currentPoint + toAdd))
       data.push(lineToValue(currentPoint))
-      currentPoint += toAdd
+      currentPoint += 100 - ((currentPoint + 75) % 100)
     }
 
     return {
@@ -403,6 +400,7 @@ const cellColorPaths = computed(() => {
         line-height 0.25em
         color var(--digitColor)
     .selected-border
+      z-index 2
       flex 1
       display flex
       align-items center

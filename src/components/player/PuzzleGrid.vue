@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GridCell from './GridCell.vue'
 import KillerCage from './constraints/KillerCage.vue'
+import TextCosmetic from './constraints/TextCosmetic.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
 
@@ -16,35 +17,36 @@ const emit = defineEmits([
   'play-puzzle',
 ])
 
-const gridStyle = computed(() => ({
-  gridTemplateRows: `repeat(${props.puzzle.size}, auto)`,
-  fontSize: `${100 / props.puzzle.size}cqmin`,
-  '--selectedBorderWidth': `${10 / props.puzzle.size}cqmin`,
-}))
+const effectiveSize = computed(() => {
+  if (props.puzzle.hasOuterElements) return props.puzzle.size + 2
+  return props.puzzle.size
+})
 </script>
 
 <template lang="pug">
-.grid-container
-  .grid(
-    :style="gridStyle"
+.grid-container(:style="{ '--puzzleSize': effectiveSize }")
+  svg.constraints(
+    :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
   )
-    svg.constraints(
-        height="100%"
-        width="100%"
-        :viewBox="`0 0 ${puzzle.size * 100} ${puzzle.size * 100}`"
-        preserveAspectRatio="none"
-      )
-        KillerCage(
-          v-for="cage, i in puzzle.cages"
-          :key="'cage-' + i"
-          :cage="cage"
-          :puzzle-size="puzzle.size"
-        )
+    KillerCage(
+      v-for="cage, i in puzzle.cages"
+      :key="'cage-' + i"
+      :cage="cage"
+      :puzzle="puzzle"
+    )
+    TextCosmetic(
+      v-for="text, i in puzzle.text"
+      :key="'text-' + i"
+      :text="text"
+      :puzzle="puzzle"
+    )
+  .grid
+    .top-spacer.row(v-if="puzzle.hasOuterElements")
     .row(
       v-for="row, r in props.puzzle.cells"
       :key="'grid-row-' + r"
-      :style="{ gridTemplateColumns: `repeat(${puzzle.size}, auto)` }"
     )
+      .left-spacer(v-if="puzzle.hasOuterElements")
       GridCell(
         v-for="cell in row"
         :key="'cell-' + cell.address"
@@ -54,6 +56,8 @@ const gridStyle = computed(() => ({
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
+      .right-spacer(v-if="puzzle.hasOuterElements")
+    .bottom-spacer.row(v-if="puzzle.hasOuterElements")
     .grid-overlay(
       v-if="timer.paused"
       v-on:click="emit('play-puzzle')"
@@ -73,9 +77,9 @@ const gridStyle = computed(() => ({
 
 <style scoped lang="stylus">
 .grid-container
+  position relative
   height 100cqmin
   width 100cqmin
-  padding 20px 0
   max-height calc(79cqw - 20px)
   max-width calc(79cqw - 20px)
   display flex
@@ -83,17 +87,26 @@ const gridStyle = computed(() => ({
   touch-action none
   container-type inline-size
 
+  svg.constraints
+    position absolute
+    pointer-events none
+    vector-effect non-scaling-stroke
+    width 100%
+    height 100%
+    font-size calc(100cqw / var(--puzzleSize))
+    z-index 1
+
   .grid
     display grid
     position relative
+    font-size calc(100cqw / var(--puzzleSize))
     flex 1
+    grid-template-rows repeat(var(--puzzleSize), auto)
+    --selectedBorderWidth calc(10cqmin / var(--puzzleSize))
 
     .row
       display grid
-
-    .constraints
-      position absolute
-      pointer-events none
+      grid-template-columns repeat(var(--puzzleSize), auto)
 
     .grid-overlay
       position absolute
@@ -101,7 +114,7 @@ const gridStyle = computed(() => ({
       bottom -10px
       left -10px
       right -10px
-      z-index 1
+      z-index 3
       backdrop-filter blur(10px)
       border 10px solid var(--color-background-soft)
       background-color rgba(0, 0, 0, 0.3)

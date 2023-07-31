@@ -500,6 +500,7 @@ function cellDoubleClick(event: PointerEvent, cell: Cell) {
   width 100cqw
   height 100cqh
   padding 20px
+  container-type size
   container-name player
   gap 20px
 

@@ -7,6 +7,9 @@ import type { CellNeighbors } from './puzzle'
 import type {
   KillerCage
 } from './constraints'
+import type {
+  Text
+} from './cosmetics'
 
 export {
   Puzzle,
@@ -21,4 +24,5 @@ export {
 export type {
   CellNeighbors,
   KillerCage,
+  Text,
 }

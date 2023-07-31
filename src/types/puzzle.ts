@@ -5,6 +5,9 @@ import type {
 import type {
   KillerCage,
 } from './constraints'
+import type {
+  Text
+} from './cosmetics'
 
 export default class Puzzle {
   size: number
@@ -16,6 +19,7 @@ export default class Puzzle {
   author?: string
   rules?: string
   cages?: Array<KillerCage>
+  text?: Array<Text>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -107,6 +111,8 @@ export default class Puzzle {
         cosmetic: false,
       })) || [],
     ]
+
+    puzzle.text = fPuzzle.text
 
     return puzzle
   }
@@ -215,6 +221,24 @@ export default class Puzzle {
       width: factors[Math.ceil((factors.length - 1) / 2)],
       height: factors[Math.floor((factors.length - 1) / 2)],
     }
+  }
+
+  get hasOuterElements() {
+    const hasOuterText = this.text?.some(({ cells }) => {
+      return cells.some((address) => {
+        const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
+        if (!match) return false
+
+        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
+        if (row <= 0 || row > this.size) return true
+        if (col <= 0 || col > this.size) return true
+
+        return false
+      })
+    })
+    if (hasOuterText) return true
+
+    return false
   }
 }
 

@@ -80,7 +80,6 @@ function toggleTimer() {
       font-size 10cqw
       line-height 0
 
-
 @media screen and (max-width: 900px)
   .timer-container
     padding-top 4px

@@ -93,7 +93,7 @@ const effectiveSize = computed(() => {
     vector-effect non-scaling-stroke
     width 100%
     height 100%
-    font-size calc(100cqw / var(--puzzleSize))
+    font-size 100px
     z-index 1
 
   .grid

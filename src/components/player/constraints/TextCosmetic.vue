@@ -59,7 +59,7 @@ const position = computed(() => {
 })
 
 const dynamicStyle = computed(() => ({
-  fontSize: `${props.text.size * 0.6}em`,
+  fontSize: `${props.text.size}em`,
   fill: props.text.fontC,
 }))
 </script>

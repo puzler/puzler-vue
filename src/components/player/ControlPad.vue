@@ -90,66 +90,63 @@ const actionBtns = [
         )
     TimerControls(:timer="timer")
   .spacer
-  .mode-selectors
-    v-btn.mode-selector-btn(
-      v-for="mode in modes"
-      :key="'mode-btn-' + mode"
-      :ripple="false"
-      v-on:pointerdown.stop="setMode(ControllerMode[mode])"
-      :active="controller.activeMode === ControllerMode[mode]"
-      :color="controller.activeMode === ControllerMode[mode] ? 'blue-grey' : 'light'"
-    )
-      .mode-btn-content
-        .mode {{ mode }}
-        .page-indicators(
-          v-if="mode === ControllerMode[ControllerMode.color] && controller.activeMode === ControllerMode[mode]"
-        )
-          .indicator(
-            v-for="i in colorPalette.pages.length"
-            :key="'color-page-indicator-' + i"
-            :class="{ active: controller.colorPageIndex === i - 1 }"
-          )
-  .numpad
-    .row(
-      v-for="row, i in numpad"
-      :key="'numpad-row-' + i"
-    )
-      v-btn.numpad-btn(
-        v-for="digit in row"
-        :key="'numpad-btn-' + digit"
+  .bottom
+    .mode-selectors
+      v-btn.mode-selector-btn(
+        v-for="mode in modes"
+        :key="'mode-btn-' + mode"
         :ripple="false"
-        v-on:pointerdown.stop="handleClick(digit)"
+        v-on:pointerdown.stop="setMode(ControllerMode[mode])"
+        :active="controller.activeMode === ControllerMode[mode]"
+        :color="controller.activeMode === ControllerMode[mode] ? 'blue-grey' : 'light'"
       )
-        .btn-content-container
-          faIcon.action-btn(
-            v-if="typeof digit === 'string'"
-            :icon="actionIcons[digit]"
+        .mode-btn-content
+          .mode {{ mode }}
+          .page-indicators(
+            v-if="mode === ControllerMode[ControllerMode.color] && controller.activeMode === ControllerMode[mode]"
           )
-          .cell-preview.color-swatch(
-            v-else-if="controller.activeMode === ControllerMode.color"
-            :style="{ backgroundColor: colorPalette.colors[colorPage[digit]] }"
-          )
-          .cell-preview.number-input(
-            v-else
-            :class="ControllerMode[controller.activeMode]"
-          ) {{ digit }}
+            .indicator(
+              v-for="i in colorPalette.pages.length"
+              :key="'color-page-indicator-' + i"
+              :class="{ active: controller.colorPageIndex === i - 1 }"
+            )
+    .numpad
+      .row(
+        v-for="row, i in numpad"
+        :key="'numpad-row-' + i"
+      )
+        v-btn.numpad-btn(
+          v-for="digit in row"
+          :key="'numpad-btn-' + digit"
+          :ripple="false"
+          v-on:pointerdown.stop="handleClick(digit)"
+        )
+          .btn-content-container
+            faIcon.action-btn(
+              v-if="typeof digit === 'string'"
+              :icon="actionIcons[digit]"
+            )
+            .cell-preview.color-swatch(
+              v-else-if="controller.activeMode === ControllerMode.color"
+              :style="{ backgroundColor: colorPalette.colors[colorPage[digit]] }"
+            )
+            .cell-preview.number-input(
+              v-else
+              :class="ControllerMode[controller.activeMode]"
+            ) {{ digit }}
 </template>
 
 <style scoped lang="stylus">
 .control-pad
   display flex
   flex-direction column
-  justify-content end
+  justify-content space-between
   gap 4px
-  padding 20px 0
   max-width 275px
   width 21cqw
   height 100cqh
   max-height calc(79cqw - 20px)
   container-type inline-size
-
-  .spacer
-    flex 1
 
   .top
     display flex
@@ -165,97 +162,108 @@ const actionBtns = [
         padding 5px
         border-radius 15%
 
-  .mode-selectors
-    display flex
-    gap 4px
-    touch-action none
-    .mode-selector-btn
-      height calc(25cqmin - 3px)
-      width calc(25cqmin - 3px)
-      padding 0 5cqmin
-      min-width unset
-      .mode-btn-content
-        display flex
-        flex-direction column
-        justify-content center
-        gap 2px
-        font-size 4cqmin
-        .page-indicators
-          display flex
-          justify-content center
-          position absolute
-          bottom 10%
-          left 0
-          right 0
-          gap 5px
-          .indicator
-            height 5px
-            width 5px
-            background-color #dddddd
-            border-radius 50%
-            &.active
-              background-color #333333
-  .numpad
+  .bottom
     display flex
     flex-direction column
-    gap 4px
-    .row
+    gap 5px
+    .mode-selectors
       display flex
       gap 4px
-      justify-content space-between
-      .numpad-btn
+      touch-action none
+      .mode-selector-btn
+        height calc(25cqmin - 3px)
+        width calc(25cqmin - 3px)
+        padding 0 5cqmin
         min-width unset
-        --btn-padding 4cqmin
-        padding var(--btn-padding)
-        --btn-size calc(33cqmin - 2px)
-        --btn-content-size calc(25cqmin - 2px)
-        height var(--btn-size)
-        width var(--btn-size)
-        .btn-content-container
-          --preview-size calc(var(--btn-content-size) * 0.98)
-          height var(--preview-size)
-          width var(--preview-size)
-          .action-btn
-            height calc(var(--btn-content-size) * 0.6)
-            width calc(var(--btn-content-size) * 0.6)
-            padding calc(var(--btn-content-size) / 5)
-          .cell-preview
-            height var(--btn-content-size)
-            width var(--btn-content-size)
-            border 0.5px solid #b2b2b2
-            border-radius 4px
-            &.number-input
-              display flex
-              align-items center
-              justify-content center
-              &.digit
-                font-size calc(var(--btn-content-size) * 0.75)
-              &.center
-                font-size calc(var(--btn-content-size) * 0.4)
-              &.corner
-                padding 3px
-                line-height 1
-                font-size calc(var(--btn-content-size) * 0.35)
-                align-items start
-                justify-content start
+        .mode-btn-content
+          display flex
+          flex-direction column
+          justify-content center
+          gap 2px
+          font-size 4cqmin
+          .page-indicators
+            display flex
+            justify-content center
+            position absolute
+            bottom 10%
+            left 0
+            right 0
+            gap 5px
+            .indicator
+              height 5px
+              width 5px
+              background-color #dddddd
+              border-radius 50%
+              &.active
+                background-color #333333
+    .numpad
+      display flex
+      flex-direction column
+      gap 4px
+      .row
+        display flex
+        gap 4px
+        justify-content space-between
+        .numpad-btn
+          min-width unset
+          --btn-padding 4cqmin
+          padding var(--btn-padding)
+          --btn-size calc(33cqmin - 2px)
+          --btn-content-size calc(25cqmin - 2px)
+          height var(--btn-size)
+          width var(--btn-size)
+          .btn-content-container
+            --preview-size calc(var(--btn-content-size) * 0.98)
+            height var(--preview-size)
+            width var(--preview-size)
+            .action-btn
+              height calc(var(--btn-content-size) * 0.6)
+              width calc(var(--btn-content-size) * 0.6)
+              padding calc(var(--btn-content-size) / 5)
+            .cell-preview
+              height var(--btn-content-size)
+              width var(--btn-content-size)
+              border 0.5px solid #b2b2b2
+              border-radius 4px
+              &.number-input
+                display flex
+                align-items center
+                justify-content center
+                &.digit
+                  font-size calc(var(--btn-content-size) * 0.75)
+                &.center
+                  font-size calc(var(--btn-content-size) * 0.4)
+                &.corner
+                  padding 3px
+                  line-height 1
+                  font-size calc(var(--btn-content-size) * 0.35)
+                  align-items start
+                  justify-content start
 
 @media screen and (max-width: 900px)
   .control-pad
-    flex-direction row
     height 40cqh
     width 100cqw
     max-width calc(60cqh - 20px)
     justify-content center
-    gap 10px
+    gap 5px
     container-type size
-    .mode-selectors
-      flex-direction column
-    .spacer
-      flex 0
-    .numpad
-      padding-right calc(10px + (25cqmin - 3px))
-      .row
-        .numpad-btn
-          --btn-size calc(25cqh - 3px)
-          --btn-content-size calc((25cqh - var(--btn-padding) - var(--btn-padding) - 3px))
+    flex-direction row-reverse
+
+    .top
+      flex-direction column-reverse
+      width calc(25cqmin - 3px)
+      .action-btns
+        flex-direction column
+    .bottom
+      flex-direction row
+      .mode-selectors
+        flex-direction column
+      .spacer
+        flex 0
+      .numpad
+        .row
+          .numpad-btn
+            --btn-size calc(25cqh - 3px)
+            --btn-content-size calc((25cqh - var(--btn-padding) - var(--btn-padding) - 3px))
 </style>

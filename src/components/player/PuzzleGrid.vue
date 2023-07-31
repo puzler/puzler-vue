@@ -148,5 +148,10 @@ const effectiveSize = computed(() => {
   .grid-container
     max-height calc(60cqh - 20px)
     max-width calc(60cqh - 20px)
-    padding 20px 20px 0
+    .grid
+      .grid-overlay
+        .overlay-details
+          width 95%
+          font-size 2em
+          padding 10px
 </style>

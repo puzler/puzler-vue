@@ -79,4 +79,19 @@ function toggleTimer() {
     .timer-display
       font-size 10cqw
       line-height 0
+
+
+@media screen and (max-width: 900px)
+  .timer-container
+    padding-top 4px
+    .timer-controls
+      flex-direction column-reverse
+      align-items center
+      justify-content center
+      .toggle-btn
+        height 10cqmin
+        width 10cqmin
+      .timer-display
+        font-size 9cqmin
+        line-height 1
 </style>

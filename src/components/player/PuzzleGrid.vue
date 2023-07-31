@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import GridCell from './GridCell.vue'
 import { computed } from 'vue';
-import { Puzzle } from '@/types'
+import { Puzzle, Timer } from '@/types'
 
 const props = defineProps<{
   puzzle: Puzzle
-  gamePaused: boolean
+  timer: Timer
 }>()
 
 const emit = defineEmits([
@@ -39,8 +39,11 @@ const gridStyle = computed(() => ({
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
-    .grid-overlay(v-if="gamePaused")
-      .overlay-details
+    .grid-overlay(
+      v-if="timer.paused"
+      v-on:click="emit('play-puzzle')"
+    )
+      .overlay-details(v-on:click.stop)
         .puzzle-info
           .title {{ puzzle.title || 'No Title Given' }}
           .author(v-if="puzzle.author") By: {{ puzzle.author }}
@@ -48,9 +51,9 @@ const gridStyle = computed(() => ({
             span Rules
             .ruleset {{ puzzle.rules || 'No Rules Given' }}
         v-btn.play-btn(
-          v-on:mousedown="emit('play-puzzle')"
+          v-on:click="emit('play-puzzle')"
           :append-icon="'mdi-play'"
-        ) Play
+        ) {{ timer.milliseconds === 0 ? 'Play' : 'Resume' }}
 </template>
 
 <style scoped lang="stylus">

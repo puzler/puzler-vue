@@ -195,6 +195,7 @@ function handleActionInput(action: string, args = {} as Record<string, any>) {
       return controller.value.mode = args.mode
     case 'checkSolution': {
       if (puzzle.value.checkSolution()) {
+        timer.value.pause()
         return modalActivators.correctSolution.click()
       } else {
         return modalActivators.incorrectSolution.click()
@@ -221,6 +222,7 @@ function handleDigitInput(digit: number) {
       }
 
       if (settingsStore.userSettings.checkOnFinish && puzzle.value.checkSolution()) {
+        timer.value.pause()
         modalActivators.correctSolution.click()
       }
 
@@ -415,9 +417,10 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     .message-modal Something seems wrong
   PuzzleGrid(
     :puzzle="puzzle"
-    :gamePaused="timer.paused"
+    :timer="timer"
     v-on:cell-enter="cellEnter"
     v-on:cell-click="cellClick"
+    v-on:play-puzzle="timer.play()"
   )
   ControlPad(
     :timer="timer"

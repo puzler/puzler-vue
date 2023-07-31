@@ -31,27 +31,57 @@ function sideClasses(neighbor: Cell|undefined, key: string): Array<string> {
   return classes
 }
 
-function cornerClasses(
-  neighbors: Array<Cell|undefined>,
-  cornerNeighbor: Cell|undefined,
-  key: string
-): Array<string> {
-  const classes = [] as Array<string>
+const corners = computed(() => {
+  const { left, right, up, down } = props.cell.neighbors
+  return {
+    'top-left': [left, up, up?.neighbors?.left],
+    'top-right': [right, up, up?.neighbors?.right],
+    'bottom-left': [left, down, down?.neighbors?.left],
+    'bottom-right': [right, down, down?.neighbors?.right],
+  } as Record<string, Array<Cell|null>>
+})
 
-  if (neighbors.every((n) => n?.region === props.cell.region)) {
-    if (props.cell.region !== cornerNeighbor?.region) {
-      classes.push(`${key}-region-dot`)
-    }
-  }
+const cornerRegionDots = computed(() => {
+  return Object.keys(corners.value).reduce(
+    (list, cornerKey) => {
+      const [cellA, cellB, corner] = corners.value[cornerKey]
+      if (cellA?.region !== props.cell.region) return list
+      if (cellB?.region !== props.cell.region) return list
+      if (corner?.region === props.cell.region) return list
 
-  if (props.cell.selected) {
-    if (neighbors.every((n) => n?.selected) && !cornerNeighbor?.selected) {
-      classes.push(`${key}-selected-dot`)
-    }
-  }
+      return [
+        ...list,
+        {
+          classes: cornerKey.split('-'),
+          key: cornerKey,
+        }
+      ]
+    },
+    [] as Array<{ classes: Array<string>, key: string }>,
+  )
+})
 
-  return classes
-}
+const cornerSelectedDots = computed(() => {
+  if (!props.cell.selected) return []
+
+  return Object.keys(corners.value).reduce(
+    (list, cornerKey) => {
+      const [cellA, cellB, corner] = corners.value[cornerKey]
+      if (cellA?.selected === false) return list
+      if (cellB?.selected === false) return list
+      if (corner?.selected) return list
+
+      return [
+        ...list,
+        {
+          classes: cornerKey.split('-'),
+          key: cornerKey,
+        },
+      ]
+    },
+    [] as Array<{ classes: Array<string>, key: string }>,
+  )
+})
 
 const cellClasses = computed(() => {
   const {
@@ -66,10 +96,6 @@ const cellClasses = computed(() => {
     ...sideClasses(right, 'right'),
     ...sideClasses(up, 'top'),
     ...sideClasses(down, 'bottom'),
-    ...cornerClasses([up, left], up?.neighbors.left, 'top-left'),
-    ...cornerClasses([up, right], up?.neighbors.right, 'top-right'),
-    ...cornerClasses([down, left], down?.neighbors.left, 'bottom-left'),
-    ...cornerClasses([down, right], down?.neighbors.right, 'bottom-right'),
   ]
 
   if (props.error && settingStore.userSettings.highlightConflicts) {
@@ -148,41 +174,88 @@ const cornerDigits = computed(() => {
   )
 })
 
-const cellColorStyle = computed(() => {
-  if (props.cell.cellColors.length === 0) return {}
-  if (props.cell.cellColors.length === 1) return { backgroundColor: colors.value[props.cell.cellColors[0]] }
-
-  const portionPerColor = 100 / props.cell.cellColors.length
-  const orderedColors = [...props.cell.cellColors].reverse()
-  const colorPortion = orderedColors.map((color, i) => {
-    const start = (portionPerColor * i) - 5
-    let end = start + portionPerColor
-    if (i === 0) return `${colors.value[color]} ${end}%`
-    return `${colors.value[color]} ${start}% ${end}%`
-  })
-  colorPortion.push(`${colors.value[orderedColors[0]]} ${((portionPerColor * (orderedColors.length)) - 5)}% 100%`)
-
-  return {
-    background: `conic-gradient(${colorPortion.join(',')})`,
+const cellColorPaths = computed(() => {
+  if (props.cell.cellColors.length === 0) return []
+  if (props.cell.cellColors.length === 1) {
+    const colorKey = props.cell.cellColors[0]
+    return [{
+      colorKey,
+      data: [
+        'M0 0',
+        'L100 0',
+        'L100 100',
+        'L0 100',
+        'L0 0',
+      ],
+      style: {
+        fill: colors.value[colorKey],
+      }
+    }]
   }
-})
 
+  const portionPerColor = 400 / props.cell.cellColors.length
+  const lineToValue = (raw: number) => {
+    let val = (raw + 75) % 400
+    if (val <= 100) return `L${val} 0`
+    if (val <= 200) return `L100 ${val - 100}`
+    if (val <= 300) return `L${100 - (val - 200)} 100`
+    return `L0 ${100 - (val - 300)}`
+  }
+
+  return props.cell.cellColors.map((colorKey, i) => {
+    const data = ['M50 50']
+    const start = i * portionPerColor
+    const end = start + portionPerColor
+
+    let currentPoint = start
+    while (currentPoint < end) {
+      const offset = (currentPoint + 75) % 100
+      const toAdd = 100 - offset
+      console.log(currentPoint, offset, toAdd, lineToValue(currentPoint + toAdd))
+      data.push(lineToValue(currentPoint))
+      currentPoint += toAdd
+    }
+
+    return {
+      colorKey,
+      data: [...data, lineToValue(end), 'Z'],
+      style: {
+        fill: colors.value[colorKey],
+      },
+    }
+  })
+})
 </script>
 
 <template lang="pug">
-.cell-container(:style="cellColorStyle")
+.cell-container
+  svg.cell-colors(
+    height="100%"
+    width="100%"
+    viewBox="0 0 100 100"
+    preserveAspectRatio="none"
+  )
+    path(
+      v-for="path in cellColorPaths"
+      :key="path.colorKey"
+      :d="path.data"
+      :style="path.style"
+      vector-effect="non-scaling-stroke"
+    )
   .cell(
     :class="cellClasses"
     v-on:pointerdown.stop="onMouseDown"
   )
-    .corner-selected-dot.top.left
-    .corner-selected-dot.top.right
-    .corner-selected-dot.bottom.left
-    .corner-selected-dot.bottom.right
-    .corner-region-dot.top.left
-    .corner-region-dot.top.right
-    .corner-region-dot.bottom.left
-    .corner-region-dot.bottom.right
+    .corner-selected-dot(
+      v-for="{ classes, key } in cornerSelectedDots"
+      :key="key"
+      :class="classes"
+    )
+    .corner-region-dot(
+      v-for="{ classes, key } in cornerRegionDots"
+      :key="key"
+      :class="classes"
+    )
 
     .selected-border(
       v-on:pointerenter="onMouseEnter"
@@ -212,6 +285,16 @@ const cellColorStyle = computed(() => {
   --regionBorderWidth 2px
   --outerBorderWidth 4px
   --selectedCornerRadius 3px
+  overflow hidden
+
+  svg.cell-colors
+    position absolute
+    width 100%
+    height 100%
+    circle
+      fill none
+      stroke-width 32
+      transition stroke-dasharray 0.3s ease-in-out, stroke-dashoffset 0.3s ease-in-out
 
   .cell
     position absolute
@@ -263,15 +346,6 @@ const cellColorStyle = computed(() => {
     &.bottom-outer
       border-bottom-width var(--outerBorderWidth)
 
-    &.top-left-region-dot .corner-region-dot.top.left
-    &.top-right-region-dot .corner-region-dot.top.right
-    &.bottom-left-region-dot .corner-region-dot.bottom.left
-    &.bottom-right-region-dot .corner-region-dot.bottom.right
-    &.top-left-selected-dot .corner-selected-dot.top.left 
-    &.top-right-selected-dot .corner-selected-dot.top.right
-    &.bottom-left-selected-dot .corner-selected-dot.bottom.left
-    &.bottom-right-selected-dot .corner-selected-dot.bottom.right
-      display block
     .corner-region-dot
       width calc(var(--regionBorderWidth) - var(--cellBorderWidth))
       height calc(var(--regionBorderWidth) - var(--cellBorderWidth))
@@ -296,7 +370,6 @@ const cellColorStyle = computed(() => {
         border-top-left-radius var(--selectedCornerRadius)
     .corner-region-dot, .corner-selected-dot
       position absolute
-      display none
       &.top
         top 0
       &.bottom

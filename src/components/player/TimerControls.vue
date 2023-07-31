@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Timer } from '@/types/timer';
+import { onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
   timer: Timer
@@ -13,13 +14,19 @@ const icons = {
 
 const displayTime = ref(props.timer.readableOutput)
 const refreshInterval = ref(null as null|NodeJS.Timeout);
-const toggleIcon = ref(props.timer.paused ? icons.play : icons.pause)
+const toggleIcon = computed(() => props.timer.paused ? icons.play : icons.pause)
 
 refreshDisplay()
+onBeforeUnmount(() => {
+  if (refreshInterval.value !== null) {
+    clearTimeout(refreshInterval.value)
+    refreshInterval.value = null
+  }
+})
 
 function refreshDisplay() {
   displayTime.value = props.timer.readableOutput
-  setTimeout(
+  refreshInterval.value = setTimeout(
     refreshDisplay,
     1000 - (props.timer.milliseconds % 1000),
   )
@@ -28,10 +35,13 @@ function refreshDisplay() {
 function toggleTimer() {
   if (props.timer.paused) {
     props.timer.play()
-    toggleIcon.value = icons.pause
+    refreshDisplay()
   } else {
     props.timer.pause()
-    toggleIcon.value = icons.play
+    if (refreshInterval.value !== null) {
+      clearTimeout(refreshInterval.value)
+      refreshInterval.value = null
+    }
   }
 }
 </script>
@@ -64,6 +74,7 @@ function toggleTimer() {
       display flex
       align-items center
       justify-content center
+      padding 10px
 
     .timer-display
       font-size 10cqw

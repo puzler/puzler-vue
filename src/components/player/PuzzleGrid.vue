@@ -103,8 +103,9 @@ const effectiveSize = computed(() => {
   user-select none
   touch-action none
   container-type inline-size
-  --under-grid-z 0
-  --grid-z 1
+  --cell-color-z 0
+  --under-grid-z 1
+  --grid-z 2
   --over-grid-z 3
   --overlay-z 4
 

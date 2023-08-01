@@ -38,10 +38,6 @@ function toggleTimer() {
     refreshDisplay()
   } else {
     props.timer.pause()
-    if (refreshInterval.value !== null) {
-      clearTimeout(refreshInterval.value)
-      refreshInterval.value = null
-    }
   }
 }
 </script>

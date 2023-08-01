@@ -299,6 +299,7 @@ const cellColorPaths = computed(() => {
     position absolute
     width 100%
     height 100%
+    z-index var(--cell-color-z)
     circle
       fill none
       stroke-width 32
@@ -400,7 +401,7 @@ const cellColorPaths = computed(() => {
         line-height 0.25em
         color var(--digitColor)
     .selected-border
-      z-index 2
+      z-index --grid-z
       flex 1
       display flex
       align-items center

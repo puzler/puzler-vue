@@ -125,6 +125,11 @@ export default class Puzzle {
         width: line.width,
         color: line.outlineC,
       })) || [],
+      ...fPuzzle.palindrome?.map((line) => ({
+        lines: line.lines,
+        width: 0.5,
+        color: '#CFCFCF',
+      })) || [],
     ]
     if (puzzle.lines.length === 0) delete puzzle.lines
 

@@ -146,7 +146,7 @@ const effectiveSize = computed(() => {
       display flex
       align-items center
       justify-content center
-      font-size 0.25em
+      font-size 3cqw
       .overlay-details
         background-color var(--color-background-soft)
         width 60%

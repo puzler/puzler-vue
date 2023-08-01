@@ -19,12 +19,17 @@ type FPuzzle = {
   text?: Array<Text>
   line?: Array<FPuzzleLine>
   quadruple?: Array<Quadruple>
+  palindrome?: Array<FPuzzlePalindrome>
 }
 
 type FPuzzleCell = {
   value?: number
   region?: number
   given?: boolean
+}
+
+type FPuzzlePalindrome = {
+  lines: Array<Array<string>>
 }
 
 type FPuzzleLine = {

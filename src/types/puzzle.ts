@@ -4,9 +4,11 @@ import type {
 } from './f-puzzle'
 import type {
   KillerCage,
+  Quadruple,
 } from './constraints'
 import type {
-  Text
+  Text,
+  Line,
 } from './cosmetics'
 
 export default class Puzzle {
@@ -20,6 +22,8 @@ export default class Puzzle {
   rules?: string
   cages?: Array<KillerCage>
   text?: Array<Text>
+  lines?: Array<Line>
+  quadruples?: Array<Quadruple>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -75,6 +79,8 @@ export default class Puzzle {
     puzzle.author = fPuzzle.author
     puzzle.rules = fPuzzle.ruleset
     puzzle.solution = fPuzzle.solution
+    puzzle.text = fPuzzle.text
+    puzzle.quadruples = fPuzzle.quadruple
 
     fPuzzle.grid.forEach((row, i) => {
       row.forEach((cell, j) => {
@@ -111,8 +117,16 @@ export default class Puzzle {
         cosmetic: false,
       })) || [],
     ]
+    if (puzzle.cages.length === 0) delete puzzle.cages
 
-    puzzle.text = fPuzzle.text
+    puzzle.lines = [
+      ...fPuzzle.line?.map((line) => ({
+        lines: line.lines,
+        width: line.width,
+        color: line.outlineC,
+      })) || [],
+    ]
+    if (puzzle.lines.length === 0) delete puzzle.lines
 
     return puzzle
   }

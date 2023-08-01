@@ -2,6 +2,8 @@
 import GridCell from './GridCell.vue'
 import KillerCage from './constraints/KillerCage.vue'
 import TextCosmetic from './constraints/TextCosmetic.vue'
+import LineCosmetic from './constraints/LineCosmetic.vue'
+import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
 
@@ -25,19 +27,13 @@ const effectiveSize = computed(() => {
 
 <template lang="pug">
 .grid-container(:style="{ '--puzzleSize': effectiveSize }")
-  svg.constraints(
+  svg.constraints.under-grid(
     :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
   )
-    KillerCage(
-      v-for="cage, i in puzzle.cages"
-      :key="'cage-' + i"
-      :cage="cage"
-      :puzzle="puzzle"
-    )
-    TextCosmetic(
-      v-for="text, i in puzzle.text"
-      :key="'text-' + i"
-      :text="text"
+    LineCosmetic(
+      v-for="line, i in puzzle.lines"
+      :key="'line-' + i"
+      :line="line"
       :puzzle="puzzle"
     )
   .grid
@@ -73,6 +69,27 @@ const effectiveSize = computed(() => {
           v-on:click="emit('play-puzzle')"
           :append-icon="'mdi-play'"
         ) {{ timer.milliseconds === 0 ? 'Play' : 'Resume' }}
+  svg.constraints.over-grid(
+    :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
+  )
+    TextCosmetic(
+      v-for="text, i in puzzle.text"
+      :key="'text-' + i"
+      :text="text"
+      :puzzle="puzzle"
+    )
+    KillerCage(
+      v-for="cage, i in puzzle.cages"
+      :key="'cage-' + i"
+      :cage="cage"
+      :puzzle="puzzle"
+    )
+    QuadrupleConstraint(
+      v-for="quadruple, i in puzzle.quadruples"
+      :key="'quadruple-' + i"
+      :quadruple="quadruple"
+      :puzzle="puzzle"
+    )
 </template>
 
 <style scoped lang="stylus">
@@ -86,6 +103,10 @@ const effectiveSize = computed(() => {
   user-select none
   touch-action none
   container-type inline-size
+  --under-grid-z 0
+  --grid-z 1
+  --over-grid-z 3
+  --overlay-z 4
 
   svg.constraints
     position absolute
@@ -94,7 +115,11 @@ const effectiveSize = computed(() => {
     width 100%
     height 100%
     font-size 100px
-    z-index 1
+    &.under-grid
+      z-index var(--under-grid-z)
+    &.over-grid
+      z-index var(--over-grid-z)
+    
 
   .grid
     display grid
@@ -114,7 +139,7 @@ const effectiveSize = computed(() => {
       bottom -10px
       left -10px
       right -10px
-      z-index 3
+      z-index var(--overlay-z)
       backdrop-filter blur(10px)
       border 10px solid var(--color-background-soft)
       background-color rgba(0, 0, 0, 0.3)
@@ -154,4 +179,8 @@ const effectiveSize = computed(() => {
           width 95%
           font-size 2em
           padding 10px
+          .rules
+            .ruleset
+              max-height 40cqw
+              font-size 0.8em
 </style>

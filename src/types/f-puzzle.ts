@@ -1,8 +1,9 @@
 import type {
   KillerCage,
+  Quadruple,
 } from './constraints'
 import type {
-  Text
+  Text,
 } from './cosmetics'
 
 type FPuzzle = {
@@ -16,12 +17,20 @@ type FPuzzle = {
   killercage?: Array<KillerCage>
   extraregion?: Array<KillerCage>
   text?: Array<Text>
+  line?: Array<FPuzzleLine>
+  quadruple?: Array<Quadruple>
 }
 
 type FPuzzleCell = {
   value?: number
   region?: number
   given?: boolean
+}
+
+type FPuzzleLine = {
+  lines: Array<Array<string>>
+  outlineC: string
+  width: number
 }
 
 export type {

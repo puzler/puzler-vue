@@ -5,10 +5,13 @@ import { ColorPalette } from './color-palette'
 import { Timer } from './timer'
 import type { CellNeighbors } from './puzzle'
 import type {
-  KillerCage
+  KillerCage,
+  Quadruple,
 } from './constraints'
 import type {
-  Text
+  Text,
+  Line,
+  Circle,
 } from './cosmetics'
 
 export {
@@ -25,4 +28,7 @@ export type {
   CellNeighbors,
   KillerCage,
   Text,
+  Line,
+  Quadruple,
+  Circle,
 }

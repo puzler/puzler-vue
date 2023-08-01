@@ -313,6 +313,7 @@ const cellColorPaths = computed(() => {
     left 0
     border var(--cellBorderWidth) solid black
     display flex
+    z-index var(--grid-z)
 
     &.error .selected-border
       background-color rgba(255, 0, 0, 0.25)

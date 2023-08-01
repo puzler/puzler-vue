@@ -13,8 +13,8 @@ function xyForAddress(address: string) {
   if (!match) return { x: 0, y: 0, forSvg: '0 0' }
 
   const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-  let x = row * 100 + 50
-  let y = col * 100 + 50
+  let y = row * 100 + 50
+  let x = col * 100 + 50
 
   if (!props.puzzle.hasOuterElements) {
     x -= 100

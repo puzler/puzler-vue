@@ -29,6 +29,23 @@ const cellCoords = computed(() => {
   )
 })
 
+const minMaxRowCol = computed(() => {
+  return cellCoords.value.reduce(
+    (minMax, coords) => ({
+      minRow: Math.min(coords.row, minMax.minRow),
+      minCol: Math.min(coords.col, minMax.minCol),
+      maxRow: Math.max(coords.row, minMax.maxRow),
+      maxCol: Math.max(coords.col, minMax.maxCol),
+    }),
+    {
+      minRow: 100,
+      minCol: 100,
+      maxRow: -100,
+      maxCol: -100,
+    },
+  )
+})
+
 const position = computed(() => {
   switch (cellCoords.value.length) {
     case 0:
@@ -40,21 +57,11 @@ const position = computed(() => {
       }
   }
 
-  let minRow = cellCoords.value[0].row
-  let maxRow = cellCoords.value[0].row
-  let minCol = cellCoords.value[0].col
-  let maxCol = cellCoords.value[0].col
-
-  cellCoords.value.forEach(({ row, col }) => {
-    if (row < minRow) minRow = row
-    if (row > maxRow) maxRow = row
-    if (col < minCol) minCol = col
-    if (col > maxCol) maxCol = col
-  })
+  const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
 
   return {
-    x: (maxRow + minRow + 1) * 50,
-    y: (maxCol + minCol + 1) * 50
+    y: (maxRow + minRow + 1) * 50,
+    x: (maxCol + minCol + 1) * 50
   }
 })
 
@@ -62,9 +69,28 @@ const dynamicStyle = computed(() => ({
   fontSize: `${props.text.size}em`,
   fill: props.text.fontC,
 }))
+
+const throughGrid = computed(() => {
+  const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
+  return {
+    vertical: minCol !== maxCol,
+    horizontal: minRow !== maxRow,
+  }
+})
+
+const rectSize = computed(() => ({
+  width: throughGrid.value.horizontal ? props.text.size * 40 : 10,
+  height: throughGrid.value.vertical ? props.text.size * 60 : 10,
+}))
 </script>
 
 <template lang="pug">
+rect.background-rect(
+  :x="position.x - (rectSize.width / 2)"
+  :y="position.y - (rectSize.height / 2)"
+  :width="rectSize.width"
+  :height="rectSize.height"
+)
 text.cosmetic-text(
   :x="position.x"
   :y="position.y"
@@ -73,6 +99,9 @@ text.cosmetic-text(
 </template>
 
 <style scoped lang="stylus">
+.background-rect
+  fill var(--color-background-soft)
+  stroke var(--color-background-soft)
 .cosmetic-text
   alignment-baseline central
   text-anchor middle

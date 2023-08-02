@@ -20,12 +20,22 @@ type FPuzzle = {
   line?: Array<FPuzzleLine>
   quadruple?: Array<Quadruple>
   palindrome?: Array<FPuzzlePalindrome>
+  circle?: Array<FPuzzleCircle>
 }
 
 type FPuzzleCell = {
   value?: number
   region?: number
   given?: boolean
+}
+
+type FPuzzleCircle = {
+  cells: Array<string>
+  baseC: string
+  fontC: string
+  outlineC: string
+  height: number
+  width: number
 }
 
 type FPuzzlePalindrome = {

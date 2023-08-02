@@ -9,6 +9,7 @@ import type {
 import type {
   Text,
   Line,
+  Circle,
 } from './cosmetics'
 
 export default class Puzzle {
@@ -23,6 +24,7 @@ export default class Puzzle {
   cages?: Array<KillerCage>
   text?: Array<Text>
   lines?: Array<Line>
+  circles?: Array<Circle>
   quadruples?: Array<Quadruple>
 
   constructor(size: number) {
@@ -117,7 +119,7 @@ export default class Puzzle {
         cosmetic: false,
       })) || [],
     ]
-    if (puzzle.cages.length === 0) delete puzzle.cages
+    if (!puzzle.cages.length) delete puzzle.cages
 
     puzzle.lines = [
       ...fPuzzle.line?.map((line) => ({
@@ -131,7 +133,19 @@ export default class Puzzle {
         color: '#CFCFCF',
       })) || [],
     ]
-    if (puzzle.lines.length === 0) delete puzzle.lines
+    if (!puzzle.lines.length) delete puzzle.lines
+
+    puzzle.circles = [
+      ...fPuzzle.circle?.map((circle) => ({
+        cells: circle.cells,
+        fill: circle.baseC,
+        outline: circle.outlineC,
+        fontColor: circle.fontC,
+        height: circle.height,
+        width: circle.width,
+      })) || []
+    ]
+    if (!puzzle.circles.length) delete puzzle.circles
 
     return puzzle
   }

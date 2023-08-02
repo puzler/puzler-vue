@@ -3,6 +3,7 @@ import GridCell from './GridCell.vue'
 import KillerCage from './constraints/KillerCage.vue'
 import TextCosmetic from './constraints/TextCosmetic.vue'
 import LineCosmetic from './constraints/LineCosmetic.vue'
+import CircleCosmetic from './constraints/CircleCosmetic.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
@@ -72,6 +73,12 @@ const effectiveSize = computed(() => {
   svg.constraints.over-grid(
     :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
   )
+    CircleCosmetic(
+      v-for="circle, i in puzzle.circles"
+      :key="'circle-' + i"
+      :circle="circle"
+      :puzzle="puzzle"
+    )
     TextCosmetic(
       v-for="text, i in puzzle.text"
       :key="'text-' + i"
@@ -120,7 +127,6 @@ const effectiveSize = computed(() => {
       z-index var(--under-grid-z)
     &.over-grid
       z-index var(--over-grid-z)
-    
 
   .grid
     display grid

@@ -79,8 +79,8 @@ const throughGrid = computed(() => {
 })
 
 const rectSize = computed(() => ({
-  width: throughGrid.value.horizontal ? props.text.size * 40 : 10,
-  height: throughGrid.value.vertical ? props.text.size * 60 : 10,
+  width: throughGrid.value.horizontal ? props.text.size * 40 : 4,
+  height: throughGrid.value.vertical ? props.text.size * 60 : 4,
 }))
 </script>
 
@@ -102,7 +102,11 @@ text.cosmetic-text(
 .background-rect
   fill var(--color-background-soft)
   stroke var(--color-background-soft)
+  opacity 0.5
 .cosmetic-text
+  stroke var(--color-background-soft)
+  stroke-width 2
+  paint-order stroke fill
   alignment-baseline central
   text-anchor middle
 </style>

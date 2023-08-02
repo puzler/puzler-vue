@@ -78,9 +78,9 @@ const cornerSelectedDots = computed(() => {
   return Object.keys(corners.value).reduce(
     (list, cornerKey) => {
       const [cellA, cellB, corner] = corners.value[cornerKey]
-      if (cellA?.selected === false) return list
-      if (cellB?.selected === false) return list
-      if (corner?.selected) return list
+      if (!cellA?.selected) return list
+      if (!cellB?.selected) return list
+      if (corner!.selected) return list
 
       return [
         ...list,

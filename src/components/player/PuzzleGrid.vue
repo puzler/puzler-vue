@@ -4,6 +4,7 @@ import KillerCage from './constraints/KillerCage.vue'
 import TextCosmetic from './constraints/TextCosmetic.vue'
 import LineCosmetic from './constraints/LineCosmetic.vue'
 import CircleCosmetic from './constraints/CircleCosmetic.vue'
+import RectangleCosmetic from './constraints/RectangleCosmetic.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
@@ -77,6 +78,12 @@ const effectiveSize = computed(() => {
       v-for="circle, i in puzzle.circles"
       :key="'circle-' + i"
       :circle="circle"
+      :puzzle="puzzle"
+    )
+    RectangleCosmetic(
+      v-for="rect, i in puzzle.rectangles"
+      :key="'rectangle-' + i"
+      :rectangle="rect"
       :puzzle="puzzle"
     )
     TextCosmetic(

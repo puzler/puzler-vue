@@ -3,6 +3,7 @@ type Text = {
   fontC: string
   size: number
   value: string
+  angle?: number
 }
 
 export type { Text }

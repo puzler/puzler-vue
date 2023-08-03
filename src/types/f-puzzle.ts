@@ -21,6 +21,7 @@ type FPuzzle = {
   quadruple?: Array<Quadruple>
   palindrome?: Array<FPuzzlePalindrome>
   circle?: Array<FPuzzleCircle>
+  rectangle?: Array<FPuzzleRectangle>
 }
 
 type FPuzzleCell = {
@@ -36,6 +37,16 @@ type FPuzzleCircle = {
   outlineC: string
   height: number
   width: number
+}
+
+type FPuzzleRectangle = {
+  cells: Array<string>
+  baseC: string
+  fontC: string
+  outlineC: string
+  width: number
+  height: number
+  angle?: number
 }
 
 type FPuzzlePalindrome = {

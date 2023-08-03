@@ -60,8 +60,8 @@ const position = computed(() => {
   const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
 
   return {
+    x: (maxCol + minCol + 1) * 50,
     y: (maxRow + minRow + 1) * 50,
-    x: (maxCol + minCol + 1) * 50
   }
 })
 
@@ -69,6 +69,19 @@ const dynamicStyle = computed(() => ({
   fontSize: `${props.text.size}em`,
   fill: props.text.fontC,
 }))
+
+const textTransform = computed(() => {
+  const { x, y } = position.value
+  const transform = [
+    `translate(${x},${y})`
+  ]
+
+  if (props.text.angle) {
+    transform.push(`rotate(${props.text.angle})`)
+  }
+
+  return transform
+})
 
 const throughGrid = computed(() => {
   const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
@@ -92,9 +105,10 @@ rect.background-rect(
   :height="rectSize.height"
 )
 text.cosmetic-text(
-  :x="position.x"
-  :y="position.y"
+  x="0"
+  y="0"
   :style="dynamicStyle"
+  :transform="textTransform"
 ) {{ text.value }}
 </template>
 

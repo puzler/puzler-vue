@@ -12,6 +12,7 @@ import type {
   Text,
   Line,
   Circle,
+  Rectangle,
 } from './cosmetics'
 
 export {
@@ -31,4 +32,5 @@ export type {
   Line,
   Quadruple,
   Circle,
+  Rectangle,
 }

@@ -10,6 +10,7 @@ import type {
   Text,
   Line,
   Circle,
+  Rectangle,
 } from './cosmetics'
 
 export default class Puzzle {
@@ -26,6 +27,7 @@ export default class Puzzle {
   lines?: Array<Line>
   circles?: Array<Circle>
   quadruples?: Array<Quadruple>
+  rectangles?: Array<Rectangle>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -146,6 +148,19 @@ export default class Puzzle {
       })) || []
     ]
     if (!puzzle.circles.length) delete puzzle.circles
+
+    puzzle.rectangles = [
+      ...fPuzzle.rectangle?.map((rect) => ({
+        width: rect.width,
+        height: rect.height,
+        cells: rect.cells,
+        fill: rect.baseC,
+        outline: rect.outlineC,
+        fontColor: rect.fontC,
+        angle: rect.angle,
+      })) || []
+    ]
+    if (!puzzle.rectangles.length) delete puzzle.rectangles
 
     return puzzle
   }

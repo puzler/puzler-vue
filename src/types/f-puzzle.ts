@@ -22,12 +22,24 @@ type FPuzzle = {
   palindrome?: Array<FPuzzlePalindrome>
   circle?: Array<FPuzzleCircle>
   rectangle?: Array<FPuzzleRectangle>
+  ratio?: Array<FPuzzleCircleConstraint>
+  difference?: Array<FPuzzleCircleConstraint>
+  xv?: Array<FPuzzleTextConstraint>
 }
 
 type FPuzzleCell = {
   value?: number
   region?: number
   given?: boolean
+}
+
+type FPuzzleCircleConstraint = {
+  cells: Array<string>
+}
+
+type FPuzzleTextConstraint = {
+  cells: Array<string>
+  value: string
 }
 
 type FPuzzleCircle = {

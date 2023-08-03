@@ -83,7 +83,6 @@ export default class Puzzle {
     puzzle.author = fPuzzle.author
     puzzle.rules = fPuzzle.ruleset
     puzzle.solution = fPuzzle.solution
-    puzzle.text = fPuzzle.text
     puzzle.quadruples = fPuzzle.quadruple
 
     fPuzzle.grid.forEach((row, i) => {
@@ -94,6 +93,17 @@ export default class Puzzle {
         if (cell.given !== undefined) puzzCell.given = cell.given
       })
     })
+
+    puzzle.text = [
+      ...fPuzzle.text || [],
+      ...fPuzzle.xv?.map(({ cells, value }) => ({
+        cells,
+        value,
+        fontC: '#000000',
+        size: 0.3,
+      })) || []
+    ]
+    if (!puzzle.text.length) delete puzzle.text
 
     puzzle.cages = [
       ...fPuzzle.cage?.reduce((cages, cage) => {
@@ -145,6 +155,22 @@ export default class Puzzle {
         fontColor: circle.fontC,
         height: circle.height,
         width: circle.width,
+      })) || [],
+      ...fPuzzle.difference?.map((diff) => ({
+        cells: diff.cells,
+        fill: '#ffffff',
+        outline: '#000000',
+        fontColor: '#000000',
+        height: 0.25,
+        width: 0.25,
+      })) || [],
+      ...fPuzzle.ratio?.map((ratio) => ({
+        cells: ratio.cells,
+        fill: '#000000',
+        outline: '#000000',
+        fontColor: '#ffffff',
+        height: 0.25,
+        width: 0.25,
       })) || []
     ]
     if (!puzzle.circles.length) delete puzzle.circles

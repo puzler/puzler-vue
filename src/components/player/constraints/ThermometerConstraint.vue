@@ -73,6 +73,7 @@ circle.thermo-bulb(
   stroke #bbbbbb
   stroke-linecap round
   stroke-linejoin round
+  fill none
 .thermo-bulb
   r 40
   fill #bbbbbb

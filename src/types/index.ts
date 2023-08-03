@@ -7,6 +7,7 @@ import type { CellNeighbors } from './puzzle'
 import type {
   KillerCage,
   Quadruple,
+  Thermometer,
 } from './constraints'
 import type {
   Text,
@@ -28,6 +29,7 @@ export {
 export type {
   CellNeighbors,
   KillerCage,
+  Thermometer,
   Text,
   Line,
   Quadruple,

@@ -6,6 +6,7 @@ import LineCosmetic from './constraints/LineCosmetic.vue'
 import CircleCosmetic from './constraints/CircleCosmetic.vue'
 import RectangleCosmetic from './constraints/RectangleCosmetic.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
+import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
 
@@ -32,6 +33,12 @@ const effectiveSize = computed(() => {
   svg.constraints.under-grid(
     :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
   )
+    ThermometerConstraint(
+      v-for="thermo, i in puzzle.thermometers"
+      :key="'thermo-' + i"
+      :thermometer="thermo"
+      :puzzle="puzzle"
+    )
     LineCosmetic(
       v-for="line, i in puzzle.lines"
       :key="'line-' + i"

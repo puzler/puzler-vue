@@ -5,6 +5,7 @@ import type {
 import type {
   KillerCage,
   Quadruple,
+  Thermometer,
 } from './constraints'
 import type {
   Text,
@@ -28,6 +29,7 @@ export default class Puzzle {
   circles?: Array<Circle>
   quadruples?: Array<Quadruple>
   rectangles?: Array<Rectangle>
+  thermometers?: Array<Thermometer>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -93,6 +95,25 @@ export default class Puzzle {
         if (cell.given !== undefined) puzzCell.given = cell.given
       })
     })
+
+    puzzle.thermometers = fPuzzle.thermometer?.reduce(
+      (list, thermo) => {
+        thermo.lines.forEach((line) => {
+          if (line.length) {
+            const bulb = line[0]
+            const existing = list.find((check) => check.bulb === bulb)
+            if (existing) {
+              existing.lines.push(line)
+            } else {
+              list.push({ bulb, lines: [line] })
+            }
+          }
+        })
+
+        return list
+      },
+      [] as Array<Thermometer>,
+    )
 
     puzzle.text = [
       ...fPuzzle.text || [],

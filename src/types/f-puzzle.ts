@@ -25,6 +25,7 @@ type FPuzzle = {
   ratio?: Array<FPuzzleCircleConstraint>
   difference?: Array<FPuzzleCircleConstraint>
   xv?: Array<FPuzzleTextConstraint>
+  thermometer?: Array<FPuzzleThermometer>
 }
 
 type FPuzzleCell = {
@@ -49,6 +50,10 @@ type FPuzzleCircle = {
   outlineC: string
   height: number
   width: number
+}
+
+type FPuzzleThermometer = {
+  lines: Array<Array<string>>
 }
 
 type FPuzzleRectangle = {

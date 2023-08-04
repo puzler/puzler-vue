@@ -4,6 +4,8 @@ import type { Thermometer } from './thermometer'
 import type { Arrow } from './arrow'
 import type { BetweenLine } from './between-line'
 import type { MinMaxCell } from './min-max-cell'
+import type { LittleKiller } from './little-killer'
+import type { SandwichSum } from './sandwich-sum'
 
 export type {
   Arrow,
@@ -12,4 +14,6 @@ export type {
   Thermometer,
   BetweenLine,
   MinMaxCell,
+  LittleKiller,
+  SandwichSum,
 }

@@ -11,6 +11,8 @@ import type {
   Arrow,
   BetweenLine,
   MinMaxCell,
+  SandwichSum,
+  LittleKiller,
 } from './constraints'
 import type {
   Text,
@@ -43,4 +45,6 @@ export type {
   Circle,
   Rectangle,
   MinMaxCell,
+  SandwichSum,
+  LittleKiller,
 }

@@ -10,6 +10,7 @@ import ArrowConstraint from './constraints/ArrowConstraint.vue'
 import MinMaxConstraint from './constraints/MinMaxConstraint.vue'
 import BetweenLineConstraint from './constraints/BetweenLineConstraint.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
+import LittleKillerConstraint from './constraints/LittleKillerConstraint.vue'
 import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
 import { Puzzle, Timer } from '@/types'
@@ -146,6 +147,18 @@ const effectiveSize = computed(() => {
       v-for="rect, i in puzzle.rectangles"
       :key="'rectangle-' + i"
       :rectangle="rect"
+      :puzzle="puzzle"
+    )
+    LittleKillerConstraint(
+      v-for="littleKiller, i in puzzle.littleKillers"
+      :key="`little-killer-${i}`"
+      :littleKiller="littleKiller"
+      :puzzle="puzzle"
+    )
+    TextCosmetic(
+      v-for="sandwichSum, i in puzzle.sandwichSums"
+      :key="`sandwich-${i}`"
+      :text="{ cells: [sandwichSum.cell], fontC: '#000000', size: 0.65, value: sandwichSum.value }"
       :puzzle="puzzle"
     )
     TextCosmetic(

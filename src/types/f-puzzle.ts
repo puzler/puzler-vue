@@ -2,6 +2,8 @@ import type {
   KillerCage,
   Quadruple,
   Arrow,
+  LittleKiller,
+  SandwichSum,
 } from './constraints'
 import type {
   Text,
@@ -34,6 +36,8 @@ type FPuzzle = {
   clone?: Array<FPuzzleClone>
   maximum?: Array<FPuzzleSingleCell>
   minimum?: Array<FPuzzleSingleCell>
+  littlekillersum?: Array<LittleKiller>
+  sandwichsum?: Array<SandwichSum>
 }
 
 type FPuzzleCell = {

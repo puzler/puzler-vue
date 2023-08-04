@@ -9,6 +9,8 @@ import type {
   Thermometer,
   BetweenLine,
   MinMaxCell,
+  LittleKiller,
+  SandwichSum,
 } from './constraints'
 import type {
   Text,
@@ -30,6 +32,8 @@ export default class Puzzle {
   author?: string
   rules?: string
   cages?: Array<KillerCage>
+  littleKillers?: Array<LittleKiller>
+  sandwichSums?: Array<SandwichSum>
   extraRegions?: Array<KillerCage>
   text?: Array<Text>
   lines?: Array<Line>
@@ -98,6 +102,8 @@ export default class Puzzle {
     puzzle.rules = fPuzzle.ruleset
     puzzle.solution = fPuzzle.solution
     puzzle.quadruples = fPuzzle.quadruple
+    puzzle.littleKillers = fPuzzle.littlekillersum
+    puzzle.sandwichSums = fPuzzle.sandwichsum
     puzzle.cellBackgroundColors = []
 
     fPuzzle.grid.forEach((row, i) => {
@@ -491,6 +497,9 @@ export default class Puzzle {
   }
 
   get hasOuterElements() {
+    if (this.littleKillers?.length) return true
+    if (this.sandwichSums?.length) return true
+
     const hasOuterText = this.text?.some(({ cells }) => {
       return cells.some((address) => {
         const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)

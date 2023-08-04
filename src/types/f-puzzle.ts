@@ -28,12 +28,28 @@ type FPuzzle = {
   xv?: Array<FPuzzleTextConstraint>
   thermometer?: Array<FPuzzleThermometer>
   arrow?: Array<Arrow>
+  betweenline?: Array<FPuzzleBetweenLine>
+  odd?: Array<FPuzzleSingleCell>
+  even?: Array<FPuzzleSingleCell>
+  clone?: Array<FPuzzleClone>
+  maximum?: Array<FPuzzleSingleCell>
+  minimum?: Array<FPuzzleSingleCell>
 }
 
 type FPuzzleCell = {
   value?: number
   region?: number
   given?: boolean
+  c?: string
+}
+
+type FPuzzleClone = {
+  cells: Array<string>
+  cloneCells: Array<string>
+}
+
+type FPuzzleSingleCell = {
+  cell: string
 }
 
 type FPuzzleCircleConstraint = {
@@ -52,6 +68,10 @@ type FPuzzleCircle = {
   outlineC: string
   height: number
   width: number
+}
+
+type FPuzzleBetweenLine = {
+  lines: Array<Array<string>>
 }
 
 type FPuzzleThermometer = {

@@ -7,31 +7,41 @@ import type {
   KillerCage,
   Quadruple,
   Thermometer,
+  BetweenLine,
+  MinMaxCell,
 } from './constraints'
 import type {
   Text,
   Line,
   Circle,
   Rectangle,
+  CellBackgroundColor,
 } from './cosmetics'
 
 export default class Puzzle {
   size: number
   cells: Array<Array<Cell>>
   selectedAddresses: Array<string> = []
+
+  cellBackgroundColors?: Array<CellBackgroundColor>
   solution?: Array<number|null>
   successMessage?: string
   title?: string
   author?: string
   rules?: string
   cages?: Array<KillerCage>
+  extraRegions?: Array<KillerCage>
   text?: Array<Text>
   lines?: Array<Line>
   circles?: Array<Circle>
   quadruples?: Array<Quadruple>
+  clones?: Array<Rectangle>
   rectangles?: Array<Rectangle>
   thermometers?: Array<Thermometer>
   arrows?: Array<Arrow>
+  betweenLines?: Array<BetweenLine>
+  maxCells?: Array<MinMaxCell>
+  minCells?: Array<MinMaxCell>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -88,13 +98,20 @@ export default class Puzzle {
     puzzle.rules = fPuzzle.ruleset
     puzzle.solution = fPuzzle.solution
     puzzle.quadruples = fPuzzle.quadruple
+    puzzle.cellBackgroundColors = []
 
     fPuzzle.grid.forEach((row, i) => {
       row.forEach((cell, j) => {
         const puzzCell = puzzle.cells[i][j]
-        if (cell.region !== undefined) puzzCell.region = cell.region
-        if (cell.value !== undefined) puzzCell.digit = cell.value
-        if (cell.given !== undefined) puzzCell.given = cell.given
+        if (cell.region) puzzCell.region = cell.region
+        if (cell.value) puzzCell.digit = cell.value
+        if (cell.given) puzzCell.given = cell.given
+        if (cell.c) {
+          puzzle.cellBackgroundColors!.push({
+            address: puzzCell.address,
+            color: cell.c,
+          })
+        }
       })
     })
 
@@ -130,6 +147,11 @@ export default class Puzzle {
     ]
     if (!puzzle.text.length) delete puzzle.text
 
+    puzzle.extraRegions = fPuzzle.extraregion?.map((region) => ({
+      ...region,
+      cosmetic: false,
+    }))
+
     puzzle.cages = [
       ...fPuzzle.cage?.reduce((cages, cage) => {
           if (cage.value?.startsWith('msgcorrect')) {
@@ -149,10 +171,6 @@ export default class Puzzle {
       ) || [],
       ...fPuzzle.killercage?.map((cage) => ({
         ...cage,
-        cosmetic: false,
-      })) || [],
-      ...fPuzzle.extraregion?.map((region) => ({
-        ...region,
         cosmetic: false,
       })) || [],
     ]
@@ -196,9 +214,28 @@ export default class Puzzle {
         fontColor: '#ffffff',
         height: 0.25,
         width: 0.25,
-      })) || []
+      })) || [],
+      ...fPuzzle.odd?.map(({ cell }) => ({
+        cells: [cell],
+        fill: '#bbbbbb',
+        outline: '#bbbbbb',
+        fontColor: '#bbbbbb',
+        height: 0.7,
+        width: 0.7,
+      })) || [],
     ]
     if (!puzzle.circles.length) delete puzzle.circles
+
+    puzzle.clones = fPuzzle.clone?.flatMap(({ cells, cloneCells }) => [
+      ...[cells, cloneCells].map((rectCells) => ({
+        cells: rectCells,
+        height: 1,
+        width: 1,
+        fill: '#cccccc',
+        outline: '#cccccc',
+        fontColor: '#cccccc',
+      })),
+    ])
 
     puzzle.rectangles = [
       ...fPuzzle.rectangle?.map((rect) => ({
@@ -209,9 +246,140 @@ export default class Puzzle {
         outline: rect.outlineC,
         fontColor: rect.fontC,
         angle: rect.angle,
-      })) || []
+      })) || [],
+      ...fPuzzle.even?.map(({ cell }) => ({
+        cells: [cell],
+        width: 0.65,
+        height: 0.65,
+        fill: '#bbbbbb',
+        outline: '#bbbbbb',
+        fontColor: '#bbbbbb',
+      })) || [],
     ]
     if (!puzzle.rectangles.length) delete puzzle.rectangles
+
+    puzzle.betweenLines = fPuzzle.betweenline?.reduce(
+      (list, { lines }) => {
+        lines.forEach((line) => {
+          const lineBulbs = [
+            line[0],
+            line[line.length - 1],
+          ]
+
+          const existingLine = list.find(
+            ({ bulbs }) => bulbs.some(
+              (address) => lineBulbs.includes(address),
+            ),
+          )
+
+          if (existingLine) {
+            lineBulbs.forEach((address) => {
+              if (!existingLine.bulbs.includes(address)) {
+                existingLine.bulbs.push(address)
+              }
+            })
+
+            existingLine.lines.push(line)
+          } else {
+            list.push({
+              bulbs: lineBulbs,
+              lines: [line],
+            })
+          }
+        })
+
+        return list
+      },
+      [] as Array<BetweenLine>,
+    )
+
+    puzzle.minCells = fPuzzle.minimum?.reduce(
+      (list, { cell }) => {
+        const match = cell.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
+        if (!match) return list
+
+        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
+
+        const minMax = {
+          row,
+          col,
+          top: row !== 1,
+          left: col !== 1,
+          right: col !== puzzle.size,
+          bottom: row !== puzzle.size,
+        }
+
+        list.forEach((check) => {
+          if (check.col === minMax.col) {
+            if (check.row === minMax.row - 1) {
+              check.right = false
+              minMax.left = false
+            } else if (check.row === minMax.row + 1) {
+              check.left = false
+              minMax.right = false
+            }
+          } else if (check.row === minMax.row) {
+            if (check.col === minMax.col - 1) {
+              check.bottom = false
+              minMax.top = false
+            } else if (check.col === minMax.col + 1) {
+              check.top = false
+              minMax.bottom = false
+            }
+          }
+        })
+
+        return [
+          ...list,
+          minMax,
+        ]
+      },
+      [] as Array<MinMaxCell>,
+    )
+
+    puzzle.maxCells = fPuzzle.maximum?.reduce(
+      (list, { cell }) => {
+        const match = cell.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
+        if (!match) return list
+
+        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
+
+        const minMax = {
+          row,
+          col,
+          top: row !== 1,
+          left: col !== 1,
+          right: col !== puzzle.size,
+          bottom: row !== puzzle.size,
+        }
+
+        list.forEach((check) => {
+          if (check.col === minMax.col) {
+            if (check.row === minMax.row - 1) {
+              check.right = false
+              minMax.left = false
+            } else if (check.row === minMax.row + 1) {
+              check.left = false
+              minMax.right = false
+            }
+          } else if (check.row === minMax.row) {
+            if (check.col === minMax.col - 1) {
+              check.bottom = false
+              minMax.top = false
+            } else if (check.col === minMax.col + 1) {
+              check.top = false
+              minMax.bottom = false
+            }
+          }
+        })
+
+        return [
+          ...list,
+          minMax,
+        ]
+      },
+      [] as Array<MinMaxCell>,
+    )
 
     return puzzle
   }

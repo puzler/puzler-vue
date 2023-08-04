@@ -9,12 +9,15 @@ import type {
   Quadruple,
   Thermometer,
   Arrow,
+  BetweenLine,
+  MinMaxCell,
 } from './constraints'
 import type {
   Text,
   Line,
   Circle,
   Rectangle,
+  CellBackgroundColor,
 } from './cosmetics'
 
 export {
@@ -29,7 +32,9 @@ export {
 
 export type {
   Arrow,
+  BetweenLine,
   CellNeighbors,
+  CellBackgroundColor,
   KillerCage,
   Thermometer,
   Text,
@@ -37,4 +42,5 @@ export type {
   Quadruple,
   Circle,
   Rectangle,
+  MinMaxCell,
 }

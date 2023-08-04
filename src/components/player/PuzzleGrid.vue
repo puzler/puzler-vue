@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import GridCell from './GridCell.vue'
 import KillerCage from './constraints/KillerCage.vue'
+import CellBackgroundColor from './constraints/CellBackgroundColor.vue'
 import TextCosmetic from './constraints/TextCosmetic.vue'
 import LineCosmetic from './constraints/LineCosmetic.vue'
 import CircleCosmetic from './constraints/CircleCosmetic.vue'
 import RectangleCosmetic from './constraints/RectangleCosmetic.vue'
 import ArrowConstraint from './constraints/ArrowConstraint.vue'
+import MinMaxConstraint from './constraints/MinMaxConstraint.vue'
+import BetweenLineConstraint from './constraints/BetweenLineConstraint.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
@@ -34,6 +37,45 @@ const effectiveSize = computed(() => {
   svg.constraints.under-grid(
     :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
   )
+    CellBackgroundColor(
+      v-for="cellColor, i in puzzle.cellBackgroundColors"
+      :key="`cell-background-color-${i}`"
+      :address="cellColor.address"
+      :color="cellColor.color"
+      :puzzle="puzzle"
+    )
+    MinMaxConstraint(
+      v-for="minCell, i in puzzle.minCells"
+      :key="`min-cell-${i}`"
+      :minMaxCell="minCell"
+      :puzzle="puzzle"
+      type="minimum"
+    )
+    MinMaxConstraint(
+      v-for="maxCell, i in puzzle.maxCells"
+      :key="`max-cell-${i}`"
+      :minMaxCell="maxCell"
+      :puzzle="puzzle"
+      type="maximum"
+    )
+    g.extra-region-background(
+      v-for="extraRegion, i in puzzle.extraRegions"
+      :key="'extra-region-background-group' + i"
+    )
+      CellBackgroundColor(
+        v-for="address, j in extraRegion.cells"
+        :key="`extra-region-${i}-background-cell-${j}`"
+        :address="address"
+        color="#dddddd"
+        :puzzle="puzzle"
+      )
+    CellBackgroundColor(
+      v-for="cloneCell, i in puzzle.clones"
+      :key="'clone-cell-' + i"
+      :address="cloneCell.cells[0]"
+      :color="cloneCell.fill"
+      :puzzle="puzzle"
+    )
     ThermometerConstraint(
       v-for="thermo, i in puzzle.thermometers"
       :key="'thermo-' + i"
@@ -44,6 +86,12 @@ const effectiveSize = computed(() => {
       v-for="arrow, i in puzzle.arrows"
       :key="'arrow-' + i"
       :arrow="arrow"
+      :puzzle="puzzle"
+    )
+    BetweenLineConstraint(
+      v-for="betweenLine, i in puzzle.betweenLines"
+      :key="'between-line-' + i"
+      :betweenLine="betweenLine"
       :puzzle="puzzle"
     )
     LineCosmetic(
@@ -110,6 +158,12 @@ const effectiveSize = computed(() => {
       v-for="cage, i in puzzle.cages"
       :key="'cage-' + i"
       :cage="cage"
+      :puzzle="puzzle"
+    )
+    KillerCage(
+      v-for="region, i in puzzle.extraRegions"
+      :key="'extra-region-' + i"
+      :cage="region"
       :puzzle="puzzle"
     )
     QuadrupleConstraint(

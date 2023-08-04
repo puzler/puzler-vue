@@ -1,6 +1,7 @@
 import type {
   KillerCage,
   Quadruple,
+  Arrow,
 } from './constraints'
 import type {
   Text,
@@ -26,6 +27,7 @@ type FPuzzle = {
   difference?: Array<FPuzzleCircleConstraint>
   xv?: Array<FPuzzleTextConstraint>
   thermometer?: Array<FPuzzleThermometer>
+  arrow?: Array<Arrow>
 }
 
 type FPuzzleCell = {

@@ -8,6 +8,7 @@ import type {
   KillerCage,
   Quadruple,
   Thermometer,
+  Arrow,
 } from './constraints'
 import type {
   Text,
@@ -27,6 +28,7 @@ export {
 }
 
 export type {
+  Arrow,
   CellNeighbors,
   KillerCage,
   Thermometer,

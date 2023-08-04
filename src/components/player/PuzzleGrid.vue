@@ -5,6 +5,7 @@ import TextCosmetic from './constraints/TextCosmetic.vue'
 import LineCosmetic from './constraints/LineCosmetic.vue'
 import CircleCosmetic from './constraints/CircleCosmetic.vue'
 import RectangleCosmetic from './constraints/RectangleCosmetic.vue'
+import ArrowConstraint from './constraints/ArrowConstraint.vue'
 import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
@@ -37,6 +38,12 @@ const effectiveSize = computed(() => {
       v-for="thermo, i in puzzle.thermometers"
       :key="'thermo-' + i"
       :thermometer="thermo"
+      :puzzle="puzzle"
+    )
+    ArrowConstraint(
+      v-for="arrow, i in puzzle.arrows"
+      :key="'arrow-' + i"
+      :arrow="arrow"
       :puzzle="puzzle"
     )
     LineCosmetic(

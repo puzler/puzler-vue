@@ -3,6 +3,7 @@ import type {
   FPuzzle,
 } from './f-puzzle'
 import type {
+  Arrow,
   KillerCage,
   Quadruple,
   Thermometer,
@@ -30,6 +31,7 @@ export default class Puzzle {
   quadruples?: Array<Quadruple>
   rectangles?: Array<Rectangle>
   thermometers?: Array<Thermometer>
+  arrows?: Array<Arrow>
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -95,6 +97,8 @@ export default class Puzzle {
         if (cell.given !== undefined) puzzCell.given = cell.given
       })
     })
+
+    puzzle.arrows = fPuzzle.arrow
 
     puzzle.thermometers = fPuzzle.thermometer?.reduce(
       (list, thermo) => {

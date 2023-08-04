@@ -102,14 +102,14 @@ path.arrow-bulb-inner(:d="bulbPath")
 
 <style scoped lang="stylus">
 .arrow-line
-  stroke #a1a1a1
+  stroke #d4d4d4
   stroke-width 8
   stroke-linecap round
   stroke-linejoin round
   fill none
 
 .arrow-bulb-border
-  stroke #cdcdcd
+  stroke #bbbbbb
   stroke-width 85
   stroke-linecap round
   stroke-linejoin round

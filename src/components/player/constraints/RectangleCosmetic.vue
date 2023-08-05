@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
 import type { Rectangle } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   rectangle: Rectangle
@@ -9,24 +10,7 @@ const props = defineProps<{
 }>()
 
 const cellCoords = computed(() => {
-  return props.rectangle.cells.reduce(
-    (coords, address) => {
-      const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-      if (!match) return coords
-
-      let [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-      if (!props.puzzle.hasOuterElements) {
-        row -= 1
-        col -= 1
-      }
-
-      return [
-        ...coords,
-        { row, col },
-      ]
-    },
-    [] as Array<{ row: number, col: number }>,
-  )
+  return props.rectangle.cells.map((address) => addressToCoordinates(address))
 })
 
 const centerPoint = computed(() => {

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
 import type { Circle } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   circle: Circle
@@ -9,13 +10,7 @@ const props = defineProps<{
 }>()
 
 const centerPoint = computed(() => {
-  const coords = props.circle.cells.map((address) => {
-    const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-    if (!match) return { row: 0, col: 0 }
-
-    const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-    return { row, col }
-  })
+  const coords = props.circle.cells.map((address) => addressToCoordinates(address))
 
   const minMax = coords.reduce(
     (minMax, coordinate) => {
@@ -36,15 +31,10 @@ const centerPoint = computed(() => {
     }
   )
 
-  let y = (minMax.row.min + minMax.row.max + 1) * 50
-  let x = (minMax.col.min + minMax.col.max + 1) * 50
-
-  if (!props.puzzle.hasOuterElements) {
-    x -= 100
-    y -= 100
+  return {
+    x: (minMax.col.min + minMax.col.max + 1) * 50,
+    y: (minMax.row.min + minMax.row.max + 1) * 50,
   }
-
-  return { x, y }
 })
 
 const circleStyle = computed(() => ({

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Puzzle, type KillerCage } from '../../../types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 const props = defineProps<{
   cage: KillerCage
   puzzle: Puzzle
@@ -11,14 +12,9 @@ type Coordinates = {
   col: number
 }
 
-const coordsToAddress = ({ row, col }: Coordinates) => `R${row + 1}C${col + 1}`
+const coordsToAddress = ({ row, col }: Coordinates) => `R${row}C${col}`
 
-const cellCoordinates = props.cage.cells.map((address) => {
-  const match = address.match(/^R(\d+)C(\d+)$/)
-  if (!match) return []
-
-  return { row: parseInt(match[1], 10) - 1, col: parseInt(match[2], 10) - 1 }
-}) as Array<Coordinates>
+const cellCoordinates = props.cage.cells.map((address) => addressToCoordinates(address))
 
 const topLeftCoords = cellCoordinates.reduce(
   (coords, check) => {
@@ -27,7 +23,7 @@ const topLeftCoords = cellCoordinates.reduce(
     if (check.col > coords.col) return coords
     return check
   },
-  cellCoordinates[0],
+  { row: 100, col: 100 },
 )
 
 const startXY = computed(() => {
@@ -53,11 +49,6 @@ type GridLocation = {
 function xyForLocation(location: GridLocation) {
   let x = location.coords.col * 100 + 5
   let y = location.coords.row * 100 + 5
-
-  if (props.puzzle.hasOuterElements) {
-    x += 100
-    y += 100
-  }
 
   if (location.right) x += 90
   if (location.bottom) y += 90

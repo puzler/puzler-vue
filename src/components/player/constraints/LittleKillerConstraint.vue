@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
 import type { LittleKiller } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   littleKiller: LittleKiller
@@ -9,11 +10,12 @@ const props = defineProps<{
 }>()
 
 const centerPoint = computed(() => {
-  const match = props.littleKiller.cell.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-  if (!match) return { x: 0, y: 0 }
+  const { row, col } = addressToCoordinates(props.littleKiller.cell)
 
-  const [y, x] = [match[1], match[2]].map((n) => (parseInt(n, 10) * 100) + 50)
-  return { x, y }
+  return {
+    x: col * 100 + 50,
+    y: row * 100 + 50,
+  }
 })
 
 const arrowPath = computed(() => {

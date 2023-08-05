@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
 import type { Line } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   line: Line
@@ -9,17 +10,10 @@ const props = defineProps<{
 }>()
 
 function xyForAddress(address: string) {
-  const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-  if (!match) return { x: 0, y: 0, forSvg: '0 0' }
+  const { row, col } = addressToCoordinates(address)
 
-  const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
   let y = row * 100 + 50
   let x = col * 100 + 50
-
-  if (!props.puzzle.hasOuterElements) {
-    x -= 100
-    y -= 100
-  }
 
   return { x, y, forSvg: `${x} ${y}` }
 }

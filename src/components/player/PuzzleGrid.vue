@@ -27,16 +27,105 @@ const emit = defineEmits([
   'play-puzzle',
 ])
 
-const effectiveSize = computed(() => {
-  if (props.puzzle.hasOuterElements) return props.puzzle.size + 2
-  return props.puzzle.size
+const svgViewBox = computed(() => {
+  const {
+    minCol,
+    minRow,
+    maxCol,
+    maxRow,
+  } = props.puzzle.dimensions
+
+  let minX = minCol * 100
+  let minY = minRow * 100
+  let maxX = maxCol * 100
+  let maxY = maxRow * 100
+
+  return `${minX} ${minY} ${maxX} ${maxY}`
+})
+
+const outerGridPath = computed(() => {
+  const sideLength = (props.puzzle.size * 100) - 4
+  return [
+    'M102 102',
+    `h${sideLength}`,
+    `v${sideLength}`,
+    `h-${sideLength}`,
+    `v-${sideLength}`,
+  ]
+})
+
+const regionBordersPath = computed(() => {
+  return props.puzzle.cells.flatMap((row) => {
+    return row.flatMap((cell) => {
+      let paths = [] as Array<string>
+      const top = cell.neighbors.up?.region !== cell.region
+      const right = cell.neighbors.right?.region !== cell.region
+      
+      if (top) {
+        paths = [
+          ...paths,
+          `M${cell.coordinates.col * 100} ${cell.coordinates.row * 100}`,
+          `h100`,
+        ]
+      }
+
+      if (right) {
+        if (!top) {
+          paths.push(`M${(cell.coordinates.col + 1) * 100} ${cell.coordinates.row * 100}`)
+        }
+
+        paths.push('v100')
+      }
+
+      return paths
+    })
+  })
+})
+
+const spacerCounts = computed(() => {
+  let top = 0
+  let right = 0
+  let left = 0
+  let bottom = 0
+
+  if (props.puzzle.dimensions.minCol < 1) {
+    left = 1 - props.puzzle.dimensions.minCol
+  }
+
+  if (props.puzzle.dimensions.minRow < 1) {
+    top = 1 - props.puzzle.dimensions.minRow
+  }
+
+  if (props.puzzle.dimensions.maxRow > props.puzzle.size) {
+    bottom = props.puzzle.dimensions.maxRow - props.puzzle.size
+  }
+
+  if (props.puzzle.dimensions.maxCol > props.puzzle.size) {
+    right = props.puzzle.dimensions.maxCol - props.puzzle.size
+  }
+
+  const vertical = top + bottom
+  const horizontal = left + right
+
+  if (vertical < horizontal) {
+    top += horizontal - vertical
+  } else if (vertical > horizontal) {
+    left += vertical - horizontal
+  }
+
+  return {
+    top,
+    bottom,
+    left,
+    right,
+  }
 })
 </script>
 
 <template lang="pug">
-.grid-container(:style="{ '--puzzleSize': effectiveSize }")
+.grid-container(:style="{ '--puzzleSize': puzzle.size + spacerCounts.top + spacerCounts.bottom }")
   svg.constraints.under-grid(
-    :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
+    :viewBox="svgViewBox"
   )
     CellBackgroundColor(
       v-for="cellColor, i in puzzle.cellBackgroundColors"
@@ -102,12 +191,18 @@ const effectiveSize = computed(() => {
       :puzzle="puzzle"
     )
   .grid
-    .top-spacer.row(v-if="puzzle.hasOuterElements")
+    .top-spacer.row(
+      v-for="i in spacerCounts.top"
+      :key="`top-spacer-${i}`"
+    )
     .row(
       v-for="row, r in props.puzzle.cells"
       :key="'grid-row-' + r"
     )
-      .left-spacer(v-if="puzzle.hasOuterElements")
+      .left-spacer(
+        v-for="i in spacerCounts.left"
+        :key="`left-spacer-${i}`"
+      )
       GridCell(
         v-for="cell in row"
         :key="'cell-' + cell.address"
@@ -117,8 +212,14 @@ const effectiveSize = computed(() => {
         v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
         v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
       )
-      .right-spacer(v-if="puzzle.hasOuterElements")
-    .bottom-spacer.row(v-if="puzzle.hasOuterElements")
+      .right-spacer(
+        v-for="i in spacerCounts.right"
+        :key="`right-spacer-${i}`"
+      )
+    .bottom-spacer.row(
+      v-for="i in spacerCounts.bottom"
+      :key="`bottom-spacer-${i}`"
+    )
     .grid-overlay(
       v-if="timer.paused"
       v-on:click="emit('play-puzzle')"
@@ -134,8 +235,24 @@ const effectiveSize = computed(() => {
           v-on:click="emit('play-puzzle')"
           :append-icon="'mdi-play'"
         ) {{ timer.milliseconds === 0 ? 'Play' : 'Resume' }}
+  svg.grid-lines(:viewBox="svgViewBox")
+    path.outer-grid-border(:d="outerGridPath")
+    g(
+      v-for="i in puzzle.size"
+      :key="`row-col-group-${i}}`"
+    )
+      path.cell-border(
+        :d="`M${i * 100} 100,h100,v${puzzle.size * 100},h-100,v-${puzzle.size * 100}`"
+      )
+      path.cell-border(
+        :d="`M100 ${i * 100},v100,h${puzzle.size * 100},h-100,v-${puzzle.size * 100}`"
+      )
+    path.region-borders(
+      :d="regionBordersPath"
+    )
+
   svg.constraints.over-grid(
-    :viewBox="`0 0 ${effectiveSize * 100} ${effectiveSize * 100}`"
+    :viewBox="svgViewBox"
   )
     CircleCosmetic(
       v-for="circle, i in puzzle.circles"
@@ -204,17 +321,35 @@ const effectiveSize = computed(() => {
   --over-grid-z 3
   --overlay-z 4
 
-  svg.constraints
+  svg
     position absolute
     pointer-events none
     vector-effect non-scaling-stroke
     width 100%
     height 100%
     font-size 100px
+    z-index var(--grid-z)
     &.under-grid
       z-index var(--under-grid-z)
     &.over-grid
       z-index var(--over-grid-z)
+
+    .outer-grid-border
+      stroke #000000
+      stroke-width 4
+      fill none
+      stroke-linecap round
+      stroke-linejoin round
+    .region-borders
+      stroke #000000
+      stroke-width 3
+      fill none
+      stroke-linecap round
+      stroke-linejoin round
+    .cell-border
+      stroke #000000
+      stroke-width 1
+      fill none
 
   .grid
     display grid

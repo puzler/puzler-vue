@@ -349,10 +349,10 @@ function keyboardInput(event: KeyboardEvent) {
         throw 'Unknown code'
     }
 
-    if (row === -1) row = puzzle.value.size - 1
-    if (row === puzzle.value.size) row = 0
-    if (col === -1) col = puzzle.value.size - 1
-    if (col === puzzle.value.size) col = 0
+    if (row === 0) row = puzzle.value.size
+    if (row > puzzle.value.size) row = 1
+    if (col === 0) col = puzzle.value.size
+    if (col > puzzle.value.size) col = 1
 
     const target = puzzle.value.cellAt({ row, col })
     if (!target.selected) {

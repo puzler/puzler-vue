@@ -14,10 +14,6 @@ const minimum = computed(() => props.type === 'minimum')
 
 const indicatorPaths = computed(() => {
   let { col, row } = { ...props.minMaxCell }
-  if (!props.puzzle.hasOuterElements) {
-    row -= 1
-    col -= 1
-  }
 
   const centerPoint = {
     x: col * 100 + 50,

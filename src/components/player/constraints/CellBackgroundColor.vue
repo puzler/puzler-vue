@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   address: string
@@ -168,14 +169,7 @@ const transparentColor = computed(() => {
 })
 
 const coordinates = computed(() => {
-  const match = props.address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-  if (!match) return { x: 0, y: 0 }
-
-  let [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-  if (!props.puzzle.hasOuterElements) {
-    row -= 1
-    col -= 1
-  }
+  const { col, row } = addressToCoordinates(props.address)
 
   return {
     x: col * 100,

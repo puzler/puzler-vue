@@ -2,24 +2,12 @@
 import { computed } from 'vue'
 import { Puzzle } from '@/types'
 import type { Thermometer } from '@/types'
+import { addressToCoordinates } from '@/utils/grid-helpers';
 
 const props = defineProps<{
   thermometer: Thermometer
   puzzle: Puzzle
 }>()
-
-function addressToCoordinates(address: string) {
-  const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-  if (!match) return { row: 0, col: 0 }
-
-  let [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-  if (!props.puzzle.hasOuterElements) {
-    row -= 1
-    col -= 1
-  }
-
-  return { row, col }
-}
 
 const linePaths = computed(() => {
   return props.thermometer.lines.map((line) => {

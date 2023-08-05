@@ -28,20 +28,6 @@ const settingStore = useSettingStore()
 const colorStore = useColorStore()
 const colors = computed(() => colorStore.palette.colors)
 
-function sideClasses(neighbor: Cell|undefined, key: string): Array<string> {
-  const classes = [] as Array<string>
-
-  if (neighbor === undefined) {
-    classes.push(`${key}-outer`)
-  } else if (props.cell.region !== neighbor.region) {
-    classes.push(`${key}-region`)
-  }
-
-  if (props.cell.selected && !neighbor?.selected) classes.push(`${key}-selected`)
-
-  return classes
-}
-
 const corners = computed(() => {
   const { left, right, up, down } = props.cell.neighbors
   return {
@@ -50,26 +36,6 @@ const corners = computed(() => {
     'bottom-left': [left, down, down?.neighbors?.left],
     'bottom-right': [right, down, down?.neighbors?.right],
   } as Record<string, Array<Cell|null>>
-})
-
-const cornerRegionDots = computed(() => {
-  return Object.keys(corners.value).reduce(
-    (list, cornerKey) => {
-      const [cellA, cellB, corner] = corners.value[cornerKey]
-      if (cellA?.region !== props.cell.region) return list
-      if (cellB?.region !== props.cell.region) return list
-      if (corner?.region === props.cell.region) return list
-
-      return [
-        ...list,
-        {
-          classes: cornerKey.split('-'),
-          key: cornerKey,
-        }
-      ]
-    },
-    [] as Array<{ classes: Array<string>, key: string }>,
-  )
 })
 
 const cornerSelectedDots = computed(() => {
@@ -95,6 +61,11 @@ const cornerSelectedDots = computed(() => {
 })
 
 const cellClasses = computed(() => {
+  const classes = {
+    error: props.error && settingStore.userSettings.highlightConflicts,
+  } as Record<string, boolean>
+  if (!props.cell.selected) return classes
+
   const {
     left,
     right,
@@ -102,18 +73,13 @@ const cellClasses = computed(() => {
     down,
   } = props.cell.neighbors
 
-  const classes = [
-    ...sideClasses(left, 'left'),
-    ...sideClasses(right, 'right'),
-    ...sideClasses(up, 'top'),
-    ...sideClasses(down, 'bottom'),
-  ]
-
-  if (props.error && settingStore.userSettings.highlightConflicts) {
-    classes.push('error')
+  return {
+    ...classes,
+    'left-selected': !left?.selected,
+    'right-selected': !right?.selected,
+    'top-selected': !up?.selected,
+    'bottom-selected': !down?.selected
   }
-
-  return classes
 })
 
 const centerMarkFontSize = computed(() => {
@@ -259,11 +225,6 @@ const cellColorPaths = computed(() => {
       :key="key"
       :class="classes"
     )
-    .corner-region-dot(
-      v-for="{ classes, key } in cornerRegionDots"
-      :key="key"
-      :class="classes"
-    )
 
     .selected-border(
       v-on:pointerenter="onMouseEnter"
@@ -289,10 +250,7 @@ const cellColorPaths = computed(() => {
   position relative
   --selectedBorderColor rgba(0 107 255 0.5)
   --digitColor #1D69E5
-  --cellBorderWidth 0.5px
-  --regionBorderWidth 2px
-  --outerBorderWidth 4px
-  --selectedCornerRadius 3px
+  --selectedCornerRadius 5px
   overflow hidden
 
   svg.cell-colors
@@ -311,7 +269,6 @@ const cellColorPaths = computed(() => {
     bottom 0
     right 0
     left 0
-    border var(--cellBorderWidth) solid black
     display flex
     z-index var(--grid-z)
 
@@ -322,44 +279,6 @@ const cellColorPaths = computed(() => {
         &.given
           color #480000
 
-    &.left-region
-      border-left-width var(--regionBorderWidth)
-      .selected-border
-        padding-left calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-      .corner-selected-dot.left
-        border-left-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-    &.left-outer
-      border-left-width var(--outerBorderWidth)
-    &.right-region
-      border-right-width var(--regionBorderWidth)
-      .selected-border
-        padding-right calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-      .corner-selected-dot.right
-        border-right-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-    &.right-outer
-      border-right-width var(--outerBorderWidth)
-
-    &.top-region
-      border-top-width var(--regionBorderWidth)
-      .selected-border
-        padding-top calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-      .corner-selected-dot.top
-        border-top-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-    &.top-outer
-      border-top-width var(--outerBorderWidth)
-    &.bottom-region
-      border-bottom-width var(--regionBorderWidth)
-      .selected-border
-        padding-bottom calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-      .corner-selected-dot.bottom
-        border-bottom-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-    &.bottom-outer
-      border-bottom-width var(--outerBorderWidth)
-
-    .corner-region-dot
-      width calc(var(--regionBorderWidth) - var(--cellBorderWidth))
-      height calc(var(--regionBorderWidth) - var(--cellBorderWidth))
-      background-color black
     .corner-selected-dot
       border 0 solid var(--selectedBorderColor)
       &.top
@@ -378,7 +297,7 @@ const cellColorPaths = computed(() => {
         border-top-right-radius var(--selectedCornerRadius)
       &.bottom.right
         border-top-left-radius var(--selectedCornerRadius)
-    .corner-region-dot, .corner-selected-dot
+    .corner-selected-dot
       position absolute
       &.top
         top 0
@@ -430,29 +349,16 @@ const cellColorPaths = computed(() => {
       .selected-border
         border-left-width var(--selectedBorderWidth)
         padding-left 0px
-      &.left-region .selected-border
-        border-left-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
     &.right-selected
       .selected-border
         border-right-width var(--selectedBorderWidth)
         padding-right 0px
-      &.right-region .selected-border
-        border-right-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
     &.top-selected
       .selected-border
         border-top-width var(--selectedBorderWidth)
         padding-top 0px
-      &.top-region .selected-border
-        border-top-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
     &.bottom-selected
       .selected-border
         border-bottom-width var(--selectedBorderWidth)
         padding-bottom 0px
-      &.bottom-region .selected-border
-        border-bottom-width calc(var(--selectedBorderWidth) - (var(--regionBorderWidth) - var(--cellBorderWidth)))
-
-@media screen and (max-width: 900px)
-  .cell-container .cell
-    --regionBorderWidth 1px
-    --outerBorderWidth 2px
 </style>

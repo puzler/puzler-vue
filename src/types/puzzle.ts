@@ -19,6 +19,7 @@ import type {
   Rectangle,
   CellBackgroundColor,
 } from './cosmetics'
+import { addressToCoordinates } from '@/utils/grid-helpers'
 
 export default class Puzzle {
   size: number
@@ -63,8 +64,8 @@ export default class Puzzle {
           digit: null,
           region: (Math.floor(i / height) * regionsPerRow) + Math.floor(j / width),
           coordinates: {
-            row: i,
-            col: j
+            row: i + 1,
+            col: j + 1,
           }
         })
 
@@ -109,9 +110,9 @@ export default class Puzzle {
     fPuzzle.grid.forEach((row, i) => {
       row.forEach((cell, j) => {
         const puzzCell = puzzle.cells[i][j]
-        if (cell.region) puzzCell.region = cell.region
-        if (cell.value) puzzCell.digit = cell.value
-        if (cell.given) puzzCell.given = cell.given
+        if (cell.region !== undefined) puzzCell.region = cell.region
+        if (cell.value !== undefined) puzzCell.digit = cell.value
+        if (cell.given !== undefined) puzzCell.given = cell.given
         if (cell.c) {
           puzzle.cellBackgroundColors!.push({
             address: puzzCell.address,
@@ -301,11 +302,7 @@ export default class Puzzle {
 
     puzzle.minCells = fPuzzle.minimum?.reduce(
       (list, { cell }) => {
-        const match = cell.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-        if (!match) return list
-
-        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-
+        const { row, col } = addressToCoordinates(cell)
         const minMax = {
           row,
           col,
@@ -345,11 +342,7 @@ export default class Puzzle {
 
     puzzle.maxCells = fPuzzle.maximum?.reduce(
       (list, { cell }) => {
-        const match = cell.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-        if (!match) return list
-
-        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-
+        const { row, col } = addressToCoordinates(cell)
         const minMax = {
           row,
           col,
@@ -411,10 +404,10 @@ export default class Puzzle {
   }
 
   cellAt({ row, col }: { row: number, col: number }) {
-    if (row >= this.size || col >= this.size) throw new Error('Out of bounds')
-    if (row < 0 || col < 0) throw new Error('Out of bounds')
+    if (row > this.size || col > this.size) throw new Error('Out of bounds')
+    if (row <= 0 || col <= 0) throw new Error('Out of bounds')
 
-    return this.cells[row][col]
+    return this.cells[row + 1][col + 1]
   }
 
   get checkGroups() {
@@ -496,25 +489,35 @@ export default class Puzzle {
     }
   }
 
-  get hasOuterElements() {
-    if (this.littleKillers?.length) return true
-    if (this.sandwichSums?.length) return true
+  get allAddresses(): Array<string> {
+    return [
+      ...this.text?.flatMap(({ cells }) => cells) || [],
+      ...this.rectangles?.flatMap(({ cells }) => cells) || [],
+      ...this.circles?.flatMap(({ cells }) => cells) || [],
+      ...this.littleKillers?.map(({ cell }) => cell) || [],
+      ...this.sandwichSums?.map(({ cell }) => cell) || [],
+    ].flat()
+  }
 
-    const hasOuterText = this.text?.some(({ cells }) => {
-      return cells.some((address) => {
-        const match = address.match(/^R(-{0,1}\d+)C(-{0,1}\d+)$/)
-        if (!match) return false
+  get allCoordinates(): Array<{ row: number, col: number }> {
+    return this.allAddresses.map((address) => addressToCoordinates(address))
+  }
 
-        const [row, col] = [match[1], match[2]].map((n) => parseInt(n, 10))
-        if (row <= 0 || row > this.size) return true
-        if (col <= 0 || col > this.size) return true
-
-        return false
-      })
-    })
-    if (hasOuterText) return true
-
-    return false
+  get dimensions() {
+    return this.allCoordinates.reduce(
+      (dimensions, coords) => ({
+        minRow: Math.min(dimensions.minRow, coords.row),
+        minCol: Math.min(dimensions.minCol, coords.col),
+        maxRow: Math.max(dimensions.maxRow, coords.row),
+        maxCol: Math.max(dimensions.maxCol, coords.col),
+      }),
+      {
+        minRow: 1,
+        minCol: 1,
+        maxRow: this.size,
+        maxCol: this.size,
+      },
+    )
   }
 }
 
@@ -551,7 +554,7 @@ class Cell {
     this.digit = digit
     this.region = region
     this.coordinates = coordinates
-    this.address = `R${coordinates.row + 1}C${coordinates.col + 1}`
+    this.address = `R${coordinates.row}C${coordinates.col}`
   }
 }
 

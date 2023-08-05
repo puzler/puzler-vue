@@ -40,13 +40,13 @@ const svgViewBox = computed(() => {
   let maxX = maxCol * 100
   let maxY = maxRow * 100
 
-  return `${minX} ${minY} ${maxX} ${maxY}`
+  return `${minX} ${minY} ${maxX + 100 - minX} ${maxY + 100 - minY}`
 })
 
 const outerGridPath = computed(() => {
-  const sideLength = (props.puzzle.size * 100) - 4
+  const sideLength = props.puzzle.size * 100
   return [
-    'M102 102',
+    'M100 100',
     `h${sideLength}`,
     `v${sideLength}`,
     `h-${sideLength}`,
@@ -58,8 +58,8 @@ const regionBordersPath = computed(() => {
   return props.puzzle.cells.flatMap((row) => {
     return row.flatMap((cell) => {
       let paths = [] as Array<string>
-      const top = cell.neighbors.up?.region !== cell.region
-      const right = cell.neighbors.right?.region !== cell.region
+      const top = cell.coordinates.row !== 1 && cell.neighbors.up?.region !== cell.region
+      const right = cell.coordinates.col !== props.puzzle.size && cell.neighbors.right?.region !== cell.region
       
       if (top) {
         paths = [
@@ -69,7 +69,7 @@ const regionBordersPath = computed(() => {
         ]
       }
 
-      if (right) {
+      if (right && cell.coordinates.col !== props.puzzle.size) {
         if (!top) {
           paths.push(`M${(cell.coordinates.col + 1) * 100} ${cell.coordinates.row * 100}`)
         }
@@ -126,6 +126,7 @@ const spacerCounts = computed(() => {
 .grid-container(:style="{ '--puzzleSize': puzzle.size + spacerCounts.top + spacerCounts.bottom }")
   svg.constraints.under-grid(
     :viewBox="svgViewBox"
+    preserveAspectRatio="none"
   )
     CellBackgroundColor(
       v-for="cellColor, i in puzzle.cellBackgroundColors"
@@ -235,7 +236,10 @@ const spacerCounts = computed(() => {
           v-on:click="emit('play-puzzle')"
           :append-icon="'mdi-play'"
         ) {{ timer.milliseconds === 0 ? 'Play' : 'Resume' }}
-  svg.grid-lines(:viewBox="svgViewBox")
+  svg.grid-lines(
+    :viewBox="svgViewBox"
+    preserveAspectRatio="none"
+  )
     path.outer-grid-border(:d="outerGridPath")
     g(
       v-for="i in puzzle.size"
@@ -245,14 +249,14 @@ const spacerCounts = computed(() => {
         :d="`M${i * 100} 100,h100,v${puzzle.size * 100},h-100,v-${puzzle.size * 100}`"
       )
       path.cell-border(
-        :d="`M100 ${i * 100},v100,h${puzzle.size * 100},h-100,v-${puzzle.size * 100}`"
+        :d="`M100 ${i * 100},v100,h${puzzle.size * 100},v-100,h-${puzzle.size * 100}`"
       )
     path.region-borders(
       :d="regionBordersPath"
     )
-
   svg.constraints.over-grid(
     :viewBox="svgViewBox"
+    preserveAspectRatio="none"
   )
     CircleCosmetic(
       v-for="circle, i in puzzle.circles"
@@ -329,6 +333,7 @@ const spacerCounts = computed(() => {
     height 100%
     font-size 100px
     z-index var(--grid-z)
+    overflow visible
     &.under-grid
       z-index var(--under-grid-z)
     &.over-grid

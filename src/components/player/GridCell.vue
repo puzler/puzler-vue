@@ -214,7 +214,6 @@ const cellColorPaths = computed(() => {
       :key="path.colorKey"
       :d="path.data"
       :style="path.style"
-      vector-effect="non-scaling-stroke"
     )
   .cell(
     :class="cellClasses"

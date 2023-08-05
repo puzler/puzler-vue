@@ -235,10 +235,9 @@ text.cage-value(
 .cage-path
   fill none
   stroke #000000
-  stroke-width 1.5
-  stroke-dasharray 10 5
+  stroke-width 1.5px
+  stroke-dasharray 10px 5px
   shape-rendering geometric-precision
-  vector-effect non-scaling-stroke
 .cage-value
   font-size 0.2em
   text-anchor start

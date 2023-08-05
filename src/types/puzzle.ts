@@ -407,7 +407,7 @@ export default class Puzzle {
     if (row > this.size || col > this.size) throw new Error('Out of bounds')
     if (row <= 0 || col <= 0) throw new Error('Out of bounds')
 
-    return this.cells[row + 1][col + 1]
+    return this.cells[row - 1][col - 1]
   }
 
   get checkGroups() {

@@ -13,7 +13,12 @@ import QuadrupleConstraint from './constraints/QuadrupleConstraint.vue'
 import LittleKillerConstraint from './constraints/LittleKillerConstraint.vue'
 import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
-import { Puzzle, Timer } from '@/types'
+import {
+  Puzzle,
+  Timer,
+  type Circle,
+  type Rectangle,
+} from '@/types'
 
 const props = defineProps<{
   puzzle: Puzzle
@@ -120,6 +125,62 @@ const spacerCounts = computed(() => {
     right,
   }
 })
+
+const circles = computed(() => {
+  return (props.puzzle.circles || []).reduce(
+    (groups, circle) => {
+      if (circle.cells.length === 1) {
+        return {
+          ...groups,
+          underGrid: [
+            ...groups.underGrid,
+            circle,
+          ],
+        }
+      }
+
+      return {
+        ...groups,
+        overGrid: [
+          ...groups.overGrid,
+          circle,
+        ],
+      }
+    },
+    {
+      underGrid: [],
+      overGrid: [],
+    } as Record<string, Array<Circle>>,
+  )
+})
+
+const rectangles = computed(() => {
+  return (props.puzzle.rectangles || []).reduce(
+    (groups, rect) => {
+      if (rect.cells.length === 1) {
+        return {
+          ...groups,
+          underGrid: [
+            ...groups.underGrid,
+            rect,
+          ],
+        }
+      }
+
+      return {
+        ...groups,
+        overGrid: [
+          ...groups.overGrid,
+          rect,
+        ],
+      }
+    },
+    {
+      underGrid: [],
+      overGrid: [],
+    } as Record<string, Array<Rectangle>>,
+  )
+})
 </script>
 
 <template lang="pug">
@@ -183,6 +244,18 @@ const spacerCounts = computed(() => {
       v-for="betweenLine, i in puzzle.betweenLines"
       :key="'between-line-' + i"
       :betweenLine="betweenLine"
+      :puzzle="puzzle"
+    )
+    CircleCosmetic(
+      v-for="circle, i in circles.underGrid"
+      :key="`under-grid-circle-${i}`"
+      :circle="circle"
+      :puzzle="puzzle"
+    )
+    RectangleCosmetic(
+      v-for="rectangle, i in rectangles.underGrid"
+      :key="`under-grid-rectangle-${i}`"
+      :rectangle="rectangle"
       :puzzle="puzzle"
     )
     LineCosmetic(
@@ -259,14 +332,14 @@ const spacerCounts = computed(() => {
     preserveAspectRatio="none"
   )
     CircleCosmetic(
-      v-for="circle, i in puzzle.circles"
-      :key="'circle-' + i"
+      v-for="circle, i in circles.overGrid"
+      :key="'over-grid-circle-' + i"
       :circle="circle"
       :puzzle="puzzle"
     )
     RectangleCosmetic(
-      v-for="rect, i in puzzle.rectangles"
-      :key="'rectangle-' + i"
+      v-for="rect, i in rectangles.overGrid"
+      :key="'over-grid-rectangle-' + i"
       :rectangle="rect"
       :puzzle="puzzle"
     )

@@ -52,7 +52,7 @@ async function handleSubmit() {
 const authProviders = [
   {
     name: 'Facebook',
-    icon: 'mdi-facebook',
+    icon: 'fa:fab fa-facebook-square',
     color: '#3B5998',
     textColor: '#ffffff',
     provider: Facebook,

@@ -1,0 +1,7 @@
+mutation ConfirmEmail($input: ConfirmEmailInput!) {
+  confirmEmail(input: $input) {
+    success
+    errors
+    jwt
+  }
+}

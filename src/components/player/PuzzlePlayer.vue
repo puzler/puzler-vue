@@ -34,7 +34,6 @@ const puzzle = ref(
   })(),
 )
 
-
 const playTimerOnVisible = ref(false)
 const timer = ref(new Timer())
 const controller = ref(new Controller())

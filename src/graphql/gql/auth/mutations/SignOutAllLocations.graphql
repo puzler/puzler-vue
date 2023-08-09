@@ -1,0 +1,6 @@
+mutation SignOutAllLocations($input: SignOutAllLocationsInput!) {
+  signOutAllLocations(input: $input) {
+    success
+    errors
+  }
+}

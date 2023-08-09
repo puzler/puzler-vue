@@ -10,7 +10,7 @@ import HeaderNav from './HeaderNav.vue'
     RouterView
 </template>
 
-<style lang="stylus">
+<style scoped lang="stylus">
 .app-container
   display flex
   flex-direction column

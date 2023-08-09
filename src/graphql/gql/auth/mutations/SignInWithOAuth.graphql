@@ -1,0 +1,7 @@
+mutation SignInWithOAuth($input: SignInWithOAuthInput!) {
+  signInWithOAuth(input: $input) {
+    success
+    errors
+    jwt
+  }
+}

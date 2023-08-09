@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import useAuthStore from '@/stores/auth'
+
+const authStore = useAuthStore()
 </script>
 
 <template lang="pug">
@@ -12,8 +15,20 @@ header
   nav
     .spacer
     RouterLink(
+      v-if="authStore.currentUser === null"
+      to="/auth/sign-in"
+    ) Sign In
+    a(
+      v-else
+      href="#"
+      v-on:click.stop="authStore.signOut"
+    ) Sign Out
+    RouterLink(
       to="/api-explorer"
-    ) API
+    )
+      v-icon(
+        icon="mdi-code-braces"
+      )
 </template>
 
 <style scoped lang="stylus">
@@ -42,6 +57,7 @@ header
 
     a
       padding 0 1rem
+      white-space nowrap
 
       &.router-link-exact-active
         color var(--color-text)

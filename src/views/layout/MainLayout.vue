@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import HeaderNav from './HeaderNav.vue'
+import AppFooter from './AppFooter.vue'
 </script>
 
 <template lang="pug">
@@ -8,6 +9,7 @@ import HeaderNav from './HeaderNav.vue'
   HeaderNav
   .main-content
     RouterView
+  AppFooter
 </template>
 
 <style scoped lang="stylus">

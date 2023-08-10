@@ -4,6 +4,7 @@ import MainLayout from '@/views/layout/MainLayout.vue'
 import SolverView from '@/views/SolverView.vue'
 import ApiExplorer from '@/views/ApiExplorer.vue'
 
+import CookiePolicy from '@/views/legal/CookiePolicy.vue'
 import PrivacyPolicy from '@/views/legal/PrivacyPolicy.vue'
 import TermsOfService from '@/views/legal/TermsOfService.vue'
 
@@ -30,6 +31,11 @@ const router = createRouter({
         {
           path: 'legal',
           children: [
+            {
+              path: 'cookies',
+              component: CookiePolicy,
+              name: 'CookiePolicyPath',
+            },
             {
               path: 'privacy',
               component: PrivacyPolicy,

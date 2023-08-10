@@ -4,6 +4,9 @@ import MainLayout from '@/views/layout/MainLayout.vue'
 import SolverView from '@/views/SolverView.vue'
 import ApiExplorer from '@/views/ApiExplorer.vue'
 
+import PrivacyPolicy from '@/views/legal/PrivacyPolicy.vue'
+import TermsOfService from '@/views/legal/TermsOfService.vue'
+
 import AuthRoutes from './auth'
 
 const router = createRouter({
@@ -24,6 +27,21 @@ const router = createRouter({
           component: SolverView,
         },
         AuthRoutes,
+        {
+          path: 'legal',
+          children: [
+            {
+              path: 'privacy',
+              component: PrivacyPolicy,
+              name: 'PrivacyPolicyPath',
+            },
+            {
+              path: 'tos',
+              component: TermsOfService,
+              name: 'TermsOfServicePath',
+            },
+          ],
+        },
       ],
     },
     {

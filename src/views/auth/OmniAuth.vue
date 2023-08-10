@@ -33,7 +33,7 @@ onMounted(async () => {
     })
   }
 
-  window.close()
+  if (!!authStore.currentUser) window.close()
 })
 </script>
 

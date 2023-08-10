@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Facebook } from '@/types/auth-providers';
+import { Facebook, Google } from '@/types/auth-providers';
 import router from '@/plugins/router'
 import useAuthStore from '@/stores/auth';
 import { onUnmounted } from 'vue';
@@ -56,7 +56,14 @@ const authProviders = [
     color: '#3B5998',
     textColor: '#ffffff',
     provider: Facebook,
-  }
+  },
+  {
+    name: 'Google',
+    icon: 'mdi-gmail',
+    color: '#d52b1c',
+    textColor: '#ffffff',
+    provider: Google,
+  },
 ]
 
 function attemptProviderAuth({ redirectUrl }: { redirectUrl: Function }) {
@@ -190,9 +197,14 @@ async function checkForAuthReturn() {
     .auth-provider-btn
       --v-high-emphasis-opacity 100%
       --v-btn-height unset
+      width 70%
       padding-left 0
+      margin-top 10px
+      justify-content space-between
       overflow hidden
       color var(--v-theme-on-surface)
+      &:first-of-type
+        margin-top 0
       :deep(.v-btn__prepend)
         padding 10px
         font-size 1.2rem

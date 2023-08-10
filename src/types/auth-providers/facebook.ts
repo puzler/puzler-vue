@@ -1,4 +1,4 @@
-import type { LocationQuery } from 'vue-router'
+import { useRoute } from 'vue-router'
 import TokenManager from "../../utils/token-manager"
 import type { AuthProvider } from './auth-provider'
 
@@ -12,7 +12,8 @@ function redirectUrl(): string {
   return `${BASE_URL}?client_id=${APP_ID}&redirect_uri=${REDIRECT_URI}&state=${JSON.stringify({token})}&scope=email`
 }
 
-function validateResponse({ state, code }: LocationQuery) {
+function validateResponse() {
+  const { state, code } = useRoute().query
   if (typeof state !== 'string') return { valid: false }
 
   const json = JSON.parse(state)

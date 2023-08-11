@@ -9,6 +9,7 @@ import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context'
 import { createUploadLink } from 'apollo-upload-client'
 import { LOCAL_STORAGE_JWT_KEY } from '@/stores/auth'
+import Bugsnag, { type OnErrorCallback } from '@bugsnag/js';
 
 const apiUrl = `${import.meta.env.VITE_PUZLER_API_ROOT}/graphql`
 
@@ -20,8 +21,25 @@ const httpLink = ApolloLink.split(
 )
 
 const errorLink = onError((errorHandler) => {
-  console.error('Received Error from GraphQL Request')
-  console.debug(errorHandler)
+  const onError: OnErrorCallback = (event) => {
+    event.context = 'GraphQL Error'
+    event.addMetadata('operation', errorHandler.operation)
+    if (errorHandler.response) event.addMetadata('response', errorHandler.response)
+  }
+
+  errorHandler.graphQLErrors?.forEach((error) => {
+    Bugsnag.notify(
+      new Error(error.message),
+      onError,
+    )
+  })
+
+  if (errorHandler.networkError) {
+    Bugsnag.notify(
+      errorHandler.networkError,
+      onError,
+    )
+  }
 })
 
 const authLink = setContext((_, { headers }) => {

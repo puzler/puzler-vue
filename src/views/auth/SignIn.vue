@@ -89,19 +89,19 @@ async function attemptProviderAuth(provider: AuthProvider) {
 
 async function checkForAuthReturn() {
   if (document.visibilityState === 'visible') {
-    watchingForAuthReturn.value = false
     document.removeEventListener('visibilitychange', checkForAuthReturn)
-
+    
     await authStore.refreshFromStorage()
     if (await authStore.authenticated) return
-
-    error.value = "Your OAuth sign in didn't work. Try again later."
+    
+    watchingForAuthReturn.value = false
+    error.value = authStore.oauthFailureMessage() || "Your OAuth sign in didn't work. Try again later."
   }
 }
 </script>
 
 <template lang="pug">
-.sign-in-form
+.sign-in-form(v-if="!watchingForAuthReturn")
   .form-header Sign In
   .error(v-if="error !== null") {{ error }}
   v-text-field.form-field(

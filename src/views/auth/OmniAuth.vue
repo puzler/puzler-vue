@@ -31,7 +31,7 @@ onMounted(async () => {
     await authStore.signInWithOAuth(signInInput)
   }
 
-  if (authStore.currentUser) window.close()
+  window.close()
 })
 </script>
 

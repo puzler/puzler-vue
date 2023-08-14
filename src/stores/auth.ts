@@ -22,6 +22,7 @@ import ResetPasswordMutation from '@/graphql/gql/auth/mutations/ResetPassword.gr
 import GenerateOAuthCsrfTokenMutation from '@/graphql/gql/auth/mutations/GenerateOAuthCsrfToken.graphql'
 
 export const LOCAL_STORAGE_JWT_KEY = 'puzler-auth-jwt'
+export const LOCAL_STORAGE_OAUTH_MESSAGE_KEY = 'puzler-oauth-result-message'
 
 const useAuthStore = defineStore('auth', () => {
   const jwt = ref(localStorage.getItem(LOCAL_STORAGE_JWT_KEY))
@@ -127,6 +128,12 @@ const useAuthStore = defineStore('auth', () => {
     return response.data?.generateOAuthCsrfToken.csrfToken
   }
 
+  function oauthFailureMessage() {
+    const message = localStorage.getItem(LOCAL_STORAGE_OAUTH_MESSAGE_KEY)
+    localStorage.removeItem(LOCAL_STORAGE_OAUTH_MESSAGE_KEY)
+    return message
+  }
+
   async function signInWithOAuth(input: SignInWithOAuthInput) {
     if (jwt.value) return 'You are already signed in'
 
@@ -136,7 +143,24 @@ const useAuthStore = defineStore('auth', () => {
       fetchPolicy: 'no-cache',
     })
 
-    return handleJwtMutationResponse(response.data.signInWithOAuth, 'Could not validate OAuth Login')
+    const {
+      success,
+      errors,
+      jwt: responseJwt,
+    } = response.data.signInWithOAuth
+
+    if (success && responseJwt) {
+      setJwt(responseJwt)
+      await fetchCurrentUser()
+
+      if (currentUser.value) return null
+
+      clearJwt()
+    }
+
+    const error = (errors || ['OAuth Sign In Failed'])[0]
+    localStorage.setItem(LOCAL_STORAGE_OAUTH_MESSAGE_KEY, error)
+    return null
   }
 
   async function signOut() {
@@ -209,6 +233,7 @@ const useAuthStore = defineStore('auth', () => {
     signIn,
     generateOAuthCsrfToken,
     signInWithOAuth,
+    oauthFailureMessage,
     signOut,
     signUp,
     confirmEmail,

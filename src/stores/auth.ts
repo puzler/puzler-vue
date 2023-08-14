@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { ResetPasswordInput, SignInInput, SignInWithOAuthInput, SignUpInput, User } from '@/graphql/generated/types'
+import type {
+  ResetPasswordInput,
+  SignInInput,
+  SignInWithOAuthInput,
+  SignUpInput,
+  User,
+} from '@/graphql/generated/types'
 import graphqlClient from '@/plugins/graphql'
 import router from '@/plugins/router'
 
@@ -13,6 +19,7 @@ import SignUpMutation from '@/graphql/gql/auth/mutations/SignUp.graphql'
 import ConfirmEmailMutation from '@/graphql/gql/auth/mutations/ConfirmEmail.graphql'
 import RequestPasswordResetMutation from '@/graphql/gql/auth/mutations/RequestPasswordReset.graphql'
 import ResetPasswordMutation from '@/graphql/gql/auth/mutations/ResetPassword.graphql'
+import GenerateOAuthCsrfTokenMutation from '@/graphql/gql/auth/mutations/GenerateOAuthCsrfToken.graphql'
 
 export const LOCAL_STORAGE_JWT_KEY = 'puzler-auth-jwt'
 
@@ -106,6 +113,20 @@ const useAuthStore = defineStore('auth', () => {
     return handleJwtMutationResponse(response.data.signIn, 'Invalid Email or Password')
   }
 
+  async function generateOAuthCsrfToken(clientTokenId: string) {
+    const response = await graphqlClient.mutate({
+      mutation: GenerateOAuthCsrfTokenMutation,
+      variables: {
+        input: {
+          clientTokenId,
+        },
+      },
+      fetchPolicy: 'no-cache',
+    })
+
+    return response.data?.generateOAuthCsrfToken.csrfToken
+  }
+
   async function signInWithOAuth(input: SignInWithOAuthInput) {
     if (jwt.value) return 'You are already signed in'
 
@@ -186,6 +207,7 @@ const useAuthStore = defineStore('auth', () => {
     fetchCurrentUser,
     refreshFromStorage,
     signIn,
+    generateOAuthCsrfToken,
     signInWithOAuth,
     signOut,
     signUp,

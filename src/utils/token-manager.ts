@@ -18,31 +18,29 @@ function generateToken(name: string) {
   return token
 }
 
-function validateToken(name: string, token: string): boolean {
+function fetchToken(name: string): string|null {
   const fromStorage = localStorage.getItem(storageKeyFor(name))
-  if (!fromStorage) return false
+  if (!fromStorage) return null
 
   const tokenFromStorage = JSON.parse(fromStorage!)
 
-  if (tokenFromStorage.name !== name) return false
-  if (tokenFromStorage.token !== token) return false
-  if (tokenFromStorage.expire < Date.now()) return false
+  if (tokenFromStorage.name !== name) return null
+  if (tokenFromStorage.expire < Date.now()) return null
 
-  return true
+  return tokenFromStorage.token
 }
 
-function validateAndConsumeToken(name: string, token: string): boolean {
-  const valid = validateToken(name, token)
-
-  if (valid) {
+function fetchAndConsumeToken(name: string): string|null {
+  const token = fetchToken(name)
+  if (token) {
     localStorage.removeItem(storageKeyFor(name))
   }
 
-  return valid
+  return token
 }
 
 export default {
   generateToken,
-  validateToken,
-  validateAndConsumeToken,
+  fetchToken,
+  fetchAndConsumeToken,
 }

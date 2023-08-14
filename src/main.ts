@@ -17,7 +17,7 @@ import App from '@/App.vue'
 const app = createApp(App)
 
 const bugsnagVue = Bugsnag.getPlugin('vue')
-if (!!bugsnagVue) app.use(bugsnagVue)
+if (bugsnagVue) app.use(bugsnagVue)
 
 app.use(createPinia())
 app.use(router)

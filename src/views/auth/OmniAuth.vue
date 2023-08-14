@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Facebook, Google } from '@/types/auth-providers'
+import { Google, AuthProvider, Patreon } from '@/types/auth-providers'
 import useAuthStore from '@/stores/auth'
 
 const props = defineProps<{
   providerName: string
 }>()
 
-const provider = computed(() => {
+const provider = computed((): AuthProvider => {
   switch (props.providerName) {
-    case 'facebook':
-      return Facebook
+    // case 'facebook':
+    //   return Facebook
     case 'google': 
       return Google
+    case 'patreon':
+      return Patreon
   }
 
   throw 'No Valid Provider Found'
@@ -21,16 +23,12 @@ const provider = computed(() => {
 const authStore = useAuthStore()
 
 onMounted(async () => {
-  const {
-    code,
-    valid,
-  } = provider.value.validateResponse()
+  console.log(1)
+  const signInInput = provider.value.signInInput()
+  console.log(signInInput)
 
-  if (valid && !!code) {
-    await authStore.signInWithOAuth({
-      code,
-      providerName: props.providerName,
-    })
+  if (signInInput) {
+    await authStore.signInWithOAuth(signInInput)
   }
 
   if (authStore.currentUser) window.close()

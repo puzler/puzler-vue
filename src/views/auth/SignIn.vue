@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Facebook, Google } from '@/types/auth-providers';
+import { Patreon, Google, AuthProvider } from '@/types/auth-providers'
 import router from '@/plugins/router'
-import useAuthStore from '@/stores/auth';
-import { onUnmounted } from 'vue';
+import useAuthStore from '@/stores/auth'
+import { onUnmounted } from 'vue'
 
 const authStore = useAuthStore()
 
@@ -50,15 +50,19 @@ async function handleSubmit() {
 }
 
 const authProviders = [
+  // {
+  //   icon: 'fa:fab fa-facebook-square',
+  //   color: '#3B5998',
+  //   textColor: '#ffffff',
+  //   provider: Facebook,
+  // },
   {
-    name: 'Facebook',
-    icon: 'fa:fab fa-facebook-square',
-    color: '#3B5998',
+    icon: 'mdi-patreon',
+    color: '#F96854',
     textColor: '#ffffff',
-    provider: Facebook,
+    provider: Patreon,
   },
   {
-    name: 'Google',
     icon: 'mdi-gmail',
     color: '#d52b1c',
     textColor: '#ffffff',
@@ -66,11 +70,21 @@ const authProviders = [
   },
 ]
 
-function attemptProviderAuth({ redirectUrl }: { redirectUrl: Function }) {
+async function attemptProviderAuth(provider: AuthProvider) {
   error.value = null
-  window.open(redirectUrl(), '_blank')
-  watchingForAuthReturn.value = true
-  document.addEventListener('visibilitychange', checkForAuthReturn)
+
+  const clientToken = provider.generateClientTokenId()
+  const csrfToken = await authStore.generateOAuthCsrfToken(clientToken)
+
+  if (csrfToken) {
+    const redirectUrl = provider.redirectUrl(csrfToken)
+    console.log(redirectUrl)
+    window.open(redirectUrl, '_blank')
+    watchingForAuthReturn.value = true
+    document.addEventListener('visibilitychange', checkForAuthReturn)
+  } else {
+    error.value = 'Unable to login with oauth provider'
+  }
 }
 
 async function checkForAuthReturn() {
@@ -129,11 +143,11 @@ async function checkForAuthReturn() {
     v-btn.auth-provider-btn(
       v-for="authProvider in authProviders"
       v-on:click="attemptProviderAuth(authProvider.provider)"
-      :key="authProvider.name"
+      :key="authProvider.provider.name"
       :prepend-icon="authProvider.icon"
       :color="authProvider.color"
       :style="{ '--v-theme-on-surface': authProvider.textColor }"
-    ) Login with {{ authProvider.name }}
+    ) Login with {{ authProvider.provider.name }}
 </template>
 
 <style scoped lang="stylus">

@@ -1,0 +1,7 @@
+mutation GenerateOAuthCsrfToken($input: GenerateOAuthCsrfTokenInput!) {
+  generateOAuthCsrfToken(input: $input) {
+    success
+    errors
+    csrfToken
+  }
+}

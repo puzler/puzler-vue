@@ -241,14 +241,14 @@ export default class Puzzle {
     if (!puzzle.circles.length) delete puzzle.circles
 
     puzzle.clones = fPuzzle.clone?.flatMap(({ cells, cloneCells }) => [
-      ...[cells, cloneCells].map((rectCells) => ({
-        cells: rectCells,
+      ...[cells, cloneCells].flatMap((rectCells) => rectCells.map((cell) => ({
+        cells: [cell],
         height: 1,
         width: 1,
         fill: '#cccccc',
         outline: '#cccccc',
         fontColor: '#cccccc',
-      })),
+      }))),
     ])
 
     puzzle.rectangles = [

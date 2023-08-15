@@ -15,7 +15,7 @@ header
   nav
     .spacer
     RouterLink(
-      v-if="authStore.currentUser === null"
+      v-if="!authStore.authenticated"
       to="/auth/sign-in"
     ) Sign In
     a(

@@ -1,0 +1,7 @@
+mutation ConfirmProviderLink($input: ConfirmProviderLinkInput!) {
+  confirmProviderLink(input: $input) {
+    success
+    errors
+    jwt
+  }
+}

@@ -8,6 +8,15 @@ declare module '*/ConfirmEmail.graphql' {
 }
     
 
+declare module '*/ConfirmOAuthLink.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ConfirmProviderLink: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/GenerateOAuthCsrfToken.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

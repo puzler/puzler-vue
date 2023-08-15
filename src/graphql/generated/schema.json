@@ -44,7 +44,7 @@
           },
           {
             "name": "confirmProviderLink",
-            "description": "Used to confirm an OAuth provider link",
+            "description": "Used to confirm linking an OAuth provider",
             "args": [
               {
                 "name": "input",
@@ -820,7 +820,7 @@
           },
           {
             "name": "confirmProviderLink",
-            "description": "Used to confirm an OAuth provider link",
+            "description": "Used to confirm linking an OAuth provider",
             "args": [
               {
                 "name": "input",

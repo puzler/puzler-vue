@@ -17,6 +17,7 @@ import SignOutMutation from '@/graphql/gql/auth/mutations/SignOut.graphql'
 // import SignOutAllLocationsMutation from '@/graphql/gql/auth/mutations/SignOutAllLocations.graphql'
 import SignUpMutation from '@/graphql/gql/auth/mutations/SignUp.graphql'
 import ConfirmEmailMutation from '@/graphql/gql/auth/mutations/ConfirmEmail.graphql'
+import ConfirmOAuthLinkMutation from '@/graphql/gql/auth/mutations/ConfirmOAuthLink.graphql'
 import RequestPasswordResetMutation from '@/graphql/gql/auth/mutations/RequestPasswordReset.graphql'
 import ResetPasswordMutation from '@/graphql/gql/auth/mutations/ResetPassword.graphql'
 import GenerateOAuthCsrfTokenMutation from '@/graphql/gql/auth/mutations/GenerateOAuthCsrfToken.graphql'
@@ -29,9 +30,9 @@ const useAuthStore = defineStore('auth', () => {
   const currentUser = ref(null as User|null)
   const initialFetchComplete = ref(false)
 
-  const authenticated = computed(async () => {
+  const authenticated = computed(() => {
     if (!initialFetchComplete.value) {
-      await fetchCurrentUser()
+      fetchCurrentUser()
     }
 
     return !!currentUser.value
@@ -205,6 +206,26 @@ const useAuthStore = defineStore('auth', () => {
     return handleJwtMutationResponse(response.data.confirmEmail, 'Invalid confirmation token')
   }
 
+  async function confirmOAuthLink(token: string) {
+    const response = await graphqlClient.mutate({
+      mutation: ConfirmOAuthLinkMutation,
+      variables: { input: { token } },
+    })
+
+    if (!jwt.value) return handleJwtMutationResponse(response.data.confirmProviderLink, 'Invalid OAuth token')
+
+    const {
+      success,
+      errors,
+    } = response.data.confirmProviderLink
+
+    if (success) {
+      router.replace('/')
+    } else {
+      return (errors || ['Invalid OAuth Token'])[0]
+    }
+  }
+
   async function requestPasswordReset(email: string) {
     if (jwt.value) return
 
@@ -237,6 +258,7 @@ const useAuthStore = defineStore('auth', () => {
     signOut,
     signUp,
     confirmEmail,
+    confirmOAuthLink,
     requestPasswordReset,
     resetPassword,
   }

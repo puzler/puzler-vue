@@ -18,7 +18,7 @@ export type Scalars = {
 export type AuthMutations = {
   /** Used to confirm an email with a token */
   confirmEmail?: Maybe<ConfirmEmailPayload>;
-  /** Used to confirm an OAuth provider link */
+  /** Used to confirm linking an OAuth provider */
   confirmProviderLink?: Maybe<ConfirmProviderLinkPayload>;
   /** Used to generate a CSRF token to validate an OAuth request */
   generateOAuthCsrfToken?: Maybe<GenerateOAuthCsrfTokenPayload>;
@@ -188,7 +188,7 @@ export type PuzlerMutations = AuthMutations & {
   __typename?: 'PuzlerMutations';
   /** Used to confirm an email with a token */
   confirmEmail?: Maybe<ConfirmEmailPayload>;
-  /** Used to confirm an OAuth provider link */
+  /** Used to confirm linking an OAuth provider */
   confirmProviderLink?: Maybe<ConfirmProviderLinkPayload>;
   /** Used to generate a CSRF token to validate an OAuth request */
   generateOAuthCsrfToken?: Maybe<GenerateOAuthCsrfTokenPayload>;

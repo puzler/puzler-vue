@@ -259,11 +259,11 @@ const rectangles = computed(() => {
       :puzzle="puzzle"
     )
     path.diagonal-path(
-      v-if="puzzle.diagonals && puzzle.diagonals.positive"
+      v-if="puzzle.diagonals && puzzle.diagonals.negative"
       :d="`M100 100, L${(puzzle.size + 1) * 100} ${(puzzle.size + 1) * 100}`"
     )
     path.diagonal-path(
-      v-if="puzzle.diagonals && puzzle.diagonals.negative"
+      v-if="puzzle.diagonals && puzzle.diagonals.positive"
       :d="`M100 ${(puzzle.size + 1) * 100}, L${(puzzle.size + 1) * 100} 100`"
     )
     LineCosmetic(
@@ -419,8 +419,8 @@ const rectangles = computed(() => {
       z-index var(--under-grid-z)
 
       .diagonal-path
-        stroke #2fa3c1
-        stroke-width 2
+        stroke #2fb6c1
+        stroke-width 3
     &.over-grid
       z-index var(--over-grid-z)
 

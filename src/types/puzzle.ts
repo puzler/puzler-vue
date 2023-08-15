@@ -47,6 +47,7 @@ export default class Puzzle {
   betweenLines?: Array<BetweenLine>
   maxCells?: Array<MinMaxCell>
   minCells?: Array<MinMaxCell>
+  diagonals?: { positive?: boolean; negative?: boolean }
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -106,6 +107,12 @@ export default class Puzzle {
     puzzle.littleKillers = fPuzzle.littlekillersum
     puzzle.sandwichSums = fPuzzle.sandwichsum
     puzzle.cellBackgroundColors = []
+
+    puzzle.diagonals = {
+      positive: fPuzzle['diagonal+'],
+      negative: fPuzzle['diagonal-']
+    }
+    if (Object.keys(puzzle.diagonals).length === 0) delete puzzle.diagonals
 
     fPuzzle.grid.forEach((row, i) => {
       row.forEach((cell, j) => {

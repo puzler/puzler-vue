@@ -38,6 +38,8 @@ type FPuzzle = {
   minimum?: Array<FPuzzleSingleCell>
   littlekillersum?: Array<LittleKiller>
   sandwichsum?: Array<SandwichSum>
+  "diagonal+"?: boolean
+  "diagonal-"?: boolean
 }
 
 type FPuzzleCell = {

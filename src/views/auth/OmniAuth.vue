@@ -23,9 +23,7 @@ const provider = computed((): AuthProvider => {
 const authStore = useAuthStore()
 
 onMounted(async () => {
-  console.log(1)
   const signInInput = provider.value.signInInput()
-  console.log(signInInput)
 
   if (signInInput) {
     await authStore.signInWithOAuth(signInInput)

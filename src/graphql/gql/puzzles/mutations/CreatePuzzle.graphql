@@ -1,0 +1,11 @@
+#import "../../fragments/FullPuzzle.graphql"
+
+mutation CreatePuzzle($input: CreatePuzzleInput!) {
+  createPuzzle(input: $input) {
+    success
+    errors
+    puzzle {
+      ...FullPuzzle
+    }
+  }
+}

@@ -78,7 +78,6 @@ async function attemptProviderAuth(provider: AuthProvider) {
 
   if (csrfToken) {
     const redirectUrl = provider.redirectUrl(csrfToken)
-    console.log(redirectUrl)
     window.open(redirectUrl, '_blank')
     watchingForAuthReturn.value = true
     document.addEventListener('visibilitychange', checkForAuthReturn)

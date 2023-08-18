@@ -9,20 +9,23 @@ const props = defineProps<{
   error: boolean
 }>()
 
-const emit = defineEmits(['mousedown', 'mouseenter', 'double-click'])
+const emit = defineEmits(['cell-click', 'cell-enter', 'cell-double-click'])
 
 let lastMouseDown = null as null|number
 function onMouseDown(event: PointerEvent) {
   const clickTime = Date.now()
   if (!!lastMouseDown && clickTime - lastMouseDown <= 500) {
-    emit('double-click', event, props.cell)
+    emit('cell-double-click', event, props.cell)
     lastMouseDown = null
   } else {
-    emit('mousedown', event, props.cell)
+    emit('cell-click', event, props.cell)
     lastMouseDown = Date.now()
   }
 }
-const onMouseEnter = (event: PointerEvent) => emit('mouseenter', event, props.cell)
+const onMouseEnter = (event: PointerEvent) => {
+  console.log('entered')
+  emit('cell-enter', event, props.cell)
+}
 
 const settingStore = useSettingStore()
 const colorStore = useColorStore()
@@ -225,22 +228,21 @@ const cellColorPaths = computed(() => {
       :class="classes"
     )
 
-    .selected-border(
-      v-on:pointerenter="onMouseEnter"
-    )
-      .digit(
-        :class="{ given: cell.given }"
-      ) {{ cell.digit === null ? '' : cell.digit }}
-      .center(
-        v-if="cell.digit === null"
-        :style="{ fontSize: centerMarkFontSize }"
-      ) {{ cell.centerMarks.join('') }}
-      .corner-marks(v-if="cell.digit === null")
-        .corner(
-          v-for="{ digit, align, justify, row, col } in cornerDigits"
-          :key="'cell-corner-digit-' + digit"
-          :style="{ alignSelf: align, justifySelf: justify, gridRow: row, gridColumn: col }"
-        ) {{ digit }}
+    .selected-border
+        .corner-marks(v-if="cell.digit === null")
+          .corner(
+            v-for="{ digit, align, justify, row, col } in cornerDigits"
+            :key="'cell-corner-digit-' + digit"
+            :style="{ alignSelf: align, justifySelf: justify, gridRow: row, gridColumn: col }"
+          ) {{ digit }}
+        .center(
+          v-if="cell.digit === null"
+          :style="{ fontSize: centerMarkFontSize }"
+        ) {{ cell.centerMarks.join('') }}
+        .digit(
+          v-on:pointerenter="onMouseEnter"
+          :class="{ given: cell.given }"
+        ) {{ cell.digit === null ? ' ' : cell.digit }}
 </template>
 
 <style scoped lang="stylus">
@@ -320,14 +322,28 @@ const cellColorPaths = computed(() => {
         line-height 0.25em
         color var(--digitColor)
     .selected-border
-      z-index --grid-z
+      z-index var(--grid-z)
       flex 1
       display flex
       align-items center
       justify-content center
       border 0px solid var(--selectedBorderColor)
-      padding var(--selectedBorderWidth)
+      .cell-enter-target
+        width calc(100% - var(--selectedBorderWidth))
+        height calc(100% - var(--selectedBorderWidth))
+        display flex
+        align-items center
+        justify-content center
+        background-color black
       .digit
+        position absolute
+        top var(--selectedBorderWidth)
+        bottom var(--selectedBorderWidth)
+        left var(--selectedBorderWidth)
+        right var(--selectedBorderWidth)
+        display flex
+        align-items center
+        justify-content center
         font-size 0.8em
         color var(--digitColor)
         line-height 0
@@ -335,6 +351,15 @@ const cellColorPaths = computed(() => {
         &.given
           color black
       .center
+        position absolute
+        top 0
+        bottom 0
+        left 0
+        right 0
+        display flex
+        align-items center
+        justify-content center
+        line-height 0
         color var(--digitColor)
     &.top-selected.left-selected .selected-border
       border-top-left-radius var(--selectedCornerRadius)
@@ -347,17 +372,13 @@ const cellColorPaths = computed(() => {
     &.left-selected
       .selected-border
         border-left-width var(--selectedBorderWidth)
-        padding-left 0px
     &.right-selected
       .selected-border
         border-right-width var(--selectedBorderWidth)
-        padding-right 0px
     &.top-selected
       .selected-border
         border-top-width var(--selectedBorderWidth)
-        padding-top 0px
     &.bottom-selected
       .selected-border
         border-bottom-width var(--selectedBorderWidth)
-        padding-bottom 0px
 </style>

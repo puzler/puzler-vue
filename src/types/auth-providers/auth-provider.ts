@@ -19,9 +19,7 @@ class AuthProvider {
   }
 
   signInInput(): SignInWithOAuthInput|undefined {
-    console.log(2)
     const oauthParams = this.parseOAuthResponse()
-    console.log(oauthParams)
     if (!oauthParams) return
 
     const clientTokenId = this.getClientTokenId()
@@ -31,7 +29,6 @@ class AuthProvider {
       clientTokenId,
       token: oauthParams.csrfToken,
     }
-    console.log(csrfToken)
 
     return {
       csrfToken,

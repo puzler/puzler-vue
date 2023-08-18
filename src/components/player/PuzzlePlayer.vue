@@ -320,7 +320,7 @@ function keyboardInput(event: KeyboardEvent) {
       event.preventDefault()
       return
     }
-  
+
     if (lastSelected.value === null) return
 
     const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
@@ -475,14 +475,15 @@ function cellDoubleClick(event: PointerEvent, cell: Cell) {
     :activator="modalActivators.incorrectSolution"
   )
     .message-modal Something seems wrong
-  PuzzleGrid(
-    :puzzle="puzzle"
-    :timer="timer"
-    v-on:cell-enter="cellEnter"
-    v-on:cell-click="cellClick"
-    v-on:cell-double-click="cellDoubleClick"
-    v-on:play-puzzle="timer.play()"
-  )
+  .puzzle-grid-container
+    PuzzleGrid(
+      :puzzle="puzzle"
+      :timer="timer"
+      v-on:cell-enter="cellEnter"
+      v-on:cell-click="cellClick"
+      v-on:cell-double-click="cellDoubleClick"
+      v-on:play-puzzle="timer.play()"
+    )
   ControlPad(
     :timer="timer"
     :controller="controller"
@@ -503,6 +504,13 @@ function cellDoubleClick(event: PointerEvent, cell: Cell) {
   container-name player
   gap 20px
 
+  .puzzle-grid-container
+    height 100cqmin
+    width 100cqmin
+    max-height calc(79cqw - 20px)
+    max-width calc(79cqw - 20px)
+    container-type inline-size
+
 .message-modal
   background-color white
   padding 20px 25px
@@ -517,4 +525,7 @@ function cellDoubleClick(event: PointerEvent, cell: Cell) {
   .player-container
     flex-direction column
     padding 10px
+    .puzzle-grid-container
+      max-height calc(60cqh - 20px)
+      max-width calc(60cqh - 20px)
 </style>

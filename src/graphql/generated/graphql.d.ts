@@ -97,3 +97,36 @@ declare module '*/CurrentUser.graphql' {
   export default defaultDocument;
 }
     
+
+declare module '*/FullPuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ColorFields: DocumentNode;
+export const Address: DocumentNode;
+export const SingleCell: DocumentNode;
+export const MultiCell: DocumentNode;
+export const Line: DocumentNode;
+export const NumberOutsideGrid: DocumentNode;
+export const FullPuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CreatePuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreatePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/FetchPuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const FetchPuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    

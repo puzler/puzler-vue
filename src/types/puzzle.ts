@@ -47,7 +47,10 @@ export default class Puzzle {
   betweenLines?: Array<BetweenLine>
   maxCells?: Array<MinMaxCell>
   minCells?: Array<MinMaxCell>
-  diagonals?: { positive?: boolean; negative?: boolean }
+  diagonals?: { positive: boolean; negative: boolean }
+  chess?: { knight: boolean; king?: boolean }
+  antiKropki?: { white: boolean; black: boolean }
+  antiXV?: { x: boolean; v: boolean }
 
   constructor(size: number) {
     if (size < 1) throw 'Size must be positive'
@@ -108,11 +111,11 @@ export default class Puzzle {
     puzzle.sandwichSums = fPuzzle.sandwichsum
     puzzle.cellBackgroundColors = []
 
+    if (fPuzzle['diagonal+'] || fPuzzle['diagonal-'])
     puzzle.diagonals = {
-      positive: fPuzzle['diagonal+'],
-      negative: fPuzzle['diagonal-']
+      positive: fPuzzle['diagonal+'] || false,
+      negative: fPuzzle['diagonal-'] || false,
     }
-    if (Object.keys(puzzle.diagonals).length === 0) delete puzzle.diagonals
 
     fPuzzle.grid.forEach((row, i) => {
       row.forEach((cell, j) => {
@@ -452,12 +455,50 @@ export default class Puzzle {
 
           const duplicateFound = groups.some(
             (group) => group.filter((d) => d === cell.digit).length > 1
+          ) || (
+            this.chess?.king && cell.kingNeighbors.some((c) => c.digit === cell.digit)
+          ) || (
+            this.chess?.knight && cell.knightNeighbors.some((c) => c.digit === cell.digit)
           )
 
           if (duplicateFound) errors.push(cell.address)
         }
       })
     })
+
+    if (this.diagonals?.positive) {
+      const cellsToCheck = [] as Array<Cell>
+      for (let i = 0; i < this.size; i += 1) {
+        cellsToCheck.push(this.cells[this.size - 1 - i][i])
+      }
+
+      cellsToCheck.forEach(
+        (cell) => {
+          if (!errors.includes(cell.address) && cell.digit !== null) {
+            if (cellsToCheck.some((c) => c.address !== cell.address && c.digit === cell.digit)) {
+              errors.push(cell.address)
+            }
+          }
+        }
+      )
+    }
+
+    if (this.diagonals?.negative) {
+      const cellsToCheck = [] as Array<Cell>
+      for (let i = 0; i < this.size; i += 1) {
+        cellsToCheck.push(this.cells[i][i])
+      }
+
+      cellsToCheck.forEach(
+        (cell) => {
+          if (!errors.includes(cell.address) && cell.digit !== null) {
+            if (cellsToCheck.some((c) => c.address !== cell.address && c.digit === cell.digit)) {
+              errors.push(cell.address)
+            }
+          }
+        }
+      )
+    }
 
     return errors
   }
@@ -562,6 +603,51 @@ class Cell {
     this.region = region
     this.coordinates = coordinates
     this.address = `R${coordinates.row}C${coordinates.col}`
+  }
+
+  get kingNeighbors(): Array<Cell> {
+    return [
+      this.neighbors.up?.neighbors?.left,
+      this.neighbors.up?.neighbors?.right,
+      this.neighbors.down?.neighbors?.left,
+      this.neighbors.down?.neighbors?.right,
+    ].reduce(
+      (list, check) => {
+        if (check === undefined) return list
+        return [
+          ...list,
+          check,
+        ]
+      },
+      [] as Array<Cell>,
+    )
+  }
+
+  get knightNeighbors(): Array<Cell> {
+    const twoUp = this.neighbors.up?.neighbors?.up
+    const twoLeft = this.neighbors.left?.neighbors?.left
+    const twoRight = this.neighbors.right?.neighbors?.right
+    const twoDown = this.neighbors.down?.neighbors?.down
+
+    return [
+      twoUp?.neighbors?.left,
+      twoUp?.neighbors?.right,
+      twoDown?.neighbors?.left,
+      twoDown?.neighbors?.right,
+      twoLeft?.neighbors?.up,
+      twoLeft?.neighbors?.down,
+      twoRight?.neighbors?.up,
+      twoRight?.neighbors?.down,
+    ].reduce(
+      (list, check) => {
+        if (check === undefined) return list
+        return [
+          ...list,
+          check,
+        ]
+      },
+      [] as Array<Cell>
+    )
   }
 }
 

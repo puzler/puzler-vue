@@ -40,8 +40,6 @@ const Google = new AuthProvider({
     const csrfToken = JSON.parse(state)?.csrfToken
     if (typeof csrfToken !== 'string') return
 
-    console.log(code, csrfToken)
-
     return {
       code,
       csrfToken,

@@ -10,27 +10,35 @@ const props = defineProps<{
 }>()
 
 const linePaths = computed(() => {
-  return props.thermometer.lines.map((line) => {
-    const coordinates = line.map((address) => addressToCoordinates(address))
-    const [start, ...rest] = coordinates
+  return props.thermometer.lines.reduce(
+    (list, line) => {
+      if (line.length <= 1) return list
 
-    const pathData = [
-      `M${(start.col * 100) + 50} ${(start.row * 100) + 50}`,
-      ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`)
-    ]
+      const coordinates = line.map((address) => addressToCoordinates(address))
+      const [start, ...rest] = coordinates
 
-    const secondToLast = coordinates[line.length - 2]
-    const last = coordinates[line.length - 1]
-    
-    const modifiers = {
-      x: secondToLast.col - last.col,
-      y: secondToLast.row - last.row,
-    }
+      const pathData = [
+        `M${(start.col * 100) + 50} ${(start.row * 100) + 50}`,
+        ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`)
+      ]
 
-    pathData[pathData.length - 1] = `L${(last.col * 100) + 50 + (modifiers.x * 12.5)} ${(last.row * 100) + 50 + (modifiers.y * 12.5)}`
+      const secondToLast = coordinates[line.length - 2]
+      const last = coordinates[line.length - 1]
 
-    return { pathData }
-  })
+      const modifiers = {
+        x: (secondToLast?.col || last.col) - last.col,
+        y: (secondToLast?.row || last.row) - last.row,
+      }
+
+      pathData[pathData.length - 1] = `L${(last.col * 100) + 50 + (modifiers.x * 12.5)} ${(last.row * 100) + 50 + (modifiers.y * 12.5)}`
+
+      return [
+        ...list,
+        { pathData },
+      ]
+    },
+    [] as Array<{ pathData: Array<string> }>,
+  )
 })
 
 const bulbPosition = computed(() => {

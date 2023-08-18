@@ -1,0 +1,163 @@
+fragment ColorFields on Color {
+  red
+  green
+  blue
+  opacity
+}
+
+fragment Address on Address {
+  row
+  column
+}
+
+fragment SingleCell on SingleCell {
+  cell { ...Address }
+}
+
+fragment MultiCell on MultiCell {
+  cells { ...Address }
+}
+
+fragment Line on Line {
+  points { ...Address }
+}
+
+fragment NumberOutsideGrid on NumberOutsideGrid {
+  location { ...Address }
+  value
+}
+
+fragment FullPuzzle on Puzzle {
+    id
+    user {
+      id
+      displayName
+    }
+    visibility
+    title
+    author
+    size
+    rules
+    givenDigits
+    gridRegions
+    globalConstraints {
+      diagonals {
+        positive
+        negative
+      }
+      chess {
+        knight
+        king
+      }
+      antiKropki {
+        antiBlack
+        antiWhite
+      }
+      antiXV {
+        antiX
+        antiV
+      }
+      disjointSets {
+        enabled
+      }
+    }
+    cosmetics {
+      lines {
+        ...Line
+        color { ...ColorFields }
+        width
+      }
+      text {
+        address { ...Address }
+        text
+        size
+        fontColor { ...ColorFields }
+        angle
+      }
+      circles {
+        address { ...Address }
+        width
+        height
+        fillColor { ...ColorFields }
+        outlineColor { ...ColorFields }
+        text
+        textColor { ...ColorFields }
+        angle
+      }
+      rectangles {
+        address { ...Address }
+        width
+        height
+        fillColor { ...ColorFields }
+        outlineColor { ...ColorFields }
+        text
+        textColor { ...ColorFields }
+        angle
+      }
+      cages {
+        ...MultiCell
+        text
+        textColor { ...ColorFields }
+        cageColor { ...ColorFields }
+      }
+    }
+    localConstraints {
+      oddCells { ...SingleCell }
+      evenCells { ...SingleCell }
+      rowIndexCells { ...SingleCell }
+      columnIndexCells { ...SingleCell }
+      minCells { ...SingleCell }
+      maxCells { ...SingleCell }
+      betweenLines { ...Line }
+      palindromeLines { ...Line }
+      renbanLines { ...Line }
+      germanWhisperLines { ...Line }
+      dutchWhisperLines { ...Line }
+      regionSumLines { ...Line }
+      extraRegions { ...MultiCell }
+      killerCages {
+        ...MultiCell
+        value
+      }
+      clones {
+        ...MultiCell
+        cloneCells { ...Address }
+      }
+      thermometers {
+        bulb { ...Address }
+        lines {
+          ...Address
+        }
+      }
+      arrows {
+        circleCells { ...Address }
+        lines { ...Address }
+      }
+      littleKillerSums {
+        ...NumberOutsideGrid
+        direction {
+          top
+          left
+        }
+      }
+      sandwichSums { ...NumberOutsideGrid }
+      xSums { ...NumberOutsideGrid }
+      skyscrapers { ...NumberOutsideGrid }
+      differenceDots {
+        ...MultiCell
+        difference
+      }
+      ratioDots {
+        ...MultiCell
+        ratio
+      }
+      xv {
+        ...MultiCell
+        xvType
+      }
+      quadruples {
+        ...MultiCell
+        values
+      }
+    }
+  }

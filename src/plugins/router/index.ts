@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import useAuthStore from '@/stores/auth'
 import MainLayout from '@/views/layout/MainLayout.vue'
 import SolverView from '@/views/SolverView.vue'
+import SetterView from '@/views/SetterView.vue'
 import ApiExplorer from '@/views/ApiExplorer.vue'
 
 import CookiePolicy from '@/views/legal/CookiePolicy.vue'
@@ -26,6 +27,11 @@ const router = createRouter({
           path: 'solve',
           name: 'solve',
           component: SolverView,
+        },
+        {
+          path: 'setter',
+          name: 'setter',
+          component: SetterView,
         },
         AuthRoutes,
         {

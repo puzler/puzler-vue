@@ -26,7 +26,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits([
-  'cell-double--click',
+  'cell-double-click',
   'cell-click',
   'cell-enter',
   'play-puzzle',
@@ -290,9 +290,9 @@ const rectangles = computed(() => {
         :key="'cell-' + cell.address"
         :cell="cell"
         :error="puzzle.errorAddresses.includes(cell.address)"
-        v-on:double-click="(event, cell) => emit('cell-double-click', event, cell)"
-        v-on:mousedown="(event, cell) => emit('cell-click', event, cell)"
-        v-on:mouseenter="(event, cell) => emit('cell-enter', event, cell)"
+        v-on:cell-double-click="(event, cell) => emit('cell-double-click', event, cell)"
+        v-on:cell-click="(event, cell) => emit('cell-click', event, cell)"
+        v-on:cell-enter="(event, cell) => emit('cell-enter', event, cell)"
       )
       .right-spacer(
         v-for="i in spacerCounts.right"
@@ -394,8 +394,6 @@ const rectangles = computed(() => {
   position relative
   height 100cqmin
   width 100cqmin
-  max-height calc(79cqw - 20px)
-  max-width calc(79cqw - 20px)
   display flex
   user-select none
   touch-action none
@@ -491,8 +489,6 @@ const rectangles = computed(() => {
 
 @media screen and (max-width: 900px)
   .grid-container
-    max-height calc(60cqh - 20px)
-    max-width calc(60cqh - 20px)
     .grid
       .grid-overlay
         .overlay-details

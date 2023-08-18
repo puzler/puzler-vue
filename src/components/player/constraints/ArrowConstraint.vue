@@ -35,46 +35,54 @@ const bulbPath = computed(() => {
 })
 
 const linePaths = computed(() => {
-  return props.arrow.lines.map((line) => {
-    const lineCoords = line.map((address) => addressToCoordinates(address))
-    const [origin, ...rest] = lineCoords
+  return props.arrow.lines.reduce(
+    (paths, line) => {
+      if (line.length <= 1) return paths
 
-    const pathData = [
-      `M${(origin.col * 100) + 50} ${(origin.row * 100) + 50}`,
-      ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`),
-    ]
+      const lineCoords = line.map((address) => addressToCoordinates(address))
+      const [origin, ...rest] = lineCoords
 
-    const previous = lineCoords[lineCoords.length - 2]
-    const last = lineCoords[lineCoords.length - 1]
+      const pathData = [
+        `M${(origin.col * 100) + 50} ${(origin.row * 100) + 50}`,
+        ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`),
+      ]
 
-    const horizontal = previous.col - last.col
-    const vertical = previous.row - last.row
+      const previous = lineCoords[lineCoords.length - 2]
+      const last = lineCoords[lineCoords.length - 1]
 
-    const offset = (horizontal === 0 || vertical === 0) ? 8 : 5
+      const horizontal = previous.col - last.col
+      const vertical = previous.row - last.row
 
-    const lastXY = {
-      x: (last.col * 100) + 50 + (horizontal * offset),
-      y: (last.row * 100) + 50 + (vertical * offset),
-    }
+      const offset = (horizontal === 0 || vertical === 0) ? 8 : 5
 
-    pathData[pathData.length - 1] = `L${lastXY.x} ${lastXY.y}`
+      const lastXY = {
+        x: (last.col * 100) + 50 + (horizontal * offset),
+        y: (last.row * 100) + 50 + (vertical * offset),
+      }
 
-    if (horizontal === 0) {
-      pathData.push(`L${lastXY.x - 20} ${lastXY.y + (20 * vertical)}`)
-      pathData.push(`M${lastXY.x} ${lastXY.y}`)
-      pathData.push(`L${lastXY.x + 20} ${lastXY.y + (20 * vertical)}`)
-    } else if (vertical === 0) {
-      pathData.push(`L${lastXY.x + (20 * horizontal)} ${lastXY.y - 20}`)
-      pathData.push(`M${lastXY.x} ${lastXY.y}`)
-      pathData.push(`L${lastXY.x + (20 * horizontal)} ${lastXY.y + 20}`)
-    } else {
-      pathData.push(`h${horizontal * 28}`)
-      pathData.push(`M${lastXY.x} ${lastXY.y}`)
-      pathData.push(`v${vertical * 28}`)
-    }
+      pathData[pathData.length - 1] = `L${lastXY.x} ${lastXY.y}`
 
-    return pathData
-  })
+      if (horizontal === 0) {
+        pathData.push(`L${lastXY.x - 20} ${lastXY.y + (20 * vertical)}`)
+        pathData.push(`M${lastXY.x} ${lastXY.y}`)
+        pathData.push(`L${lastXY.x + 20} ${lastXY.y + (20 * vertical)}`)
+      } else if (vertical === 0) {
+        pathData.push(`L${lastXY.x + (20 * horizontal)} ${lastXY.y - 20}`)
+        pathData.push(`M${lastXY.x} ${lastXY.y}`)
+        pathData.push(`L${lastXY.x + (20 * horizontal)} ${lastXY.y + 20}`)
+      } else {
+        pathData.push(`h${horizontal * 28}`)
+        pathData.push(`M${lastXY.x} ${lastXY.y}`)
+        pathData.push(`v${vertical * 28}`)
+      }
+
+      return [
+        ...paths,
+        pathData,
+      ]
+    },
+    [] as Array<Array<string>>,
+  )
 })
 </script>
 

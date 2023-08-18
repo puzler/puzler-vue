@@ -13,6 +13,9 @@ header
       src="@/assets/puzler.png"
     )
   nav
+    RouterLink(
+      to="/setter"
+    ) Setter
     .spacer
     RouterLink(
       v-if="!authStore.authenticated"

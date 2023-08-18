@@ -45,10 +45,11 @@ const circleStyle = computed(() => ({
 </script>
 
 <template lang="pug">
-circle.cosmetic-circle(
+ellipse.cosmetic-circle(
   :cx="centerPoint.x"
   :cy="centerPoint.y"
-  :r="circle.width * 50"
+  :rx="circle.width * 50"
+  :ry="circle.height * 50"
   :style="circleStyle"
 )
 </template>

@@ -1,4 +1,4 @@
-import { type VueElement } from "vue"
+import type { Component } from "vue"
 import { Cell, Puzzle } from '@/types'
 
 interface SettingModeController {
@@ -12,7 +12,7 @@ interface SettingModeController {
 
 abstract class SettingModeController {
   puzzle?: Puzzle
-  controllerVue?: VueElement
+  controllerVue?: Component
   allowGridSelect = false
   events = {} as Record<string, Function> 
   

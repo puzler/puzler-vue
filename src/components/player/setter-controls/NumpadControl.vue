@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import usePuzzleSetterStore from '@/stores/puzzle-setter.ts'
+import usePuzzleSetterStore from '@/stores/puzzle-setter'
 
 const puzzleStore = usePuzzleSetterStore()
 

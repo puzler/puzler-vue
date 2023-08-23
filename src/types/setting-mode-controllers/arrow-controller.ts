@@ -1,28 +1,37 @@
 import SettingModeController from './setting-mode-controller'
-import { Cell, type Arrow } from '@/types'
+import { PuzzleSolveCell } from '@/types'
+import type {
+  Arrow,
+  Address,
+} from '@/graphql/generated/types'
 
 class ArrowController extends SettingModeController {
   currentArrow = null as null|Arrow
   draggingBulb = null as null|boolean
-  removeOnMouseup = null as null|string
+  removeOnMouseup = null as null|Address
+
+  get arrows() {
+    return this.puzzle?.puzzleData?.localConstraints.arrows
+  }
 
   events = {
     mouseup: () => {
       this.currentArrow = null
       this.draggingBulb = null
 
-      if (this.removeOnMouseup && this.puzzle?.arrows) {
+      if (this.removeOnMouseup && this.arrows) {
         const didRemove = false
-        this.puzzle.arrows = this.puzzle.arrows.reduce(
+        this.puzzle!.puzzleData!.localConstraints.arrows = this.arrows.reduce(
           (newArrows, arrow) => {
             if (didRemove) return [...newArrows, arrow]
 
-            if (arrow.cells.includes(this.removeOnMouseup!)) {
-              return newArrows
-            }
+            const removeBulb = arrow.cells.some(
+              (address) => this.addressesAreEqual(address, this.removeOnMouseup!)
+            )
+            if (removeBulb) return newArrows
 
             const clickedLineIndex = arrow.lines.findIndex(
-              (line) => line.includes(this.removeOnMouseup!)
+              (line) => line.some((address) => this.addressesAreEqual(address, this.removeOnMouseup!)),
             )
             if (clickedLineIndex === -1) return [...newArrows, arrow]
 
@@ -54,10 +63,12 @@ class ArrowController extends SettingModeController {
     this.draggingBulb = null
   }
 
-  onCellClick(cell: Cell) {
-    if (this.puzzle?.arrows) {
-      const clickedBulb = this.puzzle.arrows.find(
-        (arrow) => arrow.cells.includes(cell.address)
+  onCellClick(cell: PuzzleSolveCell) {
+    if (this.arrows) {
+      const clickedBulb = this.arrows.find(
+        (arrow) => arrow.cells.some(
+          (address) => this.addressesAreEqual(address, cell.address),
+        )
       )
 
       if (clickedBulb) {
@@ -68,9 +79,11 @@ class ArrowController extends SettingModeController {
         return
       }
 
-      const clickedLineOf = this.puzzle.arrows.find(
+      const clickedLineOf = this.arrows.find(
         (arrow) => arrow.lines.some(
-          (line) => line.includes(cell.address),
+          (line) => line.some(
+            (address) => this.addressesAreEqual(address, cell.address),
+          ),
         ),
       )
 
@@ -99,21 +112,23 @@ class ArrowController extends SettingModeController {
         return
       }
 
-      this.puzzle.arrows.push({
+      this.arrows.push({
         cells: [cell.address],
         lines: [],
       })
-      this.currentArrow = this.puzzle.arrows[this.puzzle.arrows.length - 1]
+      this.currentArrow = this.arrows[this.arrows.length - 1]
       this.draggingBulb = true
     }
   }
 
-  onCellEnter(cell: Cell) {
+  onCellEnter(cell: PuzzleSolveCell) {
     this.removeOnMouseup = null
     if (!this.currentArrow) return
 
     if (this.draggingBulb) {
-      const cellBulbIndex = this.currentArrow.cells.indexOf(cell.address)
+      const cellBulbIndex = this.currentArrow.cells.findIndex(
+        (address) => this.addressesAreEqual(address, cell.address),
+      )
       if (cellBulbIndex >= 0) {
         this.currentArrow.cells = this.currentArrow.cells.filter(
           (_, i) => i <= cellBulbIndex
@@ -123,7 +138,9 @@ class ArrowController extends SettingModeController {
       }
     } else {
       const currentLine = this.currentArrow.lines[this.currentArrow.lines.length - 1]
-      const cellLineIndex = currentLine.indexOf(cell.address)
+      const cellLineIndex = currentLine.findIndex(
+        (address) => this.addressesAreEqual(address, cell.address),
+      )
       if (cellLineIndex >= 0) {
         this.currentArrow.lines = [
           ...this.currentArrow.lines.slice(0, -1),

@@ -1,17 +1,18 @@
 import type { Component } from "vue"
-import { Cell, Puzzle } from '@/types'
+import { PuzzleSolve, PuzzleSolveCell } from '@/types'
+import type { Address } from '@/graphql/generated/types'
 
 interface SettingModeController {
   onInput?(args: any): void
-  onCellClick?(cell: Cell, event: PointerEvent): void
-  onCellEnter?(cell: Cell, event: PointerEvent): void
-  onCellDoubleClick?(cell: Cell, event: PointerEvent): void
+  onCellClick?(cell: PuzzleSolveCell, event: PointerEvent): void
+  onCellEnter?(cell: PuzzleSolveCell, event: PointerEvent): void
+  onCellDoubleClick?(cell: PuzzleSolveCell, event: PointerEvent): void
   onSetup?(): void
   onReset?(): void
 }
 
 abstract class SettingModeController {
-  puzzle?: Puzzle
+  puzzle?: PuzzleSolve
   controllerVue?: Component
   allowGridSelect = false
   events = {} as Record<string, Function> 
@@ -27,6 +28,10 @@ abstract class SettingModeController {
     }
   }
 
+  addressesAreEqual(a: Address, b: Address) {
+    return a.row === b.row && a.column === b.column
+  }
+
   handleEventListener(event: Event, eventCallback: Function) {
     eventCallback(event)
   }
@@ -36,7 +41,7 @@ abstract class SettingModeController {
     this.deselecting = false
   }
 
-  setup(puzzle: Puzzle) {
+  setup(puzzle: PuzzleSolve) {
     this.puzzle = puzzle
 
     if (this.allowGridSelect) {
@@ -74,7 +79,7 @@ abstract class SettingModeController {
     }
   }
 
-  cellClick(event: PointerEvent, cell: Cell) {
+  cellClick(event: PointerEvent, cell: PuzzleSolveCell) {
     if (event.target instanceof HTMLElement) {
       event.target.releasePointerCapture(event.pointerId)
     }
@@ -104,7 +109,7 @@ abstract class SettingModeController {
     }
   }
 
-  cellDoubleClick(event: PointerEvent, cell: Cell) {
+  cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     if (event.target instanceof HTMLElement) {
       event.target.releasePointerCapture(event.pointerId)
     }
@@ -114,7 +119,7 @@ abstract class SettingModeController {
     }
   }
 
-  cellEnter(event: PointerEvent, cell: Cell) {
+  cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
     if (event.target instanceof HTMLElement) {
       event.target.releasePointerCapture(event.pointerId)
     }

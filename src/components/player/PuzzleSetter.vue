@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Cell } from '@/types'
+import { PuzzleSolveCell } from '@/types'
 import PuzzleGrid from './PuzzleGrid.vue'
 import SetterControls from './SetterControls.vue'
 import usePuzzleSetterStore from '@/stores/puzzle-setter'
@@ -9,15 +9,15 @@ const fakeTimer = {
   paused: false
 }
 
-function doubleClick(event: PointerEvent, cell: Cell) {
+function doubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellDoubleClick(event, cell)
 }
 
-function cellClick(event: PointerEvent, cell: Cell) {
+function cellClick(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellClick(event, cell)
 }
 
-function cellEnter(event: PointerEvent, cell: Cell) {
+function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellEnter(event, cell)
 }
 

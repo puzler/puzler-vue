@@ -1,47 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Circle } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Circle, Color } from '@/graphql/generated/types'
 
 const props = defineProps<{
   circle: Circle
-  puzzle: Puzzle
 }>()
 
 const centerPoint = computed(() => {
-  const coords = props.circle.cells.map((address) => addressToCoordinates(address))
-
-  const minMax = coords.reduce(
-    (minMax, coordinate) => {
-      return {
-        row: {
-          min: coordinate.row < minMax.row.min ? coordinate.row : minMax.row.min,
-          max: coordinate.row > minMax.row.max ? coordinate.row : minMax.row.max,
-        },
-        col: {
-          min: coordinate.col < minMax.col.min ? coordinate.col : minMax.col.min,
-          max: coordinate.col > minMax.col.max ? coordinate.col : minMax.col.max,
-        }
-      }
-    },
-    {
-      row: { min: 100, max: -100 },
-      col: { min: 100, max: -100 },
-    }
-  )
-
   return {
-    x: (minMax.col.min + minMax.col.max + 1) * 50,
-    y: (minMax.row.min + minMax.row.max + 1) * 50,
+    x: props.circle.address.column * 100,
+    y: props.circle.address.row * 100,
   }
 })
 
-const circleStyle = computed(() => ({
-  fill: props.circle.fill,
-  stroke: props.circle.outline
-}))
+function colorToRGBA(color: Color) {
+  return `rgba(${color.red}, ${color.green}, ${color.blue}, ${color.opacity})`
+}
 
+const dynamicStyle = computed(() => {
+  if (!props.circle.angle) return {}
+
+  return {
+    transform: `rotate(${props.circle.angle}deg)`
+  }
+})
 </script>
 
 <template lang="pug">
@@ -50,9 +32,32 @@ ellipse.cosmetic-circle(
   :cy="centerPoint.y"
   :rx="circle.width * 50"
   :ry="circle.height * 50"
-  :style="circleStyle"
+  :fill="colorToRGBA(circle.fillColor)"
+  :stroke="colorToRGBA(circle.outlineColor)"
+  :style="dynamicStyle"
 )
+text.circle-text(
+  v-if="!!circle.text"
+  :x="centerPoint.x"
+  :y="centerPoint.y"
+  :font-size="Math.min(circle.width, circle.height) * 75"
+  :style="dynamicStyle"
+  :stroke="colorToRGBA(circle.textColor)"
+  :fill="colorToRGBA(circle.textColor)"
+) {{ circle.text }}
 </template>
 
 <style scoped lang="stylus">
+.cosmetic-circle
+  stroke-width 3
+  paint-order stroke fill
+  transform-box fill-box
+  transform-origin center
+.circle-text
+  stroke-width 1
+  paint-order stroke fill
+  alignment-baseline central
+  text-anchor middle
+  transform-box fill-box
+  transform-origin center
 </style>

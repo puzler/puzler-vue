@@ -130,3 +130,12 @@ declare module '*/FetchPuzzle.graphql' {
   export default defaultDocument;
 }
     
+
+declare module '*/LoadFPuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const LoadFPuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    

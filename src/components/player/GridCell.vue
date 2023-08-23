@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Cell } from '@/types'
+import { PuzzleSolveCell } from '@/types'
 import useColorStore from '@/stores/color'
 import useSettingStore from '@/stores/setting'
 
 const props = defineProps<{
-  cell: Cell
+  cell: PuzzleSolveCell
   error: boolean
 }>()
 
@@ -23,7 +23,6 @@ function onMouseDown(event: PointerEvent) {
   }
 }
 const onMouseEnter = (event: PointerEvent) => {
-  console.log('entered')
   emit('cell-enter', event, props.cell)
 }
 
@@ -38,7 +37,7 @@ const corners = computed(() => {
     'top-right': [right, up, up?.neighbors?.right],
     'bottom-left': [left, down, down?.neighbors?.left],
     'bottom-right': [right, down, down?.neighbors?.right],
-  } as Record<string, Array<Cell|null>>
+  } as Record<string, Array<PuzzleSolveCell|null>>
 })
 
 const cornerSelectedDots = computed(() => {

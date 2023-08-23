@@ -1,53 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Rectangle } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Rectangle, Color } from '@/graphql/generated/types'
 
 const props = defineProps<{
   rectangle: Rectangle
-  puzzle: Puzzle
 }>()
 
-const cellCoords = computed(() => {
-  return props.rectangle.cells.map((address) => addressToCoordinates(address))
-})
-
 const centerPoint = computed(() => {
-  const {
-    minRow,
-    minCol,
-    maxRow,
-    maxCol
-  } = cellCoords.value.reduce(
-    (minMax, coords) => ({
-      minRow: Math.min(minMax.minRow, coords.row),
-      minCol: Math.min(minMax.minCol, coords.col),
-      maxRow: Math.max(minMax.maxRow, coords.row),
-      maxCol: Math.max(minMax.maxCol, coords.col),
-    }),
-    { minRow: 100, minCol: 100, maxRow: -100, maxCol: -100 },
-  )
-
   return {
-    x: (maxCol + minCol + 1) * 50,
-    y: (maxRow + minRow + 1) * 50
+    x: props.rectangle.address.column * 100,
+    y: props.rectangle.address.row * 100,
   }
 })
+
+function colorToRGBA(color: Color) {
+  return `rgba(${color.red}, ${color.green}, ${color.blue}, ${color.opacity})`
+}
 
 const dynamicStyle = computed(() => {
-  const style = {
-    fill: props.rectangle.fill,
-    stroke: props.rectangle.outline,
-  } as Record<string, string>
+  if (!props.rectangle.angle) return {}
 
-  if (props.rectangle.angle) {
-    style.transform = `rotate(${props.rectangle.angle}deg)`
+  return {
+    transform: `rotate(${props.rectangle.angle}deg)`
   }
-
-  return style
 })
-
 </script>
 
 <template lang="pug">
@@ -56,14 +32,32 @@ rect.cosmetic-rectangle(
   :y="centerPoint.y - (rectangle.height * 50)"
   :width="rectangle.width * 100"
   :height="rectangle.height * 100"
+  :fill="colorToRGBA(rectangle.fillColor)"
+  :stroke="colorToRGBA(rectangle.outlineColor)"
   :style="dynamicStyle"
 )
+text.rectangle-text(
+  v-if="!!rectangle.text"
+  :x="centerPoint.x"
+  :y="centerPoint.y"
+  :font-size="Math.min(rectangle.width, rectangle.height) * 90"
+  :style="dynamicStyle"
+  :fill="colorToRGBA(rectangle.textColor)"
+) {{ rectangle.text }}
 </template>
 
 <style scoped lang="stylus">
 .cosmetic-rectangle
   stroke-width 3
   paint-order stroke fill
+  transform-box fill-box
+  transform-origin center
+.rectangle-text
+  stroke var(--color-background-soft)
+  stroke-width 2
+  paint-order stroke fill
+  alignment-baseline central
+  text-anchor middle
   transform-box fill-box
   transform-origin center
 </style>

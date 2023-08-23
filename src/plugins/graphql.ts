@@ -3,8 +3,9 @@ import {
   InMemoryCache,
   ApolloLink,
   HttpLink,
-  from
+  from,
 } from '@apollo/client/core'
+import { possibleTypes } from '@/graphql/generated/fragment-types.json'
 import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context'
 import { createUploadLink } from 'apollo-upload-client'
@@ -59,5 +60,5 @@ const linkChain = from([errorLink, requestLink])
 
 export default new ApolloClient({
   link: linkChain,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({ possibleTypes }),
 })

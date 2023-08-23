@@ -1,99 +1,53 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Text } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Color, Text } from '@/graphql/generated/types'
 
 const props = defineProps<{
   text: Text
-  puzzle: Puzzle
 }>()
 
-const cellCoords = computed(() => {
-  return props.text.cells.map((address) => addressToCoordinates(address))
-})
-
-const minMaxRowCol = computed(() => {
-  return cellCoords.value.reduce(
-    (minMax, coords) => ({
-      minRow: Math.min(coords.row, minMax.minRow),
-      minCol: Math.min(coords.col, minMax.minCol),
-      maxRow: Math.max(coords.row, minMax.maxRow),
-      maxCol: Math.max(coords.col, minMax.maxCol),
-    }),
-    {
-      minRow: 100,
-      minCol: 100,
-      maxRow: -100,
-      maxCol: -100,
-    },
-  )
-})
-
-const position = computed(() => {
-  switch (cellCoords.value.length) {
-    case 0:
-      return { x: 0, y: 0 }
-    case 1:
-      return {
-        x: (cellCoords.value[0].col * 100) + 50,
-        y: (cellCoords.value[0].row * 100) + 50,
-      }
-  }
-
-  const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
-
-  return {
-    x: (maxCol + minCol + 1) * 50,
-    y: (maxRow + minRow + 1) * 50,
-  }
-})
-
-const dynamicStyle = computed(() => ({
-  fontSize: `${props.text.size}em`,
-  fill: props.text.fontC,
+const centerPoint = computed(() => ({
+  x: props.text.address.column * 100,
+  y: props.text.address.row * 100,
 }))
 
-const textTransform = computed(() => {
-  const { x, y } = position.value
-  const transform = [
-    `translate(${x},${y})`
-  ]
+function colorToRGBA({ red, green, blue, opacity }: Color) {
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`
+}
 
-  if (props.text.angle) {
-    transform.push(`rotate(${props.text.angle})`)
-  }
+const dynamicStyle = computed(() => {
+  if (!props.text.angle) return {}
 
-  return transform
-})
-
-const throughGrid = computed(() => {
-  const { maxRow, minRow, maxCol, minCol } = minMaxRowCol.value
   return {
-    vertical: minCol !== maxCol,
-    horizontal: minRow !== maxRow,
+    transform: `rotate(${props.text.angle}deg)`
   }
 })
+
+const throughGrid = computed(() => ({
+  horizontal: Math.round(props.text.address.row) !== props.text.address.row,
+  vertical: Math.round(props.text.address.column) !== props.text.address.column,
+}))
 
 const rectSize = computed(() => ({
-  width: throughGrid.value.horizontal ? props.text.size * 40 : 4,
-  height: throughGrid.value.vertical ? props.text.size * 60 : 4,
+  width: throughGrid.value.horizontal ? props.text.size * 40 : 1,
+  height: throughGrid.value.vertical ? props.text.size * 60 : 1,
 }))
 </script>
 
 <template lang="pug">
 rect.background-rect(
-  :x="position.x - (rectSize.width / 2)"
-  :y="position.y - (rectSize.height / 2)"
+  :x="centerPoint.x - (rectSize.width / 2)"
+  :y="centerPoint.y - (rectSize.height / 2)"
   :width="rectSize.width"
   :height="rectSize.height"
 )
 text.cosmetic-text(
-  x="0"
-  y="0"
+  :x="centerPoint.x"
+  :y="centerPoint.y"
+  :fill="colorToRGBA(text.fontColor)"
+  :font-size="text.size * 100"
   :style="dynamicStyle"
-  :transform="textTransform"
-) {{ text.value }}
+) {{ text.text }}
 </template>
 
 <style scoped lang="stylus">
@@ -107,4 +61,6 @@ text.cosmetic-text(
   paint-order stroke fill
   alignment-baseline central
   text-anchor middle
+  transform-box fill-box
+  transform-origin center
 </style>

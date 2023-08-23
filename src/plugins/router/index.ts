@@ -27,6 +27,14 @@ const router = createRouter({
           path: 'solve',
           name: 'solve',
           component: SolverView,
+          children: [
+            {
+              path: '/:puzzleId',
+              name: 'solveId',
+              component: SolverView,
+              props: true,
+            },
+          ],
         },
         {
           path: 'setter',

@@ -1,76 +1,59 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle, type KillerCage } from '../../../types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Address, Cage, Color } from '@/graphql/generated/types'
+
 const props = defineProps<{
-  cage: KillerCage
-  puzzle: Puzzle
+  cage: Cage
 }>()
 
-type Coordinates = {
-  row: number
-  col: number
+function colorToRGBA({ red, green, blue, opacity }: Color) {
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`
 }
 
-const coordsToAddress = ({ row, col }: Coordinates) => `R${row}C${col}`
-
-const cellCoordinates = props.cage.cells.map((address) => addressToCoordinates(address))
-
-const topLeftCoords = cellCoordinates.reduce(
-  (coords, check) => {
-    if (check.row > coords.row) return coords
-    if (check.row < coords.row) return check
-    if (check.col > coords.col) return coords
-    return check
-  },
-  { row: 100, col: 100 },
+const topLeftCoords = computed(
+  () => props.cage.cells.reduce(
+    (coords, check) => {
+      if (check.row > coords.row) return coords
+      if (check.row < coords.row) return check
+      if (check.column > coords.column) return coords
+      return check
+    }
+  ),
 )
 
 const startXY = computed(() => {
   return xyForLocation({
-    coords: topLeftCoords,
+    coords: topLeftCoords.value,
     right: false,
     bottom: false,
   })
 })
 
-function coordsInCage(coords: Coordinates) {
-  return props.cage.cells.includes(
-    coordsToAddress(coords)
+function coordsInCage(coords: Address) {
+  return props.cage.cells.some(
+    ({ row, column }) => coords.row === row && coords.column === column
   )
 }
 
 type GridLocation = {
-  coords: Coordinates,
+  coords: Address,
   bottom: boolean,
   right: boolean
 }
 
 function xyForLocation(location: GridLocation) {
-  let x = location.coords.col * 100 + 5
-  let y = location.coords.row * 100 + 5
+  let x = location.coords.column * 100 - 45
+  let y = location.coords.row * 100 - 45
 
   if (location.right) x += 90
   if (location.bottom) y += 90
-
-  if (location.coords.col === 0 && !location.right) {
-    x += 2
-  } else if (location.coords.col === props.puzzle.size - 1 && location.right) {
-    x -= 2
-  }
-
-  if (location.coords.row === 0 && !location.bottom) {
-    y += 2
-  } else if (location.coords.row === props.puzzle.size - 1 && location.bottom) {
-    y -= 2
-  }
 
   return { x, y, forSvg: `${x} ${y}` }
 }
 
 const pathData = computed(() => {
   let currentLocation = {
-    coords: { ...topLeftCoords },
+    coords: { ...topLeftCoords.value },
     bottom: false,
     right: false,
   } as GridLocation
@@ -78,24 +61,24 @@ const pathData = computed(() => {
   let direction = 'right'
 
   const data = [`M${startXY.value.forSvg}`]
-  if (props.cage.value) {
-    data[0] = `M${startXY.value.x + ((115 / props.puzzle.size) * props.cage.value.length)} ${startXY.value.y}`
+  if (props.cage.text) {
+    data[0] = `M${startXY.value.x + (10 * props.cage.text.length)} ${startXY.value.y}`
   }
 
   currentLocation.right = true
   data.push(`L${xyForLocation(currentLocation).forSvg}`)
 
-  while (xyForLocation(currentLocation).forSvg !== startXY.value.forSvg) {
+  while (startXY.value.forSvg !== xyForLocation(currentLocation).forSvg) {
     switch (direction) {
       case 'right': {
         if (currentLocation.right) {
           const rightNeighborCoords = {
             ...currentLocation.coords,
-            col: currentLocation.coords.col + 1
+            column: currentLocation.coords.column + 1
           }
 
           if (coordsInCage(rightNeighborCoords)) {
-            currentLocation.coords.col += 1
+            currentLocation.coords.column += 1
             currentLocation.right = false
           } else {
             direction = 'down'
@@ -134,11 +117,11 @@ const pathData = computed(() => {
         } else {
           const rightNeighborCoords = {
             ...currentLocation.coords,
-            col: currentLocation.coords.col + 1,
+            column: currentLocation.coords.column + 1,
           }
 
           if (coordsInCage(rightNeighborCoords)) {
-            currentLocation.coords.col += 1
+            currentLocation.coords.column += 1
             currentLocation.right = false
             direction = 'right'
           } else {
@@ -151,11 +134,11 @@ const pathData = computed(() => {
         if (currentLocation.bottom) {
           const leftNeighborCoords = {
             ...currentLocation.coords,
-            col: currentLocation.coords.col - 1
+            column: currentLocation.coords.column - 1
           }
 
           if (coordsInCage(leftNeighborCoords)) {
-            currentLocation.coords.col -= 1
+            currentLocation.coords.column -= 1
             currentLocation.right = true
             direction = 'left'
           } else {
@@ -194,11 +177,11 @@ const pathData = computed(() => {
         } else {
           const leftNeighborCoords = {
             ...currentLocation.coords,
-            col: currentLocation.coords.col - 1,
+            column: currentLocation.coords.column - 1,
           }
 
           if (coordsInCage(leftNeighborCoords)) {
-            currentLocation.coords.col -= 1
+            currentLocation.coords.column -= 1
             currentLocation.right = true
           } else {
             currentLocation.bottom = false
@@ -212,8 +195,8 @@ const pathData = computed(() => {
     data.push(`L${xyForLocation(currentLocation).forSvg}`)
   }
 
-  if (props.cage.value) {
-    data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + (145 / props.puzzle.size)}`
+  if (props.cage.text) {
+    data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + 15}`
   }
   
   return data
@@ -223,18 +206,19 @@ const pathData = computed(() => {
 <template lang="pug">
 path.cage-path(
   :d="pathData"
+  :stroke="colorToRGBA(cage.cageColor)"
 )
 text.cage-value(
-  v-if="cage.value"
+  v-if="cage.text"
+  :fill="colorToRGBA(cage.textColor)"
   :x="startXY.x - 2"
   :y="startXY.y - 2"
-) {{ cage.value }}
+) {{ cage.text }}
 </template>
 
 <style scoped lang="stylus">
 .cage-path
   fill none
-  stroke #000000
   stroke-width 1.5px
   stroke-dasharray 10px 5px
   shape-rendering geometric-precision
@@ -242,5 +226,4 @@ text.cage-value(
   font-size 0.2em
   text-anchor start
   dominant-baseline hanging
-  fill #000000
 </style>

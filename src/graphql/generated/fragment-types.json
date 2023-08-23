@@ -1,0 +1,54 @@
+{
+  "possibleTypes": {
+    "AuthMutations": [
+      "PuzlerMutations"
+    ],
+    "AuthQueries": [
+      "PuzlerQueries"
+    ],
+    "CosmeticShape": [
+      "Circle",
+      "Rectangle"
+    ],
+    "Line": [
+      "BetweenLine",
+      "CustomLine",
+      "DutchWhisperLine",
+      "GermanWhisperLine",
+      "PalindromeLine",
+      "RegionSumLine",
+      "RenbanLine"
+    ],
+    "MultiCell": [
+      "Cage",
+      "Clone",
+      "DifferenceDot",
+      "ExtraRegion",
+      "KillerCage",
+      "Quadruple",
+      "RatioDot",
+      "XV"
+    ],
+    "NumberOutsideGrid": [
+      "LittleKillerSum",
+      "SandwichSum",
+      "Skyscraper",
+      "XSum"
+    ],
+    "PuzzleMutations": [
+      "PuzlerMutations"
+    ],
+    "PuzzleQueries": [
+      "PuzlerQueries"
+    ],
+    "SingleCell": [
+      "CellBackgroundColor",
+      "ColumnIndexCell",
+      "EvenCell",
+      "MaxCell",
+      "MinCell",
+      "OddCell",
+      "RowIndexCell"
+    ]
+  }
+}

@@ -5,6 +5,9 @@ generates:
   src/graphql/generated/graphql.d.ts:
     plugins:
       - "typescript-graphql-files-modules"
+  src/graphql/generated/fragment-types.json:
+    plugins:
+      - "fragment-matcher"
   src/graphql/generated/types.ts:
     plugins:
       - "typescript"

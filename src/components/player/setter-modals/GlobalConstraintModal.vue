@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import usePuzzleSetterStore from '@/stores/puzzle-setter';
+import usePuzzleSetterStore from '@/stores/puzzle-setter'
 
 defineProps<{
   activator: HTMLElement
@@ -10,10 +10,13 @@ const puzzleStore = usePuzzleSetterStore()
 
 const availableGlobals = computed(() => {
   const globals = [] as Array<string>
-  const { puzzle } = puzzleStore
+  const {
+    diagonals,
+    chess,
+  } = puzzleStore.puzzle.puzzleData.globalConstraints
 
-  if (!puzzle.diagonals) globals.push('Diagonals')
-  if (!puzzle.chess) globals.push('Chess')
+  if (!diagonals) globals.push('Diagonals')
+  if (!chess) globals.push('Chess')
 
   return globals
 })

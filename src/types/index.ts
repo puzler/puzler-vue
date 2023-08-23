@@ -1,50 +1,16 @@
-import { Puzzle, Cell } from './puzzle'
+import PuzzleSolve from './puzzle-solve'
+import PuzzleSolveCell from './puzzle-solve-cell'
 import { Controller, ControllerMode } from './controller'
 import { UserSettings } from './user-settings'
 import { ColorPalette } from './color-palette'
 import { Timer } from './timer'
-import type { CellNeighbors } from './puzzle'
-import type {
-  KillerCage,
-  Quadruple,
-  Thermometer,
-  Arrow,
-  BetweenLine,
-  MinMaxCell,
-  SandwichSum,
-  LittleKiller,
-} from './constraints'
-import type {
-  Text,
-  Line,
-  Circle,
-  Rectangle,
-  CellBackgroundColor,
-} from './cosmetics'
 
 export {
-  Puzzle,
-  Cell,
+  PuzzleSolve,
+  PuzzleSolveCell,
   Controller,
   ControllerMode,
   UserSettings,
   ColorPalette,
   Timer,
-}
-
-export type {
-  Arrow,
-  BetweenLine,
-  CellNeighbors,
-  CellBackgroundColor,
-  KillerCage,
-  Thermometer,
-  Text,
-  Line,
-  Quadruple,
-  Circle,
-  Rectangle,
-  MinMaxCell,
-  SandwichSum,
-  LittleKiller,
 }

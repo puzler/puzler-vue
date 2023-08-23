@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Thermometer } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Thermometer } from '@/graphql/generated/types'
 
 const props = defineProps<{
   thermometer: Thermometer
-  puzzle: Puzzle
 }>()
 
 const linePaths = computed(() => {
@@ -14,38 +11,39 @@ const linePaths = computed(() => {
     (list, line) => {
       if (line.length <= 1) return list
 
-      const coordinates = line.map((address) => addressToCoordinates(address))
-      const [start, ...rest] = coordinates
+      const [start, ...rest] = line
 
       const pathData = [
-        `M${(start.col * 100) + 50} ${(start.row * 100) + 50}`,
-        ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`)
+        `M${start.column * 100} ${start.row * 100}`,
+        ...rest.map(
+          ({ row, column }) => `L${column * 100} ${row * 100}`,
+        )
       ]
 
-      const secondToLast = coordinates[line.length - 2]
-      const last = coordinates[line.length - 1]
+      const secondToLast = line[line.length - 2]
+      const last = line[line.length - 1]
 
       const modifiers = {
-        x: (secondToLast?.col || last.col) - last.col,
+        x: (secondToLast?.column || last.column) - last.column,
         y: (secondToLast?.row || last.row) - last.row,
       }
 
-      pathData[pathData.length - 1] = `L${(last.col * 100) + 50 + (modifiers.x * 12.5)} ${(last.row * 100) + 50 + (modifiers.y * 12.5)}`
+      pathData[pathData.length - 1] = `L${(last.column * 100) + (modifiers.x * 12.5)} ${(last.row * 100) + (modifiers.y * 12.5)}`
 
       return [
         ...list,
-        { pathData },
+        pathData,
       ]
     },
-    [] as Array<{ pathData: Array<string> }>,
+    [] as Array<Array<string>>,
   )
 })
 
 const bulbPosition = computed(() => {
-  const coords = addressToCoordinates(props.thermometer.bulb)
+  const { row, column } = props.thermometer.bulb
   return {
-    x: coords.col * 100 + 50,
-    y: coords.row * 100 + 50,
+    x: column * 100,
+    y: row * 100,
   }
 })
 
@@ -53,9 +51,9 @@ const bulbPosition = computed(() => {
 
 <template lang="pug">
 path.thermo-line(
-  v-for="line, i in linePaths"
+  v-for="path, i in linePaths"
   :key="'thermo-line-' + i"
-  :d="line.pathData"
+  :d="path"
 )
 circle.thermo-bulb(
   :cx="bulbPosition.x"

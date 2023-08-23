@@ -6,39 +6,30 @@ import PuzzleGrid from './PuzzleGrid.vue'
 import ControlPad from './ControlPad.vue'
 import ColorPaletteEditor from './ColorPaletteEditor.vue'
 import SettingsEditor from './SettingsEditor.vue'
+import type { Puzzle, Address } from '@/graphql/generated/types'
 import {
-  Cell,
-  Puzzle,
   Controller,
   ControllerMode,
   Timer,
+  PuzzleSolve,
+  PuzzleSolveCell,
 } from '@/types'
 
 const props = defineProps<{
-  base64String?: string;
-  puzzleId?: string;
-  puzzle?: Puzzle;
+  rawPuzzle?: Puzzle;
 }>()
 
 const settingsStore = useSettingStore()
 const colorStore = useColorStore()
 const colorPalette = colorStore.palette
 
-const puzzle = ref(
-  (() => {
-    if (props.base64String) return Puzzle.fromBase64String(props.base64String)
-    // if (props.puzzleId) {} TODO Puzler API Implementation
-    if (props.puzzle) return props.puzzle
-    
-    return new Puzzle(9)
-  })(),
-)
+const puzzle = ref(new PuzzleSolve({ puzzle: props.rawPuzzle, size: 9 }))
 
 const playTimerOnVisible = ref(false)
 const timer = ref(new Timer())
 const controller = ref(new Controller())
 const selecting = ref(false)
-const lastSelected = ref(null as null|{ row: number; col: number })
+const lastSelected = ref(null as null|Address)
 
 if (!settingsStore.userSettings.startPaused) {
   if (document.visibilityState === 'visible') {
@@ -93,20 +84,20 @@ function resetSelecting() {
   selecting.value = false
 }
 
-const clearDigits = (cells: Array<Cell>) => cells.forEach(
+const clearDigits = (cells: Array<PuzzleSolveCell>) => cells.forEach(
   (cell) => cell.digit = null,
 )
-const clearColor = (cells: Array<Cell>) => cells.forEach(
+const clearColor = (cells: Array<PuzzleSolveCell>) => cells.forEach(
   (cell) => cell.cellColors = []
 )
-const clearCenter = (cells: Array<Cell>) => cells.forEach(
+const clearCenter = (cells: Array<PuzzleSolveCell>) => cells.forEach(
   (cell) => {
     if (cell.digit === null) {
       cell.centerMarks = []
     }
   },
 )
-const clearCorner = (cells: Array<Cell>) => cells.forEach(
+const clearCorner = (cells: Array<PuzzleSolveCell>) => cells.forEach(
   (cell) => {
     if (cell.digit === null) {
       cell.cornerMarks = []
@@ -326,7 +317,7 @@ function keyboardInput(event: KeyboardEvent) {
     const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
     if (!addToCurrentSelections) puzzle.value.deselectAll()
     
-    let { row, col } = lastSelected.value
+    let { row, column } = lastSelected.value
     switch (event.code) {
       case 'KeyW':
       case 'ArrowUp':
@@ -338,25 +329,25 @@ function keyboardInput(event: KeyboardEvent) {
         break
       case 'KeyA':
       case 'ArrowLeft':
-        col -= 1
+        column -= 1
         break
       case 'KeyD':
       case 'ArrowRight':
-        col += 1
+        column += 1
         break
       default:
         throw 'Unknown code'
     }
 
     if (row === 0) row = puzzle.value.size
-    if (row > puzzle.value.size) row = 1
-    if (col === 0) col = puzzle.value.size
-    if (col > puzzle.value.size) col = 1
+    if (row > puzzle.value.size - 1) row = 0
+    if (column === 0) column = puzzle.value.size
+    if (column > puzzle.value.size - 1) column = 0
 
-    const target = puzzle.value.cellAt({ row, col })
+    const target = puzzle.value.cellAt({ row, column })
     if (!target.selected) {
       target.selected = true
-      lastSelected.value = target.coordinates
+      lastSelected.value = target.address
     }
   } else if (event.code.startsWith('Shift')) {
     controller.value.modKeys.shift = true
@@ -369,13 +360,13 @@ function keyboardInput(event: KeyboardEvent) {
   }
 }
 
-function cellEnter(event: PointerEvent, cell: Cell) {
+function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
   if (!selecting.value) return
   cell.selected = true
-  lastSelected.value = cell.coordinates
+  lastSelected.value = cell.address
 }
 
-function cellClick(event: PointerEvent, cell?: Cell) {
+function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
@@ -386,15 +377,15 @@ function cellClick(event: PointerEvent, cell?: Cell) {
     puzzle.value.deselectAll()
     if (cell) {
       cell.selected = true
-      lastSelected.value = cell.coordinates
+      lastSelected.value = cell.address
     }
   } else if (cell) {
     cell.selected = !cell.selected
-    lastSelected.value = cell.coordinates
+    lastSelected.value = cell.address
   }
 }
 
-function cellDoubleClick(event: PointerEvent, cell: Cell) {
+function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
@@ -404,7 +395,7 @@ function cellDoubleClick(event: PointerEvent, cell: Cell) {
   if (!addToCurrentSelections) {
     puzzle.value.deselectAll()
   }
-  lastSelected.value = cell.coordinates
+  lastSelected.value = cell.address
 
   let modeToTarget: ControllerMode
   if (controller.value.mode === ControllerMode.color && cell.cellColors.length) {

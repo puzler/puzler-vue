@@ -24,39 +24,59 @@ const controllerVue = computed(() => modeController.value?.controllerVue)
 
 const includedCosmetics = computed(() => {
   const cosmetics = [] as Array<string>
-  const { puzzle } = puzzleStore
+  const {
+    circles,
+    rectangles,
+    lines,
+    text,
+    cages,
+  } = puzzleStore.puzzle.puzzleData.cosmetics
 
-  if (puzzle.circles) cosmetics.push('Circles')
-  if (puzzle.rectangles) cosmetics.push('Rectangles')
-  if (puzzle.lines) cosmetics.push('Lines')
-  if (puzzle.text) cosmetics.push('Text')
+  if (circles) cosmetics.push('Circles')
+  if (rectangles) cosmetics.push('Rectangles')
+  if (lines) cosmetics.push('Lines')
+  if (text) cosmetics.push('Text')
+  if (cages) cosmetics.push('Cages')
 
   return cosmetics
 })
 
 const includedGlobals = computed(() => {
   const globals = [] as Array<string>
-  const { puzzle } = puzzleStore
+  const {
+    diagonals,
+    chess,
+  } = puzzleStore.puzzle.puzzleData.globalConstraints
 
-  if (puzzle.diagonals) globals.push('Diagonals')
-  if (puzzle.chess) globals.push('Chess')
+  if (diagonals) globals.push('Diagonals')
+  if (chess) globals.push('Chess')
 
   return globals
 })
 
 const includedConstraints = computed(() => {
   const constraints = [] as Array<string>
-  const { puzzle } = puzzleStore
+  const {
+    killerCages,
+    arrows,
+    clones,
+    thermometers,
+    betweenLines,
+    extraRegions,
+    littleKillerSums,
+    sandwichSums,
+    quadruples,
+  } = puzzleStore.puzzle.puzzleData.localConstraints
 
-  if (puzzle.cages) constraints.push('Cages')
-  if (puzzle.arrows) constraints.push('Arrows')
-  if (puzzle.clones) constraints.push('Clones')
-  if (puzzle.thermometers) constraints.push('Thermometers')
-  if (puzzle.betweenLines) constraints.push('Between Lines')
-  if (puzzle.extraRegions) constraints.push('Extra Regions')
-  if (puzzle.littleKillers) constraints.push('Little Killers')
-  if (puzzle.sandwichSums) constraints.push('Sandwich')
-  if (puzzle.quadruples) constraints.push('Quadruples')
+  if (killerCages) constraints.push('Cages')
+  if (arrows) constraints.push('Arrows')
+  if (clones) constraints.push('Clones')
+  if (thermometers) constraints.push('Thermometers')
+  if (betweenLines) constraints.push('Between Lines')
+  if (extraRegions) constraints.push('Extra Regions')
+  if (littleKillerSums) constraints.push('Little Killers')
+  if (sandwichSums) constraints.push('Sandwich')
+  if (quadruples) constraints.push('Quadruples')
 
   return constraints
 })
@@ -73,7 +93,7 @@ const includedConstraints = computed(() => {
   .meta-controls
     v-text-field.text-control.puzzle-title(
       name="title"
-      v-model="puzzleStore.puzzle.title"
+      v-model="puzzleStore.puzzle.puzzleData.title"
       variant="plain"
       placeholder="Untitled Puzzle"
       :hide-details="true"
@@ -82,7 +102,7 @@ const includedConstraints = computed(() => {
     v-text-field.text-control.author(
       :class="{ 'dark-placeholder': authStore.authenticated }"
       name="author"
-      v-model="puzzleStore.puzzle.author"
+      v-model="puzzleStore.puzzle.puzzleData.author"
       variant="plain"
       :placeholder="authorPlaceholder"
       :hide-details="true"
@@ -107,17 +127,17 @@ const includedConstraints = computed(() => {
         v-icon(icon="mdi-close")
       .title Chess:
       v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.chess.knight = !puzzleStore.puzzle.chess.knight"
-        :active="puzzleStore.puzzle.chess.knight"
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
         density="compact"
-        :color="puzzleStore.puzzle.chess.knight ? 'blue-grey' : 'white'"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight ? 'blue-grey' : 'white'"
       )
         v-icon(icon="fa:fas fa-chess-knight")
       v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.chess.king = !puzzleStore.puzzle.chess.king"
-        :active="puzzleStore.puzzle.chess.king"
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
         density="compact"
-        :color="puzzleStore.puzzle.chess.king ? 'blue-grey' : 'white'"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king ? 'blue-grey' : 'white'"
       )
         v-icon(icon="fa:fas fa-chess-king")
     //- .global-group.anti-kropki(
@@ -157,17 +177,17 @@ const includedConstraints = computed(() => {
         v-icon(icon="mdi-close")
       .title Diagonals:
       v-btn.negative.global-toggle(
-        v-on:click="puzzleStore.puzzle.diagonals.negative = !puzzleStore.puzzle.diagonals.negative"
-        :active="puzzleStore.puzzle.diagonals.negative"
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
         density="compact"
-        :color="puzzleStore.puzzle.diagonals.negative ? 'blue-grey' : 'white'"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative ? 'blue-grey' : 'white'"
       )
         v-icon(icon="mdi-square-off-outline")
       v-btn.positive.global-toggle(
-        v-on:click="puzzleStore.puzzle.diagonals.positive = !puzzleStore.puzzle.diagonals.positive"
-        :active="puzzleStore.puzzle.diagonals.positive"
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
         density="compact"
-        :color="puzzleStore.puzzle.diagonals.positive ? 'blue-grey' : 'white'"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive ? 'blue-grey' : 'white'"
       )
         v-icon(
           icon="mdi-square-off-outline"

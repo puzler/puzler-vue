@@ -37,9 +37,13 @@ fragment FullPuzzle on Puzzle {
     title
     author
     size
+    solution
     rules
-    givenDigits
-    gridRegions
+    cells {
+      given
+      digit
+      region
+    }
     globalConstraints {
       diagonals {
         positive
@@ -62,6 +66,10 @@ fragment FullPuzzle on Puzzle {
       }
     }
     cosmetics {
+      cellBackgroundColors {
+        cell { ...Address }
+        color { ...ColorFields }
+      }
       lines {
         ...Line
         color { ...ColorFields }
@@ -130,7 +138,7 @@ fragment FullPuzzle on Puzzle {
         }
       }
       arrows {
-        circleCells { ...Address }
+        cells { ...Address }
         lines { ...Address }
       }
       littleKillerSums {
@@ -145,18 +153,22 @@ fragment FullPuzzle on Puzzle {
       skyscrapers { ...NumberOutsideGrid }
       differenceDots {
         ...MultiCell
+        location { ...Address }
         difference
       }
       ratioDots {
         ...MultiCell
+        location { ...Address }
         ratio
       }
       xv {
         ...MultiCell
+        location { ...Address }
         xvType
       }
       quadruples {
         ...MultiCell
+        location { ...Address }
         values
       }
     }

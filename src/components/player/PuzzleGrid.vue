@@ -14,14 +14,16 @@ import LittleKillerConstraint from './constraints/LittleKillerConstraint.vue'
 import ThermometerConstraint from './constraints/ThermometerConstraint.vue'
 import { computed } from 'vue';
 import {
-  Puzzle,
   Timer,
-  type Circle,
-  type Rectangle,
+  PuzzleSolve,
 } from '@/types'
+import type {
+  CosmeticShape,
+  Text,
+} from '@/graphql/generated/types'
 
 const props = defineProps<{
-  puzzle: Puzzle
+  puzzle: PuzzleSolve
   timer: Timer
 }>()
 
@@ -33,25 +35,23 @@ const emit = defineEmits([
 ])
 
 const svgViewBox = computed(() => {
-  const {
-    minCol,
-    minRow,
-    maxCol,
-    maxRow,
-  } = props.puzzle.dimensions
+  let minX = -50
+  let minY = -50
+  let maxX = (props.puzzle.size * 100) - 50
+  let maxY = (props.puzzle.size * 100) - 50
 
-  let minX = minCol * 100
-  let minY = minRow * 100
-  let maxX = maxCol * 100
-  let maxY = maxRow * 100
+  minX -= spacerCounts.value.left * 100
+  minY -= spacerCounts.value.top * 100
+  maxX += spacerCounts.value.right * 100
+  maxY += spacerCounts.value.bottom * 100
 
-  return `${minX} ${minY} ${maxX + 100 - minX} ${maxY + 100 - minY}`
+  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
 })
 
 const outerGridPath = computed(() => {
   const sideLength = props.puzzle.size * 100
   return [
-    'M100 100',
+    'M-50 -50',
     `h${sideLength}`,
     `v${sideLength}`,
     `h-${sideLength}`,
@@ -63,20 +63,20 @@ const regionBordersPath = computed(() => {
   return props.puzzle.cells.flatMap((row) => {
     return row.flatMap((cell) => {
       let paths = [] as Array<string>
-      const top = cell.coordinates.row !== 1 && cell.neighbors.up?.region !== cell.region
-      const right = cell.coordinates.col !== props.puzzle.size && cell.neighbors.right?.region !== cell.region
+      const top = cell.address.row !== 0 && cell.neighbors.up?.region !== cell.region
+      const right = cell.address.column !== props.puzzle.size - 1 && cell.neighbors.right?.region !== cell.region
       
       if (top) {
         paths = [
           ...paths,
-          `M${cell.coordinates.col * 100} ${cell.coordinates.row * 100}`,
+          `M${(cell.address.column * 100) - 50} ${(cell.address.row * 100) - 50}`,
           `h100`,
         ]
       }
 
-      if (right && cell.coordinates.col !== props.puzzle.size) {
+      if (right) {
         if (!top) {
-          paths.push(`M${(cell.coordinates.col + 1) * 100} ${cell.coordinates.row * 100}`)
+          paths.push(`M${(cell.address.column * 100) + 50} ${(cell.address.row * 100) - 50}`)
         }
 
         paths.push('v100')
@@ -93,25 +93,32 @@ const spacerCounts = computed(() => {
   let left = 0
   let bottom = 0
 
-  if (props.puzzle.dimensions.minCol < 1) {
-    left = 1 - props.puzzle.dimensions.minCol
+  const {
+    minRow,
+    minColumn,
+    maxRow,
+    maxColumn,
+  } = props.puzzle.boundingDimensions
+
+  if (minColumn < 0) {
+    left = 0 - minColumn
   }
 
-  if (props.puzzle.dimensions.minRow < 1) {
-    top = 1 - props.puzzle.dimensions.minRow
+  if (minRow < 0) {
+    top = 0 - minRow
   }
 
-  if (props.puzzle.dimensions.maxRow > props.puzzle.size) {
-    bottom = props.puzzle.dimensions.maxRow - props.puzzle.size
+  if (maxRow >= props.puzzle.size) {
+    bottom = maxRow - (props.puzzle.size - 1)
   }
 
-  if (props.puzzle.dimensions.maxCol > props.puzzle.size) {
-    right = props.puzzle.dimensions.maxCol - props.puzzle.size
+  if (maxColumn >= props.puzzle.size) {
+    right = maxColumn - (props.puzzle.size - 1)
   }
 
   const vertical = top + bottom
   const horizontal = left + right
-
+  
   if (vertical < horizontal) {
     top += horizontal - vertical
   } else if (vertical > horizontal) {
@@ -126,15 +133,18 @@ const spacerCounts = computed(() => {
   }
 })
 
-const circles = computed(() => {
-  return (props.puzzle.circles || []).reduce(
-    (groups, circle) => {
-      if (circle.cells.length === 1) {
+function groupUnderOver(shapes?: null|Array<CosmeticShape|Text>) {
+  return (shapes || []).reduce(
+    (groups, shape) => {
+      const { row, column } = shape.address
+      const underGrid = Math.round(row) === row && Math.round(column) === column
+
+      if (underGrid) {
         return {
           ...groups,
           underGrid: [
             ...groups.underGrid,
-            circle,
+            shape,
           ],
         }
       }
@@ -143,44 +153,28 @@ const circles = computed(() => {
         ...groups,
         overGrid: [
           ...groups.overGrid,
-          circle,
+          shape,
         ],
       }
     },
     {
       underGrid: [],
       overGrid: [],
-    } as Record<string, Array<Circle>>,
+    } as { underGrid: Array<CosmeticShape|Text>; overGrid: Array<CosmeticShape|Text> },
   )
-})
+}
 
-const rectangles = computed(() => {
-  return (props.puzzle.rectangles || []).reduce(
-    (groups, rect) => {
-      if (rect.cells.length === 1) {
-        return {
-          ...groups,
-          underGrid: [
-            ...groups.underGrid,
-            rect,
-          ],
-        }
-      }
+const circles = computed(
+  () => groupUnderOver(props.puzzle.visualCircles)
+)
 
-      return {
-        ...groups,
-        overGrid: [
-          ...groups.overGrid,
-          rect,
-        ],
-      }
-    },
-    {
-      underGrid: [],
-      overGrid: [],
-    } as Record<string, Array<Rectangle>>,
-  )
-})
+const rectangles = computed(
+  () => groupUnderOver(props.puzzle.visualRectangles)
+)
+
+const texts = computed(
+  () => groupUnderOver(props.puzzle.visualText)
+)
 </script>
 
 <template lang="pug">
@@ -190,87 +184,67 @@ const rectangles = computed(() => {
     preserveAspectRatio="none"
   )
     CellBackgroundColor(
-      v-for="cellColor, i in puzzle.cellBackgroundColors"
+      v-for="{ cell, color }, i in puzzle.visualCellBackgrounds"
       :key="`cell-background-color-${i}`"
-      :address="cellColor.address"
-      :color="cellColor.color"
-      :puzzle="puzzle"
+      :cell="cell"
+      :color="color"
     )
     MinMaxConstraint(
-      v-for="minCell, i in puzzle.minCells"
+      v-for="{ cell }, i in puzzle.puzzleData.localConstraints.minCells"
       :key="`min-cell-${i}`"
-      :minMaxCell="minCell"
+      :cell="cell"
       :puzzle="puzzle"
       type="minimum"
     )
     MinMaxConstraint(
-      v-for="maxCell, i in puzzle.maxCells"
+      v-for="{ cell }, i in puzzle.puzzleData.localConstraints.maxCells"
       :key="`max-cell-${i}`"
-      :minMaxCell="maxCell"
+      :cell="cell"
       :puzzle="puzzle"
       type="maximum"
     )
-    g.extra-region-background(
-      v-for="extraRegion, i in puzzle.extraRegions"
-      :key="'extra-region-background-group' + i"
-    )
-      CellBackgroundColor(
-        v-for="address, j in extraRegion.cells"
-        :key="`extra-region-${i}-background-cell-${j}`"
-        :address="address"
-        color="#dddddd"
-        :puzzle="puzzle"
-      )
-    CellBackgroundColor(
-      v-for="cloneCell, i in puzzle.clones"
-      :key="'clone-cell-' + i"
-      :address="cloneCell.cells[0]"
-      :color="cloneCell.fill"
-      :puzzle="puzzle"
-    )
     ThermometerConstraint(
-      v-for="thermo, i in puzzle.thermometers"
-      :key="'thermo-' + i"
+      v-for="thermo, i in puzzle.puzzleData.localConstraints.thermometers"
+      :key="`thermo-${i}`"
       :thermometer="thermo"
-      :puzzle="puzzle"
     )
     ArrowConstraint(
-      v-for="arrow, i in puzzle.arrows"
-      :key="'arrow-' + i"
+      v-for="arrow, i in puzzle.puzzleData.localConstraints.arrows"
+      :key="`arrow-${i}`"
       :arrow="arrow"
-      :puzzle="puzzle"
     )
     BetweenLineConstraint(
-      v-for="betweenLine, i in puzzle.betweenLines"
-      :key="'between-line-' + i"
+      v-for="betweenLine, i in puzzle.puzzleData.localConstraints.betweenLines"
+      :key="`between-line-${i}`"
       :betweenLine="betweenLine"
-      :puzzle="puzzle"
     )
     CircleCosmetic(
       v-for="circle, i in circles.underGrid"
       :key="`under-grid-circle-${i}`"
       :circle="circle"
-      :puzzle="puzzle"
     )
     RectangleCosmetic(
       v-for="rectangle, i in rectangles.underGrid"
       :key="`under-grid-rectangle-${i}`"
       :rectangle="rectangle"
-      :puzzle="puzzle"
+    )
+    TextCosmetic(
+      v-for="text, i in texts.underGrid"
+      :key="`under-grid-text-${i}`"
+      :text="text"
     )
     path.diagonal-path(
-      v-if="puzzle.diagonals && puzzle.diagonals.negative"
-      :d="`M100 100, L${(puzzle.size + 1) * 100} ${(puzzle.size + 1) * 100}`"
+      v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.negative"
+      :d="`M-50 -50, L${(puzzle.size * 100) - 50} ${(puzzle.size * 100) - 50}`"
     )
     path.diagonal-path(
-      v-if="puzzle.diagonals && puzzle.diagonals.positive"
-      :d="`M100 ${(puzzle.size + 1) * 100}, L${(puzzle.size + 1) * 100} 100`"
+      v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.positive"
+      :d="`M-50 ${(puzzle.size * 100) - 50}, L${(puzzle.size * 100) - 50} -50`"
     )
     LineCosmetic(
-      v-for="line, i in puzzle.lines"
-      :key="'line-' + i"
+      v-for="line, i in puzzle.visualLines"
+      :key="`line-${i}`"
       :line="line"
-      :puzzle="puzzle"
     )
   .grid
     .top-spacer.row(
@@ -278,18 +252,18 @@ const rectangles = computed(() => {
       :key="`top-spacer-${i}`"
     )
     .row(
-      v-for="row, r in props.puzzle.cells"
-      :key="'grid-row-' + r"
+      v-for="rowCells, row in puzzle.cells"
+      :key="`grid-row-${row}`"
     )
       .left-spacer(
         v-for="i in spacerCounts.left"
         :key="`left-spacer-${i}`"
       )
       GridCell(
-        v-for="cell in row"
-        :key="'cell-' + cell.address"
+        v-for="cell, column in rowCells"
+        :key="`grid-cell-R${row + 1}C${column + 1}`"
         :cell="cell"
-        :error="puzzle.errorAddresses.includes(cell.address)"
+        :error="puzzle.errorAddresses.some(({ row, column }) => row === cell.address.row && column === cell.address.column)"
         v-on:cell-double-click="(event, cell) => emit('cell-double-click', event, cell)"
         v-on:cell-click="(event, cell) => emit('cell-click', event, cell)"
         v-on:cell-enter="(event, cell) => emit('cell-enter', event, cell)"
@@ -308,11 +282,11 @@ const rectangles = computed(() => {
     )
       .overlay-details(v-on:click.stop)
         .puzzle-info
-          .title {{ puzzle.title || 'No Title Given' }}
+          .title {{ puzzle.puzzleData.title || 'No Title Given' }}
           .author(v-if="puzzle.author") By: {{ puzzle.author }}
           .rules
             span Rules
-            .ruleset {{ puzzle.rules || 'No Rules Given' }}
+            .ruleset {{ puzzle.puzzleData.rules || 'No Rules Given' }}
         v-btn.play-btn(
           v-on:click="emit('play-puzzle')"
           :append-icon="'mdi-play'"
@@ -323,14 +297,14 @@ const rectangles = computed(() => {
   )
     path.outer-grid-border(:d="outerGridPath")
     g(
-      v-for="i in puzzle.size"
+      v-for="i in puzzle.size - 1"
       :key="`row-col-group-${i}}`"
     )
       path.cell-border(
-        :d="`M${i * 100} 100,h100,v${puzzle.size * 100},h-100,v-${puzzle.size * 100}`"
+        :d="`M${(i * 100) - 50} -50,v${puzzle.size * 100}`"
       )
       path.cell-border(
-        :d="`M100 ${i * 100},v100,h${puzzle.size * 100},v-100,h-${puzzle.size * 100}`"
+        :d="`M-50 ${(i * 100) - 50},h${puzzle.size * 100}`"
       )
     path.region-borders(
       :d="regionBordersPath"
@@ -341,51 +315,33 @@ const rectangles = computed(() => {
   )
     CircleCosmetic(
       v-for="circle, i in circles.overGrid"
-      :key="'over-grid-circle-' + i"
+      :key="`over-grid-circle-${i}`"
       :circle="circle"
-      :puzzle="puzzle"
     )
     RectangleCosmetic(
       v-for="rect, i in rectangles.overGrid"
-      :key="'over-grid-rectangle-' + i"
+      :key="`over-grid-rectangle-${i}`"
       :rectangle="rect"
-      :puzzle="puzzle"
     )
     LittleKillerConstraint(
-      v-for="littleKiller, i in puzzle.littleKillers"
+      v-for="littleKiller, i in puzzle.puzzleData.localConstraints.littleKillerSums"
       :key="`little-killer-${i}`"
       :littleKiller="littleKiller"
-      :puzzle="puzzle"
     )
     TextCosmetic(
-      v-for="sandwichSum, i in puzzle.sandwichSums"
-      :key="`sandwich-${i}`"
-      :text="{ cells: [sandwichSum.cell], fontC: '#000000', size: 0.65, value: sandwichSum.value }"
-      :puzzle="puzzle"
-    )
-    TextCosmetic(
-      v-for="text, i in puzzle.text"
-      :key="'text-' + i"
+      v-for="text, i in texts.overGrid"
+      :key="`over-grid-text-${i}`"
       :text="text"
-      :puzzle="puzzle"
     )
     KillerCage(
-      v-for="cage, i in puzzle.cages"
-      :key="'cage-' + i"
+      v-for="cage, i in puzzle.visualCages"
+      :key="`cage-${i}`"
       :cage="cage"
-      :puzzle="puzzle"
-    )
-    KillerCage(
-      v-for="region, i in puzzle.extraRegions"
-      :key="'extra-region-' + i"
-      :cage="region"
-      :puzzle="puzzle"
     )
     QuadrupleConstraint(
-      v-for="quadruple, i in puzzle.quadruples"
-      :key="'quadruple-' + i"
+      v-for="quadruple, i in puzzle.puzzleData.localConstraints.quadruples"
+      :key="`quadruple-${i}`"
       :quadruple="quadruple"
-      :puzzle="puzzle"
     )
 </template>
 

@@ -69,9 +69,9 @@ export type AntiXvInput = {
 export type Arrow = {
   __typename?: 'Arrow';
   /** Arrow circle cells */
-  circleCells: Array<Address>;
+  cells: Array<Address>;
   /** Arrow lines */
-  lines: Array<Address>;
+  lines: Array<Array<Address>>;
 };
 
 /** Input for an Arrow element */
@@ -207,6 +207,15 @@ export type CageInput = {
   text?: InputMaybe<Scalars['String']['input']>;
   /** Color of the corner text */
   textColor?: InputMaybe<ColorInput>;
+};
+
+/** A background color for a single cell */
+export type CellBackgroundColor = SingleCell & {
+  __typename?: 'CellBackgroundColor';
+  /** Cell Address */
+  cell: Address;
+  /** The background color */
+  color: Color;
 };
 
 /** Chess Global Constraint Settings */
@@ -363,6 +372,8 @@ export type CosmeticElements = {
   __typename?: 'CosmeticElements';
   /** Cosmetic Cages */
   cages?: Maybe<Array<Cage>>;
+  /** A list of cells with a background color */
+  cellBackgroundColors?: Maybe<Array<CellBackgroundColor>>;
   /** Cosmetic Circle */
   circles?: Maybe<Array<Circle>>;
   /** Cosmetic Lines */
@@ -481,6 +492,8 @@ export type DifferenceDot = MultiCell & {
   cells: Array<Address>;
   /** Difference of the touching cells */
   difference?: Maybe<Scalars['Int']['output']>;
+  /** Visual location of the element */
+  location: Address;
 };
 
 /** Input for a difference dot */
@@ -582,6 +595,17 @@ export type GlobalConstraintsInput = {
   disjointSets?: InputMaybe<DisjointSetsInput>;
 };
 
+/** A Cell in a puzzle grid */
+export type GridCell = {
+  __typename?: 'GridCell';
+  /** The digit inside the cell */
+  digit?: Maybe<Scalars['Int']['output']>;
+  /** If the cell contains a given digit */
+  given?: Maybe<Scalars['Boolean']['output']>;
+  /** The region the cell belongs to */
+  region: Scalars['Int']['output'];
+};
+
 /** A Killer Cage */
 export type KillerCage = MultiCell & {
   __typename?: 'KillerCage';
@@ -630,7 +654,7 @@ export type LittleKillerSum = NumberOutsideGrid & {
   /** Location of the value */
   location: Address;
   /** Value of the clue */
-  value: Scalars['String']['output'];
+  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Input for a little killer sum */
@@ -640,7 +664,7 @@ export type LittleKillerSumInput = {
   /** The location of the clue */
   location: AddressInput;
   /** The value of the clue */
-  value: Scalars['String']['input'];
+  value?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** The set of local constraints for a puzzle */
@@ -783,7 +807,7 @@ export type NumberOutsideGrid = {
   /** Location of the value */
   location: Address;
   /** Value of the clue */
-  value: Scalars['String']['output'];
+  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Input for an element that has a number outside the grid */
@@ -791,7 +815,7 @@ export type NumberOutsideGridInput = {
   /** The location of the clue */
   location: AddressInput;
   /** The value of the clue */
-  value: Scalars['String']['input'];
+  value?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Payload to sign in with an OAuth provider */
@@ -914,6 +938,8 @@ export type PuzlerQueries = AuthQueries & PuzzleQueries & {
   __typename?: 'PuzlerQueries';
   /** Fetch a Puzzle */
   fetchPuzzle?: Maybe<Puzzle>;
+  /** Load a Puzzle from FPuzzles from a compressed Base64 string */
+  loadFPuzzle?: Maybe<Puzzle>;
   /** The currently logged in User */
   me?: Maybe<User>;
 };
@@ -924,31 +950,37 @@ export type PuzlerQueriesFetchPuzzleArgs = {
   id: Scalars['ID']['input'];
 };
 
+
+/** The base Query Object */
+export type PuzlerQueriesLoadFPuzzleArgs = {
+  base64Data: Scalars['String']['input'];
+};
+
 /** A playable Sudoku Puzzle */
 export type Puzzle = {
   __typename?: 'Puzzle';
   /** The Puzzle Author */
   author?: Maybe<Scalars['String']['output']>;
+  /** Grid Cell data containing given digits and cell regions */
+  cells: Array<Array<GridCell>>;
   /** Cosmetics for the Puzzle */
   cosmetics: CosmeticElements;
-  /** Given Digits */
-  givenDigits: Array<Array<Maybe<Scalars['Int']['output']>>>;
   /** Global Constraints for the Puzzle */
   globalConstraints: GlobalConstraints;
-  /** Grid Regions */
-  gridRegions: Array<Array<Scalars['Int']['output']>>;
   /** The Puzzle ID */
-  id: Scalars['ID']['output'];
+  id?: Maybe<Scalars['ID']['output']>;
   /** Local Constraints for the Puzzle */
   localConstraints: LocalConstraints;
   /** Rules for the Puzzle */
   rules?: Maybe<Scalars['String']['output']>;
   /** The Puzzle Size */
   size: Scalars['Int']['output'];
+  /** The puzzle solution */
+  solution?: Maybe<Array<Maybe<Scalars['Int']['output']>>>;
   /** The Puzzle Title */
   title?: Maybe<Scalars['String']['output']>;
   /** The User who owns the Puzzle */
-  user: User;
+  user?: Maybe<User>;
   /** The visibility of the puzzle */
   visibility: Visibility;
 };
@@ -991,6 +1023,8 @@ export type PuzzleMutationsCreatePuzzleArgs = {
 export type PuzzleQueries = {
   /** Fetch a Puzzle */
   fetchPuzzle?: Maybe<Puzzle>;
+  /** Load a Puzzle from FPuzzles from a compressed Base64 string */
+  loadFPuzzle?: Maybe<Puzzle>;
 };
 
 
@@ -999,11 +1033,19 @@ export type PuzzleQueriesFetchPuzzleArgs = {
   id: Scalars['ID']['input'];
 };
 
+
+/** Base Query object for Puzzles */
+export type PuzzleQueriesLoadFPuzzleArgs = {
+  base64Data: Scalars['String']['input'];
+};
+
 /** A Quadruple clue */
 export type Quadruple = MultiCell & {
   __typename?: 'Quadruple';
   /** Cells included in the constraint */
   cells: Array<Address>;
+  /** Visual location of the element */
+  location: Address;
   /** Values in the Quadruple */
   values: Array<Scalars['Int']['output']>;
 };
@@ -1021,6 +1063,8 @@ export type RatioDot = MultiCell & {
   __typename?: 'RatioDot';
   /** Cells included in the constraint */
   cells: Array<Address>;
+  /** Visual location of the element */
+  location: Address;
   /** Ratio of the connected dots */
   ratio?: Maybe<Scalars['Int']['output']>;
 };
@@ -1143,7 +1187,7 @@ export type SandwichSum = NumberOutsideGrid & {
   /** Location of the value */
   location: Address;
   /** Value of the clue */
-  value: Scalars['String']['output'];
+  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Autogenerated input type of SignIn */
@@ -1269,7 +1313,7 @@ export type Skyscraper = NumberOutsideGrid & {
   /** Location of the value */
   location: Address;
   /** Value of the clue */
-  value: Scalars['String']['output'];
+  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** A Cosmetic Text Element */
@@ -1307,7 +1351,7 @@ export type Thermometer = {
   /** Thermo bulb location */
   bulb: Address;
   /** Thermo lines */
-  lines: Array<Address>;
+  lines: Array<Array<Address>>;
 };
 
 /** Input for a thermometer element */
@@ -1348,7 +1392,7 @@ export type XSum = NumberOutsideGrid & {
   /** Location of the value */
   location: Address;
   /** Value of the clue */
-  value: Scalars['String']['output'];
+  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** An XV clue */
@@ -1356,8 +1400,10 @@ export type Xv = MultiCell & {
   __typename?: 'XV';
   /** Cells included in the constraint */
   cells: Array<Address>;
+  /** Visual location of the element */
+  location: Address;
   /** Type of XV */
-  xvType: XvTypes;
+  xvType?: Maybe<XvTypes>;
 };
 
 /** Input for an XV element */
@@ -1365,7 +1411,7 @@ export type XvInput = {
   /** Cells included in the element */
   cells: Array<AddressInput>;
   /** Element is an X or a V */
-  xvType: XvTypes;
+  xvType?: InputMaybe<XvTypes>;
 };
 
 /** Enum describing if an XV constraint is an X or a V */

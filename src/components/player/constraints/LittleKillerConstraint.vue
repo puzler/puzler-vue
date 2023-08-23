@@ -1,39 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { LittleKiller } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { LittleKillerSum } from '@/graphql/generated/types'
 
 const props = defineProps<{
-  littleKiller: LittleKiller
-  puzzle: Puzzle
+  littleKiller: LittleKillerSum
 }>()
 
 const centerPoint = computed(() => {
-  const { row, col } = addressToCoordinates(props.littleKiller.cell)
-
   return {
-    x: col * 100 + 50,
-    y: row * 100 + 50,
+    x: props.littleKiller.location.column * 100,
+    y: props.littleKiller.location.row * 100,
   }
 })
 
 const arrowPath = computed(() => {
-  const bottom = props.littleKiller.direction.includes('D')
-  const right = props.littleKiller.direction.includes('R')
-
+  const { top, left } = props.littleKiller.direction
   const arrowPoint = {
-    x: centerPoint.value.x + (right ? 46 : -46),
-    y: centerPoint.value.y + (bottom ? 46 : -46),
+    x: centerPoint.value.x + (left ? -46 : 46),
+    y: centerPoint.value.y + (top ? -46 : 46),
   }
 
   return [
     `M${arrowPoint.x} ${arrowPoint.y}`,
-    `h${right ? -15 : 15}`,
+    `h${left ? 15 : -15}`,
     `M${arrowPoint.x} ${arrowPoint.y}`,
-    `v${bottom ? -15 : 15}`,
+    `v${top ? 15 : -15}`,
     `M${arrowPoint.x} ${arrowPoint.y}`,
-    `L${arrowPoint.x - (right ? 15 : -15)} ${arrowPoint.y - (bottom ? 15 : -15)}`
+    `L${arrowPoint.x - (left ? -15 : 15)} ${arrowPoint.y - (top ? -15 : 15)}`
   ]
 })
 </script>
@@ -45,7 +38,7 @@ path.little-killer-arrow(
 text.little-killer-value(
   :x="centerPoint.x"
   :y="centerPoint.y"
-) {{ littleKiller.value }}
+) {{ littleKiller.value || '_' }}
 </template>
 
 <style scoped lang="stylus">

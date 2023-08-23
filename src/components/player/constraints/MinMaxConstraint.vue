@@ -1,98 +1,116 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { MinMaxCell } from '@/types'
+import { PuzzleSolve } from '@/types'
+import type { Address } from '@/graphql/generated/types'
 import CellBackgroundColor from './CellBackgroundColor.vue'
 
 const props = defineProps<{
-  minMaxCell: MinMaxCell
-  puzzle: Puzzle
+  cell: Address
+  puzzle: PuzzleSolve
   type: 'maximum'|'minimum'
 }>()
 
-const minimum = computed(() => props.type === 'minimum')
+const arrows = computed(() => {
+  const { row, column } = props.cell
+  const { minCells, maxCells } = props.puzzle.puzzleData.localConstraints
+  const group = props.type === 'minimum' ? minCells! : maxCells!
+
+  return {
+    left: column !== 0 && !group.some(
+      ({ cell }) => cell.row === row && cell.column === column - 1,
+    ),
+    right: column !== props.puzzle.size - 1 && !group.some(
+      ({ cell }) => cell.row === row && cell.column === column + 1,
+    ),
+    top: row !== 0 && !group.some(
+      ({ cell }) => cell.column === column && cell.row === row - 1,
+    ),
+    bottom: row !== props.puzzle.size - 1 && !group.some(
+      ({ cell }) => cell.column === column && cell.row === row + 1,
+    ),
+  }
+})
 
 const indicatorPaths = computed(() => {
-  let { col, row } = { ...props.minMaxCell }
+  const { column, row } = props.cell
+  const { left, right, top, bottom } = arrows.value
+  const minimum = props.type === 'minimum'
 
   const centerPoint = {
-    x: col * 100 + 50,
-    y: row * 100 + 50,
+    x: column * 100,
+    y: row * 100,
   }
   const indicatorDepth = 5
 
   const paths = []
-  if (props.minMaxCell.left) {
+  if (left) {
     let midPoint = {
       x: centerPoint.x - 44,
       y: centerPoint.y,
     }
-    if (minimum.value) midPoint.x += indicatorDepth
+    if (minimum) midPoint.x += indicatorDepth
 
     paths.push([
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x - (indicatorDepth * (minimum.value ? 1 : -1))} ${midPoint.y - 12.5}`,
+      `L${midPoint.x - (indicatorDepth * (minimum ? 1 : -1))} ${midPoint.y - 12.5}`,
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x - (indicatorDepth * (minimum.value ? 1 : -1))} ${midPoint.y + 12.5}`,
+      `L${midPoint.x - (indicatorDepth * (minimum ? 1 : -1))} ${midPoint.y + 12.5}`,
     ])
   }
   
-  if (props.minMaxCell.right) {
+  if (right) {
     let midPoint = {
       x: centerPoint.x + 44,
       y: centerPoint.y,
     }
-    if (minimum.value) midPoint.x -= indicatorDepth
+    if (minimum) midPoint.x -= indicatorDepth
 
     paths.push([
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x + (indicatorDepth * (minimum.value ? 1 : -1))} ${midPoint.y - 12.5}`,
+      `L${midPoint.x + (indicatorDepth * (minimum ? 1 : -1))} ${midPoint.y - 12.5}`,
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x + (indicatorDepth * (minimum.value ? 1 : -1))} ${midPoint.y + 12.5}`,
+      `L${midPoint.x + (indicatorDepth * (minimum ? 1 : -1))} ${midPoint.y + 12.5}`,
     ])
   }
 
-  if (props.minMaxCell.top) {
+  if (top) {
     let midPoint = {
       x: centerPoint.x,
       y: centerPoint.y - 44,
     }
-    if (minimum.value) midPoint.y += indicatorDepth
+    if (minimum) midPoint.y += indicatorDepth
 
     paths.push([
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x - 12.5} ${midPoint.y - (indicatorDepth * (minimum.value ? 1 : -1))}`,
+      `L${midPoint.x - 12.5} ${midPoint.y - (indicatorDepth * (minimum ? 1 : -1))}`,
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x + 12.5} ${midPoint.y - (indicatorDepth * (minimum.value ? 1 : -1))}`,
+      `L${midPoint.x + 12.5} ${midPoint.y - (indicatorDepth * (minimum ? 1 : -1))}`,
     ])
   }
 
-  if (props.minMaxCell.bottom) {
+  if (bottom) {
     let midPoint = {
       x: centerPoint.x,
       y: centerPoint.y + 44,
     }
-    if (minimum.value) midPoint.y -= indicatorDepth
+    if (minimum) midPoint.y -= indicatorDepth
 
     paths.push([
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x - 12.5} ${midPoint.y + (indicatorDepth * (minimum.value ? 1 : -1))}`,
+      `L${midPoint.x - 12.5} ${midPoint.y + (indicatorDepth * (minimum ? 1 : -1))}`,
       `M${midPoint.x} ${midPoint.y}`,
-      `L${midPoint.x + 12.5} ${midPoint.y + (indicatorDepth * (minimum.value ? 1 : -1))}`,
+      `L${midPoint.x + 12.5} ${midPoint.y + (indicatorDepth * (minimum ? 1 : -1))}`,
     ])
   }
 
   return paths
 })
-
-const address = computed(() => `R${props.minMaxCell.row}C${props.minMaxCell.col}`)
 </script>
 
 <template lang="pug">
 CellBackgroundColor(
-  :address="address"
-  :puzzle="puzzle"
-  color="#dddddd"
+  :cell="cell"
+  :color="{ red: 221, green: 221, blue: 221, opacity: 1 }"
 )
 path.min-max-indicator-border(
   v-for="pathData, i in indicatorPaths"

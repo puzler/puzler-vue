@@ -1,55 +1,37 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Line } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { CustomLine, Color } from '@/graphql/generated/types'
 
 const props = defineProps<{
-  line: Line
-  puzzle: Puzzle
+  line: CustomLine
 }>()
 
-function xyForAddress(address: string) {
-  const { row, col } = addressToCoordinates(address)
+const linePath = computed(() => {
+  const [origin, ...rest] = props.line.points
 
-  let y = row * 100 + 50
-  let x = col * 100 + 50
-
-  return { x, y, forSvg: `${x} ${y}` }
-}
-
-const linesData = computed(() => {
-  return props.line.lines.reduce(
-    (segments, lineSegment) => {
-      if (lineSegment.length === 0) return segments
-
-      const segmentData = [`M${xyForAddress(lineSegment[0]).forSvg}`]
-      lineSegment.slice(1).forEach((address) => {
-        segmentData.push(`L${xyForAddress(address).forSvg}`)
-      })
-
-      return [
-        ...segments,
-        segmentData,
-      ]
-    },
-    [] as Array<Array<string>>,
-  )
+  return [
+    `M${origin.column * 100} ${origin.row * 100}`,
+    ...rest.map(
+      ({ column, row }) => `L${column * 100} ${row * 100}`,
+    ),
+  ]
 })
+
+function colorToRGBA(color: Color) {
+  return `rgba(${color.red}, ${color.green}, ${color.blue}, ${color.opacity})`
+}
 </script>
 
 <template lang="pug">
-path.line-segment(
-  v-for="segment, i in linesData"
-  :key="`line-segment-${i}`"
-  :d="segment"
-  :stroke="line.color"
+path.custom-line(
+  :d="linePath"
+  :stroke="colorToRGBA(line.color)"
   :stroke-width="line.width * 50"
 )
 </template>
 
 <style scoped lang="stylus">
-.line-segment
+.custom-line
   fill none
   stroke-linecap round
   stroke-linejoin round

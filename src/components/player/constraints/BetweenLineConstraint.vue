@@ -1,47 +1,36 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { BetweenLine } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { BetweenLine } from '@/graphql/generated/types'
 
 const props = defineProps<{
   betweenLine: BetweenLine
-  puzzle: Puzzle
 }>()
 
-const bulbsXY = computed(() => {
-  return props.betweenLine.bulbs.map((address) => {
-    const coords = addressToCoordinates(address)
-    return {
-      x: (coords.col * 100) + 50,
-      y: (coords.row * 100) + 50,
-    }
-  })
+const linePath = computed(() => {
+  const [origin, ...rest] = props.betweenLine.points
+
+  return [
+    `M${origin.column * 100} ${origin.row * 100}`,
+    ...rest.map(({ column, row }) => `L${column * 100} ${row * 100}`),
+  ]
 })
 
-const lineData = computed(() => {
-  return props.betweenLine.lines.map((line) => {
-    const lineCoords = line.map((address) => addressToCoordinates(address))
-    const [origin, ...rest] = lineCoords
-
-    const pathData = [
-      `M${(origin.col * 100) + 50} ${(origin.row * 100) + 50}`,
-      ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`)
-    ]
-
-    return pathData
-  })
+const bulbLocations = computed(() => {
+  return [
+    props.betweenLine.points[0],
+    props.betweenLine.points[props.betweenLine.points.length - 1]
+  ].map(
+    ({ row, column }) => ({ x: column * 100, y: row * 100 }),
+  )
 })
 </script>
 
 <template lang="pug">
 path.between-line(
-  v-for="line, i in lineData"
-  :key="'between-line-line-' + i"
-  :d="line"
+  :d="linePath"
 )
 circle.between-line-bulb(
-  v-for="{ x, y }, i in bulbsXY"
+  v-for="{ x, y }, i in bulbLocations"
   :key="'between-line-bulb-' + i"
   :cx="x"
   :cy="y"

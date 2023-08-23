@@ -1,0 +1,7 @@
+#import "../../fragments/FullPuzzle.graphql"
+
+query LoadFPuzzle($base64Data: String!) {
+  loadFPuzzle(base64Data: $base64Data) {
+    ...FullPuzzle
+  }
+}

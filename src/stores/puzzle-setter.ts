@@ -1,8 +1,6 @@
 import { ref, computed, type Ref } from 'vue'
 import { defineStore } from 'pinia'
-import {
-  Puzzle
-} from '@/types'
+import { PuzzleSolve } from '@/types'
 import {
   GivenDigitController,
   ThermometerController,
@@ -10,14 +8,14 @@ import {
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
-  const puzzle = ref(new Puzzle(9))
+  const puzzle = ref(new PuzzleSolve({ size: 9 }))
   const settingMode = ref('Given')
 
   function newPuzzle(size: number) {
-    puzzle.value = new Puzzle(size)
+    puzzle.value = new PuzzleSolve({ size })
 
     modeController.value?.reset()
-    modeController.value?.setup(puzzle.value as Puzzle)
+    modeController.value?.setup(puzzle.value as PuzzleSolve)
   }
 
   const modeController = computed(() => {
@@ -33,57 +31,65 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     throw 'Unknown Setting Mode'
   })
 
-  modeController.value?.setup(puzzle.value as Puzzle)
+  modeController.value?.setup(puzzle.value as PuzzleSolve)
 
   function setMode(mode: string) {
     modeController.value?.reset()
     settingMode.value = mode
     puzzle.value.deselectAll()
-    modeController.value?.setup(puzzle.value as Puzzle)
+    modeController.value?.setup(puzzle.value as PuzzleSolve)
   }
 
   function addElementToPuzzle(element: string) {
+    const {
+      localConstraints,
+      globalConstraints,
+    } = puzzle.value.puzzleData
     switch (element) {
       case 'Diagonals':
-        puzzle.value.diagonals ||= {
+        globalConstraints.diagonals ||= {
           negative: false,
           positive: false,
         }
         break
       case 'Chess':
-        puzzle.value.chess ||= {
+        globalConstraints.chess ||= {
           knight: false,
           king: false,
         }
         break
       case 'Thermometers':
-        puzzle.value.thermometers ||= []
+        localConstraints.thermometers ||= []
         break
       case 'Arrows':
-        puzzle.value.arrows ||= []
+        localConstraints.arrows ||= []
         break
     }
   }
 
   function removeElementFromPuzzle(element: string) {
+    const {
+      localConstraints,
+      globalConstraints,
+    } = puzzle.value.puzzleData
     switch (element) {
       case 'Diagonals':
-        delete puzzle.value.diagonals
+        delete globalConstraints.diagonals
         break
       case 'Chess':
-        delete puzzle.value.chess
+        delete globalConstraints.chess
         break
       case 'Thermometers':
-        delete puzzle.value.thermometers
+        delete localConstraints.thermometers
         break
       case 'Arrows':
-        delete puzzle.value.arrows
+        delete localConstraints.arrows
         break
     }
   }
 
   return {
-    puzzle: puzzle as Ref<Puzzle>,
+    puzzle: puzzle as Ref<PuzzleSolve>,
     settingMode,
     modeController,
     newPuzzle,

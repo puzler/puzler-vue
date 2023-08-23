@@ -1,41 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Quadruple } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers';
+import type { Quadruple } from '@/graphql/generated/types'
 
 const props = defineProps<{
   quadruple: Quadruple
-  puzzle: Puzzle
 }>()
 
-const centerPoint = computed(() => {
-  const coords = props.quadruple.cells.map((address) => addressToCoordinates(address))
-
-  const minMax = coords.reduce(
-    (minMax, coordinate) => {
-      return {
-        row: {
-          min: coordinate.row < minMax.row.min ? coordinate.row : minMax.row.min,
-          max: coordinate.row > minMax.row.max ? coordinate.row : minMax.row.max,
-        },
-        col: {
-          min: coordinate.col < minMax.col.min ? coordinate.col : minMax.col.min,
-          max: coordinate.col > minMax.col.max ? coordinate.col : minMax.col.max,
-        }
-      }
-    },
-    {
-      row: { min: 100, max: -100 },
-      col: { min: 100, max: -100 },
-    }
-  )
-
-  let y = (minMax.row.min + minMax.row.max + 1) * 50
-  let x = (minMax.col.min + minMax.col.max + 1) * 50
-
-  return { x, y }
-})
+const centerPoint = computed(() => ({
+  x: props.quadruple.location.column * 100,
+  y: props.quadruple.location.row * 100,
+}))
 
 const textPlacements = computed(() => {
   switch (props.quadruple.values.length) {

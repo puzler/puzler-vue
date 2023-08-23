@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Puzzle } from '@/types'
-import type { Arrow } from '@/types'
-import { addressToCoordinates } from '@/utils/grid-helpers'
+import type { Arrow } from '@/graphql/generated/types'
 
 const props = defineProps<{
   arrow: Arrow
-  puzzle: Puzzle
 }>()
 
 const bulbPath = computed(() => {
-  const bulbCoords = props.arrow.cells.map((address) => addressToCoordinates(address))
-  const [origin, ...rest] = bulbCoords
+  const [origin, ...rest] = props.arrow.cells
 
   const pathData = [
-    `M${(origin.col * 100) + 50} ${(origin.row * 100 + 50)}`,
-    ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`),
+    `M${origin.column * 100} ${origin.row * 100}`,
+    ...rest.map(
+      ({ row, column }) => `L${column * 100} ${row * 100}`,
+    ),
   ]
 
-  if (bulbCoords.length > 1) {
+  if (props.arrow.cells.length > 1) {
     const offsetFromOrigin = {
       row: Math.abs(origin.row - rest[rest.length - 1].row),
-      col: Math.abs(origin.col - rest[rest.length - 1].col),
+      col: Math.abs(origin.column - rest[rest.length - 1].column),
     }
   
     if (offsetFromOrigin.row + offsetFromOrigin.col === 1) {
@@ -39,25 +37,26 @@ const linePaths = computed(() => {
     (paths, line) => {
       if (line.length <= 1) return paths
 
-      const lineCoords = line.map((address) => addressToCoordinates(address))
-      const [origin, ...rest] = lineCoords
+      const [origin, ...rest] = line
 
       const pathData = [
-        `M${(origin.col * 100) + 50} ${(origin.row * 100) + 50}`,
-        ...rest.map(({ row, col }) => `L${(col * 100) + 50} ${(row * 100) + 50}`),
+        `M${origin.column * 100} ${origin.row * 100}`,
+        ...rest.map(
+          ({ row, column }) => `L${column * 100} ${row * 100}`,
+        ),
       ]
 
-      const previous = lineCoords[lineCoords.length - 2]
-      const last = lineCoords[lineCoords.length - 1]
+      const previous = line[line.length - 2]
+      const last = line[line.length - 1]
 
-      const horizontal = previous.col - last.col
+      const horizontal = previous.column - last.column
       const vertical = previous.row - last.row
 
       const offset = (horizontal === 0 || vertical === 0) ? 8 : 5
 
       const lastXY = {
-        x: (last.col * 100) + 50 + (horizontal * offset),
-        y: (last.row * 100) + 50 + (vertical * offset),
+        x: (last.column * 100) + (horizontal * offset),
+        y: (last.row * 100) + (vertical * offset),
       }
 
       pathData[pathData.length - 1] = `L${lastXY.x} ${lastXY.y}`
@@ -88,9 +87,9 @@ const linePaths = computed(() => {
 
 <template lang="pug">
 path.arrow-line(
-  v-for="pathData, i in linePaths"
+  v-for="path, i in linePaths"
   :key="'arrow-line-' + i"
-  :d="pathData"
+  :d="path"
 )
 path.arrow-bulb-border(:d="bulbPath")
 path.arrow-bulb-inner(:d="bulbPath")

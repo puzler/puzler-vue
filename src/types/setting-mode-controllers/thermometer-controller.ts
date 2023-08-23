@@ -1,15 +1,23 @@
 import SettingModeController from './setting-mode-controller'
-import { Cell, type Thermometer } from '@/types'
+import { PuzzleSolveCell } from '@/types'
+import type {
+  Thermometer,
+  Address,
+} from '@/graphql/generated/types'
 
 class ThermometerController extends SettingModeController {
-  currentThermoBulb = null as null|string
-  removeOnMouseup = null as null|string
+  currentThermoBulb = null as null|Address
+  removeOnMouseup = null as null|Address
+
+  get thermometers() {
+    return this.puzzle?.puzzleData?.localConstraints.thermometers
+  }
 
   events = {
     mouseup: () => {
-      if (this.removeOnMouseup && this.puzzle?.thermometers) {
+      if (this.removeOnMouseup && this.thermometers) {
         const didRemove = false
-        this.puzzle.thermometers = this.puzzle.thermometers.reduce(
+        this.puzzle!.puzzleData!.localConstraints.thermometers = this.thermometers.reduce(
           (newThermos, thermo) => {
             if (didRemove) return [...newThermos, thermo]
 
@@ -22,7 +30,6 @@ class ThermometerController extends SettingModeController {
             )
 
             if (clickedLineIndex === -1) return [...newThermos, thermo]
-            console.log(thermo.lines.length)
             if (thermo.lines.length <= 2) return newThermos
 
             return [
@@ -40,8 +47,8 @@ class ThermometerController extends SettingModeController {
       }
 
       // on mouseup we delete any lines that are only length 1
-      if (this.currentThermoBulb && this.puzzle?.thermometers) {
-        const currentThermo = this.puzzle.thermometers.find(
+      if (this.currentThermoBulb && this.thermometers) {
+        const currentThermo = this.thermometers.find(
           ({ bulb }) => bulb === this.currentThermoBulb
         )!
         currentThermo.lines = currentThermo.lines.filter(
@@ -61,11 +68,11 @@ class ThermometerController extends SettingModeController {
     this.currentThermoBulb = null
   }
 
-  onCellClick(cell: Cell) {
-    if (this.puzzle?.thermometers) {
+  onCellClick(cell: PuzzleSolveCell) {
+    if (this.thermometers) {
       this.removeOnMouseup = cell.address
 
-      const clickedBulb = this.puzzle.thermometers.find(
+      const clickedBulb = this.thermometers.find(
         (thermo) => thermo.bulb === cell.address
       )
 
@@ -75,7 +82,7 @@ class ThermometerController extends SettingModeController {
         return
       }
 
-      const clickedLineOf = this.puzzle.thermometers.find(
+      const clickedLineOf = this.thermometers.find(
         (thermo) => thermo.lines.some(
           (line) => line.includes(cell.address),
         ),
@@ -107,7 +114,7 @@ class ThermometerController extends SettingModeController {
         return
       }
 
-      this.puzzle.thermometers.push({
+      this.thermometers.push({
         bulb: cell.address,
         lines: [[cell.address]],
       })
@@ -115,9 +122,10 @@ class ThermometerController extends SettingModeController {
     }
   }
 
-  onCellEnter(cell: Cell) {
+  onCellEnter(cell: PuzzleSolveCell) {
+    const thermometers = this.puzzle?.puzzleData?.localConstraints.thermometers
     this.removeOnMouseup = null
-    const currentThermo = this.puzzle?.thermometers?.find(
+    const currentThermo = thermometers?.find(
       (check) => check.bulb === this.currentThermoBulb
     )
     if (!currentThermo) return

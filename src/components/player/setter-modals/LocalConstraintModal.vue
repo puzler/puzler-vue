@@ -10,10 +10,13 @@ const puzzleStore = usePuzzleSetterStore()
 
 const availableConstraints = computed(() => {
   const constraints = [] as Array<string>
-  const { puzzle } = puzzleStore
+  const { 
+    thermometers,
+    arrows,
+  } = puzzleStore.puzzle.puzzleData.localConstraints
 
-  if (!puzzle.thermometers) constraints.push('Thermometers')
-  if (!puzzle.arrows) constraints.push('Arrows')
+  if (!thermometers) constraints.push('Thermometers')
+  if (!arrows) constraints.push('Arrows')
 
   return constraints
 })

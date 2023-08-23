@@ -70,8 +70,8 @@ class PuzzleSolve {
                   cells[row - 1][column].neighbors.down = cell
                 }
                 if (column !== 0) {
-                  cell.neighbors.left = cells[row][column - 1]
-                  cells[row][column - 1].neighbors.right = cell
+                  cell.neighbors.left = cellRow[column - 1]
+                  cellRow[column - 1].neighbors.right = cell
                 }
 
                 return [...cellRow, cell]

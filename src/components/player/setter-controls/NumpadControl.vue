@@ -3,13 +3,11 @@ import usePuzzleSetterStore from '@/stores/puzzle-setter'
 
 const puzzleStore = usePuzzleSetterStore()
 
-const numpad = [
-  1, 2, 3,
-  4, 5, 6,
-  7, 8, 9,
-  0, null, 'delete',
-]
+defineProps<{
+  numpad: Array<number|null|string>
+}>()
 
+const actionTypes = ['delete']
 const icons = {
   delete: 'mdi-backspace',
 }
@@ -29,9 +27,9 @@ function sendInput(digit: number|'delete') {
       v-if="digit !== null"
       v-on:click="sendInput(digit)"
     )
-      .digit(v-if="typeof digit === 'number'") {{ digit }}
-      .action(v-else-if="typeof digit === 'string'")
+      .action(v-if="actionTypes.includes(digit)")
         v-icon(:icon="icons[digit]")
+      .digit(v-else) {{ digit }}
     .blank(v-else)
 </template>
 

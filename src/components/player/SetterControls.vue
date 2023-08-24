@@ -22,6 +22,12 @@ const modalActivators = ref({
 })
 
 const modeController = computed(() => puzzleStore.modeController)
+const modeControllerVue = computed(() => {
+  if (modeController.value.controllerVue) {
+    return modeController.value.controllerVue()
+  }
+  return undefined
+})
 
 const includedCosmetics = computed(() => {
   const cosmetics = [] as Array<string>
@@ -266,8 +272,9 @@ const includedConstraints = computed(() => {
       ) {{ cosmeticType }}
   .spacer
   component.controller-vue(
-    v-if="modeController.controllerVue !== undefined"
-    :is="modeController.controllerVue()"
+    v-if="modeControllerVue !== undefined"
+    :is="modeControllerVue.component"
+    v-bind="modeControllerVue.props"
   )
 </template>
 

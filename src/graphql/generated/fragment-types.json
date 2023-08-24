@@ -6,6 +6,12 @@
     "AuthQueries": [
       "PuzlerQueries"
     ],
+    "CellConnector": [
+      "DifferenceDot",
+      "Quadruple",
+      "RatioDot",
+      "XV"
+    ],
     "CosmeticShape": [
       "Circle",
       "Rectangle"

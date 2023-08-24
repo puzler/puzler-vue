@@ -105,6 +105,7 @@ declare module '*/FullPuzzle.graphql' {
 export const Address: DocumentNode;
 export const SingleCell: DocumentNode;
 export const MultiCell: DocumentNode;
+export const CellConnector: DocumentNode;
 export const Line: DocumentNode;
 export const NumberOutsideGrid: DocumentNode;
 export const FullPuzzle: DocumentNode;

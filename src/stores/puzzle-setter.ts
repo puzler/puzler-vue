@@ -7,8 +7,9 @@ import {
   ArrowController,
   LineController,
   SettingModeController,
+  SingleCellConstraintController,
+  CellConnectorController,
 } from '@/types/setting-mode-controllers'
-import SingleCellConstraintController from '@/types/setting-mode-controllers/single-cell-constraint-controller'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   const puzzle = ref(new PuzzleSolve({ size: 9 }))
@@ -53,6 +54,14 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         return new SingleCellConstraintController(
           puzzle.value as PuzzleSolve,
           { constraintType: mode },
+        )
+      case 'Difference Dots':
+      case 'Ratio Dots':
+      case 'XV':
+      case 'Quadruples':
+        return new CellConnectorController(
+          puzzle.value as PuzzleSolve,
+          { connectorType: mode },
         )
     }
   }

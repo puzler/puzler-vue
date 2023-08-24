@@ -218,6 +218,14 @@ export type CellBackgroundColor = SingleCell & {
   color: Color;
 };
 
+/** A constraint that connects multiple cells */
+export type CellConnector = {
+  /** Cells included in the constraint */
+  cells: Array<Address>;
+  /** The Visual location of the constraint */
+  location: Address;
+};
+
 /** Chess Global Constraint Settings */
 export type Chess = {
   __typename?: 'Chess';
@@ -486,13 +494,13 @@ export type DiagonalsInput = {
 };
 
 /** A Difference Dot */
-export type DifferenceDot = MultiCell & {
+export type DifferenceDot = CellConnector & MultiCell & {
   __typename?: 'DifferenceDot';
   /** Cells included in the constraint */
   cells: Array<Address>;
   /** Difference of the touching cells */
   difference?: Maybe<Scalars['Int']['output']>;
-  /** Visual location of the element */
+  /** The Visual location of the constraint */
   location: Address;
 };
 
@@ -1040,11 +1048,11 @@ export type PuzzleQueriesLoadFPuzzleArgs = {
 };
 
 /** A Quadruple clue */
-export type Quadruple = MultiCell & {
+export type Quadruple = CellConnector & MultiCell & {
   __typename?: 'Quadruple';
   /** Cells included in the constraint */
   cells: Array<Address>;
-  /** Visual location of the element */
+  /** The Visual location of the constraint */
   location: Address;
   /** Values in the Quadruple */
   values: Array<Scalars['Int']['output']>;
@@ -1059,11 +1067,11 @@ export type QuadrupleInput = {
 };
 
 /** A Ratio Dot */
-export type RatioDot = MultiCell & {
+export type RatioDot = CellConnector & MultiCell & {
   __typename?: 'RatioDot';
   /** Cells included in the constraint */
   cells: Array<Address>;
-  /** Visual location of the element */
+  /** The Visual location of the constraint */
   location: Address;
   /** Ratio of the connected dots */
   ratio?: Maybe<Scalars['Int']['output']>;
@@ -1396,11 +1404,11 @@ export type XSum = NumberOutsideGrid & {
 };
 
 /** An XV clue */
-export type Xv = MultiCell & {
+export type Xv = CellConnector & MultiCell & {
   __typename?: 'XV';
   /** Cells included in the constraint */
   cells: Array<Address>;
-  /** Visual location of the element */
+  /** The Visual location of the constraint */
   location: Address;
   /** Type of XV */
   xvType?: Maybe<XvTypes>;

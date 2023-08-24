@@ -1028,6 +1028,84 @@
         "possibleTypes": null
       },
       {
+        "kind": "INTERFACE",
+        "name": "CellConnector",
+        "description": "A constraint that connects multiple cells",
+        "fields": [
+          {
+            "name": "cells",
+            "description": "Cells included in the constraint",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "Address",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "location",
+            "description": "The Visual location of the constraint",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "OBJECT",
+                "name": "Address",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [
+          {
+            "kind": "INTERFACE",
+            "name": "MultiCell",
+            "ofType": null
+          }
+        ],
+        "enumValues": null,
+        "possibleTypes": [
+          {
+            "kind": "OBJECT",
+            "name": "DifferenceDot",
+            "ofType": null
+          },
+          {
+            "kind": "OBJECT",
+            "name": "Quadruple",
+            "ofType": null
+          },
+          {
+            "kind": "OBJECT",
+            "name": "RatioDot",
+            "ofType": null
+          },
+          {
+            "kind": "OBJECT",
+            "name": "XV",
+            "ofType": null
+          }
+        ]
+      },
+      {
         "kind": "OBJECT",
         "name": "Chess",
         "description": "Chess Global Constraint Settings",
@@ -2718,7 +2796,7 @@
           },
           {
             "name": "location",
-            "description": "Visual location of the element",
+            "description": "The Visual location of the constraint",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -2735,6 +2813,11 @@
         ],
         "inputFields": null,
         "interfaces": [
+          {
+            "kind": "INTERFACE",
+            "name": "CellConnector",
+            "ofType": null
+          },
           {
             "kind": "INTERFACE",
             "name": "MultiCell",
@@ -6069,7 +6152,7 @@
           },
           {
             "name": "location",
-            "description": "Visual location of the element",
+            "description": "The Visual location of the constraint",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -6110,6 +6193,11 @@
         ],
         "inputFields": null,
         "interfaces": [
+          {
+            "kind": "INTERFACE",
+            "name": "CellConnector",
+            "ofType": null
+          },
           {
             "kind": "INTERFACE",
             "name": "MultiCell",
@@ -6209,7 +6297,7 @@
           },
           {
             "name": "location",
-            "description": "Visual location of the element",
+            "description": "The Visual location of the constraint",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -6238,6 +6326,11 @@
         ],
         "inputFields": null,
         "interfaces": [
+          {
+            "kind": "INTERFACE",
+            "name": "CellConnector",
+            "ofType": null
+          },
           {
             "kind": "INTERFACE",
             "name": "MultiCell",
@@ -8133,7 +8226,7 @@
           },
           {
             "name": "location",
-            "description": "Visual location of the element",
+            "description": "The Visual location of the constraint",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -8162,6 +8255,11 @@
         ],
         "inputFields": null,
         "interfaces": [
+          {
+            "kind": "INTERFACE",
+            "name": "CellConnector",
+            "ofType": null
+          },
           {
             "kind": "INTERFACE",
             "name": "MultiCell",

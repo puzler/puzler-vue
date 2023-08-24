@@ -18,6 +18,11 @@ fragment MultiCell on MultiCell {
   cells { ...Address }
 }
 
+fragment CellConnector on CellConnector {
+  ...MultiCell
+  location { ...Address }
+}
+
 fragment Line on Line {
   points { ...Address }
 }
@@ -152,23 +157,19 @@ fragment FullPuzzle on Puzzle {
       xSums { ...NumberOutsideGrid }
       skyscrapers { ...NumberOutsideGrid }
       differenceDots {
-        ...MultiCell
-        location { ...Address }
+        ...CellConnector
         difference
       }
       ratioDots {
-        ...MultiCell
-        location { ...Address }
+        ...CellConnector
         ratio
       }
       xv {
-        ...MultiCell
-        location { ...Address }
+        ...CellConnector
         xvType
       }
       quadruples {
-        ...MultiCell
-        location { ...Address }
+        ...CellConnector
         values
       }
     }

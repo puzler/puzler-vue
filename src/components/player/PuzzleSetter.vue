@@ -13,28 +13,21 @@ function doubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellDoubleClick(event, cell)
 }
 
-function cellClick(event: PointerEvent, cell: PuzzleSolveCell) {
+function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
   puzzleStore.modeController?.cellClick(event, cell)
 }
 
 function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellEnter(event, cell)
 }
-
-function resetSelected(event: PointerEvent) {
-  if (event.target instanceof HTMLElement) {
-    event.target.releasePointerCapture(event.pointerId)
-  }
-
-  puzzleStore.puzzle.deselectAll()
-}
 </script>
 
 <template lang="pug">
 .setter-container
   SetterControls
-  .puzzle-grid-container(v-on:pointerdown="resetSelected")
+  .puzzle-grid-container(v-on:pointerdown="cellClick")
     PuzzleGrid(
+      :key="puzzleStore.modeController.renderKey"
       :puzzle="puzzleStore.puzzle"
       :timer="fakeTimer"
       v-on:cell-double-click="doubleClick"

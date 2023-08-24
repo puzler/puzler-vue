@@ -1,10 +1,10 @@
+import type { PuzzleSolve } from '..'
 import SettingModeController from './setting-mode-controller'
 import NumpadControl from '@/components/player/setter-controls/NumpadControl.vue'
 
 class GivenDigitController extends SettingModeController {
-  constructor() {
-    super()
-    this.controllerVue = NumpadControl
+  constructor(puzzle: PuzzleSolve) {
+    super(puzzle)
     this.allowGridSelect = true
   }
 
@@ -18,9 +18,11 @@ class GivenDigitController extends SettingModeController {
     },
   }
 
+  controllerVue = () => NumpadControl
+
   onInput(numpadSelect: string|number) {
-    this.puzzle?.selectedCells.forEach((cell) => {
-      const puzzleDataCell = this.puzzle!.puzzleData.cells[cell.address.row][cell.address.column]
+    this.puzzle.selectedCells.forEach((cell) => {
+      const puzzleDataCell = this.puzzle.puzzleData.cells[cell.address.row][cell.address.column]
       if (numpadSelect === 'delete') {
         cell.given = false
         cell.digit = null
@@ -36,4 +38,4 @@ class GivenDigitController extends SettingModeController {
   }
 }
 
-export default new GivenDigitController()
+export default GivenDigitController

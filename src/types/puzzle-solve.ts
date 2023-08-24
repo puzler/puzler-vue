@@ -289,7 +289,6 @@ class PuzzleSolve {
       const {
         extraRegions,
         killerCages,
-        renbanLines,
       } = this.puzzleData.localConstraints
 
       if (extraRegions) {
@@ -311,44 +310,42 @@ class PuzzleSolve {
           )
         )
       }
-
-      if (renbanLines) {
-        groups.push(
-          ...renbanLines.map(
-            ({ points }) => points.map(
-              ({ row, column }) => this.cells[Math.round(row)][Math.round(column)],
-            )
-          )
-        )
-      }
     }
 
     return groups
   }
 
-  get errorAddresses(): Array<Address> {
-    const addresses = [] as Array<Address>
-
-    this.uniqueGroups.forEach(
-      (group) => {
-        group.forEach((cell, i) => {
-          if (cell.digit !== null) {
-            if (group.some((check, j) => j !== i && check.digit === cell.digit)) {
-              addresses.push(cell.address)
+  get errorAddresses() {
+    return this.uniqueGroups.reduce(
+      (addresses, group) => {
+        const counts = {} as Record<number, number>
+        group.forEach(
+          ({ digit }) => {
+            if (digit !== null) {
+              counts[digit] ||= 0
+              counts[digit] += 1
             }
           }
-        })
-      }
-    )
-
-    return addresses.filter(
-      (address, index) => {
-        const matchIndex = addresses.findIndex(
-          ({ row, column }) => address.row === row && address.column === column,
         )
-        
-        return matchIndex === index
-      }
+
+        return [
+          ...addresses,
+          ...group.reduce(
+            (list, { digit, address }) => {
+              if (digit === null) return list
+              if (addresses.some(({ row, column }) => row === address.row && column === address.column)) return list
+              if (counts[digit] === 1) return list
+
+              return [
+                ...list,
+                address
+              ]
+            },
+            [] as Array<Address>
+          )
+        ]
+      },
+      [] as Array<Address>
     )
   }
 

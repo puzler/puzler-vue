@@ -29,6 +29,7 @@ const playTimerOnVisible = ref(false)
 const timer = ref(new Timer())
 const controller = ref(new Controller())
 const selecting = ref(false)
+const deselecting = ref(false)
 const lastSelected = ref(null as null|Address)
 
 if (!settingsStore.userSettings.startPaused) {
@@ -82,6 +83,7 @@ onUnmounted(() => {
 
 function resetSelecting() {
   selecting.value = false
+  deselecting.value = false
 }
 
 const clearDigits = (cells: Array<PuzzleSolveCell>) => cells.forEach(
@@ -339,9 +341,9 @@ function keyboardInput(event: KeyboardEvent) {
         throw 'Unknown code'
     }
 
-    if (row === 0) row = puzzle.value.size
+    if (row < 0) row = puzzle.value.size - 1
     if (row > puzzle.value.size - 1) row = 0
-    if (column === 0) column = puzzle.value.size
+    if (column < 0) column = puzzle.value.size - 1
     if (column > puzzle.value.size - 1) column = 0
 
     const target = puzzle.value.cellAt({ row, column })
@@ -361,9 +363,13 @@ function keyboardInput(event: KeyboardEvent) {
 }
 
 function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
-  if (!selecting.value) return
-  cell.selected = true
-  lastSelected.value = cell.address
+  if (selecting.value) {
+    cell.selected = true
+    lastSelected.value = cell.address
+  } else if (deselecting.value) {
+    cell.selected = false
+    lastSelected.value = cell.address
+  }
 }
 
 function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
@@ -371,10 +377,10 @@ function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
     event.target.releasePointerCapture(event.pointerId)
   }
 
-  selecting.value = true
   const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
   if (!addToCurrentSelections) {
     puzzle.value.deselectAll()
+    selecting.value = true
     if (cell) {
       cell.selected = true
       lastSelected.value = cell.address
@@ -382,6 +388,11 @@ function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
   } else if (cell) {
     cell.selected = !cell.selected
     lastSelected.value = cell.address
+    if (cell.selected) {
+      selecting.value = true
+    } else {
+      deselecting.value = true
+    }
   }
 }
 

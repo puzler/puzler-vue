@@ -175,10 +175,14 @@ const rectangles = computed(
 const texts = computed(
   () => groupUnderOver(props.puzzle.visualText)
 )
+
+const errorAddresses = computed(() => props.puzzle.errorAddresses)
 </script>
 
 <template lang="pug">
-.grid-container(:style="{ '--puzzleSize': puzzle.size + spacerCounts.top + spacerCounts.bottom }")
+.grid-container(
+  :style="{ '--puzzleSize': puzzle.size + spacerCounts.top + spacerCounts.bottom }"
+)
   svg.constraints.under-grid(
     :viewBox="svgViewBox"
     preserveAspectRatio="none"
@@ -261,9 +265,9 @@ const texts = computed(
       )
       GridCell(
         v-for="cell, column in rowCells"
-        :key="`grid-cell-R${row + 1}C${column + 1}`"
+        :key="`grid-cell-R${row + 1}C${column + 1}-${cell.digit}`"
         :cell="cell"
-        :error="puzzle.errorAddresses.some(({ row, column }) => row === cell.address.row && column === cell.address.column)"
+        :error="errorAddresses.some(({ row, column }) => row === cell.address.row && column === cell.address.column)"
         v-on:cell-double-click="(event, cell) => emit('cell-double-click', event, cell)"
         v-on:cell-click="(event, cell) => emit('cell-click', event, cell)"
         v-on:cell-enter="(event, cell) => emit('cell-enter', event, cell)"

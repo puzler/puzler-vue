@@ -10,28 +10,29 @@ class ThermometerController extends SettingModeController {
   removeOnMouseup = null as null|Address
 
   get thermometers() {
-    return this.puzzle?.puzzleData?.localConstraints.thermometers
+    return this.puzzle.puzzleData.localConstraints.thermometers
   }
 
   events = {
     mouseup: () => {
       if (this.removeOnMouseup && this.thermometers) {
-        const didRemove = false
+        let didRemove = false
         this.puzzle!.puzzleData!.localConstraints.thermometers = this.thermometers.reduce(
           (newThermos, thermo) => {
             if (didRemove) return [...newThermos, thermo]
 
-            if (thermo.bulb === this.removeOnMouseup) {
+            if (this.addressesAreEqual(thermo.bulb, this.removeOnMouseup!)) {
+              didRemove = true
               return newThermos
             }
 
             const clickedLineIndex = thermo.lines.findIndex(
               (line) => line.includes(this.removeOnMouseup!)
             )
-
             if (clickedLineIndex === -1) return [...newThermos, thermo]
-            if (thermo.lines.length <= 2) return newThermos
 
+            didRemove = true
+            if (thermo.lines.length <= 2) return newThermos
             return [
               ...newThermos,
               {
@@ -49,12 +50,15 @@ class ThermometerController extends SettingModeController {
       // on mouseup we delete any lines that are only length 1
       if (this.currentThermoBulb && this.thermometers) {
         const currentThermo = this.thermometers.find(
-          ({ bulb }) => bulb === this.currentThermoBulb
-        )!
-        currentThermo.lines = currentThermo.lines.filter(
-          (line) => line.length > 1
+          ({ bulb }) => this.addressesAreEqual(bulb, this.currentThermoBulb!)
         )
+        if (currentThermo) {
+          currentThermo.lines = currentThermo.lines.filter(
+            (line) => line.length > 1
+          )
+        }
       }
+
       this.removeOnMouseup = null
       this.currentThermoBulb = null
     }
@@ -73,7 +77,7 @@ class ThermometerController extends SettingModeController {
       this.removeOnMouseup = cell.address
 
       const clickedBulb = this.thermometers.find(
-        (thermo) => thermo.bulb === cell.address
+        (thermo) => this.addressesAreEqual(thermo.bulb, cell.address)
       )
 
       if (clickedBulb) {
@@ -84,14 +88,18 @@ class ThermometerController extends SettingModeController {
 
       const clickedLineOf = this.thermometers.find(
         (thermo) => thermo.lines.some(
-          (line) => line.includes(cell.address),
+          (line) => line.some(
+            (address) => this.addressesAreEqual(cell.address, address),
+          ),
         ),
       )
 
       if (clickedLineOf) {
         this.currentThermoBulb = clickedLineOf.bulb
         const currentLineIndex = clickedLineOf.lines.findIndex(
-          (line) => line.includes(cell.address),
+          (line) => line.some(
+            (address) => this.addressesAreEqual(cell.address, address),
+          ),
         )!
         const currentLine = clickedLineOf.lines[currentLineIndex]
         const cellIndex = currentLine.indexOf(cell.address)
@@ -123,28 +131,29 @@ class ThermometerController extends SettingModeController {
   }
 
   onCellEnter(cell: PuzzleSolveCell) {
-    const thermometers = this.puzzle?.puzzleData?.localConstraints.thermometers
     this.removeOnMouseup = null
-    const currentThermo = thermometers?.find(
-      (check) => check.bulb === this.currentThermoBulb
-    )
-    if (!currentThermo) return
-    const currentLine = currentThermo.lines[currentThermo.lines.length - 1]
 
-    if (currentLine.includes(cell.address)) {
-      while (currentLine[currentLine.length - 1] !== cell.address) {
-        currentLine.pop()
+    if (this.currentThermoBulb) {
+      const currentThermo = this.thermometers?.find(
+        (check) => this.addressesAreEqual(check.bulb, this.currentThermoBulb!)
+      )
+      if (!currentThermo) return
+
+      const currentLine = currentThermo.lines[currentThermo.lines.length - 1]
+  
+      const cellIndex = currentLine.findIndex(
+        (address) => this.addressesAreEqual(address, cell.address)
+      )
+      if (cellIndex >= 0) {
+        currentThermo.lines = [
+          ...currentThermo.lines.slice(0, -1),
+          currentLine.filter((_, i) => i <= cellIndex),
+        ]
+      } else {
+        currentLine.push(cell.address)
       }
-    } else {
-      currentThermo.lines = [
-        ...currentThermo.lines.slice(0, -1),
-        [
-          ...currentThermo.lines[currentThermo.lines.length - 1],
-          cell.address,
-        ],
-      ]
     }
   }
 }
 
-export default new ThermometerController()
+export default ThermometerController

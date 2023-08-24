@@ -9,16 +9,21 @@ interface SettingModeController {
   onCellDoubleClick?(cell: PuzzleSolveCell, event: PointerEvent): void
   onSetup?(): void
   onReset?(): void
+  controllerVue?(): Component
 }
 
 abstract class SettingModeController {
-  puzzle?: PuzzleSolve
-  controllerVue?: Component
+  puzzle: PuzzleSolve
   allowGridSelect = false
-  events = {} as Record<string, Function> 
+  events = {} as Record<string, Function>
+
+  constructor(puzzle: PuzzleSolve) {
+    this.puzzle = puzzle
+  }
   
   selecting = false
   deselecting = false
+  lastSelected = null as null|Address
 
   input(args: any) {
     if (!this.puzzle) return
@@ -41,11 +46,59 @@ abstract class SettingModeController {
     this.deselecting = false
   }
 
-  setup(puzzle: PuzzleSolve) {
-    this.puzzle = puzzle
+  keyboardNavigation(event: KeyboardEvent) {
+    if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
+      if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
+        this.puzzle.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
+        event.stopImmediatePropagation()
+        event.stopPropagation()
+        event.preventDefault()
+        return
+      }
 
+      if (this.lastSelected === null) return
+      const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
+      if (!addToCurrentSelections) this.puzzle.deselectAll()
+
+      let { row, column } = this.lastSelected
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          row -= 1
+          break
+        case 'KeyS':
+        case 'ArrowDown':
+          row += 1
+          break
+        case 'KeyA':
+        case 'ArrowLeft':
+          column -= 1
+          break
+        case 'KeyD':
+        case 'ArrowRight':
+          column += 1
+          break
+        default:
+          throw 'Unknown code'
+      }
+
+      if (row < 0) row = this.puzzle.size - 1
+      if (row > this.puzzle.size - 1) row = 0
+      if (column < 0) column = this.puzzle.size - 1
+      if (column > this.puzzle.size - 1) column = 0
+
+      const target = this.puzzle.cellAt({ row, column })
+      if (!target.selected) {
+        target.selected = true
+        this.lastSelected = target.address
+      }
+    }
+  }
+
+  setup() {
     if (this.allowGridSelect) {
       window.addEventListener('mouseup', () => this.resetSelecting())
+      window.addEventListener('keydown', (event) => this.keyboardNavigation(event))
     }
 
     Object.keys(this.events).forEach((eventType) => {
@@ -61,10 +114,10 @@ abstract class SettingModeController {
   }
 
   reset() {
-    this.puzzle = undefined
-
     if (this.allowGridSelect) {
       window.removeEventListener('mouseup', () => this.resetSelecting)
+      window.removeEventListener('keydown', (event) => this.keyboardNavigation(event))
+      this.lastSelected = null
     }
 
     Object.keys(this.events).forEach((eventType) => {
@@ -79,32 +132,32 @@ abstract class SettingModeController {
     }
   }
 
-  cellClick(event: PointerEvent, cell: PuzzleSolveCell) {
+  cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
     if (event.target instanceof HTMLElement) {
       event.target.releasePointerCapture(event.pointerId)
     }
 
     if (this.allowGridSelect) {
       const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
-      if (addToCurrentSelections) {
-        this.selecting = !cell.selected
-        this.deselecting = cell.selected
-
-        if (this.selecting) {
-          cell.selected = true
-        } else {
-          cell.selected = false
-        }
-      } else {
+      if (!addToCurrentSelections) {
+        this.puzzle.deselectAll()
         this.selecting = true
-        this.puzzle?.deselectAll()
         if (cell) {
           cell.selected = true
+          this.lastSelected = cell.address
+        }
+      } else if (cell) {
+        cell.selected = !cell.selected
+        this.lastSelected = cell.address
+        if (cell.selected) {
+          this.selecting = true
+        } else {
+          this.deselecting = true
         }
       }
     }
 
-    if (this.onCellClick) {
+    if (this.onCellClick && cell) {
       this.onCellClick(cell, event)
     }
   }
@@ -127,8 +180,10 @@ abstract class SettingModeController {
     if (this.allowGridSelect) {
       if (this.selecting) {
         cell.selected = true
+        this.lastSelected = cell.address
       } else if (this.deselecting) {
         cell.selected = false
+        this.lastSelected = cell.address
       }
     }
 

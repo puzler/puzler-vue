@@ -153,4 +153,4 @@ class ArrowController extends SettingModeController {
   }
 }
 
-export default new ArrowController()
+export default ArrowController

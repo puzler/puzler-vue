@@ -9,21 +9,23 @@ defineProps<{
 const puzzleStore = usePuzzleSetterStore()
 
 const availableGlobals = computed(() => {
-  const globals = [] as Array<string>
-  const {
-    diagonals,
-    chess,
-  } = puzzleStore.puzzle.puzzleData.globalConstraints
+  const globals = puzzleStore.puzzle.puzzleData.globalConstraints
 
-  if (!diagonals) globals.push('Diagonals')
-  if (!chess) globals.push('Chess')
-
-  return globals
+  return {
+    Diagonals: !globals.diagonals,
+    Chess: !globals.chess,
+    'Anti-Kropki': !globals.antiKropki,
+    'Anti-XV': !globals.antiXV,
+    'Disjoint Sets': !globals.disjointSets,
+  }
 })
 
 const icons = {
   Diagonals: 'mdi-square-off-outline',
-  Chess: 'fa:fas fa-chess-king'
+  Chess: 'fa:fas fa-chess-king',
+  'Anti-Kropki': 'mdi-circle-off-outline',
+  'Anti-XV': 'mdi-close-outline',
+  'Disjoint Sets': 'mdi-dots-square',
 }
 
 const modalOpen = ref(false)
@@ -41,8 +43,10 @@ v-dialog(
 )
   .modal-container
     v-btn(
-      v-for="global in availableGlobals"
+      v-for="global in Object.keys(availableGlobals)"
       :key="global"
+      :color="!availableGlobals[global] ? 'blue-grey' : 'white'"
+      :disabled="!availableGlobals[global]"
       v-on:click="sendAddElement(global)"
       :prepend-icon="icons[global]"
     ) {{ global }}

@@ -43,6 +43,9 @@ class PuzzleSolveCell {
     ].reduce(
       (list, check) => {
         if (check === undefined) return list
+        if (check.address.row === this.address.row) return list
+        if (check.address.column === this.address.column) return list
+        if (check.region === this.region) return list
         return [
           ...list,
           check,
@@ -70,6 +73,10 @@ class PuzzleSolveCell {
     ].reduce(
       (list, check) => {
         if (check === undefined) return list
+        if (check.address.row === this.address.row) return list
+        if (check.address.column === this.address.column) return list
+        if (check.region === this.region) return list
+
         return [
           ...list,
           check,

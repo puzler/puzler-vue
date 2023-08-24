@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 
 import GlobalConstraintModal from './setter-modals/GlobalConstraintModal.vue';
 import LocalConstraintModal from './setter-modals/LocalConstraintModal.vue'
+import CosmeticModal from './setter-modals/CosmeticModal.vue'
 
 import useAuthStore from '@/stores/auth';
 import usePuzzleSetterStore from '@/stores/puzzle-setter';
@@ -17,10 +18,10 @@ const authorPlaceholder = computed(() => {
 const modalActivators = ref({
   globalConstraint: document.createElement('btn'),
   localConstraint: document.createElement('btn'),
+  cosmetics: document.createElement('btn'),
 })
 
 const modeController = computed(() => puzzleStore.modeController)
-const controllerVue = computed(() => modeController.value?.controllerVue)
 
 const includedCosmetics = computed(() => {
   const cosmetics = [] as Array<string>
@@ -43,42 +44,21 @@ const includedCosmetics = computed(() => {
 
 const includedGlobals = computed(() => {
   const globals = [] as Array<string>
-  const {
-    diagonals,
-    chess,
-  } = puzzleStore.puzzle.puzzleData.globalConstraints
+  const used = puzzleStore.puzzle.puzzleData.globalConstraints
 
-  if (diagonals) globals.push('Diagonals')
-  if (chess) globals.push('Chess')
+  if (used.diagonals) globals.push('Diagonals')
+  if (used.chess) globals.push('Chess')
+  if (used.antiKropki) globals.push('Anti-Kropki')
+  if (used.antiXV) globals.push('Anti-XV')
+  if (used.disjointSets) globals.push('Disjoint Sets')
 
   return globals
 })
 
 const includedConstraints = computed(() => {
-  const constraints = [] as Array<string>
-  const {
-    killerCages,
-    arrows,
-    clones,
-    thermometers,
-    betweenLines,
-    extraRegions,
-    littleKillerSums,
-    sandwichSums,
-    quadruples,
-  } = puzzleStore.puzzle.puzzleData.localConstraints
-
-  if (killerCages) constraints.push('Cages')
-  if (arrows) constraints.push('Arrows')
-  if (clones) constraints.push('Clones')
-  if (thermometers) constraints.push('Thermometers')
-  if (betweenLines) constraints.push('Between Lines')
-  if (extraRegions) constraints.push('Extra Regions')
-  if (littleKillerSums) constraints.push('Little Killers')
-  if (sandwichSums) constraints.push('Sandwich')
-  if (quadruples) constraints.push('Quadruples')
-
-  return constraints
+  return Object.keys(puzzleStore.puzzle.puzzleData.localConstraints).map(
+    (key) => puzzleStore.constraintNameMap[key]
+  )
 })
 </script>
 
@@ -89,6 +69,9 @@ const includedConstraints = computed(() => {
   )
   LocalConstraintModal(
     :activator="modalActivators.localConstraint"
+  )
+  CosmeticModal(
+    :activator="modalActivators.cosmetics"
   )
   .meta-controls
     v-text-field.text-control.puzzle-title(
@@ -140,32 +123,71 @@ const includedConstraints = computed(() => {
         :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king ? 'blue-grey' : 'white'"
       )
         v-icon(icon="fa:fas fa-chess-king")
-    //- .global-group.anti-kropki(
-    //-   v-if="includedGlobals.includes('Anti-Kropki')"
-    //- )
-    //-   v-btn.remove(
-    //-     v-on:click="puzzleStore.removeElementFromPuzzle('Chess')"
-    //-     variant="plain"
-    //-     color="red"
-    //-   )
-    //-     v-icon(icon="mdi-close")
-    //-   .title Chess:
-    //-   v-btn.knight(
-    //-     v-on:click=""
-    //-   )
-    //- .global-group.anti-xv(
-    //-   v-if="includedGlobals.includes('Anti-XV')"
-    //- )
-    //-   v-btn.remove(
-    //-     v-on:click="puzzleStore.removeElementFromPuzzle('Chess')"
-    //-     variant="plain"
-    //-     color="red"
-    //-   )
-    //-     v-icon(icon="mdi-close")
-    //-   .title Chess:
-    //-   v-btn.knight(
-    //-     v-on:click=""
-    //-   )
+    .global-group.anti-kropki(
+      v-if="includedGlobals.includes('Anti-Kropki')"
+    )
+      v-btn.remove(
+        v-on:click="puzzleStore.removeElementFromPuzzle('Anti-Kropki')"
+        variant="plain"
+        color="red"
+      )
+        v-icon(icon="mdi-close")
+      .title Anti-Kropki:
+      v-btn.global-toggle(
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
+        density="compact"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'blue-grey' : 'white'"
+      )
+        v-icon(
+          :icon="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'mdi-circle' : 'mdi-circle-outline'"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'white' : 'black'"
+        )
+      v-btn.global-toggle(
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
+        density="compact"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack ? 'blue-grey' : 'white'"
+      )
+        v-icon(icon="mdi-circle" color="black")
+    .global-group.anti-xv(
+      v-if="includedGlobals.includes('Anti-XV')"
+    )
+      v-btn.remove(
+        v-on:click="puzzleStore.removeElementFromPuzzle('Anti-XV')"
+        variant="plain"
+        color="red"
+      )
+        v-icon(icon="mdi-close")
+      .title Anti-XV:
+      v-btn.global-toggle(
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
+        density="compact"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX ? 'blue-grey' : 'white'"
+      ) X
+      v-btn.global-toggle(
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
+        density="compact"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV ? 'blue-grey' : 'white'"
+      ) V
+    .global-group.disjoint-sets(
+      v-if="includedGlobals.includes('Disjoint Sets')"
+    )
+      v-btn.remove(
+        v-on:click="puzzleStore.removeElementFromPuzzle('Disjoint Sets')"
+        variant="plain"
+        color="red"
+      )
+        v-icon(icon="mdi-close")
+      .title Disjoint Sets:
+      v-btn.global-toggle(
+        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled = !puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
+        :active="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
+        density="compact"
+        :color="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'blue-grey' : 'white'"
+      ) {{ puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'ON' : 'OFF' }}
     .global-group.diagonals(
       v-if="includedGlobals.includes('Diagonals')"
     )
@@ -200,7 +222,7 @@ const includedConstraints = computed(() => {
         density="compact"
         v-on:click="modalActivators.localConstraint.click()"
       )
-      .header-text Constraints
+      .header-text Local Constraints
     .local-group.no-remove
       v-btn.control-selector(
         v-on:click="puzzleStore.setMode('Given')"
@@ -225,15 +247,27 @@ const includedConstraints = computed(() => {
       v-btn(
         icon="mdi-plus"
         density="compact"
+        v-on:click="modalActivators.cosmetics.click()"
       )
       .header-text Cosmetics
-    .control-selector(
+    .cosmetic-group(
       v-for="cosmeticType in includedCosmetics"
       :key="cosmeticType"
-    ) {{ cosmeticType }}
+    )
+      v-btn.remove(
+        v-on:click="puzzleStore.removeElementFromPuzzle(cosmeticType)"
+        color="red"
+        variant="plain"        
+      )
+        v-icon(icon="mdi-close")
+      v-btn.control-selector(
+        v-on:click="puzzleStore.setMode(cosmeticType)"
+        :color="puzzleStore.settingMode === cosmeticType ? 'blue-grey' : 'white'"
+      ) {{ cosmeticType }}
   .spacer
   component.controller-vue(
-    :is="controllerVue"
+    v-if="modeController.controllerVue !== undefined"
+    :is="modeController.controllerVue()"
   )
 </template>
 
@@ -292,17 +326,18 @@ const includedConstraints = computed(() => {
         .global-toggle
           min-width unset
           padding 4px
-    &.constraints
-      .local-group
-        margin 3px 0
-        display flex
-        align-items center
-        gap 10px
-        &.no-remove
-          margin-left 38px
-        .remove
-          min-width unset
-          padding 5px
-        .control-selector
-          margin 0
+          height unset
+    .cosmetic-group
+    .local-group
+      margin 3px 0
+      display flex
+      align-items center
+      gap 10px
+      &.no-remove
+        margin-left 38px
+      .remove
+        min-width unset
+        padding 5px
+      .control-selector
+        margin 0
 </style>

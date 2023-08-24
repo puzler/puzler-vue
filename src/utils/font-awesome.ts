@@ -6,8 +6,10 @@ import {
   faMoon,
   faDeleteLeft,
   faPalette,
+  faArrowsSplitUpAndLeft,
 } from '@fortawesome/free-solid-svg-icons'
 
+library.add(faArrowsSplitUpAndLeft)
 library.add(faPalette)
 library.add(faMoon)
 library.add(faSun)

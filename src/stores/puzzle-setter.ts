@@ -191,6 +191,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   }
 
   function removeElementFromPuzzle(element: string) {
+    if (settingMode.value === element) setMode('Given')
+
     const {
       localConstraints,
       globalConstraints,

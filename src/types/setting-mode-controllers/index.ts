@@ -5,6 +5,7 @@ import ArrowController from './arrow-controller'
 import LineController from './line-controller'
 import SingleCellConstraintController from './single-cell-constraint-controller'
 import CellConnectorController from './cell-connector-controller'
+import MultiCellController from './multi-cell-controller'
 
 export {
   SettingModeController,
@@ -14,4 +15,5 @@ export {
   LineController,
   SingleCellConstraintController,
   CellConnectorController,
+  MultiCellController,
 }

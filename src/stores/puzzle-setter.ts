@@ -9,6 +9,7 @@ import {
   SettingModeController,
   SingleCellConstraintController,
   CellConnectorController,
+  MultiCellController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
@@ -62,6 +63,13 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         return new CellConnectorController(
           puzzle.value as PuzzleSolve,
           { connectorType: mode },
+        )
+      case 'Killer Cages':
+      case 'Clones':
+      case 'Extra Regions':
+        return new MultiCellController(
+          puzzle.value as PuzzleSolve,
+          { constraintType: mode },
         )
     }
   }

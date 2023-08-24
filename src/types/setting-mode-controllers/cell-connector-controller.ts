@@ -205,8 +205,6 @@ class CellConnectorController extends SettingModeController {
     if (!this.inputTarget) return
     if (!this.connectors) return
 
-
-
     const target = (this.puzzle.puzzleData.localConstraints[this.constraintKey]! as Array<CellConnector>).find(
       (connector) => this.addressesAreEqual(connector.location, this.inputTarget!.location)
     )!

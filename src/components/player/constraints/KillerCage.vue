@@ -62,7 +62,7 @@ const pathData = computed(() => {
 
   const data = [`M${startXY.value.forSvg}`]
   if (props.cage.text) {
-    data[0] = `M${startXY.value.x + (10 * props.cage.text.length)} ${startXY.value.y}`
+    data[0] = `M${startXY.value.x + (12 * props.cage.text.length)} ${startXY.value.y}`
   }
 
   currentLocation.right = true
@@ -196,7 +196,7 @@ const pathData = computed(() => {
   }
 
   if (props.cage.text) {
-    data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + 15}`
+    data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + 16}`
   }
   
   return data

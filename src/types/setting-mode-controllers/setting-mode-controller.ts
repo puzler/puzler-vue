@@ -9,7 +9,7 @@ interface SettingModeController {
   onCellDoubleClick?(cell: PuzzleSolveCell, event: PointerEvent): void
   onSetup?(): void
   onReset?(): void
-  controllerVue?(): Component
+  controllerVue?(): undefined|{ component: Component, props: any }
 }
 
 abstract class SettingModeController {

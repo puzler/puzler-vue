@@ -31,7 +31,7 @@ class LineController extends SettingModeController {
     return 2
   }
 
-  get lines() {
+  get lines(): null|undefined|Array<Line> {
     return this.puzzle.puzzleData.localConstraints[this.lineKey]
   }
 

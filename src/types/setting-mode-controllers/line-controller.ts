@@ -83,7 +83,6 @@ class LineController extends SettingModeController {
   }
 
   onCellClick(cell: PuzzleSolveCell) {
-    console.log('onClick', this.lineKey, this.lines)
     if (this.lines) {
       this.removeOnMouseup = cell.address
 

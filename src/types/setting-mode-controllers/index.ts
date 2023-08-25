@@ -6,6 +6,8 @@ import LineController from './line-controller'
 import SingleCellConstraintController from './single-cell-constraint-controller'
 import CellConnectorController from './cell-connector-controller'
 import MultiCellController from './multi-cell-controller'
+import NumberOutsideGridController from './number-outside-grid-controller'
+import LittleKillerController from './little-killer-controller'
 
 export {
   SettingModeController,
@@ -16,4 +18,6 @@ export {
   SingleCellConstraintController,
   CellConnectorController,
   MultiCellController,
+  NumberOutsideGridController,
+  LittleKillerController,
 }

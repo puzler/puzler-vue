@@ -16,6 +16,7 @@ import { computed } from 'vue';
 import {
   Timer,
   PuzzleSolve,
+PuzzleSolveCell,
 } from '@/types'
 import type {
   CosmeticShape,
@@ -120,9 +121,13 @@ const spacerCounts = computed(() => {
   const horizontal = left + right
   
   if (vertical < horizontal) {
-    top += horizontal - vertical
+    const vertToAdd = horizontal - vertical
+    top += Math.ceil(vertToAdd / 2.0)
+    bottom += Math.floor(vertToAdd / 2.0)
   } else if (vertical > horizontal) {
-    left += vertical - horizontal
+    const horToAdd = vertical - horizontal
+    left += Math.ceil(horToAdd / 2.0)
+    right += Math.floor(horToAdd / 2.0)
   }
 
   return {
@@ -132,6 +137,39 @@ const spacerCounts = computed(() => {
     right,
   }
 })
+
+function spacerClick(event: PointerEvent, row: number, column: number) {
+  if (event.target instanceof HTMLElement) {
+    event.target.releasePointerCapture(event.pointerId)
+  }
+  if (!props.puzzle.gridOuterCells) return
+
+  emit(
+    'cell-click',
+    event,
+    new PuzzleSolveCell({
+      region: -1,
+      address: { row, column, __typename: 'Address' },
+    }),
+  )
+}
+
+function spacerEnter(event: PointerEvent, row: number, column: number) {
+  if (event.target instanceof HTMLElement) {
+    event.target.releasePointerCapture(event.pointerId)
+  }
+  if (!props.puzzle.gridOuterCells) return
+
+  event.stopPropagation()
+  emit(
+    'cell-enter',
+    event,
+    new PuzzleSolveCell({
+      region: -1,
+      address: { row, column, __typename: 'Address' },
+    }),
+  )
+}
 
 function groupUnderOver(shapes?: null|Array<CosmeticShape|Text>) {
   return (shapes || []).reduce(
@@ -251,18 +289,32 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
       :line="line"
     )
   .grid
-    .top-spacer.row(
+    .top-spacers.row(
       v-for="i in spacerCounts.top"
       :key="`top-spacer-${i}`"
     )
+      .spacer-cell(
+        v-for="j in puzzle.size + spacerCounts.left + spacerCounts.right"
+        :key="`bottom-spacer-cell-${i}${j}`"
+        :class="`R${spacerCounts.top - i - 1}C${j - spacerCounts.left - 1}`"
+        v-on:pointerdown="(event) => spacerClick(event, spacerCounts.top - i - 1, j - 1 - spacerCounts.left)"
+      )
+        .spacer-enter-target(
+          v-on:pointerenter="(event) => spacerEnter(event, spacerCounts.top - i - 1, j - 1 - spacerCounts.left)"
+        )
     .row(
       v-for="rowCells, row in puzzle.cells"
       :key="`grid-row-${row}`"
     )
-      .left-spacer(
+      .spacer-cell(
         v-for="i in spacerCounts.left"
         :key="`left-spacer-${i}`"
+        :class="`R${row}C${i - 1 - spacerCounts.left}`"
+        v-on:pointerdown="(event) => spacerClick(event, row, i - 1 - spacerCounts.left)"
       )
+        .spacer-enter-target(
+          v-on:pointerenter="(event) => spacerEnter(event, row, i - 1 - spacerCounts.left)"
+        )
       GridCell(
         v-for="cell, column in rowCells"
         :key="`grid-cell-R${row + 1}C${column + 1}-${cell.digit}`"
@@ -272,14 +324,28 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         v-on:cell-click="(event, cell) => emit('cell-click', event, cell)"
         v-on:cell-enter="(event, cell) => emit('cell-enter', event, cell)"
       )
-      .right-spacer(
+      .spacer-cell(
         v-for="i in spacerCounts.right"
         :key="`right-spacer-${i}`"
+        :class="`R${row}C${puzzle.size + i - 1}`"
+        v-on:pointerdown="(event) => spacerClick(event, row, puzzle.size + i - 1)"
       )
-    .bottom-spacer.row(
+        .spacer-enter-target(
+          v-on:pointerenter="(event) => spacerEnter(event, row, puzzle.size + i - 1)"
+        )
+    .bottom-spacers.row(
       v-for="i in spacerCounts.bottom"
       :key="`bottom-spacer-${i}`"
     )
+      .spacer-cell(
+        v-for="j in puzzle.size + spacerCounts.left + spacerCounts.right"
+        :key="`bottom-spacer-cell-${i}${j}`"
+        :class="`R${puzzle.size + i - 1}C${j - spacerCounts.left - 1}`"
+        v-on:pointerdown="(event) => spacerClick(event, puzzle.size + i - 1, j - spacerCounts.left - 1)"
+      )
+        .spacer-enter-target(
+          v-on:pointerenter="(event) => spacerEnter(event, puzzle.size + i - 1, j - spacerCounts.left - 1)"
+        )
     .grid-overlay(
       v-if="timer.paused"
       v-on:click="emit('play-puzzle')"
@@ -399,17 +465,22 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
       stroke-width 1
       fill none
 
+  .spacer-cell
+    padding var(--selectedBorderWidth)
+    .spacer-enter-target
+      height 100%
+      width 100%
   .grid
     display grid
     position relative
     font-size calc(100cqw / var(--puzzleSize))
     flex 1
-    grid-template-rows repeat(var(--puzzleSize), auto)
+    grid-template-rows repeat(var(--puzzleSize), 1fr)
     --selectedBorderWidth calc(10cqmin / var(--puzzleSize))
 
     .row
       display grid
-      grid-template-columns repeat(var(--puzzleSize), auto)
+      grid-template-columns repeat(var(--puzzleSize), 1fr)
 
     .grid-overlay
       position absolute

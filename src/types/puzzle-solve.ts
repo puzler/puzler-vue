@@ -134,6 +134,7 @@ class PuzzleSolve {
   size: number
   cells: Array<Array<PuzzleSolveCell>>
   puzzleData: Puzzle
+  gridOuterCells = false
 
   deselectAll() {
     for (let row = 0; row < this.size; row += 1) {
@@ -163,7 +164,7 @@ class PuzzleSolve {
 
   private searchForAddresses(obj: Record<string, any>): Array<Address> {
     const addresses = [] as Array<Address>
-    if (!!obj.row && !!obj.column) return [obj as Address]
+    if (obj.__typename === 'Address') return [obj as Address]
 
     Object.keys(obj).forEach((key) => {
       const prop = obj[key]
@@ -204,11 +205,14 @@ class PuzzleSolve {
       { rows: [], columns: [] } as { rows: Array<number>, columns: Array<number> },
     )
 
+    const defaultMin = this.gridOuterCells ? -1 : 0
+    const defaultMax = this.gridOuterCells ? this.size : this.size - 1
+
     return {
-      minRow: Math.min(...rows, 0),
-      minColumn: Math.min(...columns, 0),
-      maxRow: Math.max(...rows, this.size - 1),
-      maxColumn: Math.max(...columns, this.size - 1),
+      minRow: Math.min(...rows, defaultMin),
+      minColumn: Math.min(...columns, defaultMin),
+      maxRow: Math.max(...rows, defaultMax),
+      maxColumn: Math.max(...columns, defaultMax),
     }
   }
 

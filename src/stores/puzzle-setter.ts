@@ -10,6 +10,8 @@ import {
   SingleCellConstraintController,
   CellConnectorController,
   MultiCellController,
+  NumberOutsideGridController,
+  LittleKillerController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
@@ -36,6 +38,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         return new ThermometerController(puzzle.value as PuzzleSolve)
       case 'Arrows':
         return new ArrowController(puzzle.value as PuzzleSolve)
+      case 'Little Killers':
+        return new LittleKillerController(puzzle.value as PuzzleSolve)
       case 'Palindrome Lines':
       case 'Renban Lines':
       case 'German Whispers':
@@ -68,6 +72,13 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       case 'Clones':
       case 'Extra Regions':
         return new MultiCellController(
+          puzzle.value as PuzzleSolve,
+          { constraintType: mode },
+        )
+      case 'Skyscrapers':
+      case 'Sandwich Sums':
+      case 'X-Sums':
+        return new NumberOutsideGridController(
           puzzle.value as PuzzleSolve,
           { constraintType: mode },
         )

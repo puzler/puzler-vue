@@ -102,13 +102,11 @@ class MultiCellController extends SettingModeController {
         )
       } else if (this.draggingConstraint) {
         if (this.draggingConstraint.cells.length < this.minSize) {
-          console.log('too short')
           const indexToRemove = this.areaList.findIndex(
             (area) => area.cells.every(
               (cell, i) => this.addressesAreEqual(cell, this.draggingConstraint!.cells[i])
             )
           )
-          console.log('foundIndex', indexToRemove)
 
           if (indexToRemove >= 0) {
             this.areaList.splice(indexToRemove, 1)

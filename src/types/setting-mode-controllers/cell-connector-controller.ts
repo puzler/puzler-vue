@@ -61,19 +61,14 @@ class CellConnectorController extends SettingModeController {
 
   events = {
     mouseup: () => {
-      console.log('in mouseup')
       this.connectorCells = null
       if (this.removedConnector) {
-        console.log('removed connector')
         this.removedConnector = null
         this.inputTarget = null
       }
       if (this.tempConnector){
-        console.log('temp connector', this.inputTarget)
         this.inputTarget = this.tempConnector
-        console.log(this.inputTarget)
         this.tempConnector = null
-        console.log(this.inputTarget)
       }
     },
     keydown: (event: KeyboardEvent) => {

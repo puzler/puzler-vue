@@ -111,7 +111,8 @@ class NumberOutsideGridController extends SettingModeController {
   onInput(input: number|'delete') {
     if (!this.inputTarget) return
 
-    const target = this.puzzle.puzzleData.localConstraints[this.constraintKey]!.find(
+    const itemList = this.puzzle.puzzleData.localConstraints[this.constraintKey] as Array<NumberOutsideGrid>
+    const target = itemList.find(
       ({ location }) => this.addressesAreEqual(this.inputTarget!.location, location)
     )!
 

@@ -72,7 +72,11 @@ const LineStyles = {
       opacity: 1,
     },
     width: 0.35,
-  }
+  },
+  betweenLine: {
+    color: greyscale(187),
+    width: 0.1,
+  },
 } as Record<string, LineStyle>
 
 const ShapeStyles = {
@@ -103,6 +107,13 @@ const ShapeStyles = {
     textColor: greyscale(0),
     height: 0.25,
     width: 0.25,
+  },
+  betweenLineBulb: {
+    fillColor: greyscale(255),
+    outlineColor: greyscale(187),
+    textColor: greyscale(0),
+    height: 0.8,
+    width: 0.8,
   },
 } as Record<string, ShapeStyle>
 
@@ -140,6 +151,7 @@ const CellBackgroundColors = {
     blue: 124,
     opacity: 1,
   },
+  minMaxCell: greyscale(240),
 } as Record<string, Color>
 
 const ConstraintStyles = {

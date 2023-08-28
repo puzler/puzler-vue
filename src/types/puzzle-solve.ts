@@ -10,7 +10,10 @@ import type {
   CellBackgroundColor,
   Cage,
 } from '@/graphql/generated/types'
-import ConstraintStyles from './constraint-styles';
+import ConstraintStyles from './constraint-styles'
+import useColorStore from '@/stores/color'
+import ColorConverter from '@/utils/color-converter'
+import crypto from 'crypto-js'
 
 function dimensionsForSize(size: number): { width: number; height: number} {
   const factors = []
@@ -209,10 +212,10 @@ class PuzzleSolve {
     const defaultMax = this.gridOuterCells ? this.size : this.size - 1
 
     return {
-      minRow: Math.min(...rows, defaultMin),
-      minColumn: Math.min(...columns, defaultMin),
-      maxRow: Math.max(...rows, defaultMax),
-      maxColumn: Math.max(...columns, defaultMax),
+      minRow: Math.round(Math.min(...rows, defaultMin)),
+      minColumn: Math.round(Math.min(...columns, defaultMin)),
+      maxRow: Math.round(Math.max(...rows, defaultMax)),
+      maxColumn: Math.round(Math.max(...columns, defaultMax)),
     }
   }
 
@@ -379,108 +382,187 @@ class PuzzleSolve {
     return this.puzzleData.author || this.puzzleData.user?.displayName
   }
 
-  get visualLines(): Array<CustomLine> {
+  private visualKey() {
+    return crypto.lib.WordArray.random(48).toString()
+  }
+
+  get visualLines(): Array<{ key: string, line: CustomLine }> {
     return [
-      ...this.puzzleData.cosmetics.lines || [],
+      ...this.puzzleData.cosmetics.lines?.map(
+        (line) => ({ key: this.visualKey(), line }),
+      ) || [],
       ...this.puzzleData.localConstraints.palindromeLines?.map(
         (line) => ({
-          ...line,
-          ...ConstraintStyles.lines.palindrome,
-        } as CustomLine)
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.palindrome,
+          } as CustomLine,
+        })
       ) || [],
       ...this.puzzleData.localConstraints.renbanLines?.map(
         (line) => ({
-          ...line,
-          ...ConstraintStyles.lines.renban,
-        } as CustomLine)
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.renban,
+          } as CustomLine,
+        })
       ) || [],
       ...this.puzzleData.localConstraints.germanWhisperLines?.map(
         (line) => ({
-          ...line,
-          ...ConstraintStyles.lines.germanWhisper,
-        } as CustomLine)
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.germanWhisper,
+          } as CustomLine,
+        })
       ) || [],
       ...this.puzzleData.localConstraints.dutchWhisperLines?.map(
         (line) => ({
-          ...line,
-          ...ConstraintStyles.lines.dutchWhisper,
-        } as CustomLine)
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.dutchWhisper,
+          } as CustomLine,
+        })
       ) || [],
       ...this.puzzleData.localConstraints.regionSumLines?.map(
         (line) => ({
-          ...line,
-          ...ConstraintStyles.lines.regionSum,
-        } as CustomLine)
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.regionSum,
+          } as CustomLine,
+        })
+      ) || [],
+      ...this.puzzleData.localConstraints.betweenLines?.map(
+        (line) => ({
+          key: this.visualKey(),
+          line: {
+            ...line,
+            ...ConstraintStyles.lines.betweenLine,
+          } as CustomLine,
+        })
       ) || [],
     ]
   }
 
-  get visualCircles(): Array<Circle> {
+  get visualCircles(): Array<{ key: string, circle: Circle}> {
     const styles = ConstraintStyles.shapes
     return [
-      ...this.puzzleData.cosmetics.circles || [],
-      ...this.puzzleData.localConstraints.oddCells?.map(
-        ({ cell }) => ({ address: cell, ...styles.oddCell }),
+      ...this.puzzleData.cosmetics.circles?.map(
+        (circle) => ({ key: this.visualKey(), circle })
       ) || [],
+      ...this.puzzleData.localConstraints.oddCells?.map(
+        ({ cell }) => ({
+          key: this.visualKey(),
+          circle: { address: cell, ...styles.oddCell },
+        })
+       ) || [],
       ...this.puzzleData.localConstraints.differenceDots?.map(
-        ({ location, difference }) => {
-          return {
+        ({ location, difference }) => ({
+          key: this.visualKey(),
+          circle: {
             address: location,
             text: difference,
             ...styles.difference,
-          }
-        }
+          },
+        })
       ) || [],
       ...this.puzzleData.localConstraints.ratioDots?.map(
         ({ location, ratio }) => ({
-          address: location,
-          text: ratio,
-          ...styles.ratio,
+          key: this.visualKey(),
+          circle: {
+            address: location,
+            text: ratio,
+            ...styles.ratio,
+          },
         }),
+      ) || [],
+      ...this.puzzleData.localConstraints.betweenLines?.flatMap(
+        ({ points }) => [
+          {
+            key: this.visualKey(),
+            circle: {
+              address: points[0],
+              ...styles.betweenLineBulb,
+            },
+          },
+          {
+            key: this.visualKey(),
+            circle: {
+              address: points[points.length - 1],
+              ...styles.betweenLineBulb,
+            },
+          },
+        ]
       ) || [],
     ]
   }
 
-  get visualRectangles(): Array<Rectangle> {
+  get visualRectangles(): Array<{key: string, rectangle: Rectangle}> {
     const styles = ConstraintStyles.shapes
     return [
-      ...this.puzzleData.cosmetics.rectangles || [],
+      ...this.puzzleData.cosmetics.rectangles?.map(
+        (rectangle) => ({ key: this.visualKey(), rectangle }),
+      ) || [],
       ...this.puzzleData.localConstraints.evenCells?.map(
-        ({ cell }) => ({ address: cell, ...styles.evenCell }),
+        ({ cell }) => ({
+          key: this.visualKey(),
+          rectangle: { address: cell, ...styles.evenCell },
+        }),
       ) || []
     ]
   }
 
-  get visualText(): Array<Text> {
+  get visualText(): Array<{ key: string, text: Text }> {
     const styles = ConstraintStyles.texts
     return [
-      ...this.puzzleData.cosmetics.text || [],
+      ...this.puzzleData.cosmetics.text?.map(
+        (text) => ({
+          key: this.visualKey(),
+          text,
+        }),
+      ) || [],
       ...this.puzzleData.localConstraints.xv?.map(
         ({ location, xvType }) => ({
-          address: location,
-          text: xvType || ' ',
-          ...styles.xv,
+          key: this.visualKey(),
+          text: {
+            address: location,
+            text: xvType || ' ',
+            ...styles.xv,
+          },
         }),
       ) || [],
       ...this.puzzleData.localConstraints.sandwichSums?.map(
         ({ location, value }) => ({
-          address: location,
-          text: value?.toString() || '_',
-          ...styles.sandwichSum,
+          key: this.visualKey(),
+          text: {
+            address: location,
+            text: value?.toString() || '_',
+            ...styles.sandwichSum,
+          },
         })
       ) || [],
       ...this.puzzleData.localConstraints.xSums?.map(
         ({ location, value }) => ({
-          address: location,
-          text: value?.toString() || '_',
-          ...styles.xSum,
+          key: this.visualKey(),
+          text: {
+            address: location,
+            text: value?.toString() || '_',
+            ...styles.xSum,
+          },
         }),
       ) || [],
       ...this.puzzleData.localConstraints.skyscrapers?.map(
         ({ location, value }) => ({
-          address: location,
-          text: value?.toString() || '_',
-          ...styles.skyscraper,
+          key: this.visualKey(),
+          text: {
+            address: location,
+            text: value?.toString() || '_',
+            ...styles.skyscraper,
+          },
         }),
       ) || [],
     ]
@@ -488,6 +570,7 @@ class PuzzleSolve {
 
   get visualCellBackgrounds(): Array<CellBackgroundColor> {
     const styles = ConstraintStyles.cellBackgrounds
+    const colorStore = useColorStore()
     return [
       ...this.puzzleData.cosmetics.cellBackgroundColors || [],
       ...this.puzzleData.localConstraints.extraRegions?.flatMap(
@@ -495,27 +578,62 @@ class PuzzleSolve {
           return region.cells.map(
             (cell) => ({
               cell,
-              color: styles.extraRegion,
+              colors: [styles.extraRegion],
             }),
           )
         },
       ) || [],
       ...this.puzzleData.localConstraints.clones?.flatMap(
         ({ cells, cloneCells }) => [
-          ...cells.map((cell) => ({ cell, color: styles.clone })),
+          ...cells.map((cell) => ({ cell, colors: [styles.clone] })),
           ...cloneCells.flatMap(
             (cells) => cells.map(
-              (cell) => ({ cell, color: styles.clone })
+              (cell) => ({
+                cell,
+                colors: [styles.clone],
+              })
             )
           )
         ]
       ) || [],
       ...this.puzzleData.localConstraints.rowIndexCells?.map(
-        ({ cell }) => ({ cell, color: styles.rowIndexing }),
+        ({ cell }) => ({ cell, colors: [styles.rowIndexing] }),
       ) || [],
       ...this.puzzleData.localConstraints.columnIndexCells?.map(
-        ({ cell }) => ({ cell, color: styles.columnIndexing }),
+        ({ cell }) => ({ cell, colors: [styles.columnIndexing] }),
       ) || [],
+      ...this.puzzleData.localConstraints.minCells?.map(
+        ({ cell }) => ({ cell, colors: [styles.minMaxCell] }),
+      ) || [],
+      ...this.puzzleData.localConstraints.maxCells?.map(
+        ({ cell }) => ({ cell, colors: [styles.minMaxCell] }),
+      ) || [],
+      ...this.cells.flatMap(
+        (rowCells) => rowCells.reduce(
+          (list, cell) => {
+            if (cell.cellColors.length === 0) return list
+            return [
+              ...list,
+              {
+                cell: cell.address,
+                colors: cell.cellColors.map(
+                  (colorKey) => {
+                    const colorStr = colorStore.palette.colors[colorKey]
+                    const color = ColorConverter.strToColor(colorStr)
+                    return color || {
+                      red: 255,
+                      green: 255,
+                      blue: 255,
+                      opacity: 1
+                    }
+                  }, 
+                ),
+              },
+            ]
+          },
+          [] as Array<CellBackgroundColor>,
+        ),
+      ),
     ]
   }
 

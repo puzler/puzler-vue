@@ -53,6 +53,9 @@ text.circle-text(
   paint-order stroke fill
   transform-box fill-box
   transform-origin center
+  transition-property fill, stroke, rx, ry, transform
+  transition-duration 0.25s
+  transition-timing-function linear
 .circle-text
   stroke-width 1
   paint-order stroke fill
@@ -60,4 +63,7 @@ text.circle-text(
   text-anchor middle
   transform-box fill-box
   transform-origin center
+  transition-property fill, font-size, transform
+  transition-duration 0.25s
+  transition-timing-function linear
 </style>

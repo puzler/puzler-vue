@@ -73,7 +73,7 @@ fragment FullPuzzle on Puzzle {
     cosmetics {
       cellBackgroundColors {
         cell { ...Address }
-        color { ...ColorFields }
+        colors { ...ColorFields }
       }
       lines {
         ...Line

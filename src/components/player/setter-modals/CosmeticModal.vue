@@ -17,7 +17,7 @@ const availableCosmetics = computed(() => {
     Rectangles: !cosmetics.rectangles,
     Cages: !cosmetics.cages,
     Text: !cosmetics.text,
-    'Cell Background Colors': !cosmetics.cellBackgroundColors,
+    'Cell Colors': !cosmetics.cellBackgroundColors,
   }
 })
 
@@ -27,7 +27,7 @@ const icons = {
   Rectangles: 'mdi-square',
   Cages: 'mdi-dots-square',
   Text: 'mdi-alphabetical-variant',
-  'Cell Background Colors': 'mdi-palette',
+  'Cell Colors': 'mdi-palette',
 }
 
 const modalOpen = ref(false)

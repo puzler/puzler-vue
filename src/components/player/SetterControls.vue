@@ -31,19 +31,14 @@ const modeControllerVue = computed(() => {
 
 const includedCosmetics = computed(() => {
   const cosmetics = [] as Array<string>
-  const {
-    circles,
-    rectangles,
-    lines,
-    text,
-    cages,
-  } = puzzleStore.puzzle.puzzleData.cosmetics
+  const used = puzzleStore.puzzle.puzzleData.cosmetics
 
-  if (circles) cosmetics.push('Circles')
-  if (rectangles) cosmetics.push('Rectangles')
-  if (lines) cosmetics.push('Lines')
-  if (text) cosmetics.push('Text')
-  if (cages) cosmetics.push('Cages')
+  if (used.circles) cosmetics.push('Circles')
+  if (used.rectangles) cosmetics.push('Rectangles')
+  if (used.lines) cosmetics.push('Lines')
+  if (used.text) cosmetics.push('Text')
+  if (used.cages) cosmetics.push('Cages')
+  if (used.cellBackgroundColors) cosmetics.push('Cell Colors')
 
   return cosmetics
 })
@@ -285,6 +280,7 @@ const includedConstraints = computed(() => {
   height 100cqh
   display flex
   flex-direction column
+  overflow-y auto
   padding 20px
 
   .spacer

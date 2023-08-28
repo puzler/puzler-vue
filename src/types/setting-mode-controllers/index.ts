@@ -8,6 +8,7 @@ import CellConnectorController from './cell-connector-controller'
 import MultiCellController from './multi-cell-controller'
 import NumberOutsideGridController from './number-outside-grid-controller'
 import LittleKillerController from './little-killer-controller'
+import CosmeticShapeController from './cosmetic-shape-controller'
 
 export {
   SettingModeController,
@@ -20,4 +21,5 @@ export {
   MultiCellController,
   NumberOutsideGridController,
   LittleKillerController,
+  CosmeticShapeController,
 }

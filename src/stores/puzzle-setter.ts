@@ -12,6 +12,7 @@ import {
   MultiCellController,
   NumberOutsideGridController,
   LittleKillerController,
+  CosmeticShapeController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
@@ -82,6 +83,12 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
           puzzle.value as PuzzleSolve,
           { constraintType: mode },
         )
+      case 'Circles':
+      case 'Rectangles':
+        return new CosmeticShapeController(
+          puzzle.value as PuzzleSolve,
+          { shapeType: mode },
+        )
     }
   }
 
@@ -109,7 +116,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     rectangles: 'Rectangles',
     cages: 'Cages',
     text: 'Text',
-    cellBackgroundColors: 'Cell Background Colors',
+    cellBackgroundColors: 'Cell Colors',
     thermometers: 'Thermometers',
     arrows: 'Arrows',
     renbanLines: 'Renban Lines',
@@ -148,7 +155,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     Rectangles: { group: 'cosmetic', key: 'rectangles', initialValue: [] },
     Cages: { group: 'cosmetic', key: 'cages', initialValue: [] },
     Text: { group: 'cosmetic', key: 'text', initialValue: [] },
-    'Cell Background Colors': { group: 'cosmetic', key: 'cellBackgroundColors', initialValue: [] },
+    'Cell Colors': { group: 'cosmetic', key: 'cellBackgroundColors', initialValue: [] },
     Thermometers: { group: 'local', key: 'thermometers', initialValue: [] },
     Arrows: { group: 'local', key: 'arrows', initialValue: [] },
     'Renban Lines': { group: 'local', key: 'renbanLines', initialValue: [] },

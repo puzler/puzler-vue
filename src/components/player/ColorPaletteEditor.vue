@@ -216,6 +216,7 @@ v-dialog(
       .color-picker
         v-color-picker(
           v-model="palette.colors[selectedKey]"
+          mode="rgba"
         )
     .actions
       v-btn(

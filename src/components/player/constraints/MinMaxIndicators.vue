@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { PuzzleSolve } from '@/types'
 import type { Address } from '@/graphql/generated/types'
-import CellBackgroundColor from './CellBackgroundColor.vue'
 
 const props = defineProps<{
   cell: Address
@@ -108,10 +107,6 @@ const indicatorPaths = computed(() => {
 </script>
 
 <template lang="pug">
-CellBackgroundColor(
-  :cell="cell"
-  :color="{ red: 221, green: 221, blue: 221, opacity: 1 }"
-)
 path.min-max-indicator-border(
   v-for="pathData, i in indicatorPaths"
   :key="`min-max-indicator-border-${i}`"

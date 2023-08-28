@@ -98,6 +98,7 @@ const cornerDigits = computed(() => {
 .cell-container
   .cell(
     v-on:pointerdown.stop="onMouseDown"
+    :class="{ error }"
   )
     .corner-marks(v-if="cell.digit === null")
       .corner(

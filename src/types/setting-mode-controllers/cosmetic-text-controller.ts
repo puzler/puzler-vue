@@ -1,15 +1,9 @@
 import SettingModeController from './setting-mode-controller'
-import { PuzzleSolve, PuzzleSolveCell } from '@/types'
-import type { CosmeticShape, Address } from '@/graphql/generated/types'
-import CosmeticShapeControl from '@/components/player/setter-controls/CosmeticShapeControl.vue'
+import type { PuzzleSolveCell } from '..'
+import type { Address, Text } from '@/graphql/generated/types'
+import CosmeticTextControl from '@/components/player/setter-controls/CosmeticTextControl.vue'
 
-class CosmeticShapeController extends SettingModeController {
-  shapeType: 'Circles'|'Rectangles'
-  constructor(puzzle: PuzzleSolve, { shapeType }: { shapeType: 'Circles'|'Rectangles' }) {
-    super(puzzle)
-    this.shapeType = shapeType
-  }
-  
+class CosmeticTextController extends SettingModeController {
   formListeners = [] as Array<Function>
   addListener(listener: Function) {
     this.formListeners.push(listener)
@@ -22,25 +16,16 @@ class CosmeticShapeController extends SettingModeController {
     this.reselecting = false
   }
 
-  controllerVue = () => ({ component: CosmeticShapeControl })
-
-  get listKey() {
-    switch (this.shapeType) {
-      case 'Circles': return 'circles'
-      case 'Rectangles': return 'rectangles'
-    }
-
-    throw new Error('Unknown shape type')
-  }
+  controllerVue = () => ({ component: CosmeticTextControl })
 
   get list() {
-    const shapes = this.puzzle.puzzleData.cosmetics[this.listKey]
-  
-    if (!shapes) {
-      throw new Error('List should be defined')
+    const texts = this.puzzle.puzzleData.cosmetics.text
+
+    if (!texts) {
+      throw new Error('Text should be defined')
     }
 
-    return shapes
+    return texts
   }
 
   events = {
@@ -48,29 +33,29 @@ class CosmeticShapeController extends SettingModeController {
       if (this.dragTargetAddress) {
         const doubleCheck = this.reselecting
         setTimeout(() => {
+          console.log(this.reselecting === doubleCheck)
           if (this.reselecting === doubleCheck && this.dragTargetAddress) {
             const existingTargetIndex = this.list.findIndex(
               ({ address }) => this.addressesAreEqual(address, this.dragTargetAddress!)
             )
     
             if (existingTargetIndex === -1) {
-              const newShape = {
-                ...this.shapeForm,
+              console.log('new')
+              const newText = {
+                ...this.textForm,
                 address: this.dragTargetAddress,
-              } as CosmeticShape
+              } as Text
 
-              this.list.push(newShape)
-              this.inputTarget = newShape
+              this.list.push(newText)
+              this.inputTarget = newText
               this.formListeners.forEach((listener) => listener())
             } else if (this.reselecting) {
+              console.log('reselect')
               this.inputTarget = this.list[existingTargetIndex]
-              this.shapeForm = {
-                fillColor: this.inputTarget.fillColor,
-                outlineColor: this.inputTarget.outlineColor,
-                textColor: this.inputTarget.textColor || { red: 0, blue: 0, green: 0, opacity: 1 },
+              this.textForm = {
+                fontColor: this.inputTarget.fontColor || { red: 0, green: 0, blue: 0, opacity: 1 },
+                size: this.inputTarget.size,
                 angle: this.inputTarget.angle || 0,
-                height: this.inputTarget.height,
-                width: this.inputTarget.width,
               }
               this.formListeners.forEach((listener) => listener())
             } else {
@@ -99,14 +84,11 @@ class CosmeticShapeController extends SettingModeController {
   reselecting = false
   draggingOrigin = null as null|Address
   draggingTarget = null as null|Address
-  inputTarget = null as null|CosmeticShape
+  inputTarget = null as null|Text
 
-  shapeForm = {
-    textColor: { red: 0, green: 0, blue: 0, opacity: 1 },
-    fillColor: { red: 255, green: 255, blue: 255, opacity: 1 },
-    outlineColor: { red: 0, green: 0, blue: 0, opacity: 1 },
-    width: 0.5,
-    height: 0.5,
+  textForm = {
+    fontColor: { red: 0, green: 0, blue: 0, opacity: 1 },
+    size: 0.5,
     angle: 0,
   }
 
@@ -144,10 +126,10 @@ class CosmeticShapeController extends SettingModeController {
     this.reselecting = true
   }
 
-  onInput({ field, value }: { field: string, value: any }) {
-    const form = this.shapeForm as Record<string, any>
-    const target = this.puzzle.puzzleData.cosmetics[this.listKey]?.find(
-      ({ address }) => this.inputTarget && this.addressesAreEqual(address, this.inputTarget.address)
+  onInput({ field, value }: { field: string; value: any }) {
+    const form = this.textForm as Record<string, any>
+    const target = this.puzzle.puzzleData.cosmetics.text?.find(
+      ({ address }) => this.inputTarget && this.addressesAreEqual(this.inputTarget.address, address)
     ) as Record<string, any>
 
     if (form[field] !== undefined) {
@@ -181,4 +163,4 @@ class CosmeticShapeController extends SettingModeController {
   }
 }
 
-export default CosmeticShapeController
+export default CosmeticTextController

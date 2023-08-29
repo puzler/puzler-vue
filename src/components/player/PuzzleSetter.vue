@@ -30,9 +30,13 @@ function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
       :key="puzzleStore.modeController.renderKey"
       :puzzle="puzzleStore.puzzle"
       :timer="fakeTimer"
+      :outlineSpacerCells="true"
       v-on:cell-double-click="doubleClick"
+      v-on:spacer-double-click="doubleClick"
       v-on:cell-click="cellClick"
+      v-on:spacer-click="cellClick"
       v-on:cell-enter="cellEnter"
+      v-on:spacer-enter="cellEnter"
     )
 </template>
 

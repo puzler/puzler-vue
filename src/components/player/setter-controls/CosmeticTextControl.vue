@@ -1,24 +1,32 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { ColorInput } from '@/graphql/generated/types'
-import usePuzzleSetterStore from '@/stores/puzzle-setter'
-import { CosmeticShapeController } from '@/types/setting-mode-controllers'
+import { computed, ref } from 'vue'
+import { CosmeticTextController } from '@/types/setting-mode-controllers'
+import usePuzzleSetterStore from '@/stores/puzzle-setter';
+import type { Color } from '@/graphql/generated/types';
 
 const puzzleStore = usePuzzleSetterStore()
 
-const controller = computed(() => {
-  return puzzleStore.modeController as CosmeticShapeController
-})
+const controller = computed(() => puzzleStore.modeController as CosmeticTextController)
 controller.value.addListener(refreshFormValues)
+
+const formValues = ref({
+  fontColor: colorToColorPicker(controller.value.textForm.fontColor),
+  size: controller.value.textForm.size * 100,
+  angle: controller.value.textForm.angle || 0,
+  address: (() => {
+    if (!controller.value.inputTarget) return null
+    return {
+      row: controller.value.inputTarget.address.row + 1,
+      column: controller.value.inputTarget.address.column + 1,
+    }
+  })(),
+})
 
 function refreshFormValues() {
   formValues.value = {
-    textColor: colorToColorPicker(controller.value.shapeForm.textColor),
-    fillColor: colorToColorPicker(controller.value.shapeForm.fillColor),
-    outlineColor: colorToColorPicker(controller.value.shapeForm.outlineColor),
-    height: controller.value.shapeForm.height * 100,
-    width: controller.value.shapeForm.width * 100,
-    angle: controller.value.shapeForm.angle,
+    fontColor: colorToColorPicker(controller.value.textForm.fontColor),
+    size: controller.value.textForm.size * 100,
+    angle: controller.value.textForm.angle || 0,
     address: (() => {
       if (!controller.value.inputTarget) return null
       return {
@@ -29,64 +37,36 @@ function refreshFormValues() {
   }
 }
 
-const formValues = ref({
-  textColor: colorToColorPicker(controller.value.shapeForm.textColor),
-  fillColor: colorToColorPicker(controller.value.shapeForm.fillColor),
-  outlineColor: colorToColorPicker(controller.value.shapeForm.outlineColor),
-  height: controller.value.shapeForm.height * 100,
-  width: controller.value.shapeForm.width * 100,
-  angle: controller.value.shapeForm.angle,
-  address: (() => {
-    if (!controller.value.inputTarget) return null
-    return {
-      row: controller.value.inputTarget.address.row + 1,
-      column: controller.value.inputTarget.address.column + 1,
-    }
-  })(),
-})
+function colorToColorPicker({ red, green, blue, opacity }: Color): Record<string, any> {
+  return { r: red, g: green, b: blue, a: opacity }
+}
 
-function colorToColorPicker({ red, green, blue, opacity}: ColorInput) {
-  return {
-    r: red,
-    g: green,
-    b: blue,
-    a: opacity,
+function colorPickerToColor({ r, g, b, a }: Record<string, any>): Color {
+  return { red: r, green: g, blue: b, opacity: a }
+}
+
+function saveColor(field: 'fontColor') {
+  if (formValues.value[field]) {
+    controller.value.input({
+      field,
+      value: colorPickerToColor(formValues.value[field]),
+    })
   }
 }
 
-function colorPickerToColor({ r, g, b, a }: Record<string, number>) {
-  return {
-    red: r,
-    green: g,
-    blue: b,
-    opacity: a,
-  }
-}
-
-function colorPickerToRGBA({ r, g, b, a }: Record<string, number>) {
-  return `rgba(${r}, ${g}, ${b}, ${a})`
-}
-
-function updateControllerColor(field: 'textColor'|'outlineColor'|'fillColor') {
-  controller.value.input({
-    field,
-    value: colorPickerToColor(formValues.value[field])
-  })
-}
-
-function nudgeNumber(field: string, nudgeAmount: number, type = 'percent' as 'percent'|'degrees') {
+function nudgeNumber(field: 'size'|'angle', amount: number, type = 'percent') {
   const form = formValues.value as Record<string, any>
   if (form[field] !== undefined) {
     form[field] = parseInt(form[field]) // Make sure form field is a number
     
-    const offset = Math.abs(form[field] % Math.abs(nudgeAmount))
-    if (nudgeAmount > 0) {
+    const offset = Math.abs(form[field] % Math.abs(amount))
+    if (amount > 0) {
       form[field] -= offset
     } else if (offset > 0) {
-      form[field] += (Math.abs(nudgeAmount) - offset)
+      form[field] += (Math.abs(amount) - offset)
     }
 
-    form[field] += nudgeAmount
+    form[field] += amount
     if (type === 'percent' && form[field] < 0) form[field] = 0
 
     controller.value.input({
@@ -96,7 +76,7 @@ function nudgeNumber(field: string, nudgeAmount: number, type = 'percent' as 'pe
   }
 }
 
-function saveNumber(field: 'height'|'width'|'angle') {
+function saveNumber(field: 'size'|'angle') {
   const form = formValues.value as Record<string, any>
   if (form[field] !== undefined) {
     const rawVal = form[field]
@@ -119,6 +99,10 @@ function saveNumber(field: 'height'|'width'|'angle') {
       value: form[field] / (field === 'angle' ? 1 : 100.0)
     })
   }
+}
+
+function colorPickerToRGBA({ r, g, b, a }: Record<string, any>): string {
+  return `rgba(${r}, ${g}, ${b}, ${a})`
 }
 
 function nudgeAddress(field: 'row'|'column', nudgeAmount: number) {
@@ -146,7 +130,7 @@ function selectAll(event: MouseEvent) {
 </script>
 
 <template lang="pug">
-.cosmetic-shape-control
+.cosmetic-text-control
   .form-input(v-if="controller.inputTarget")
     .field Text
     .input
@@ -158,56 +142,33 @@ function selectAll(event: MouseEvent) {
           placeholder="Empty"
         )
   .form-input
-    .field Height
+    .field Size
     .input
       v-btn.nudge-btn.left(
-        v-on:click="nudgeNumber('height', -5)"
+        v-on:click="nudgeNumber('size', -5)"
       )
         v-icon(icon="mdi-chevron-left")
       .manual-input
         .input-expander
           v-text-field(
-            v-model="formValues.height"
+            v-model="formValues.size"
             v-on:click:control="selectAll"
-            v-on:keypress.enter="saveNumber('height')"
-            v-on:update:focused="(focused) => focused ? null : saveNumber('height')"
+            v-on:keypress.enter="saveNumber('size')"
+            v-on:update:focused="(focused) => focused ? null : saveNumber('size')"
             :hide-details="true"
             variant="plain"
           )
-          .hidden-value {{ formValues.height }}
+          .hidden-value {{ formValues.size }}
         span %
       v-btn.nudge-btn.right(
-        v-on:click="nudgeNumber('height', 5)"
-      )
-        v-icon(icon="mdi-chevron-right")
-  .form-input
-    .field Width
-    .input
-      v-btn.nudge-btn.left(
-        v-on:click="nudgeNumber('width', -5)"
-      )
-        v-icon(icon="mdi-chevron-left")
-      .manual-input
-        .input-expander
-          v-text-field(
-            v-model="formValues.width"
-            v-on:click:control="selectAll"
-            v-on:keypress.enter="saveNumber('width')"
-            v-on:update:focused="(focused) => focused ? null : saveNumber('width')"
-            :hide-details="true"
-            variant="plain"
-          )
-          .hidden-value {{ formValues.width }}
-        span %
-      v-btn.nudge-btn.right(
-        v-on:click="nudgeNumber('width', 5)"
+        v-on:click="nudgeNumber('size', 5)"
       )
         v-icon(icon="mdi-chevron-right")
   .form-input
     .field Rotation
     .input
       v-btn.nudge-btn.left(
-        v-on:click="nudgeNumber('angle', -45, true)"
+        v-on:click="nudgeNumber('angle', -45, 'degrees')"
       )
         v-icon(icon="mdi-chevron-left")
       .manual-input
@@ -223,47 +184,25 @@ function selectAll(event: MouseEvent) {
           .hidden-value {{ formValues.angle }}
         .super °
       v-btn.nudge-btn.right(
-        v-on:click="nudgeNumber('angle', 45, true)"
+        v-on:click="nudgeNumber('angle', 45, 'degrees')"
       )
         v-icon(icon="mdi-chevron-right")
-  v-expansion-panels.color-panels(variant="accordion")
+  v-expansion-panels.color-panels
     v-expansion-panel
       v-expansion-panel-title(:hide-actions="true")
         .color-panel-title
-          .field Fill Color
-          .swatch(:style="{ backgroundColor: colorPickerToRGBA(formValues.fillColor) }")
+          .field Font Color
+          .swatch(:style="{ backgroundColor: colorPickerToRGBA(formValues.fontColor) }")
       v-expansion-panel-text
         v-color-picker(
-          v-model="formValues.fillColor"
-          v-on:update:modelValue="updateControllerColor('fillColor')"
-          :width="260"
-        )
-    v-expansion-panel
-      v-expansion-panel-title(:hide-actions="true")
-        .color-panel-title
-          .field Outline Color
-          .swatch(:style="{ backgroundColor: colorPickerToRGBA(formValues.outlineColor) }")
-      v-expansion-panel-text
-        v-color-picker(
-          v-model="formValues.outlineColor"
-          v-on:update:modelValue="updateControllerColor('outlineColor')"
-          :width="260"
-        )
-    v-expansion-panel
-      v-expansion-panel-title(:hide-actions="true")
-        .color-panel-title
-          .field Text Color
-          .swatch(:style="{ backgroundColor: colorPickerToRGBA(formValues.textColor) }")
-      v-expansion-panel-text
-        v-color-picker(
-          v-model="formValues.textColor"
-          v-on:update:modelValue="updateControllerColor('textColor')"
+          v-model="formValues.fontColor"
+          v-on:update:modelValue="saveColor('fontColor')"
           :width="260"
         )
   .position-adjust(v-if="controller.inputTarget")
     .display
       .address-part Row {{ formValues.address.row }}
-      .address-part Col {{ formValues.address.column }}
+      .address-part Column {{ formValues.address.column }}
     .nudge-buttons
       .button-container
         v-btn.nudge-button.up(
@@ -285,7 +224,7 @@ function selectAll(event: MouseEvent) {
 </template>
 
 <style scoped lang="stylus">
-.cosmetic-shape-control
+.cosmetic-text-control
   .position-adjust
     padding 10px 5px 10px 20px
     display flex
@@ -308,7 +247,6 @@ function selectAll(event: MouseEvent) {
       .button-container
         transform rotate(45deg)
         display grid
-        flex-direction column
         grid-template-columns 1fr 1fr
         grid-template-rows 1fr 1fr
         gap 2px
@@ -325,10 +263,10 @@ function selectAll(event: MouseEvent) {
             border-top-left-radius var(--outerCornerRadius)
           &.left
             border-bottom-left-radius var(--outerCornerRadius)
-          &.right
-            border-top-right-radius var(--outerCornerRadius)
           &.down
             border-bottom-right-radius var(--outerCornerRadius)
+          &.right
+            border-top-right-radius var(--outerCornerRadius)
   .form-input
     display flex
     align-items center
@@ -352,41 +290,40 @@ function selectAll(event: MouseEvent) {
               text-align center
               margin 0
               line-height 1.3rem
-      .manual-input
+    .manual-input
+      display flex
+      align-items center
+      justify-content center
+      min-width 50px
+      .input-expander
+        overflow-y hidden
+        width min-content
         display flex
-        align-items center
-        justify-content center
-        min-width 50px
-        .input-expander
-          overflow-y hidden
-          width min-content
-          display flex
-          flex-direction column
-          .v-input
-            flex unset
+        flex-direction column
+        .v-input
+          flex unset
+          width 100%
+          :deep(.v-field__input)
+            min-height unset
+            padding 0
             width 100%
-            :deep(.v-field__input)
-              min-height unset
-              padding 0
-              width 100%
-              input
-                font-size 1.3rem
-                text-align center
-                margin 0
-                line-height 1.3rem
-          .hidden-value
-            font-size 1.3rem
-            height 0
-        .super
-          line-height 0
-          margin-bottom 5px
-      .nudge-btn
-        min-height unset
-        height unset
-        min-width unset
-        padding 0
+            input
+              font-size 1.3rem
+              text-align center
+              margin 0
+              line-height 1.3rem
+        .hidden-value
+          font-size 1.3rem
+          height 0
+      .super
+        line-height 0
+        margin-bottom 5px
+    .nudge-btn
+      min-height unset
+      height unset
+      min-width unset
+      padding 0
   .color-panels
-    background-color black
     .color-panel-title
       display flex
       justify-content space-between

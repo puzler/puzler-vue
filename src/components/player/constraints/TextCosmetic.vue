@@ -32,6 +32,13 @@ const rectSize = computed(() => ({
   width: throughGrid.value.horizontal ? props.text.size * 40 : 1,
   height: throughGrid.value.vertical ? props.text.size * 60 : 1,
 }))
+
+const centerOrMiddleClass = computed(() => {
+  const { row } = props.text.address
+
+  if (Math.round(row) === row) return 'central'
+  return 'middle'
+})
 </script>
 
 <template lang="pug">
@@ -47,7 +54,8 @@ text.cosmetic-text(
   :fill="colorToRGBA(text.fontColor)"
   :font-size="text.size * 100"
   :style="dynamicStyle"
-) {{ text.text }}
+  :class="centerOrMiddleClass"
+) {{ text.text || '_' }}
 </template>
 
 <style scoped lang="stylus">
@@ -59,8 +67,12 @@ text.cosmetic-text(
   stroke var(--color-background-soft)
   stroke-width 2
   paint-order stroke fill
-  alignment-baseline central
+  dominant-baseline middle
   text-anchor middle
   transform-box fill-box
   transform-origin center
+  &.central
+    dominant-baseline central
+  &.middle
+    dominant-baseline middle
 </style>

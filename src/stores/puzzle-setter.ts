@@ -13,6 +13,9 @@ import {
   NumberOutsideGridController,
   LittleKillerController,
   CosmeticShapeController,
+  CosmeticCageController,
+  CellColorController,
+  CosmeticTextController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
@@ -89,6 +92,9 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
           puzzle.value as PuzzleSolve,
           { shapeType: mode },
         )
+      case 'Cages': return new CosmeticCageController(puzzle.value as PuzzleSolve)
+      case 'Cell Colors': return new CellColorController(puzzle.value as PuzzleSolve)
+      case 'Text': return new CosmeticTextController(puzzle.value as PuzzleSolve)
     }
   }
 

@@ -47,64 +47,80 @@ abstract class SettingModeController {
   }
 
   keyboardNavigation(event: KeyboardEvent) {
-    if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
-      if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
-        this.puzzle.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
-        event.stopImmediatePropagation()
-        event.stopPropagation()
-        event.preventDefault()
-        return
-      }
+    if (this.allowGridSelect) {
+      console.log(this)
+      if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
+        if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
+          this.puzzle.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
+          event.stopImmediatePropagation()
+          event.stopPropagation()
+          event.preventDefault()
+          return
+        }
 
-      if (this.lastSelected === null) return
-      const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
-      if (!addToCurrentSelections) this.puzzle.deselectAll()
+        if (this.lastSelected === null) return
+        const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
+        if (!addToCurrentSelections) this.puzzle.deselectAll()
 
-      let { row, column } = this.lastSelected
-      switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          row -= 1
-          break
-        case 'KeyS':
-        case 'ArrowDown':
-          row += 1
-          break
-        case 'KeyA':
-        case 'ArrowLeft':
-          column -= 1
-          break
-        case 'KeyD':
-        case 'ArrowRight':
-          column += 1
-          break
-        default:
-          throw 'Unknown code'
-      }
+        let { row, column } = this.lastSelected
+        switch (event.code) {
+          case 'KeyW':
+          case 'ArrowUp':
+            row -= 1
+            break
+          case 'KeyS':
+          case 'ArrowDown':
+            row += 1
+            break
+          case 'KeyA':
+          case 'ArrowLeft':
+            column -= 1
+            break
+          case 'KeyD':
+          case 'ArrowRight':
+            column += 1
+            break
+          default:
+            throw 'Unknown code'
+        }
 
-      if (row < 0) row = this.puzzle.size - 1
-      if (row > this.puzzle.size - 1) row = 0
-      if (column < 0) column = this.puzzle.size - 1
-      if (column > this.puzzle.size - 1) column = 0
+        if (row < 0) row = this.puzzle.size - 1
+        if (row > this.puzzle.size - 1) row = 0
+        if (column < 0) column = this.puzzle.size - 1
+        if (column > this.puzzle.size - 1) column = 0
 
-      const target = this.puzzle.cellAt({ row, column })
-      if (!target.selected) {
-        target.selected = true
-        this.lastSelected = target.address
+        const target = this.puzzle.cellAt({ row, column })
+        if (!target.selected) {
+          target.selected = true
+          this.lastSelected = target.address
+        }
       }
     }
   }
 
+  keyboardNavEventHandler = (event: KeyboardEvent) => this.keyboardNavigation(event)
+  resetSelectingEventHandler = () => this.resetSelecting()
+
+  controllerEvents = {} as Record<string, (event: any) => void>
+
   setup() {
     if (this.allowGridSelect) {
-      window.addEventListener('mouseup', () => this.resetSelecting())
-      window.addEventListener('keydown', (event) => this.keyboardNavigation(event))
+      window.addEventListener('mouseup', this.resetSelectingEventHandler)
+      window.addEventListener('keydown', this.keyboardNavEventHandler)
     }
 
-    Object.keys(this.events).forEach((eventType) => {
+    this.controllerEvents = Object.keys(this.events).reduce(
+      (obj, eventType) => ({
+        ...obj,
+        [eventType]: (event: any) => this.handleEventListener(event, this.events[eventType]),
+      }),
+      {} as Record<string, (event: any) => void>
+    )
+
+    Object.keys(this.controllerEvents).forEach((eventType) => {
       window.addEventListener(
         eventType as keyof WindowEventMap,
-        (event) => this.handleEventListener(event, this.events[eventType]),
+        this.controllerEvents[eventType],
       )
     })
 
@@ -115,15 +131,16 @@ abstract class SettingModeController {
 
   reset() {
     if (this.allowGridSelect) {
-      window.removeEventListener('mouseup', () => this.resetSelecting)
-      window.removeEventListener('keydown', (event) => this.keyboardNavigation(event))
+      console.log('resetting')
+      window.removeEventListener('mouseup', this.resetSelectingEventHandler)
+      window.removeEventListener('keydown', this.keyboardNavEventHandler)
       this.lastSelected = null
     }
 
-    Object.keys(this.events).forEach((eventType) => {
+    Object.keys(this.controllerEvents).forEach((eventType) => {
       window.removeEventListener(
         eventType as keyof WindowEventMap,
-        (event) => this.handleEventListener(event, this.events[eventType]),
+        this.controllerEvents[eventType],
       )
     })
 

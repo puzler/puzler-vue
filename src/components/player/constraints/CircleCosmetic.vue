@@ -13,6 +13,13 @@ const centerPoint = computed(() => {
   }
 })
 
+const textBaseline = computed(() => {
+  const { row } = props.circle.address
+
+  if (Math.round(row) === row) return 'central'
+  return 'middle'
+})
+
 function colorToRGBA(color: Color) {
   return `rgba(${color.red}, ${color.green}, ${color.blue}, ${color.opacity})`
 }
@@ -44,6 +51,7 @@ text.circle-text(
   :style="dynamicStyle"
   :stroke="colorToRGBA(circle.textColor)"
   :fill="colorToRGBA(circle.textColor)"
+  :class="textBaseline"
 ) {{ circle.text }}
 </template>
 
@@ -60,6 +68,7 @@ text.circle-text(
   stroke-width 1
   paint-order stroke fill
   alignment-baseline central
+  baseline-shift 2
   text-anchor middle
   transform-box fill-box
   transform-origin center

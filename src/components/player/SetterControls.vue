@@ -268,6 +268,7 @@ const includedConstraints = computed(() => {
   .spacer
   component.controller-vue(
     v-if="modeControllerVue !== undefined"
+    :key="puzzleStore.settingMode"
     :is="modeControllerVue.component"
     v-bind="modeControllerVue.props"
   )

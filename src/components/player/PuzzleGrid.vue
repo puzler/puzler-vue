@@ -21,27 +21,47 @@ import {
 const props = defineProps<{
   puzzle: PuzzleSolve
   timer: Timer
+  outlineSpacerCells?: boolean
 }>()
 
 const emit = defineEmits([
   'cell-double-click',
+  'spacer-click',
+  'spacer-enter',
+  'spacer-double-click',
   'cell-click',
   'cell-enter',
   'play-puzzle',
 ])
 
+const minMaxXY = computed(() => {
+  let minX = 0
+  let minY = 0
+  let maxX = props.puzzle.size - 1
+  let maxY = props.puzzle.size - 1
+
+  minX -= spacerCounts.value.left
+  minY -= spacerCounts.value.top
+  maxX += spacerCounts.value.right
+  maxY += spacerCounts.value.bottom
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+  }
+})
+
 const svgViewBox = computed(() => {
-  let minX = -50
-  let minY = -50
-  let maxX = (props.puzzle.size * 100) - 50
-  let maxY = (props.puzzle.size * 100) - 50
+  const {
+    minX,
+    minY,
+    maxX,
+    maxY,
+  } = minMaxXY.value
 
-  minX -= spacerCounts.value.left * 100
-  minY -= spacerCounts.value.top * 100
-  maxX += spacerCounts.value.right * 100
-  maxY += spacerCounts.value.bottom * 100
-
-  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+  return `${minX * 100 - 50} ${minY * 100 - 50} ${(maxX - minX + 1) * 100} ${(maxY - minY + 1) * 100}`
 })
 
 const outerGridPath = computed(() => {
@@ -53,6 +73,29 @@ const outerGridPath = computed(() => {
     `h-${sideLength}`,
     `v-${sideLength}`,
   ]
+})
+
+const spacerOutlines = computed(() => {
+  const paths = [] as Array<string>
+  
+  const {
+    minX,
+    minY,
+    maxX,
+    maxY,
+  } = minMaxXY.value
+  const lineSize = (maxY - minY + 1) * 100
+
+  for (let i = 0; i < maxX - minX; i += 1) {
+    paths.push(
+      `M${(minX + i) * 100 + 50} ${minY * 100 - 50}`,
+      `v${lineSize}`,
+      `M${minX * 100 - 50} ${(minY + i) * 100 + 50}`,
+      `h${lineSize}`,
+    )
+  }
+
+  return paths
 })
 
 const regionBordersPath = computed(() => {
@@ -133,31 +176,45 @@ const spacerCounts = computed(() => {
   }
 })
 
+let lastMouseDown = null as null|number
 function spacerClick(event: PointerEvent, row: number, column: number) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
-  if (!props.puzzle.gridOuterCells) return
 
-  emit(
-    'cell-click',
-    event,
-    new PuzzleSolveCell({
-      region: -1,
-      address: { row, column, __typename: 'Address' },
-    }),
-  )
+  const clickTime = Date.now()
+  if (!!lastMouseDown && clickTime - lastMouseDown <= 500) {
+    emit(
+      'spacer-double-click',
+      event,
+      new PuzzleSolveCell({
+        region: -1,
+        address: { row, column, __typename: 'Address' },
+      }),
+    )
+    lastMouseDown = null
+  } else {
+    emit(
+      'spacer-click',
+      event,
+      new PuzzleSolveCell({
+        region: -1,
+        address: { row, column, __typename: 'Address' },
+      }),
+    )
+    lastMouseDown = Date.now()
+  }
+
 }
 
 function spacerEnter(event: PointerEvent, row: number, column: number) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
-  if (!props.puzzle.gridOuterCells) return
 
   event.stopPropagation()
   emit(
-    'cell-enter',
+    'spacer-enter',
     event,
     new PuzzleSolveCell({
       region: -1,
@@ -270,10 +327,12 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         :key="`cage-${i}`"
         :cage="cage"
       )
-    g.selected-borders
-      path.selection-border(
-        :d="selectionBorderPaths"
-      )
+    path.selection-border(
+      :d="selectionBorderPaths"
+    )
+    path.spacer-outlines(
+      :d="spacerOutlines"
+    )
     g.grid-lines
       path.outer-grid-border(:d="outerGridPath")
       g(
@@ -416,6 +475,11 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
     font-size 100px
     overflow visible
 
+    .spacer-outlines
+      stroke rgba(0, 0, 0, 0.3)
+      stroke-width 1
+      fill none
+      stroke-dasharray 10 15
     .selection-border
       stroke rgba(0, 107, 255, 0.5)
       stroke-width 10

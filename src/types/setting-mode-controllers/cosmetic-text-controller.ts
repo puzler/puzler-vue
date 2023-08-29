@@ -33,14 +33,12 @@ class CosmeticTextController extends SettingModeController {
       if (this.dragTargetAddress) {
         const doubleCheck = this.reselecting
         setTimeout(() => {
-          console.log(this.reselecting === doubleCheck)
           if (this.reselecting === doubleCheck && this.dragTargetAddress) {
             const existingTargetIndex = this.list.findIndex(
               ({ address }) => this.addressesAreEqual(address, this.dragTargetAddress!)
             )
     
             if (existingTargetIndex === -1) {
-              console.log('new')
               const newText = {
                 ...this.textForm,
                 address: this.dragTargetAddress,
@@ -50,7 +48,6 @@ class CosmeticTextController extends SettingModeController {
               this.inputTarget = newText
               this.formListeners.forEach((listener) => listener())
             } else if (this.reselecting) {
-              console.log('reselect')
               this.inputTarget = this.list[existingTargetIndex]
               this.textForm = {
                 fontColor: this.inputTarget.fontColor || { red: 0, green: 0, blue: 0, opacity: 1 },

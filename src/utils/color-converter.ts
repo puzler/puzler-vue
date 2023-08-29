@@ -16,7 +16,6 @@ const colorRegex = {
 function parseRaw(value: string|null|undefined, valueType: 'hex'|'dec', max = 255.0) {
   if (!value) return max
 
-  console.log(value, valueType, max)
   switch (valueType) {
     case 'hex': {
       const number = parseInt(value.padEnd(2, value), 16)
@@ -52,13 +51,11 @@ function rawRgbaValues(colorString: string) {
 }
 
 function strToColor(colorString: string) {
-  console.log(colorString)
   const conversion = rawRgbaValues(colorString)
   if (conversion) {
     const { valueType, rawValues } = conversion
     if (!rawValues) return
 
-    console.log(rawValues)
     return {
       red: parseRaw(rawValues.red, valueType),
       green: parseRaw(rawValues.green, valueType),

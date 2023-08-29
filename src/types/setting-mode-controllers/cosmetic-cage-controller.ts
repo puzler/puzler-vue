@@ -64,8 +64,6 @@ class CosmeticCageController extends SettingModeController {
       } else if (event.key.length === 1) {
         this.input({ field: 'text', value: event.key })
       }
-
-      console.log(event)
     }
   }
 

@@ -48,7 +48,6 @@ abstract class SettingModeController {
 
   keyboardNavigation(event: KeyboardEvent) {
     if (this.allowGridSelect) {
-      console.log(this)
       if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
         if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
           this.puzzle.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
@@ -131,7 +130,6 @@ abstract class SettingModeController {
 
   reset() {
     if (this.allowGridSelect) {
-      console.log('resetting')
       window.removeEventListener('mouseup', this.resetSelectingEventHandler)
       window.removeEventListener('keydown', this.keyboardNavEventHandler)
       this.lastSelected = null

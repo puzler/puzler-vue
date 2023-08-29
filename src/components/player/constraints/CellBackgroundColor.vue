@@ -25,7 +25,6 @@ const convertToAlpha = (
 }
 
 function transparentColor(color: Color) {
-  console.log(color)
   const { red, green, blue, opacity } = color
   const minValue = Math.min(red, green, blue)
   const minAlpha = 1 - (minValue / 255)

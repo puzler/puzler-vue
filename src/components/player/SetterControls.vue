@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
-import GlobalConstraintModal from './setter-modals/GlobalConstraintModal.vue';
+import GlobalConstraintModal from './setter-modals/GlobalConstraintModal.vue'
 import LocalConstraintModal from './setter-modals/LocalConstraintModal.vue'
 import CosmeticModal from './setter-modals/CosmeticModal.vue'
+import PuzzleRulesModal from './setter-modals/PuzzleRulesModal.vue'
 
 import useAuthStore from '@/stores/auth';
 import usePuzzleSetterStore from '@/stores/puzzle-setter';
@@ -19,11 +20,12 @@ const authorPlaceholder = computed(() => {
   return authStore.currentUser?.displayName || 'Unknown Author'
 })
 
-const modalActivators = ref({
-  globalConstraint: document.createElement('btn'),
-  localConstraint: document.createElement('btn'),
-  cosmetics: document.createElement('btn'),
-})
+const modalActivators = {
+  globalConstraint: document.createElement('button'),
+  localConstraint: document.createElement('button'),
+  cosmetics: document.createElement('button'),
+  rules: document.createElement('button')
+}
 
 const modeController = computed(() => puzzleStore.modeController)
 const modeControllerVue = computed(() => {
@@ -69,291 +71,321 @@ const includedConstraints = computed(() => {
 
 <template lang="pug">
 .setter-control-panel(:class="{ hide }")
-  GlobalConstraintModal(
-    :activator="modalActivators.globalConstraint"
-  )
-  LocalConstraintModal(
-    :activator="modalActivators.localConstraint"
-  )
-  CosmeticModal(
-    :activator="modalActivators.cosmetics"
-  )
+  GlobalConstraintModal(:activator="modalActivators.globalConstraint")
+  LocalConstraintModal(:activator="modalActivators.localConstraint")
+  CosmeticModal(:activator="modalActivators.cosmetics")
+  PuzzleRulesModal(:activator="modalActivators.rules")
   .meta-controls
-    v-text-field.text-control.puzzle-title(
-      name="title"
-      v-model="puzzleStore.puzzle.puzzleData.title"
-      variant="plain"
-      placeholder="Untitled Puzzle"
-      :hide-details="true"
+    v-btn.rule-editor-btn(
+      v-on:click="modalActivators.rules.click()"
+    )
+      v-icon(icon="mdi-clipboard-list")
+    .meta-fields
+      v-text-field.text-control.puzzle-title(
+        name="title"
+        v-model="puzzleStore.puzzle.puzzleData.title"
+        variant="plain"
+        placeholder="Untitled Puzzle"
+        :hide-details="true"
+        density="compact"
+      )
+      v-text-field.text-control.author(
+        :class="{ 'dark-placeholder': authStore.authenticated }"
+        name="author"
+        v-model="puzzleStore.puzzle.puzzleData.author"
+        variant="plain"
+        :placeholder="authorPlaceholder"
+        :hide-details="true"
+        density="compact"
+      )
+  .grid-controls
+    v-btn.control-selector(
+      v-on:click="puzzleStore.setMode('Given')"
+      :color="puzzleStore.settingMode === 'Given' ? 'blue-grey' : 'white'"
       density="compact"
-    )
-    v-text-field.text-control.author(
-      :class="{ 'dark-placeholder': authStore.authenticated }"
-      name="author"
-      v-model="puzzleStore.puzzle.puzzleData.author"
-      variant="plain"
-      :placeholder="authorPlaceholder"
-      :hide-details="true"
+      :ripple="false"
+    ) Given Digits
+    v-btn.control-selector(
+      v-on:click="puzzleStore.setMode('Regions')"
+      :color="puzzleStore.settingMode === 'Regions' ? 'blue-grey' : 'white'"
       density="compact"
-    )
-  .control-group.globals
-    .header
-      v-btn(
-        icon="mdi-plus"
-        density="compact"
-        v-on:click="modalActivators.globalConstraint.click()"
-      )
-      .header-text Global Constraints
-    .global-group.chess(
-      v-if="includedGlobals.includes('Chess')"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle('Chess')"
-        variant="plain"
-        color="red"
-      )
-        v-icon(icon="mdi-close")
-      .title Chess:
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight ? 'blue-grey' : 'white'"
-      )
-        v-icon(icon="fa:fas fa-chess-knight")
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king ? 'blue-grey' : 'white'"
-      )
-        v-icon(icon="fa:fas fa-chess-king")
-    .global-group.anti-kropki(
-      v-if="includedGlobals.includes('Anti-Kropki')"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle('Anti-Kropki')"
-        variant="plain"
-        color="red"
-      )
-        v-icon(icon="mdi-close")
-      .title Anti-Kropki:
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'blue-grey' : 'white'"
-      )
-        v-icon(
-          :icon="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'mdi-circle' : 'mdi-circle-outline'"
-          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'white' : 'black'"
+      :ripple="false"
+    ) Region Editor
+  .puzzle-editor
+    .control-group.globals
+      .header
+        v-btn(
+          icon="mdi-plus"
+          density="compact"
+          v-on:click="modalActivators.globalConstraint.click()"
         )
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack ? 'blue-grey' : 'white'"
+        .header-text Global Constraints
+      .global-group.chess(
+        v-if="includedGlobals.includes('Chess')"
       )
-        v-icon(icon="mdi-circle" color="black")
-    .global-group.anti-xv(
-      v-if="includedGlobals.includes('Anti-XV')"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle('Anti-XV')"
-        variant="plain"
-        color="red"
-      )
-        v-icon(icon="mdi-close")
-      .title Anti-XV:
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX ? 'blue-grey' : 'white'"
-      ) X
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV ? 'blue-grey' : 'white'"
-      ) V
-    .global-group.disjoint-sets(
-      v-if="includedGlobals.includes('Disjoint Sets')"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle('Disjoint Sets')"
-        variant="plain"
-        color="red"
-      )
-        v-icon(icon="mdi-close")
-      .title Disjoint Sets:
-      v-btn.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled = !puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'blue-grey' : 'white'"
-      ) {{ puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'ON' : 'OFF' }}
-    .global-group.diagonals(
-      v-if="includedGlobals.includes('Diagonals')"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle('Diagonals')"
-        variant="plain"
-        color="red"
-      )
-        v-icon(icon="mdi-close")
-      .title Diagonals:
-      v-btn.negative.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative ? 'blue-grey' : 'white'"
-      )
-        v-icon(icon="mdi-square-off-outline")
-      v-btn.positive.global-toggle(
-        v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
-        :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
-        density="compact"
-        :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive ? 'blue-grey' : 'white'"
-      )
-        v-icon(
-          icon="mdi-square-off-outline"
-          :style="{ rotate: '-90deg' }"
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle('Chess')"
+          variant="plain"
+          color="red"
         )
-  .control-group.constraints
-    .header
-      v-btn(
-        icon="mdi-plus"
-        density="compact"
-        v-on:click="modalActivators.localConstraint.click()"
+          v-icon(icon="mdi-close")
+        .title Chess:
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.knight ? 'blue-grey' : 'white'"
+        )
+          v-icon(icon="fa:fas fa-chess-knight")
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king = !puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.chess.king ? 'blue-grey' : 'white'"
+        )
+          v-icon(icon="fa:fas fa-chess-king")
+      .global-group.anti-kropki(
+        v-if="includedGlobals.includes('Anti-Kropki')"
       )
-      .header-text Local Constraints
-    .local-group.no-remove
-      v-btn.control-selector(
-        v-on:click="puzzleStore.setMode('Given')"
-        :color="puzzleStore.settingMode === 'Given' ? 'blue-grey' : 'white'"
-      ) Given Digits
-    .local-group(
-      v-for="constraintType in includedConstraints"
-      :key="constraintType"
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle('Anti-Kropki')"
+          variant="plain"
+          color="red"
+        )
+          v-icon(icon="mdi-close")
+        .title Anti-Kropki:
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'blue-grey' : 'white'"
+        )
+          v-icon(
+            :icon="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'mdi-circle' : 'mdi-circle-outline'"
+            :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiWhite ? 'white' : 'black'"
+          )
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack = !puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiKropki.antiBlack ? 'blue-grey' : 'white'"
+        )
+          v-icon(icon="mdi-circle" color="black")
+      .global-group.anti-xv(
+        v-if="includedGlobals.includes('Anti-XV')"
+      )
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle('Anti-XV')"
+          variant="plain"
+          color="red"
+        )
+          v-icon(icon="mdi-close")
+        .title Anti-XV:
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiX ? 'blue-grey' : 'white'"
+        ) X
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV = !puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.antiXV.antiV ? 'blue-grey' : 'white'"
+        ) V
+      .global-group.disjoint-sets(
+        v-if="includedGlobals.includes('Disjoint Sets')"
+      )
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle('Disjoint Sets')"
+          variant="plain"
+          color="red"
+        )
+          v-icon(icon="mdi-close")
+        .title Disjoint Sets:
+        v-btn.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled = !puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'blue-grey' : 'white'"
+        ) {{ puzzleStore.puzzle.puzzleData.globalConstraints.disjointSets.enabled ? 'ON' : 'OFF' }}
+      .global-group.diagonals(
+        v-if="includedGlobals.includes('Diagonals')"
+      )
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle('Diagonals')"
+          variant="plain"
+          color="red"
+        )
+          v-icon(icon="mdi-close")
+        .title Diagonals:
+        v-btn.negative.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.negative ? 'blue-grey' : 'white'"
+        )
+          v-icon(icon="mdi-square-off-outline")
+        v-btn.positive.global-toggle(
+          v-on:click="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive = !puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
+          :active="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive"
+          density="compact"
+          :color="puzzleStore.puzzle.puzzleData.globalConstraints.diagonals.positive ? 'blue-grey' : 'white'"
+        )
+          v-icon(
+            icon="mdi-square-off-outline"
+            :style="{ rotate: '-90deg' }"
+          )
+    .control-group.constraints
+      .header
+        v-btn(
+          icon="mdi-plus"
+          density="compact"
+          v-on:click="modalActivators.localConstraint.click()"
+        )
+        .header-text Local Constraints
+      .local-group(
+        v-for="constraintType in includedConstraints"
+        :key="constraintType"
+      )
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle(constraintType)"
+          color="red"
+          variant="plain"        
+        )
+          v-icon(icon="mdi-close")
+        v-btn.control-selector(
+          v-on:click="puzzleStore.setMode(constraintType)"
+          :color="puzzleStore.settingMode === constraintType ? 'blue-grey' : 'white'"
+        ) {{ constraintType }}
+    .control-group.cosmetics
+      .header
+        v-btn(
+          icon="mdi-plus"
+          density="compact"
+          v-on:click="modalActivators.cosmetics.click()"
+        )
+        .header-text Cosmetics
+      .cosmetic-group(
+        v-for="cosmeticType in includedCosmetics"
+        :key="cosmeticType"
+      )
+        v-btn.remove(
+          v-on:click="puzzleStore.removeElementFromPuzzle(cosmeticType)"
+          color="red"
+          variant="plain"        
+        )
+          v-icon(icon="mdi-close")
+        v-btn.control-selector(
+          v-on:click="puzzleStore.setMode(cosmeticType)"
+          :color="puzzleStore.settingMode === cosmeticType ? 'blue-grey' : 'white'"
+        ) {{ cosmeticType }}
+    .spacer
+    component.controller-vue(
+      v-if="modeControllerVue !== undefined"
+      :key="puzzleStore.settingMode"
+      :is="modeControllerVue.component"
+      v-bind="modeControllerVue.props"
     )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle(constraintType)"
-        color="red"
-        variant="plain"        
-      )
-        v-icon(icon="mdi-close")
-      v-btn.control-selector(
-        v-on:click="puzzleStore.setMode(constraintType)"
-        :color="puzzleStore.settingMode === constraintType ? 'blue-grey' : 'white'"
-      ) {{ constraintType }}
-  .control-group.cosmetics
-    .header
-      v-btn(
-        icon="mdi-plus"
-        density="compact"
-        v-on:click="modalActivators.cosmetics.click()"
-      )
-      .header-text Cosmetics
-    .cosmetic-group(
-      v-for="cosmeticType in includedCosmetics"
-      :key="cosmeticType"
-    )
-      v-btn.remove(
-        v-on:click="puzzleStore.removeElementFromPuzzle(cosmeticType)"
-        color="red"
-        variant="plain"        
-      )
-        v-icon(icon="mdi-close")
-      v-btn.control-selector(
-        v-on:click="puzzleStore.setMode(cosmeticType)"
-        :color="puzzleStore.settingMode === cosmeticType ? 'blue-grey' : 'white'"
-      ) {{ cosmeticType }}
-  .spacer
-  component.controller-vue(
-    v-if="modeControllerVue !== undefined"
-    :key="puzzleStore.settingMode"
-    :is="modeControllerVue.component"
-    v-bind="modeControllerVue.props"
-  )
 </template>
 
 <style scoped lang="stylus">
 .setter-control-panel
-  width 300px
+  --panel-width 300px
+  width var(--panel-width)
   background-color #eee
   height 100cqh
   display flex
   flex-direction column
   overflow-y auto
-  padding 20px
-  transition-property width padding
-  transition-duration 0.5s
-  transition-timing-function ease-in-out
+  transition width 0.5s ease-in-out
 
   &.hide
     width 0
-    padding 20px 0
-
-  .spacer
-    flex 1
 
   .meta-controls
-    .text-control
-      :deep(.v-field__input)
-        min-height unset
-        padding 0
-        input
-          margin 0
-      &.puzzle-title
-        :deep(input)
-          font-size 2em
-
-  .control-group
+    display flex
+    padding 10px
+    gap 10px
+    .rule-editor-btn
+      min-width unset
+      height unset
+      flex 0 1
+      padding 5px
+    .meta-fields
+      flex 1
+      .text-control
+        :deep(.v-field__input)
+          min-height unset
+          padding 0
+          input
+            margin 0
+        &.puzzle-title
+          :deep(input)
+            font-size 2em
+  .grid-controls
+    width var(--panel-width)
+    display grid
+    grid-template-columns 1fr 1fr
+    .v-btn
+      border-radius 0
+      box-shadow none
+      --v-btn-height 40px
+  .puzzle-editor
+    flex 1
     display flex
     flex-direction column
-    align-items start
-    margin-top 20px
-    .header
+    padding 10px 20px 0
+    .spacer
+      flex 1
+    .control-group
       display flex
-      gap 10px
-      align-items center
-      margin-bottom 10px
-      .header-text
-        font-size 1.5rem
-        line-height 0
-        white-space nowrap
-    .control-selector
-      margin 10px 30px
-      min-height unset
-      height unset
-      padding 5px 10px
-    &.globals
-      .global-group
-        margin 0
+      flex-direction column
+      align-items start
+      margin-top 10px
+      .header
+        display flex
+        gap 10px
+        align-items center
+        margin-bottom 10px
+        .header-text
+          font-size 1.3rem
+          line-height 0
+          white-space nowrap
+        .v-btn
+          --v-btn-size 0.9rem
+          --v-btn-height 30px
+      .control-selector
+        margin 10px 30px
+        min-height unset
+        height unset
+        padding 5px 10px
+      &.globals
+        .global-group
+          margin 0
+          display flex
+          align-items center
+          gap 10px
+          .title
+            font-size 1.2rem
+          .remove
+            min-width unset
+            padding 5px
+          .global-toggle
+            min-width unset
+            padding 4px
+            height unset
+      .cosmetic-group
+      .local-group
         display flex
         align-items center
+        margin-left 5px
         gap 10px
-        .title
-          font-size 1.2rem
+        &.no-remove
+          margin-left 38px
         .remove
           min-width unset
           padding 5px
-        .global-toggle
-          min-width unset
-          padding 4px
-          height unset
-    .cosmetic-group
-    .local-group
-      margin 3px 0
-      display flex
-      align-items center
-      gap 10px
-      &.no-remove
-        margin-left 38px
-      .remove
-        min-width unset
-        padding 5px
-      .control-selector
-        margin 0
+        .control-selector
+          margin 0
 </style>

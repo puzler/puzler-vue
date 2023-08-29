@@ -22,6 +22,7 @@ const props = defineProps<{
   puzzle: PuzzleSolve
   timer: Timer
   outlineSpacerCells?: boolean
+  displayRegions?: boolean
 }>()
 
 const emit = defineEmits([
@@ -272,32 +273,32 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
     :viewBox="svgViewBox"
     preserveAspectRatio="none"
   )
-    g.cell-backgrounds
+    g.cell-backgrounds(v-if="!displayRegions")
       CellBackgroundColor(
         v-for="{ cell, colors }, i in puzzle.visualCellBackgrounds"
         :key="`cell-background-color-${i}`"
         :cell="cell"
         :colors="colors"
       )
-    g.lines
+    g.lines(v-if="!displayRegions")
       LineCosmetic(
         v-for="{ key, line } in puzzle.visualLines"
         :key="key"
         :line="line"
       )
-    g.thermometers
+    g.thermometers(v-if="!displayRegions")
       ThermometerConstraint(
         v-for="thermo, i in puzzle.puzzleData.localConstraints.thermometers"
         :key="`thermo-${i}`"
         :thermometer="thermo"
       )
-    g.arrows
+    g.arrows(v-if="!displayRegions")
       ArrowConstraint(
         v-for="arrow, i in puzzle.puzzleData.localConstraints.arrows"
         :key="`arrow-${i}`"
         :arrow="arrow"
       )
-    g.min-max-indicators
+    g.min-max-indicators(v-if="!displayRegions")
       MinMaxIndicators(
         v-for="{ cell }, i in puzzle.puzzleData.localConstraints.minCells"
         :key="`min-cell-${i}`"
@@ -312,7 +313,7 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         :puzzle="puzzle"
         type="maximum"
       )
-    g.diagonals
+    g.diagonals(v-if="!displayRegions")
       path.diagonal-path(
         v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.negative"
         :d="`M-50 -50, L${(puzzle.size * 100) - 50} ${(puzzle.size * 100) - 50}`"
@@ -321,7 +322,7 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.positive"
         :d="`M-50 ${(puzzle.size * 100) - 50}, L${(puzzle.size * 100) - 50} -50`"
       )
-    g.cages
+    g.cages(v-if="!displayRegions")
       KillerCage(
         v-for="cage, i in puzzle.visualCages"
         :key="`cage-${i}`"
@@ -348,7 +349,7 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
       path.region-borders(
         :d="regionBordersPath"
       )
-    g.circles
+    g.circles(v-if="!displayRegions")
       CircleCosmetic(
         v-for="{ key, circle } in puzzle.visualCircles"
         :key="key"
@@ -359,13 +360,13 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         :key="`quadruple-${i}`"
         :quadruple="quadruple"
       )
-    g.rectangles
+    g.rectangles(v-if="!displayRegions")
       RectangleCosmetic(
         v-for="{ key, rectangle } in puzzle.visualRectangles"
         :key="key"
         :rectangle="rectangle"
       )
-    g.texts
+    g.texts(v-if="!displayRegions")
       LittleKillerConstraint(
         v-for="littleKiller, i in puzzle.puzzleData.localConstraints.littleKillerSums"
         :key="`little-killer-${i}`"
@@ -411,6 +412,7 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         v-on:cell-double-click="(event, cell) => emit('cell-double-click', event, cell)"
         v-on:cell-click="(event, cell) => emit('cell-click', event, cell)"
         v-on:cell-enter="(event, cell) => emit('cell-enter', event, cell)"
+        :displayRegion="displayRegions"
       )
       .spacer-cell(
         v-for="i in spacerCounts.right"

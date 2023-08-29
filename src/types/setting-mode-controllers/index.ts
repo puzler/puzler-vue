@@ -13,6 +13,7 @@ import CosmeticCageController from './cosmetic-cage-controller'
 import CellColorController from './cell-color-controller'
 import CosmeticTextController from './cosmetic-text-controller'
 import CosmeticLineController from './cosmetic-line-controller'
+import RegionEditorController from './region-editor-controller'
 
 export {
   SettingModeController,
@@ -30,4 +31,5 @@ export {
   CellColorController,
   CosmeticTextController,
   CosmeticLineController,
+  RegionEditorController,
 }

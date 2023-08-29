@@ -19,7 +19,7 @@ const props = defineProps<{
   puzzle: PuzzleSolve
   hideTimer?: boolean
   disableControls?: boolean
-  outlineSpacerCells?: boolean
+  gridProps?: Record<string, any>
 }>()
 
 const settingsStore = useSettingStore()
@@ -512,7 +512,7 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     PuzzleGrid(
       :puzzle="puzzle"
       :timer="hideTimer ? { paused: false } : timer"
-      :outlineSpacerCells="outlineSpacerCells"
+      v-bind="gridProps || {}"
       v-on:cell-enter="cellEnter"
       v-on:cell-click="cellClick"
       v-on:cell-double-click="cellDoubleClick"

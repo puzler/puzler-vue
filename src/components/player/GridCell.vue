@@ -5,6 +5,7 @@ import { PuzzleSolveCell } from '@/types'
 const props = defineProps<{
   cell: PuzzleSolveCell
   error: boolean
+  displayRegion?: boolean
 }>()
 
 const emit = defineEmits(['cell-click', 'cell-enter', 'cell-double-click'])
@@ -98,22 +99,28 @@ const cornerDigits = computed(() => {
 .cell-container
   .cell(
     v-on:pointerdown.stop="onMouseDown"
-    :class="{ error }"
+    :class="{ error: error && !displayRegion }"
   )
-    .corner-marks(v-if="cell.digit === null")
+    .corner-marks(v-if="cell.digit === null && !displayRegion")
       .corner(
         v-for="{ digit, align, justify, row, col } in cornerDigits"
         :key="'cell-corner-digit-' + digit"
         :style="{ alignSelf: align, justifySelf: justify, gridRow: row, gridColumn: col }"
       ) {{ digit }}
     .center(
-      v-if="cell.digit === null"
+      v-if="cell.digit === null && !displayRegion"
       :style="{ fontSize: centerMarkFontSize }"
     ) {{ cell.centerMarks.join('') }}
     .digit(
       v-on:pointerenter="onMouseEnter"
       :class="{ given: cell.given }"
-    ) {{ cell.digit === null ? ' ' : cell.digit }}
+    )
+      .number(
+        v-if="!displayRegion"
+      ) {{ cell.digit === null ? ' ' : cell.digit }}
+      .region(
+        v-else
+      ) {{ cell.region + 1 }}
 </template>
 
 <style scoped lang="stylus">
@@ -167,6 +174,9 @@ const cornerDigits = computed(() => {
 
       &.given
         color black
+
+      .region
+        color #cccccc
     .center
       position absolute
       top 0

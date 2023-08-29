@@ -17,6 +17,7 @@ import {
   CellColorController,
   CosmeticTextController,
   CosmeticLineController,
+  RegionEditorController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
@@ -30,21 +31,16 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
 
   function newPuzzle(size: number) {
     puzzle.value = new PuzzleSolve({ size })
-
-    modeController.value?.reset()
-    modeController.value?.setup()
+    setMode('Given')
   }
 
   function controllerForMode(mode: string|null): void|SettingModeController {
     switch (mode) {
-      case 'Given':
-        return new GivenDigitController(puzzle.value as PuzzleSolve)
-      case 'Thermometers':
-        return new ThermometerController(puzzle.value as PuzzleSolve)
-      case 'Arrows':
-        return new ArrowController(puzzle.value as PuzzleSolve)
-      case 'Little Killers':
-        return new LittleKillerController(puzzle.value as PuzzleSolve)
+      case 'Given': return new GivenDigitController(puzzle.value as PuzzleSolve)
+      case 'Regions': return new RegionEditorController(puzzle.value as PuzzleSolve)
+      case 'Thermometers': return new ThermometerController(puzzle.value as PuzzleSolve)
+      case 'Arrows': return new ArrowController(puzzle.value as PuzzleSolve)
+      case 'Little Killers': return new LittleKillerController(puzzle.value as PuzzleSolve)
       case 'Palindrome Lines':
       case 'Renban Lines':
       case 'German Whispers':

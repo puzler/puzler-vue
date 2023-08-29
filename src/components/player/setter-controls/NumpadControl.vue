@@ -13,7 +13,7 @@ const icons = {
 }
 
 function sendInput(digit: number|'delete') {
-  puzzleStore.modeController.input(digit)
+  puzzleStore.modeController?.input(digit)
 }
 </script>
 

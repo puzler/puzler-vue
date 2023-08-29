@@ -146,7 +146,8 @@ class CosmeticShapeController extends SettingModeController {
 
   onInput({ field, value }: { field: string, value: any }) {
     const form = this.shapeForm as Record<string, any>
-    const target = this.puzzle.puzzleData.cosmetics[this.listKey]?.find(
+    const shapes = this.puzzle.puzzleData.cosmetics[this.listKey] as Array<CosmeticShape>
+    const target = shapes.find(
       ({ address }) => this.inputTarget && this.addressesAreEqual(address, this.inputTarget.address)
     ) as Record<string, any>
 

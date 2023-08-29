@@ -70,8 +70,7 @@ function updateControllerColor(field: 'textColor'|'cageColor') {
 }
 
 function sendNumpadInput(digit: number|'delete') {
-  'delete'.toString()
-  puzzleStore.modeController.input({ field: 'text', value: digit.toString() })
+  puzzleStore.modeController?.input({ field: 'text', value: digit.toString() })
 }
 </script>
 

@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PuzzleFetcher from '@/utils/puzzle-fetcher'
-import type { Puzzle } from '@/graphql/generated/types'
 import PuzzlePlayer from '@/components/player/PuzzlePlayer.vue'
 import { onMounted } from 'vue'
 import { PuzzleSolve } from '@/types'
@@ -12,16 +11,21 @@ const props = defineProps<{
   puzzleId?: string
 }>()
 
-const puzzle = ref(null as null|Puzzle)
+const puzzle = ref(null as null|PuzzleSolve)
 
 onMounted(async () => {
   if (props.puzzleId) {
-    puzzle.value = await PuzzleFetcher.fetchById(props.puzzleId)
+    puzzle.value = new PuzzleSolve({
+      puzzle: await PuzzleFetcher.fetchById(props.puzzleId),
+      size: 9,
+    })
   } else if (fPuzzle) {
-    puzzle.value = await PuzzleFetcher.fetchFPuzzle(fPuzzle as string)
+    puzzle.value = new PuzzleSolve({
+      puzzle: await PuzzleFetcher.fetchFPuzzle(fPuzzle as string),
+      size: 9,
+    })
   } else {
-    const temp = new PuzzleSolve({ size: 9 })
-    puzzle.value = temp.puzzleData
+    puzzle.value = new PuzzleSolve({ size: 9 })
   }
 })
 
@@ -30,7 +34,7 @@ onMounted(async () => {
 <template lang="pug">
 PuzzlePlayer(
   v-if="puzzle !== null"
-  :rawPuzzle="puzzle"
+  :puzzle="puzzle"
 )
 .loading(v-else) Loading...
 </template>

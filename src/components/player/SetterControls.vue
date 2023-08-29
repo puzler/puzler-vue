@@ -8,6 +8,10 @@ import CosmeticModal from './setter-modals/CosmeticModal.vue'
 import useAuthStore from '@/stores/auth';
 import usePuzzleSetterStore from '@/stores/puzzle-setter';
 
+defineProps<{
+  hide: boolean
+}>()
+
 const authStore = useAuthStore()
 const puzzleStore = usePuzzleSetterStore()
 
@@ -23,7 +27,7 @@ const modalActivators = ref({
 
 const modeController = computed(() => puzzleStore.modeController)
 const modeControllerVue = computed(() => {
-  if (modeController.value.controllerVue) {
+  if (modeController.value?.controllerVue) {
     return modeController.value.controllerVue()
   }
   return undefined
@@ -64,7 +68,7 @@ const includedConstraints = computed(() => {
 </script>
 
 <template lang="pug">
-.setter-control-panel
+.setter-control-panel(:class="{ hide }")
   GlobalConstraintModal(
     :activator="modalActivators.globalConstraint"
   )
@@ -283,6 +287,13 @@ const includedConstraints = computed(() => {
   flex-direction column
   overflow-y auto
   padding 20px
+  transition-property width padding
+  transition-duration 0.5s
+  transition-timing-function ease-in-out
+
+  &.hide
+    width 0
+    padding 20px 0
 
   .spacer
     flex 1
@@ -311,6 +322,7 @@ const includedConstraints = computed(() => {
       .header-text
         font-size 1.5rem
         line-height 0
+        white-space nowrap
     .control-selector
       margin 10px 30px
       min-height unset

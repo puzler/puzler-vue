@@ -6,7 +6,7 @@ import PuzzleGrid from './PuzzleGrid.vue'
 import ControlPad from './ControlPad.vue'
 import ColorPaletteEditor from './ColorPaletteEditor.vue'
 import SettingsEditor from './SettingsEditor.vue'
-import type { Puzzle, Address } from '@/graphql/generated/types'
+import type { Address } from '@/graphql/generated/types'
 import {
   Controller,
   ControllerMode,
@@ -16,14 +16,15 @@ import {
 } from '@/types'
 
 const props = defineProps<{
-  rawPuzzle?: Puzzle;
+  puzzle: PuzzleSolve
+  hideTimer?: boolean
+  disableControls?: boolean
+  outlineSpacerCells?: boolean
 }>()
 
 const settingsStore = useSettingStore()
 const colorStore = useColorStore()
 const colorPalette = colorStore.palette
-
-const puzzle = ref(new PuzzleSolve({ puzzle: props.rawPuzzle, size: 9 }))
 
 const playTimerOnVisible = ref(false)
 const timer = ref(new Timer())
@@ -32,21 +33,34 @@ const selecting = ref(false)
 const deselecting = ref(false)
 const lastSelected = ref(null as null|Address)
 
-if (!settingsStore.userSettings.startPaused) {
-  if (document.visibilityState === 'visible') {
-    timer.value.play()
-  } else {
-    playTimerOnVisible.value = true
+const emit = defineEmits([
+  'spacer-click',
+  'spacer-enter',
+  'spacer-double-click',
+  'cell-click',
+  'cell-enter',
+  'cell-double-click',
+])
+
+if (!props.hideTimer) {
+  if (!settingsStore.userSettings.startPaused) {
+    if (document.visibilityState === 'visible') {
+      timer.value.play()
+    } else {
+      playTimerOnVisible.value = true
+    }
   }
 }
 
 function setTimerByVisibility() {
-  if (document.visibilityState === 'visible' && timer.value.paused && playTimerOnVisible.value) {
-    timer.value.play()
-    playTimerOnVisible.value = false
-  } else if (document.visibilityState === 'hidden' && !timer.value.paused) {
-    timer.value.pause()
-    playTimerOnVisible.value = true
+  if (!props.hideTimer) {
+    if (document.visibilityState === 'visible' && timer.value.paused && playTimerOnVisible.value) {
+      timer.value.play()
+      playTimerOnVisible.value = false
+    } else if (document.visibilityState === 'hidden' && !timer.value.paused) {
+      timer.value.pause()
+      playTimerOnVisible.value = true
+    }
   }
 }
 
@@ -82,6 +96,8 @@ onUnmounted(() => {
 })
 
 function resetSelecting() {
+  if (props.disableControls) return
+
   selecting.value = false
   deselecting.value = false
 }
@@ -108,7 +124,9 @@ const clearCorner = (cells: Array<PuzzleSolveCell>) => cells.forEach(
 )
 
 function handleEraseInput() {
-  const selected = puzzle.value.selectedCells
+  if (props.disableControls) return
+
+  const selected = props.puzzle.selectedCells
   const nonGiven = selected.filter(
     (cell) => !cell.given
   )
@@ -169,6 +187,8 @@ function handleEraseInput() {
 }
 
 function handleActionInput(action: string, args = {} as Record<string, any>) {
+  if (props.disableControls) return
+
   switch (action) {
     case 'delete':
       return handleEraseInput()
@@ -186,7 +206,7 @@ function handleActionInput(action: string, args = {} as Record<string, any>) {
     case 'setControllerMode':
       return controller.value.mode = args.mode
     case 'checkSolution': {
-      if (puzzle.value.checkSolution()) {
+      if (props.puzzle.checkSolution()) {
         timer.value.pause()
         return modalActivators.correctSolution.click()
       } else {
@@ -197,7 +217,9 @@ function handleActionInput(action: string, args = {} as Record<string, any>) {
 }
 
 function handleDigitInput(digit: number) {
-  let targetCells = puzzle.value.selectedCells
+  if (props.disableControls) return
+
+  let targetCells = props.puzzle.selectedCells
   if (controller.value.activeMode !== ControllerMode.color) {
     targetCells = targetCells.filter((cell) => !cell.given)
     if (controller.value.activeMode !== ControllerMode.digit) {
@@ -213,7 +235,7 @@ function handleDigitInput(digit: number) {
         targetCells.forEach((cell) => cell.digit = digit)
       }
 
-      if (settingsStore.userSettings.checkOnFinish && puzzle.value.checkSolution()) {
+      if (settingsStore.userSettings.checkOnFinish && props.puzzle.checkSolution()) {
         timer.value.pause()
         modalActivators.correctSolution.click()
       }
@@ -287,6 +309,8 @@ function releaseTempMode(event: KeyboardEvent) {
 }
 
 function keyboardInput(event: KeyboardEvent) {
+  if (props.disableControls) return
+
   if (/^(Digit|Numpad)\d$/.test(event.code)) {
     handleDigitInput(
       parseInt(event.code.charAt(event.code.length - 1), 10),
@@ -307,7 +331,7 @@ function keyboardInput(event: KeyboardEvent) {
     }
   } else if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
     if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
-      puzzle.value.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
+      props.puzzle.cells.forEach((row) => row.forEach((cell) => cell.selected = true))
       event.stopImmediatePropagation()
       event.stopPropagation()
       event.preventDefault()
@@ -317,7 +341,7 @@ function keyboardInput(event: KeyboardEvent) {
     if (lastSelected.value === null) return
 
     const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
-    if (!addToCurrentSelections) puzzle.value.deselectAll()
+    if (!addToCurrentSelections) props.puzzle.deselectAll()
     
     let { row, column } = lastSelected.value
     switch (event.code) {
@@ -341,12 +365,12 @@ function keyboardInput(event: KeyboardEvent) {
         throw 'Unknown code'
     }
 
-    if (row < 0) row = puzzle.value.size - 1
-    if (row > puzzle.value.size - 1) row = 0
-    if (column < 0) column = puzzle.value.size - 1
-    if (column > puzzle.value.size - 1) column = 0
+    if (row < 0) row = props.puzzle.size - 1
+    if (row > props.puzzle.size - 1) row = 0
+    if (column < 0) column = props.puzzle.size - 1
+    if (column > props.puzzle.size - 1) column = 0
 
-    const target = puzzle.value.cellAt({ row, column })
+    const target = props.puzzle.cellAt({ row, column })
     if (!target.selected) {
       target.selected = true
       lastSelected.value = target.address
@@ -363,6 +387,9 @@ function keyboardInput(event: KeyboardEvent) {
 }
 
 function cellEnter(event: PointerEvent, cell: PuzzleSolveCell) {
+  emit('cell-enter', event, cell)
+  if (props.disableControls) return
+
   if (selecting.value) {
     cell.selected = true
     lastSelected.value = cell.address
@@ -376,10 +403,12 @@ function cellClick(event: PointerEvent, cell?: PuzzleSolveCell) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
+  emit('cell-click', event, cell)
+  if (props.disableControls) return
 
   const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
   if (!addToCurrentSelections) {
-    puzzle.value.deselectAll()
+    props.puzzle.deselectAll()
     selecting.value = true
     if (cell) {
       cell.selected = true
@@ -400,11 +429,13 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   if (event.target instanceof HTMLElement) {
     event.target.releasePointerCapture(event.pointerId)
   }
+  emit('cell-double-click', event, cell)
+  if (props.disableControls) return
 
   selecting.value = true
   const addToCurrentSelections = event.shiftKey || event.metaKey || event.altKey || event.ctrlKey
   if (!addToCurrentSelections) {
-    puzzle.value.deselectAll()
+    props.puzzle.deselectAll()
   }
   lastSelected.value = cell.address
 
@@ -428,7 +459,7 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     return
   }
 
-  puzzle.value.cells.forEach((row) => {
+  props.puzzle.cells.forEach((row) => {
     row.forEach((checkCell) => {
       switch (modeToTarget) {
         case ControllerMode.digit:
@@ -477,18 +508,23 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     :activator="modalActivators.incorrectSolution"
   )
     .message-modal Something seems wrong
-  .puzzle-grid-container
+  .puzzle-grid-container(:class="{ 'controls-hidden': disableControls }")
     PuzzleGrid(
       :puzzle="puzzle"
-      :timer="timer"
+      :timer="hideTimer ? { paused: false } : timer"
+      :outlineSpacerCells="outlineSpacerCells"
       v-on:cell-enter="cellEnter"
       v-on:cell-click="cellClick"
       v-on:cell-double-click="cellDoubleClick"
+      v-on:spacer-enter="(event, cell) => emit('spacer-enter', event, cell)"
+      v-on:spacer-click="(event, cell) => emit('spacer-click', event, cell)"
+      v-on:spacer-double-click="(event, cell) => emit('spacer-double-click', event, cell)"
       v-on:play-puzzle="timer.play()"
     )
   ControlPad(
-    :timer="timer"
+    :timer="hideTimer ? null : timer"
     :controller="controller"
+    :hide="disableControls"
     v-on:numpad-click="handleDigitInput"
     v-on:action-click="handleActionInput"
   )
@@ -512,6 +548,10 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     max-height calc(79cqw - 20px)
     max-width calc(79cqw - 20px)
     container-type inline-size
+
+    &.controls-hidden
+      max-height 100cqmin
+      max-width 100cqmin
 
 .message-modal
   background-color white

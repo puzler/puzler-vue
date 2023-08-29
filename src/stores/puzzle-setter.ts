@@ -16,15 +16,16 @@ import {
   CosmeticCageController,
   CellColorController,
   CosmeticTextController,
+  CosmeticLineController,
 } from '@/types/setting-mode-controllers'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   const puzzle = ref(new PuzzleSolve({ size: 9 }))
-  const settingMode = ref('Given')
+  const settingMode = ref('Given' as null|string)
   const modeController = ref(
     new GivenDigitController(
       puzzle.value as PuzzleSolve
-    ) as SettingModeController
+    ) as SettingModeController|null
   )
 
   function newPuzzle(size: number) {
@@ -34,7 +35,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     modeController.value?.setup()
   }
 
-  function controllerForMode(mode: string): void|SettingModeController {
+  function controllerForMode(mode: string|null): void|SettingModeController {
     switch (mode) {
       case 'Given':
         return new GivenDigitController(puzzle.value as PuzzleSolve)
@@ -95,20 +96,20 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       case 'Cages': return new CosmeticCageController(puzzle.value as PuzzleSolve)
       case 'Cell Colors': return new CellColorController(puzzle.value as PuzzleSolve)
       case 'Text': return new CosmeticTextController(puzzle.value as PuzzleSolve)
+      case 'Lines': return new CosmeticLineController(puzzle.value as PuzzleSolve)
     }
   }
 
   modeController.value?.setup()
 
-  function setMode(mode: string) {
+  function setMode(mode: string|null) {
     const newController = controllerForMode(mode)
-    if (newController) {
-      modeController.value.reset()
-      settingMode.value = mode
-      puzzle.value.deselectAll()
-      modeController.value = newController
-      modeController.value?.setup()
-    }
+
+    modeController.value?.reset()
+    settingMode.value = mode
+    puzzle.value.deselectAll()
+    modeController.value = newController || null
+    modeController.value?.setup()
   }
 
   const constraintNameMap = {

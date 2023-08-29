@@ -96,7 +96,7 @@ class LineController extends SettingModeController {
     this.removeOnMouseup = null
     if (this.currentLine) {
       const cellIndex = this.currentLine.points.findIndex(
-        ({ row, column }) => cell.address.row === row && cell.address.column === column
+        (address) => this.addressesAreEqual(address, cell.address)
       )
 
       if (cellIndex === -1) {

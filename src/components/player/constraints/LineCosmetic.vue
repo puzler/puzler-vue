@@ -26,7 +26,7 @@ function colorToRGBA(color: Color) {
 path.custom-line(
   :d="linePath"
   :stroke="colorToRGBA(line.color)"
-  :stroke-width="line.width * 50"
+  :stroke-width="line.width * 100"
 )
 </template>
 

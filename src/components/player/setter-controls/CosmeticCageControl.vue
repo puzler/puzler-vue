@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { Color } from '@/graphql/generated/types';
+import type { Color } from '@/graphql/generated/types'
 import usePuzzleSetterStore from '@/stores/puzzle-setter'
 import { CosmeticCageController } from '@/types/setting-mode-controllers'
-import { ref } from 'vue';
-import { computed } from 'vue';
+import { ref } from 'vue'
+import { computed } from 'vue'
 
 const puzzleStore = usePuzzleSetterStore()
 

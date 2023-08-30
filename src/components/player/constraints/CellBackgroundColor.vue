@@ -69,7 +69,7 @@ const colorPaths = computed(() => {
         'v100',
         'h-100',
         'v-100',
-      ],
+      ].join(' '),
       color: transparentColor(props.colors[0]),
     }]
   }

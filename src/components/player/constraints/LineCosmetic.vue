@@ -14,7 +14,7 @@ const linePath = computed(() => {
     ...rest.map(
       ({ column, row }) => `L${column * 100} ${row * 100}`,
     ),
-  ]
+  ].join(' ')
 })
 
 function colorToRGBA(color: Color) {

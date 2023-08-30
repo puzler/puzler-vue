@@ -27,7 +27,7 @@ const arrowPath = computed(() => {
     `v${top ? 15 : -15}`,
     `M${arrowPoint.x} ${arrowPoint.y}`,
     `L${arrowPoint.x - (left ? -15 : 15)} ${arrowPoint.y - (top ? -15 : 15)}`
-  ]
+  ].join(' ')
 })
 </script>
 

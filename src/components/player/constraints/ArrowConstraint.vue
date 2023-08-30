@@ -29,7 +29,7 @@ const bulbPath = computed(() => {
     pathData.push('l0 0')
   }
 
-  return pathData
+  return pathData.join(' ')
 })
 
 const linePaths = computed(() => {
@@ -77,10 +77,10 @@ const linePaths = computed(() => {
 
       return [
         ...paths,
-        pathData,
+        pathData.join(' '),
       ]
     },
-    [] as Array<Array<string>>,
+    [] as Array<string>,
   )
 })
 </script>

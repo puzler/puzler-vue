@@ -199,7 +199,7 @@ const pathData = computed(() => {
     data[data.length - 1] = `L${startXY.value.x} ${startXY.value.y + 16}`
   }
   
-  return data
+  return data.join(' ')
 })
 </script>
 

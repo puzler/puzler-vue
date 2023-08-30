@@ -32,10 +32,10 @@ const linePaths = computed(() => {
 
       return [
         ...list,
-        pathData,
+        pathData.join(' '),
       ]
     },
-    [] as Array<Array<string>>,
+    [] as Array<string>,
   )
 })
 

@@ -102,7 +102,7 @@ const indicatorPaths = computed(() => {
     ])
   }
 
-  return paths
+  return paths.map((path) => path.join(' '))
 })
 </script>
 

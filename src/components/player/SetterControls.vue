@@ -88,6 +88,7 @@ const includedConstraints = computed(() => {
         placeholder="Untitled Puzzle"
         :hide-details="true"
         density="compact"
+        v-on:keydown.stop
       )
       v-text-field.text-control.author(
         :class="{ 'dark-placeholder': authStore.authenticated }"
@@ -97,6 +98,7 @@ const includedConstraints = computed(() => {
         :placeholder="authorPlaceholder"
         :hide-details="true"
         density="compact"
+        v-on:keydown.stop
       )
   .grid-controls
     v-btn.control-selector(

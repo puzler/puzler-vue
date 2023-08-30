@@ -73,7 +73,7 @@ const outerGridPath = computed(() => {
     `v${sideLength}`,
     `h-${sideLength}`,
     `v-${sideLength}`,
-  ]
+  ].join(' ')
 })
 
 const spacerOutlines = computed(() => {
@@ -96,7 +96,7 @@ const spacerOutlines = computed(() => {
     )
   }
 
-  return paths
+  return paths.join(' ')
 })
 
 const regionBordersPath = computed(() => {
@@ -124,7 +124,7 @@ const regionBordersPath = computed(() => {
 
       return paths
     })
-  })
+  }).join(' ')
 })
 
 const spacerCounts = computed(() => {
@@ -259,7 +259,7 @@ const selectionBorderPaths = computed(() => {
     path.pop
   })
 
-  return path
+  return path.join(' ')
 })
 
 const errorAddresses = computed(() => props.puzzle.errorAddresses)
@@ -316,11 +316,11 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
     g.diagonals(v-if="!displayRegions")
       path.diagonal-path(
         v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.negative"
-        :d="`M-50 -50, L${(puzzle.size * 100) - 50} ${(puzzle.size * 100) - 50}`"
+        :d="`M-50 -50 L${(puzzle.size * 100) - 50} ${(puzzle.size * 100) - 50}`"
       )
       path.diagonal-path(
         v-if="puzzle.puzzleData.globalConstraints.diagonals && puzzle.puzzleData.globalConstraints.diagonals.positive"
-        :d="`M-50 ${(puzzle.size * 100) - 50}, L${(puzzle.size * 100) - 50} -50`"
+        :d="`M-50 ${(puzzle.size * 100) - 50} L${(puzzle.size * 100) - 50} -50`"
       )
     g.cages(v-if="!displayRegions")
       KillerCage(
@@ -342,10 +342,10 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
         :key="`row-col-group-${i}}`"
       )
         path.cell-border(
-          :d="`M${(i * 100) - 50} -50,v${puzzle.size * 100}`"
+          :d="`M${(i * 100) - 50} -50 v${puzzle.size * 100}`"
         )
         path.cell-border(
-          :d="`M-50 ${(i * 100) - 50},h${puzzle.size * 100}`"
+          :d="`M-50 ${(i * 100) - 50} h${puzzle.size * 100}`"
         )
       path.region-borders(
         :d="regionBordersPath"

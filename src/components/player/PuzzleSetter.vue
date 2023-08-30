@@ -63,9 +63,7 @@ const gridProps = computed(() => ({
         v-on:click="modalActivators.newGrid.click()"
       )
         v-icon(icon="mdi-plus")
-      v-menu(
-
-      )
+      v-menu
         template(v-slot:activator="{ props }")
           v-btn(
             variant="plain"

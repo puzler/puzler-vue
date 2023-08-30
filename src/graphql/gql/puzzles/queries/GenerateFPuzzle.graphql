@@ -1,0 +1,3 @@
+query GenerateFPuzzle($puzzle: PuzzleInput!) {
+  generateFPuzzle(puzzle: $puzzle)
+}

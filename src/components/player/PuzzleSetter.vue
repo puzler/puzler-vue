@@ -63,10 +63,22 @@ const gridProps = computed(() => ({
         v-on:click="modalActivators.newGrid.click()"
       )
         v-icon(icon="mdi-plus")
-      v-btn(
-        variant="plain"
+      v-menu(
+
       )
-        v-icon(icon="mdi-export")
+        template(v-slot:activator="{ props }")
+          v-btn(
+            variant="plain"
+            v-bind="props"
+          )
+            v-icon(icon="mdi-export")
+        v-list
+          v-list-item(
+            v-for="destination in ['puzler', 'CtC', 'fPuzzles']"
+            :key="destination"
+            v-on:click="puzzleStore.exportPuzzle(destination)"
+          )
+            v-list-item-title {{ destination }}
       v-btn(
         variant="plain"
       )

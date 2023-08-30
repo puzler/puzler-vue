@@ -332,6 +332,7 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
       :d="selectionBorderPaths"
     )
     path.spacer-outlines(
+      v-if="outlineSpacerCells"
       :d="spacerOutlines"
     )
     g.grid-lines

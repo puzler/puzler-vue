@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { defineStore } from 'pinia'
 import { PuzzleSolve } from '@/types'
 import {
@@ -19,6 +19,11 @@ import {
   CosmeticLineController,
   RegionEditorController,
 } from '@/types/setting-mode-controllers'
+import type { PuzzleInput } from '@/graphql/generated/types'
+
+import graphql from '@/plugins/graphql'
+import GenerateFPuzzleQuery from '@/graphql/gql/puzzles/queries/GenerateFPuzzle.graphql'
+import { faListCheck } from '@fortawesome/free-solid-svg-icons'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   const puzzle = ref(new PuzzleSolve({ size: 9 }))
@@ -230,6 +235,100 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     delete dataGroup[key]
   }
 
+  const destinationUrls = {
+    puzler: {
+      baseUrl: `${window.location.origin}/solve?fPuzzle=`,
+      encode: faListCheck,
+    },
+    CtC: {
+      baseUrl: 'https://app.crackingthecryptic.com/sudoku/?puzzleid=fpuzzles',
+      encode: true,
+    },
+    fPuzzles: {
+      baseUrl: 'https://www.f-puzzles.com/?load=',
+      encode: false,
+    },
+  }
+
+  function trimTypenames(obj: Record<string, any>|Array<any>): any {
+     if (Array.isArray(obj)) {
+      const newArr = obj.map(
+        (item) => {
+          if (Array.isArray(item) || item instanceof Object) {
+            return trimTypenames(item)
+          }
+
+          return item
+        }
+      )
+
+      return newArr
+    } else if (obj instanceof Object) {
+      return Object.keys(obj).reduce(
+        (newObj, key) => {
+          if (key === '__typename') return newObj
+          const val = obj[key]
+          if (Array.isArray(val) || val instanceof Object) {
+            const newVal = trimTypenames(val)
+
+            return {
+              ...newObj,
+              [key]: newVal,
+            }
+          }
+          return { ...newObj, [key]: val }
+        },
+        {} as Record<string, any>
+      )
+    }
+  }
+
+  const puzzleInput = computed(() => {
+    const input = JSON.parse(JSON.stringify(puzzle.value.puzzleData))
+
+    delete input.visibility
+    delete input.user
+
+    for (let i = 0; i < (input.localConstraints.differenceDots?.length || 0); i += 1) {
+      delete input.localConstraints.differenceDots[i].location
+    }
+
+    for (let i = 0; i < (input.localConstraints.ratioDots?.length || 0); i += 1) {
+      delete input.localConstraints.ratioDots[i].location
+    }
+
+    for (let i = 0; i < (input.localConstraints.quadruples?.length || 0); i += 1) {
+      delete input.localConstraints.quadruples[i].location
+    }
+
+    for (let i = 0; i < (input.localConstraints.xv?.length || 0); i += 1) {
+      delete input.localConstraints.xv[i].location
+    }
+
+    const parsed = trimTypenames(input) as PuzzleInput
+    return parsed
+  })
+
+  async function convertToFPuzzle() {
+    const response = await graphql.query({
+      query: GenerateFPuzzleQuery,
+      variables: {
+        puzzle: puzzleInput.value as PuzzleInput,
+      },
+    })
+
+    return response.data.generateFPuzzle
+  }
+
+  async function exportPuzzle(destination: keyof typeof destinationUrls) {
+    const { baseUrl, encode } = destinationUrls[destination]
+    let base64 = await convertToFPuzzle()
+    if (encode) base64 = encodeURIComponent(base64)
+    const fullLink = `${baseUrl}${base64}`
+
+    window.open(fullLink, '_blank')
+  }
+
   return {
     puzzle: puzzle as Ref<PuzzleSolve>,
     settingMode,
@@ -239,6 +338,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     setMode,
     addElementToPuzzle,
     removeElementFromPuzzle,
+    exportPuzzle,
   }
 })
 

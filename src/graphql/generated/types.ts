@@ -218,6 +218,14 @@ export type CellBackgroundColor = SingleCell & {
   colors: Array<Color>;
 };
 
+/** Input for a single cell background color cosmetic */
+export type CellBackgroundColorInput = {
+  /** The cell for the element */
+  cell: AddressInput;
+  /** The background colors for the cell */
+  colors: Array<ColorInput>;
+};
+
 /** A constraint that connects multiple cells */
 export type CellConnector = {
   /** Cells included in the constraint */
@@ -376,6 +384,8 @@ export type CosmeticElements = {
 export type CosmeticElementsInput = {
   /** Cosmetic Cages */
   cages?: InputMaybe<Array<CageInput>>;
+  /** Cell Background Colors */
+  cellBackgroundColors?: InputMaybe<Array<CellBackgroundColorInput>>;
   /** Cosmetic Circles */
   circles?: InputMaybe<Array<CosmeticShapeInput>>;
   /** Cosmetic Lines */
@@ -612,6 +622,16 @@ export type GridCell = {
   given?: Maybe<Scalars['Boolean']['output']>;
   /** The region the cell belongs to */
   region: Scalars['Int']['output'];
+};
+
+/** Input for a Grid Cell */
+export type GridCellInput = {
+  /** The given digit for the cell */
+  digit?: InputMaybe<Scalars['Int']['input']>;
+  /** If the cell contains a given digit */
+  given?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The cell's region */
+  region: Scalars['Int']['input'];
 };
 
 /** A Killer Cage */
@@ -946,6 +966,8 @@ export type PuzlerQueries = AuthQueries & PuzzleQueries & {
   __typename?: 'PuzlerQueries';
   /** Fetch a Puzzle */
   fetchPuzzle?: Maybe<Puzzle>;
+  /** Convert a Puzzle to a compressed Base64 string in fPuzzle format */
+  generateFPuzzle: Scalars['String']['output'];
   /** Load a Puzzle from FPuzzles from a compressed Base64 string */
   loadFPuzzle?: Maybe<Puzzle>;
   /** The currently logged in User */
@@ -956,6 +978,12 @@ export type PuzlerQueries = AuthQueries & PuzzleQueries & {
 /** The base Query Object */
 export type PuzlerQueriesFetchPuzzleArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** The base Query Object */
+export type PuzlerQueriesGenerateFPuzzleArgs = {
+  puzzle: PuzzleInput;
 };
 
 
@@ -997,14 +1025,12 @@ export type Puzzle = {
 export type PuzzleInput = {
   /** Puzzle Author */
   author?: InputMaybe<Scalars['String']['input']>;
+  /** Given Digits */
+  cells: Array<Array<GridCellInput>>;
   /** Cosmetic Elements */
   cosmetics?: InputMaybe<CosmeticElementsInput>;
-  /** Given Digits */
-  givenDigits: Array<Array<InputMaybe<Scalars['Int']['input']>>>;
   /** Global Constraints */
   globalConstraints?: InputMaybe<GlobalConstraintsInput>;
-  /** Grid Regions */
-  gridRegions: Array<Array<Scalars['Int']['input']>>;
   /** Local Constratints */
   localConstraints?: InputMaybe<LocalConstraintsInput>;
   /** Puzzle Rules */
@@ -1031,6 +1057,8 @@ export type PuzzleMutationsCreatePuzzleArgs = {
 export type PuzzleQueries = {
   /** Fetch a Puzzle */
   fetchPuzzle?: Maybe<Puzzle>;
+  /** Convert a Puzzle to a compressed Base64 string in fPuzzle format */
+  generateFPuzzle: Scalars['String']['output'];
   /** Load a Puzzle from FPuzzles from a compressed Base64 string */
   loadFPuzzle?: Maybe<Puzzle>;
 };
@@ -1039,6 +1067,12 @@ export type PuzzleQueries = {
 /** Base Query object for Puzzles */
 export type PuzzleQueriesFetchPuzzleArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Base Query object for Puzzles */
+export type PuzzleQueriesGenerateFPuzzleArgs = {
+  puzzle: PuzzleInput;
 };
 
 

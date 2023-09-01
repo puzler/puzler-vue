@@ -1,5 +1,3 @@
-import WebWorkerSolver from '@/assets/vendor/SudokuSolver-WebWorker'
-
 type SolverGridCell = {
   region?: number
   value?: number
@@ -43,7 +41,8 @@ class SudokuSolver {
   }
 
   private setupWorker() {
-    this.worker = WebWorkerSolver.newWorker()
+    this.worker?.terminate()
+    this.worker = new Worker(new URL('@charliepugh92/sudokusolver-webworker', import.meta.url))
 
     this.worker.onmessage = ({ data }) => {
       switch (data.result) {

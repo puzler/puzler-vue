@@ -24,7 +24,7 @@ jobs:
         run: npm i -g @railway/cli
 
       - name: Run Lint
-        run: npm lint
+        run: npm run lint
 
       - name: Deploy
         run: railway up --service puzler-vue

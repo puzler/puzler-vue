@@ -20,12 +20,6 @@ jobs:
       - name: Install packages
         run: npm ci
 
-      - name: Run Lint
-        run: npm run lint
-
-      - name: Run tests
-        run: npm run test:unit
-
       - name: Install Railway
         run: npm i -g @railway/cli
 

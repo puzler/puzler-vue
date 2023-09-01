@@ -11,8 +11,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: true
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -25,8 +23,8 @@ jobs:
       - name: Install Railway
         run: npm i -g @railway/cli
 
-      - name: Setup Git Submodules
-        run: git submodule update --init --recursive
+      - name: Run Lint
+        run: npm lint
 
       - name: Deploy
         run: railway up --service puzler-vue

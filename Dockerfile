@@ -7,8 +7,8 @@ COPY package.json .
 COPY package-lock.json .
 RUN npm install
 
-RUN git submodule update --init --recursive
 COPY . ./
+RUN git submodule update --init --recursive
 RUN npm run build
 
 ARG PORT

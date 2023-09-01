@@ -29,6 +29,6 @@ jobs:
         run: git submodule update --init --recursive
 
       - name: Deploy
-        run: railway up
+        run: railway up --service puzler-vue
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

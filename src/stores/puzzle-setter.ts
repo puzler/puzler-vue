@@ -1,6 +1,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { defineStore } from 'pinia'
 import { PuzzleSolve } from '@/types'
+import SudokuSolver, { type CandidatesList, type SolverBoard } from '@/types/sudoku-solver'
 import {
   GivenDigitController,
   ThermometerController,
@@ -27,12 +28,180 @@ import { faListCheck } from '@fortawesome/free-solid-svg-icons'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   const puzzle = ref(new PuzzleSolve({ size: 9 }))
-  const settingMode = ref('Given' as null|string)
-  const modeController = ref(
-    new GivenDigitController(
-      puzzle.value as PuzzleSolve
-    ) as SettingModeController|null
-  )
+
+  const settingMode = ref(null as null|string)
+  const modeController = ref(null as SettingModeController|null)
+  setMode('Given')
+
+  const solver = new SudokuSolver({
+    onSolution: (solution: Array<number>) => {
+      solution.forEach((value, index) => {
+        const row = Math.floor(index / puzzle.value.size)
+        const column = index % puzzle.value.size
+  
+        puzzle.value.cells[row][column].digit = value
+      })
+      currentSolverCommand.value = null
+    },
+    onInvalid: () => {
+      solverDisplay.value = 'Board is Invalid!'
+      currentSolverCommand.value = null
+    },
+    onCancelled: () => {
+      solverDisplay.value = 'Cancelled Action'
+      currentSolverCommand.value = null
+    },
+    onNoSolution: () => {
+      solverDisplay.value = 'No Solution Found'
+      currentSolverCommand.value = null
+    },
+    onCount: (count, complete, cancelled) => {
+      if (complete || cancelled) {
+        if (complete) {
+          if (count === 0) {
+            solverDisplay.value = 'There are no solutions'
+          } else if (count === 1) {
+            solverDisplay.value = 'There is a unique solution'
+          } else if (currentSolverCommand.value === 'count') {
+            solverDisplay.value = `There are exacly ${count} solutions`
+          } else {
+            solverDisplay.value = 'There are multiple solutions'
+          }
+        } else {
+          solverDisplay.value = `There are at least ${count} solutions`
+        }
+        currentSolverCommand.value = null
+      } else {
+        solverDisplay.value = `Found ${count} solutions so far...`
+      }
+    },
+    onTrueCandidates: (candidates, counts) => {
+      console.log(candidates, counts)
+      applySolverCandidates(candidates)
+      currentSolverCommand.value = null
+    },
+    onStep: (desc, invalid, changed, candidates) => {
+      console.log(invalid, changed)
+      solverDisplay.value += `\n${desc}`
+      applySolverCandidates(candidates)
+      
+      currentSolverCommand.value = null
+    },
+    onLogicalSolve: (desc, invalid, changed, candidates) => {
+      console.log(invalid, changed)
+      solverDisplay.value = desc.join("\n")
+      applySolverCandidates(candidates)
+
+      currentSolverCommand.value = null
+    },
+  })
+
+  const solverDisplay = ref('')
+  const currentSolverCommand = ref(null as null|string)
+  const autoTrueCandidates = ref(false)
+
+  function applySolverCandidates(candidates?: CandidatesList) {
+    candidates?.forEach((cellCandidates, index) => {
+      const row = Math.floor(index / puzzle.value.size)
+      const column = index % puzzle.value.size
+
+      if (Array.isArray(cellCandidates)) {
+        if (cellCandidates.length === 1) {
+          puzzle.value.cells[row][column].digit = cellCandidates[0]
+        } else {
+          puzzle.value.cells[row][column].centerMarks = [...cellCandidates]
+        }
+      } else {
+        puzzle.value.cells[row][column].digit = cellCandidates.value
+      }
+    })
+  }
+
+  const boardForSolver = computed(() => {
+    const data = puzzle.value.puzzleData
+    return {
+      size: data.size,
+      grid: data.cells.map((rowCells, row) => rowCells.map(
+        (cell, col) => ({
+          region: cell.region,
+          value: cell.digit,
+          given: cell.given,
+          givenPencilMarks: [...puzzle.value.cells[row][col].cornerMarks],
+          givenCenterMarks: [...puzzle.value.cells[row][col].centerMarks],
+        })
+      ))
+    } as SolverBoard
+  })
+
+  function solve() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'solve'
+    solver.solve(boardForSolver.value)
+  }
+
+  function countSolutions() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'count-solutions'
+    solver.count(boardForSolver.value)
+  }
+
+  function trueCandidates() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'true-candidates'
+    solver.trueCandidates(boardForSolver.value)
+  }
+
+  function logicalStep() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'logical-step'
+    solver.step(boardForSolver.value)
+  }
+
+  function logicalSolve() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'logical-solve'
+    solver.logicalSolve(boardForSolver.value)
+  }
+
+  function checkPuzzle() {
+    if (currentSolverCommand.value) solver.cancel()
+
+    currentSolverCommand.value = 'check-puzzle'
+    solver.count(
+      boardForSolver.value,
+      { maxSolutions: 2 },
+    )
+  }
+
+  function cancelSolverOperation() {
+    solver.cancel()
+  }
+
+  function puzzleChanged() {
+    if (autoTrueCandidates.value) {
+      trueCandidates()
+    }
+  }
+
+  function clearGrid() {
+    puzzle.value.cells.forEach(
+      (rowCells) => rowCells.forEach(
+        (cell) => {
+          if (!cell.given) {
+            cell.digit = null
+            cell.centerMarks = []
+            cell.cornerMarks = []
+            cell.cellColors = []
+          }
+        }
+      )
+    )
+  }
 
   function newPuzzle(size: number) {
     puzzle.value = new PuzzleSolve({ size })
@@ -107,10 +276,12 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     const newController = controllerForMode(mode)
 
     modeController.value?.reset()
+    modeController.value?.removeInputListener(puzzleChanged)
     settingMode.value = mode
     puzzle.value.deselectAll()
     modeController.value = newController || null
     modeController.value?.setup()
+    modeController.value?.addInputListener(puzzleChanged)
   }
 
   const constraintNameMap = {
@@ -224,7 +395,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       globalConstraints,
       cosmetics
     } = puzzle.value.puzzleData
-    
+  
     const { group, key } = constraintKeyMap[element]
     const dataGroup = {
       local: localConstraints,
@@ -334,6 +505,17 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     settingMode,
     modeController,
     constraintNameMap,
+    solverDisplay,
+    currentSolverCommand,
+    autoTrueCandidates,
+    clearGrid,
+    solve,
+    countSolutions,
+    trueCandidates,
+    logicalStep,
+    logicalSolve,
+    checkPuzzle,
+    cancelSolverOperation,
     newPuzzle,
     setMode,
     addElementToPuzzle,

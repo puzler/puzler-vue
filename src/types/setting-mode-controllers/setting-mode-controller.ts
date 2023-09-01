@@ -24,6 +24,7 @@ abstract class SettingModeController {
   selecting = false
   deselecting = false
   lastSelected = null as null|Address
+  inputListeners = [] as Array<() => void>
 
   input(args: any) {
     if (!this.puzzle) return
@@ -31,6 +32,16 @@ abstract class SettingModeController {
     if (this.onInput) {
       this.onInput(args)
     }
+
+    this.inputListeners.forEach((listener) => listener())
+  }
+
+  addInputListener(listener: () => void) {
+    this.inputListeners.push(listener)
+  }
+
+  removeInputListener(listener: () => void) {
+    this.inputListeners.filter((check) => check !== listener)
   }
 
   addressesAreEqual(a: Address, b: Address) {

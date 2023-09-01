@@ -1,0 +1,3 @@
+[submodule "src/assets/vendor/SudokuSolver-WebWorker"]
+	path = src/assets/vendor/SudokuSolver-WebWorker
+	url = git@github.com:charliepugh92/SudokuSolver-WebWorker.git

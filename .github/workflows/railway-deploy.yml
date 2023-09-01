@@ -12,16 +12,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Use Node 12
+      - name: Setup Node
         uses: actions/setup-node@v1
-        with:
-          node-version: 12.x
 
       - name: Install packages
-        run: yarn install --frozen-lockfile
+        run: npm ci
+
+      - name: Run Lint
+        run: npm run lint
 
       - name: Run tests
-        run: yarn test
+        run: npm run test:unit
 
       - name: Install Railway
         run: npm i -g @railway/cli

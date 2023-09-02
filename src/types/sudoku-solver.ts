@@ -1,10 +1,9 @@
-type SolverGridCell = {
-  region?: number
-  value?: number
-  given?: boolean
-  givenPencilMarks?: Array<number>
-  givenCenterMarks?: Array<number>
-}
+import { deepToRaw } from '@/utils/deep-unref'
+import type { Address } from "@/graphql/generated/types"
+import type PuzzleSolve from "./puzzle-solve"
+import type { BoardDefinition } from '@charliepugh92/sudokusolver-webworker'
+import JSONfn from 'json-fn'
+import type { PuzzleSolveCell } from '.'
 
 type SolverConstructor = {
   onSolution?: (solution: Array<number>) => void
@@ -19,9 +18,20 @@ type SolverConstructor = {
 
 export type CandidatesList = Array<Array<number>|{ given: boolean; value: number }>
 
-export type SolverBoard = {
-  size: number
-  grid: Array<Array<SolverGridCell>>
+const SOLVER_BOARD_DEFINITION: BoardDefinition = {
+  grid: {
+    cells: (boardData: PuzzleSolve) => boardData.cells,
+    value: ({ cell }: { cell: PuzzleSolveCell }) => cell.digit,
+    centerPencilMarks: ({ cell }: { cell: PuzzleSolveCell }) => cell.centerMarks,
+  },
+  constraints: {
+    arrow: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.arrows
+      },
+    },
+  },
+  indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }
 
 class SudokuSolver {
@@ -40,10 +50,27 @@ class SudokuSolver {
     this.setupWorker()
   }
 
-  private setupWorker() {
-    this.worker?.terminate()
-    this.worker = new Worker(new URL('@charliepugh92/sudokusolver-webworker', import.meta.url))
+  private boardForWorker(board: PuzzleSolve) {
+    return deepToRaw({
+      ...board,
+      cells: board.cells.map(
+        (cellRows) => cellRows.map((cell) => {
+          return {
+            ...cell,
+            neighbors: {},
+          } as PuzzleSolveCell
+        })
+      )
+    })
+  }
 
+  private setupWorker() {
+    this.worker = new Worker(
+      new URL('@charliepugh92/sudokusolver-webworker', import.meta.url),
+      { type: 'module' }
+    )
+
+    if (!this.worker) return
     this.worker.onmessage = ({ data }) => {
       switch (data.result) {
         case 'solution':
@@ -52,7 +79,6 @@ class SudokuSolver {
           break
         case 'invalid':
           this.runningOp = null
-          console.log('invalid reached')
           if (this.onInvalid) this.onInvalid()
           break
         case 'cancelled':
@@ -81,6 +107,18 @@ class SudokuSolver {
           break
       }
     }
+
+    this.defineWorkerBoard()
+  }
+
+  defineWorkerBoard() {
+    if (!this.worker) return
+
+    this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
+      cmd: 'define',
+      definition: JSONfn.stringify(SOLVER_BOARD_DEFINITION)
+    })
   }
 
   onSolution?: (solution: Array<number>) => void
@@ -92,64 +130,70 @@ class SudokuSolver {
   onStep?: (desc: string, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
   onLogicalSolve?: (desc: Array<string>, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
 
-  solve(board: SolverBoard) {
+  solve(board: PuzzleSolve) {
+    console.log('triggering solve')
     if (!this.worker) return
     this.runningOp = 'solve'
     this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'solve',
-      board,
+      test: Math.floor(Math.random() * 10000),
+      board: this.boardForWorker(board),
       options: { random: true },
     })
   }
 
-  count(board: SolverBoard, options?: { maxSolutions?: number }) {
+  count(board: PuzzleSolve, options?: { maxSolutions?: number }) {
     if (!this.worker) return
     this.runningOp = 'count'
     this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'count',
-      board,
+      board: this.boardForWorker(board),
       options,
     })
   }
 
-  trueCandidates(board: SolverBoard) {
+  trueCandidates(board: PuzzleSolve) {
     if (!this.worker) return
     this.runningOp = 'true-candidates'
     this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'truecandidates',
-      board,
+      board: this.boardForWorker(board),
     })
   }
 
-  step(board: SolverBoard) {
+  step(board: PuzzleSolve) {
     if (!this.worker) return
     this.runningOp = 'step'
     this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'step',
-      board
+      board: this.boardForWorker(board),
     })
   }
 
-  logicalSolve(board: SolverBoard) {
+  logicalSolve(board: PuzzleSolve) {
     if (!this.worker) return
     this.runningOp = 'logical-solve'
     this.worker.postMessage({
+      cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'logicalsolve',
-      board
+      board: this.boardForWorker(board),
     })
   }
 
   cancel() {
-    console.log('hit the cancel inside', this.runningOp)
     if (!this.worker) return
     if (!this.runningOp) return
     if (['solve', 'step'].includes(this.runningOp)) {
-      console.log('hit the reset')
       this.restartWorker()
       this.runningOp = null
       if (this.onCancelled) this.onCancelled()
     } else {
       this.worker.postMessage({
+        cmdId: Math.floor(Math.random() * 1000000),
         cmd: 'cancel'
       })
     }

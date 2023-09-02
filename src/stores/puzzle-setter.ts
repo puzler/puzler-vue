@@ -1,7 +1,11 @@
-import { computed, ref, type Ref } from 'vue'
+import {
+  computed,
+  ref,
+  type Ref,
+} from 'vue'
 import { defineStore } from 'pinia'
 import { PuzzleSolve } from '@/types'
-import SudokuSolver, { type CandidatesList, type SolverBoard } from '@/types/sudoku-solver'
+import SudokuSolver, { type CandidatesList } from '@/types/sudoku-solver'
 import {
   GivenDigitController,
   ThermometerController,
@@ -76,19 +80,16 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       }
     },
     onTrueCandidates: (candidates, counts) => {
-      console.log(candidates, counts)
       applySolverCandidates(candidates)
       currentSolverCommand.value = null
     },
     onStep: (desc, invalid, changed, candidates) => {
-      console.log(invalid, changed)
       solverDisplay.value += `\n${desc}`
       applySolverCandidates(candidates)
       
       currentSolverCommand.value = null
     },
     onLogicalSolve: (desc, invalid, changed, candidates) => {
-      console.log(invalid, changed)
       solverDisplay.value = desc.join("\n")
       applySolverCandidates(candidates)
 
@@ -117,55 +118,43 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     })
   }
 
-  const boardForSolver = computed(() => {
-    const data = puzzle.value.puzzleData
-    return {
-      size: data.size,
-      grid: data.cells.map((rowCells, row) => rowCells.map(
-        (cell, col) => ({
-          region: cell.region,
-          value: cell.digit,
-          given: cell.given,
-          givenPencilMarks: [...puzzle.value.cells[row][col].cornerMarks],
-          givenCenterMarks: [...puzzle.value.cells[row][col].centerMarks],
-        })
-      ))
-    } as SolverBoard
-  })
+  function resetSolver() {
+    solver.restartWorker()
+  }
 
   function solve() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'solve'
-    solver.solve(boardForSolver.value)
+    solver.solve(puzzle.value as PuzzleSolve)
   }
 
   function countSolutions() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'count-solutions'
-    solver.count(boardForSolver.value)
+    solver.count(puzzle.value as PuzzleSolve)
   }
 
   function trueCandidates() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'true-candidates'
-    solver.trueCandidates(boardForSolver.value)
+    solver.trueCandidates(puzzle.value as PuzzleSolve)
   }
 
   function logicalStep() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'logical-step'
-    solver.step(boardForSolver.value)
+    solver.step(puzzle.value as PuzzleSolve)
   }
 
   function logicalSolve() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'logical-solve'
-    solver.logicalSolve(boardForSolver.value)
+    solver.logicalSolve(puzzle.value as PuzzleSolve)
   }
 
   function checkPuzzle() {
@@ -173,7 +162,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
 
     currentSolverCommand.value = 'check-puzzle'
     solver.count(
-      boardForSolver.value,
+      puzzle.value as PuzzleSolve,
       { maxSolutions: 2 },
     )
   }
@@ -509,6 +498,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     currentSolverCommand,
     autoTrueCandidates,
     clearGrid,
+    resetSolver,
     solve,
     countSolutions,
     trueCandidates,

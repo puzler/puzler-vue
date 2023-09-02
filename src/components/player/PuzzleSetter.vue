@@ -203,6 +203,9 @@ const solverPanelOpen = ref(false)
                   )
                   .label {{ puzzleStore.currentSolverCommand === 'check-puzzle' ? 'Cancel' : 'Check' }}
               .solver-read-out {{ puzzleStore.solverDisplay }}
+              v-btn(
+                v-on:click="puzzleStore.resetSolver"
+              ) Reset Solver
 </template>
 
 <style scoped lang="stylus">

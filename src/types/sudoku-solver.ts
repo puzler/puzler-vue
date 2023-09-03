@@ -1,5 +1,5 @@
 import { deepToRaw } from '@/utils/deep-unref'
-import type { Address } from "@/graphql/generated/types"
+import type { Address, DifferenceDot, KillerCage, Puzzle, RatioDot, RegionSumLine, Xv } from "@/graphql/generated/types"
 import type PuzzleSolve from "./puzzle-solve"
 import type { BoardDefinition } from '@charliepugh92/sudokusolver-webworker'
 import type { PuzzleSolveCell } from '.'
@@ -31,6 +31,53 @@ const SOLVER_BOARD_DEFINITION: BoardDefinition = {
         return boardData.puzzleData.localConstraints.arrows
       },
     },
+    difference: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.differenceDots
+      },
+      value: (dot: DifferenceDot) => {
+        return dot.difference
+      },
+      negative: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.globalConstraints.antiKropki?.antiWhite || false
+      },
+    },
+    ratio: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.ratioDots
+      },
+      value: (dot: RatioDot) => {
+        return dot.ratio
+      },
+      negative: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.globalConstraints.antiKropki?.antiBlack || false
+      },
+    },
+    xv: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.xv
+      },
+      value: (xv: Xv) => xv.xvType,
+      negative: (boardData: PuzzleSolve) => {
+        const { antiXV } = boardData.puzzleData.globalConstraints
+
+        return {
+          x: antiXV?.antiX || false,
+          v: antiXV?.antiV || false,
+        }
+      },
+    },
+    killercage: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.killerCages
+      },
+    },
+    regionsumline: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.regionSumLines
+      },
+      lines: (instance: RegionSumLine) => [instance.points]
+    }
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }

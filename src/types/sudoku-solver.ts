@@ -2,7 +2,6 @@ import { deepToRaw } from '@/utils/deep-unref'
 import type { Address } from "@/graphql/generated/types"
 import type PuzzleSolve from "./puzzle-solve"
 import type { BoardDefinition } from '@charliepugh92/sudokusolver-webworker'
-import JSONfn from 'json-fn'
 import type { PuzzleSolveCell } from '.'
 
 type SolverConstructor = {
@@ -117,7 +116,17 @@ class SudokuSolver {
     this.worker.postMessage({
       cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'define',
-      definition: JSONfn.stringify(SOLVER_BOARD_DEFINITION)
+      definition: JSON.stringify(
+        SOLVER_BOARD_DEFINITION,
+        (_, value) => {
+          if (typeof value !== 'function') return value
+
+          return {
+            func: value.toString(),
+            encodedFunc: true,
+          }
+        },
+      )
     })
   }
 

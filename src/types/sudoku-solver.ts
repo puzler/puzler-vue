@@ -116,20 +116,23 @@ class SudokuSolver {
   defineWorkerBoard() {
     if (!this.worker) return
 
+    const definition = JSON.stringify(
+      SOLVER_BOARD_DEFINITION,
+      (_, value) => {
+        if (typeof value !== 'function') return value
+
+        return {
+          func: value.toString(),
+          encodedFunc: true,
+        }
+      },
+    )
+    console.log('sending definition', SOLVER_BOARD_DEFINITION, definition)
+
     this.worker.postMessage({
       cmdId: Math.floor(Math.random() * 1000000),
       cmd: 'define',
-      definition: JSON.stringify(
-        SOLVER_BOARD_DEFINITION,
-        (_, value) => {
-          if (typeof value !== 'function') return value
-
-          return {
-            func: value.toString(),
-            encodedFunc: true,
-          }
-        },
-      )
+      definition,
     })
   }
 

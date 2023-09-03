@@ -19,7 +19,10 @@ export type CandidatesList = Array<Array<number>|{ given: boolean; value: number
 
 const SOLVER_BOARD_DEFINITION: BoardDefinition = {
   grid: {
-    cells: (boardData: PuzzleSolve) => boardData.cells,
+    cells: (boardData: PuzzleSolve) => {
+      console.log('boardData', boardData, boardData.cells, Object.keys(boardData))
+      return boardData.cells
+    },
     value: ({ cell }: { cell: PuzzleSolveCell }) => cell.digit,
     centerPencilMarks: ({ cell }: { cell: PuzzleSolveCell }) => cell.centerMarks,
   },

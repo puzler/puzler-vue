@@ -20,7 +20,6 @@ export type CandidatesList = Array<Array<number>|{ given: boolean; value: number
 const SOLVER_BOARD_DEFINITION: BoardDefinition = {
   grid: {
     cells: (boardData: PuzzleSolve) => {
-      console.log('boardData', boardData, boardData.cells, Object.keys(boardData))
       return boardData.cells
     },
     value: ({ cell }: { cell: PuzzleSolveCell }) => cell.digit,
@@ -127,7 +126,6 @@ class SudokuSolver {
         }
       },
     )
-    console.log('sending definition', SOLVER_BOARD_DEFINITION, definition)
 
     this.worker.postMessage({
       cmdId: Math.floor(Math.random() * 1000000),
@@ -146,7 +144,7 @@ class SudokuSolver {
   onLogicalSolve?: (desc: Array<string>, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
 
   solve(board: PuzzleSolve) {
-    console.log('triggering solve')
+    ('triggering solve')
     if (!this.worker) return
     this.runningOp = 'solve'
     this.worker.postMessage({

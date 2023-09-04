@@ -1,8 +1,14 @@
 import { deepToRaw } from '@/utils/deep-unref'
-import type { Address, DifferenceDot, KillerCage, LittleKillerSum, Puzzle, RatioDot, RegionSumLine, Xv } from "@/graphql/generated/types"
-import type PuzzleSolve from "./puzzle-solve"
-import type { BoardDefinition } from '@charliepugh92/sudokusolver-webworker'
-import type { PuzzleSolveCell } from '.'
+import type {
+  Address,
+  DifferenceDot,
+  LittleKillerSum,
+  RatioDot,
+  RegionSumLine,
+  Xv,
+} from "@/graphql/generated/types"
+import type { BoardDefinition } from '@puzler/sudokusolver-webworker'
+import type { PuzzleSolve, PuzzleSolveCell } from '@/types'
 
 type SolverConstructor = {
   onSolution?: (solution: Array<number>) => void
@@ -143,7 +149,7 @@ class SudokuSolver {
 
   private setupWorker() {
     this.worker = new Worker(
-      new URL('@charliepugh92/sudokusolver-webworker', import.meta.url),
+      new URL('@puzler/sudokusolver-webworker', import.meta.url),
       { type: 'module' }
     )
 

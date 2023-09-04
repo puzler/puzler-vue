@@ -33,6 +33,10 @@ abstract class SettingModeController {
       this.onInput(args)
     }
 
+    this.triggerChangeListeners()
+  }
+
+  protected triggerChangeListeners() {
     this.inputListeners.forEach((listener) => listener())
   }
 

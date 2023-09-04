@@ -36,6 +36,8 @@ class SingleCellConstraintController extends SettingModeController {
       } else {
         this.currentList.splice(existingIndex, 1)
       }
+
+      this.triggerChangeListeners()
     }
   }
 }

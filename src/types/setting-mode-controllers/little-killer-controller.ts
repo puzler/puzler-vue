@@ -49,6 +49,7 @@ class LittleKillerController extends SettingModeController {
 
                 if (indexToRemove !== -1) {
                   this.constraintList.splice(indexToRemove, 1)
+                  this.triggerChangeListeners()
                 }
               }
             }
@@ -58,6 +59,7 @@ class LittleKillerController extends SettingModeController {
           100,
         )
       } else if (this.draggingOrigin) {
+        this.triggerChangeListeners()
         if (this.constraintList) {
           const itemToTarget = this.constraintList.find(
             ({ location }) => this.addressesAreEqual(location, this.draggingOrigin!)

@@ -16,6 +16,7 @@ class ArrowController extends SettingModeController {
 
   events = {
     mouseup: () => {
+      if (this.currentArrow)  this.triggerChangeListeners()
       this.currentArrow = null
       this.draggingBulb = null
 
@@ -47,6 +48,7 @@ class ArrowController extends SettingModeController {
           },
           [] as Array<Arrow>
         )
+        this.triggerChangeListeners()
       }
 
       this.removeOnMouseup = null

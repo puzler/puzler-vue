@@ -83,6 +83,7 @@ class NumberOutsideGridController extends SettingModeController {
       }
       this.constraintList.push(newItem)
       this.inputTarget = newItem
+      this.triggerChangeListeners()
     } else {
       this.inputTarget = null
       this.removing = cell.address
@@ -90,6 +91,7 @@ class NumberOutsideGridController extends SettingModeController {
         () => {
           if (this.removing && this.addressesAreEqual(this.removing, cell.address)) {
             this.constraintList.splice(existingElementIndex, 1)
+            this.triggerChangeListeners()
           }
         },
         150,

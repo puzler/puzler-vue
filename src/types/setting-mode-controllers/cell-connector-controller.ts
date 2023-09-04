@@ -61,6 +61,7 @@ class CellConnectorController extends SettingModeController {
 
   events = {
     mouseup: () => {
+      if (this.removedConnector || this.tempConnector) this.triggerChangeListeners()
       this.connectorCells = null
       if (this.removedConnector) {
         this.removedConnector = null

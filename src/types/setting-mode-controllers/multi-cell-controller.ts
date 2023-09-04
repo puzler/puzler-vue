@@ -71,9 +71,10 @@ class MultiCellController extends SettingModeController {
               } else {
                 this.areaList.splice(clickedAreaIndex, 1)
               }
+              this.triggerChangeListeners()
             } else {
               let clickedCloneIndex = -1
-              let clickedGroupIndex = -1;
+              let clickedGroupIndex = -1
               
               const clones = this.areaList as Array<Clone>
               clones.some(
@@ -93,6 +94,7 @@ class MultiCellController extends SettingModeController {
       
               if (clickedGroupIndex >= 0) {
                 clones[clickedCloneIndex].cloneCells.splice(clickedGroupIndex, 1)
+                this.triggerChangeListeners()
               }
             }
     
@@ -113,6 +115,7 @@ class MultiCellController extends SettingModeController {
           }
         } else {
           this.inputTarget = this.draggingConstraint
+          this.triggerChangeListeners()
         }
 
         this.draggingConstraint = null
@@ -147,6 +150,7 @@ class MultiCellController extends SettingModeController {
           }
         }
 
+        this.triggerChangeListeners()
         this.draggingCloneGroup = null
       }
     },

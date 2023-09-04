@@ -59,6 +59,8 @@ class ThermometerController extends SettingModeController {
         }
       }
 
+      if (this.removeOnMouseup || this.currentThermoBulb) this.triggerChangeListeners()
+
       this.removeOnMouseup = null
       this.currentThermoBulb = null
     }

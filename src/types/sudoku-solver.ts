@@ -1,5 +1,5 @@
 import { deepToRaw } from '@/utils/deep-unref'
-import type { Address, DifferenceDot, KillerCage, Puzzle, RatioDot, RegionSumLine, Xv } from "@/graphql/generated/types"
+import type { Address, DifferenceDot, KillerCage, LittleKillerSum, Puzzle, RatioDot, RegionSumLine, Xv } from "@/graphql/generated/types"
 import type PuzzleSolve from "./puzzle-solve"
 import type { BoardDefinition } from '@charliepugh92/sudokusolver-webworker'
 import type { PuzzleSolveCell } from '.'
@@ -77,6 +77,35 @@ const SOLVER_BOARD_DEFINITION: BoardDefinition = {
         return boardData.puzzleData.localConstraints.regionSumLines
       },
       lines: (instance: RegionSumLine) => [instance.points]
+    },
+    littlekillersum: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.littleKillerSums,
+      clueCellName: ({ location }: LittleKillerSum) => `R${location.row + 1}C${location.column + 1}`,
+      cells: (littleKiller: LittleKillerSum, size: number) => {
+        const cells = [] as Array<Address>
+        const current = { ...littleKiller.location }
+        const next = () => {
+          current.row += littleKiller.direction.top ? -1 : 1
+          current.column += littleKiller.direction.left ? -1 : 1
+
+          return current
+        }
+        const isInGrid = ({ row, column }: Address) => {
+          if (row < 0) return false
+          if (column < 0) return false
+          if (row >= size) return false
+          if (column >= size) return false
+
+          return true
+        }
+
+        while (next() && isInGrid(current)) {
+          if (cells.length > 100) break
+          cells.push({ ...current })
+        }
+
+        return cells
+      }
     }
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column

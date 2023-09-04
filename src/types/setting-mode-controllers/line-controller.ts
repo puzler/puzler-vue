@@ -69,6 +69,8 @@ class LineController extends SettingModeController {
         ) as Array<Line>
       }
 
+      if (this.removeOnMouseup || this.currentLine) this.triggerChangeListeners()
+
       this.removeOnMouseup = null
       this.currentLine = null
     }

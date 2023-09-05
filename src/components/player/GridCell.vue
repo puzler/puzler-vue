@@ -25,6 +25,16 @@ const onMouseEnter = (event: PointerEvent) => {
   emit('cell-enter', event, props.cell)
 }
 
+function centerMarkClass(digit: number) {
+  if (!props.cell.puzzle.candidateCounts) return ''
+  const { row, column } = props.cell.address
+  const count = props.cell.puzzle.candidateCounts[row][column][digit]
+
+  if (count === 1) return 'unique-solution'
+  if (count <= 3) return 'few-solutions'
+  return 'many-solutions'
+}
+
 const centerMarkFontSize = computed(() => {
   const { length } = props.cell.centerMarks
   switch (length) {
@@ -110,7 +120,11 @@ const cornerDigits = computed(() => {
     .center(
       v-if="cell.digit === null && !displayRegion"
       :style="{ fontSize: centerMarkFontSize }"
-    ) {{ cell.centerMarks.join('') }}
+    )
+      .center-mark(
+        v-for="digit in cell.centerMarks"
+        :class="centerMarkClass(digit)"
+      ) {{ digit }}
     .digit(
       v-on:pointerenter="onMouseEnter"
       :class="{ given: cell.given }"
@@ -188,4 +202,11 @@ const cornerDigits = computed(() => {
       justify-content center
       line-height 0
       color var(--digitColor)
+      .center-mark
+        &.no-solutions
+          color #dc7373
+        &.unique-solution
+          color #39be39
+        &.few-solutions
+          color #9bc1ff
 </style>

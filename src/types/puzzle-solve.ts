@@ -122,6 +122,7 @@ class PuzzleSolve {
   cells: Array<Array<PuzzleSolveCell>>
   puzzleData: Puzzle
   gridOuterCells = false
+  candidateCounts?: Record<number, number>[][]
 
   deselectAll() {
     for (let row = 0; row < this.size; row += 1) {

@@ -1,10 +1,22 @@
 import type {
+  BoardDefinition,
   CandidatesList,
-  SolverConstructor,
 } from '@puzler/sudokusolver-webworker'
 import PuzlerBoardDefinition from './sudoku-solver-board-definition'
-import type { PuzzleSolve, PuzzleSolveCell } from '@/types'
+import type { PuzzleSolve } from '@/types'
 import { deepToRaw } from '../deep-unref'
+
+export type SolverConstructor = {
+  onSolution?: (solution: Array<number>) => void
+  onInvalid?: () => void
+  onCancelled?: () => void
+  onNoSolution?: () => void
+  onCount?: (count: number, complete: boolean, cancelled?: boolean) => void
+  onTrueCandidates?: (candidates: CandidatesList, counts?: Record<number, number>[][]) => void
+  onStep?: (desc: string, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
+  onLogicalSolve?: (desc: Array<string>, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
+  boardDefinition?: BoardDefinition
+}
 
 class SudokuSolver {
   runningOp = null as null|string
@@ -12,7 +24,6 @@ class SudokuSolver {
   cancelTimeoutCheck = null as null|number
 
   constructor(args: SolverConstructor) {
-    console.log('Initializing Solver Interface')
     this.onSolution = args.onSolution
     this.onInvalid = args.onInvalid
     this.onCancelled = args.onCancelled
@@ -26,7 +37,6 @@ class SudokuSolver {
   }
 
   private setupWorker() {
-    console.log('Setting up worker')
     this.worker = new Worker(
       new URL('@puzler/sudokusolver-webworker', import.meta.url),
       { type: 'module' },
@@ -58,7 +68,27 @@ class SudokuSolver {
           break
         case 'truecandidates':
           this.runningOp = null
-          if (this.onTrueCandidates) this.onTrueCandidates(data.candidates, data.counts)
+          if (this.onTrueCandidates) {
+            if (data.counts) {
+              const size = Math.cbrt(data.counts.length)
+              const counts = [] as Array<Array<Record<number, number>>>
+
+              for (let row = 0; row < size; row += 1) {
+                for (let col = 0; col < size; col += 1) {
+                  for (let candidate = 0; candidate < size; candidate += 1) {
+                    const candidateIndex = candidate + (col * size) + (row * size * size)
+                    if (counts.length <= row) counts.push([])
+                    if (counts[row].length <= col) counts[row].push({})
+                    counts[row][col][candidate + 1] = data.counts[candidateIndex]
+                  }
+                }
+              }
+
+              this.onTrueCandidates(data.candidates, counts)
+            } else {
+              this.onTrueCandidates(data.candidates, data.counts)
+            }
+          }
           break
         case 'step':
           this.runningOp = null
@@ -100,7 +130,7 @@ class SudokuSolver {
   onCancelled?: () => void
   onNoSolution?: () => void
   onCount?: (count: number, complete: boolean, cancelled?: boolean) => void
-  onTrueCandidates?: (candidates: CandidatesList, counts: any) => void
+  onTrueCandidates?: (candidates: CandidatesList, counts?: Record<number, number>[][]) => void
   onStep?: (desc: string, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
   onLogicalSolve?: (desc: Array<string>, invalid: boolean, changed: boolean, candidates?: CandidatesList) => void
 
@@ -140,12 +170,15 @@ class SudokuSolver {
     })
   }
 
-  trueCandidates(board: PuzzleSolve) {
+  trueCandidates(board: PuzzleSolve, countCandidates: boolean) {
     if (!this.worker) return
     this.runningOp = 'true-candidates'
     this.worker.postMessage({
       cmd: 'truecandidates',
       board: this.boardForSolver(board),
+      options: {
+        maxSolutionsPerCandidate: countCandidates ? 5 : 1,
+      },
     })
   }
 
@@ -180,7 +213,6 @@ class SudokuSolver {
 
     setTimeout(() => {
       if (this.cancelTimeoutCheck === cancelCheck) {
-        console.log('Cancelled task took more than 5 seconds. Force restarting worker.')
         this.restartWorker()
 
         this.runningOp = null

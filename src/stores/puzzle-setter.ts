@@ -5,7 +5,7 @@ import {
 } from 'vue'
 import { defineStore } from 'pinia'
 import { PuzzleSolve } from '@/types'
-import SudokuSolver from '@/utils/solver/sudoku-solver'
+import SudokuSolver, { type SolverConstructor } from '@/utils/solver/sudoku-solver'
 import PuzlerBoardDefinition from '@/utils/solver/sudoku-solver-board-definition'
 import type { CandidatesList } from '@puzler/sudokusolver-webworker/types'
 import {
@@ -82,8 +82,9 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         solverDisplay.value = `Found ${count} solutions so far...`
       }
     },
-    onTrueCandidates: (candidates) => {
+    onTrueCandidates: (candidates, counts) => {
       applySolverCandidates(candidates)
+      puzzle.value.candidateCounts = counts
       currentSolverCommand.value = null
     },
     onStep: (desc, invalid, changed, candidates) => {
@@ -98,11 +99,18 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
 
       currentSolverCommand.value = null
     },
-  })
+  } as SolverConstructor)
 
   const solverDisplay = ref('')
   const currentSolverCommand = ref(null as null|string)
   const autoTrueCandidates = ref(false)
+
+  function toggleAutoTrueCandidates() {
+    autoTrueCandidates.value = !autoTrueCandidates.value
+    if (autoTrueCandidates.value) {
+      trueCandidates()
+    }
+  }
 
   function applySolverCandidates(candidates?: CandidatesList) {
     candidates?.forEach((cellCandidates, index) => {
@@ -143,11 +151,16 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     solver.count(puzzle.value as PuzzleSolve)
   }
 
+  const countCandidates = ref(false)
+
   function trueCandidates() {
     if (currentSolverCommand.value) solver.cancel()
 
     currentSolverCommand.value = 'true-candidates'
-    solver.trueCandidates(puzzle.value as PuzzleSolve)
+    solver.trueCandidates(
+      puzzle.value as PuzzleSolve,
+      countCandidates.value,
+    )
   }
 
   function logicalStep() {
@@ -504,6 +517,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     solverDisplay,
     currentSolverCommand,
     autoTrueCandidates,
+    toggleAutoTrueCandidates,
+    countCandidates,
     clearGrid,
     resetSolver,
     solve,

@@ -118,7 +118,7 @@ const includedConstraints = computed(() => {
               .label {{ puzzleStore.currentSolverCommand === 'logical-step' ? 'Cancel' : 'Logical Step' }}
             .candidates
               v-btn.auto-toggle(
-                v-on:click="puzzleStore.autoTrueCandidates = !puzzleStore.autoTrueCandidates"
+                v-on:click="puzzleStore.toggleAutoTrueCandidates"
                 :active="puzzleStore.autoTrueCandidates"
                 :color="puzzleStore.autoTrueCandidates ? 'blue-grey' : 'black'"
                 :variant="puzzleStore.autoTrueCandidates ? 'flat' : 'plain'"
@@ -141,6 +141,15 @@ const includedConstraints = computed(() => {
                 v-if="puzzleStore.currentSolverCommand === 'check-puzzle'"
               )
               .label {{ puzzleStore.currentSolverCommand === 'check-puzzle' ? 'Cancel' : 'Check' }}
+          .show-candidates-count
+            v-checkbox(
+              v-model="puzzleStore.countCandidates"
+              v-on:update:model-value="() => puzzleStore.autoTrueCandidates ? puzzleStore.trueCandidates() : null"
+              label="Show Candidates Count"
+              color="blue-grey"
+              density="compact"
+              :hide-details="true"
+            )
           .solver-read-out {{ puzzleStore.solverDisplay }}
   .meta-controls
     v-btn.rule-editor-btn(
@@ -389,7 +398,7 @@ const includedConstraints = computed(() => {
       .solver-controls
         display flex
         flex-direction column
-        gap 10px
+        gap 5px
         padding 5px 10px 10px
         .actions
           display grid
@@ -419,6 +428,9 @@ const includedConstraints = computed(() => {
                 .v-selection-control
                   flex unset
                   min-height unset
+        .show-candidates-count
+          :deep(.v-checkbox .v-selection-control)
+            min-height unset
         .solver-read-out
           min-height 200px
           max-height 400px

@@ -64,18 +64,10 @@ class PuzzleSolve {
             regionRow.reduce(
               (cellRow, region, column) => {
                 const cell = new PuzzleSolveCell({
+                  puzzle: this,
                   region,
                   address: { row, column },
                 })
-
-                if (row !== 0) {
-                  cell.neighbors.up = cells[row - 1][column]
-                  cells[row - 1][column].neighbors.down = cell
-                }
-                if (column !== 0) {
-                  cell.neighbors.left = cellRow[column - 1]
-                  cellRow[column - 1].neighbors.right = cell
-                }
 
                 return [...cellRow, cell]
               },
@@ -112,16 +104,8 @@ class PuzzleSolve {
                   given: cellData.given || false,
                   region: cellData.region,
                   address: { row, column },
+                  puzzle: this,
                 })
-
-                if (row !== 0) {
-                  cell.neighbors.up = cells[row - 1][column]
-                  cells[row - 1][column].neighbors.down = cell
-                }
-                if (column !== 0) {
-                  cell.neighbors.left = cellRow[column - 1]
-                  cellRow[column - 1].neighbors.right = cell
-                }
 
                 return [...cellRow, cell]
               },

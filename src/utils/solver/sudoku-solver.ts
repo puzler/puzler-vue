@@ -108,12 +108,13 @@ class SudokuSolver {
     return deepToRaw({
       ...board,
       cells: board.cells.map(
-        (cellRows) => cellRows.map((cell) => {
-          return {
-            ...cell,
-            neighbors: {},
-          } as PuzzleSolveCell
-        })
+        (rowCells) => rowCells.map(
+          (cell) => ({
+            given: cell.given,
+            digit: cell.digit,
+            centerMarks: cell.centerMarks,
+          })
+        )
       )
     })
   }

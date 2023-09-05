@@ -121,7 +121,7 @@ const includedConstraints = computed(() => {
                 v-on:click="puzzleStore.autoTrueCandidates = !puzzleStore.autoTrueCandidates"
                 :active="puzzleStore.autoTrueCandidates"
                 :color="puzzleStore.autoTrueCandidates ? 'blue-grey' : 'black'"
-                :variant="puzzleStore.autoTrueCandidates ? 'default' : 'plain'"
+                :variant="puzzleStore.autoTrueCandidates ? 'flat' : 'plain'"
               )
                 v-icon(icon="mdi-sync")
               v-btn(

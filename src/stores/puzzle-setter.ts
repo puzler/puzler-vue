@@ -185,23 +185,17 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   }
 
   function clearGrid() {
-    console.log('clearing grid')
-    puzzle.value.cells = puzzle.value.cells.map(
-      (rowCells) => rowCells.map(
-        (cell) => {
-          if (cell.given) return cell
+    for (let row = 0; row < puzzle.value.size; row += 1) {
+      for (let col = 0; col < puzzle.value.size; col += 1) {
+        const cell = puzzle.value.cells[row][col]
+        if (cell.given) continue
 
-          return {
-            ...cell,
-            digit: null,
-            centerMarks: [],
-            cornerMarks: [],
-            cellColors: []
-          }
-        }
-      )
-    )
-    console.log('done clearing grid')
+        cell.digit = null
+        cell.centerMarks = []
+        cell.cornerMarks = []
+        cell.cellColors = []
+      }
+    }
   }
 
   function newPuzzle(size: number) {

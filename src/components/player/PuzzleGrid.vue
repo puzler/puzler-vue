@@ -191,6 +191,7 @@ function spacerClick(event: PointerEvent, row: number, column: number) {
       new PuzzleSolveCell({
         region: -1,
         address: { row, column, __typename: 'Address' },
+        puzzle: props.puzzle,
       }),
     )
     lastMouseDown = null
@@ -201,6 +202,7 @@ function spacerClick(event: PointerEvent, row: number, column: number) {
       new PuzzleSolveCell({
         region: -1,
         address: { row, column, __typename: 'Address' },
+        puzzle: props.puzzle,
       }),
     )
     lastMouseDown = Date.now()
@@ -220,6 +222,7 @@ function spacerEnter(event: PointerEvent, row: number, column: number) {
     new PuzzleSolveCell({
       region: -1,
       address: { row, column, __typename: 'Address' },
+      puzzle: props.puzzle,
     }),
   )
 }

@@ -123,6 +123,7 @@ const cornerDigits = computed(() => {
     )
       .center-mark(
         v-for="digit in cell.centerMarks"
+        :key="digit"
         :class="centerMarkClass(digit)"
       ) {{ digit }}
     .digit(

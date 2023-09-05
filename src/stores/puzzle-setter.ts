@@ -5,7 +5,9 @@ import {
 } from 'vue'
 import { defineStore } from 'pinia'
 import { PuzzleSolve } from '@/types'
-import SudokuSolver, { type CandidatesList } from '@/types/sudoku-solver'
+import SudokuSolver from '@/utils/solver/sudoku-solver'
+import PuzlerBoardDefinition from '@/utils/solver/sudoku-solver-board-definition'
+import type { CandidatesList } from '@puzler/sudokusolver-webworker/types'
 import {
   GivenDigitController,
   ThermometerController,
@@ -38,6 +40,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   setMode('Given')
 
   const solver = new SudokuSolver({
+    boardDefinition: PuzlerBoardDefinition,
     onSolution: (solution: Array<number>) => {
       solution.forEach((value, index) => {
         const row = Math.floor(index / puzzle.value.size)
@@ -79,7 +82,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         solverDisplay.value = `Found ${count} solutions so far...`
       }
     },
-    onTrueCandidates: (candidates, counts) => {
+    onTrueCandidates: (candidates) => {
       applySolverCandidates(candidates)
       currentSolverCommand.value = null
     },
@@ -105,15 +108,19 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     candidates?.forEach((cellCandidates, index) => {
       const row = Math.floor(index / puzzle.value.size)
       const column = index % puzzle.value.size
+      const puzzleCell = puzzle.value.cells[row][column]
 
-      if (Array.isArray(cellCandidates)) {
-        if (cellCandidates.length === 1) {
-          puzzle.value.cells[row][column].digit = cellCandidates[0]
+      if (!puzzleCell.given) {
+        puzzleCell.digit = null
+        if (Array.isArray(cellCandidates)) {
+          if (cellCandidates.length === 1) {
+            puzzleCell.digit = cellCandidates[0]
+          } else {
+            puzzleCell.centerMarks = [...cellCandidates]
+          }
         } else {
-          puzzle.value.cells[row][column].centerMarks = [...cellCandidates]
+          puzzleCell.digit = cellCandidates.value
         }
-      } else {
-        puzzle.value.cells[row][column].digit = cellCandidates.value
       }
     })
   }
@@ -178,22 +185,28 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   }
 
   function clearGrid() {
-    puzzle.value.cells.forEach(
-      (rowCells) => rowCells.forEach(
+    console.log('clearing grid')
+    puzzle.value.cells = puzzle.value.cells.map(
+      (rowCells) => rowCells.map(
         (cell) => {
-          if (!cell.given) {
-            cell.digit = null
-            cell.centerMarks = []
-            cell.cornerMarks = []
-            cell.cellColors = []
+          if (cell.given) return cell
+
+          return {
+            ...cell,
+            digit: null,
+            centerMarks: [],
+            cornerMarks: [],
+            cellColors: []
           }
         }
       )
     )
+    console.log('done clearing grid')
   }
 
   function newPuzzle(size: number) {
     puzzle.value = new PuzzleSolve({ size })
+    puzzleChanged()
     setMode('Given')
   }
 

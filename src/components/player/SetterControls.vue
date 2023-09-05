@@ -75,6 +75,73 @@ const includedConstraints = computed(() => {
   LocalConstraintModal(:activator="modalActivators.localConstraint")
   CosmeticModal(:activator="modalActivators.cosmetics")
   PuzzleRulesModal(:activator="modalActivators.rules")
+  v-expansion-panels(variant="accordion")
+    v-expansion-panel.solver-panel
+      v-expansion-panel-title.panel-title(:hide-actions="true")
+        .panel-label
+          .panel-name Solver
+          v-icon.panel-icon(icon="mdi-desktop-classic")
+      v-expansion-panel-text.solver-panel-contents
+        .solver-controls
+          .actions
+            v-btn(
+              v-on:click="puzzleStore.currentSolverCommand === 'solve' ? puzzleStore.cancelSolverOperation() : puzzleStore.solve()"
+            )
+              v-progress-circular.loading(
+                :indeterminate="true"
+                v-if="puzzleStore.currentSolverCommand === 'solve'"
+              )
+              .label {{ puzzleStore.currentSolverCommand === 'solve' ? 'Cancel' : 'Solve' }}
+            v-btn(
+              v-on:click="puzzleStore.currentSolverCommand === 'logical-solve' ? puzzleStore.cancelSolverOperation() : puzzleStore.logicalSolve()"
+            )
+              v-progress-circular.loading(
+                :indeterminate="true"
+                v-if="puzzleStore.currentSolverCommand === 'logical-solve'"
+              )
+              .label {{ puzzleStore.currentSolverCommand === 'logical-solve' ? 'Cancel' : 'Logical Solve' }}
+            v-btn(
+              v-on:click="puzzleStore.currentSolverCommand === 'count-solutions' ? puzzleStore.cancelSolverOperation() : puzzleStore.countSolutions()"
+            )
+              v-progress-circular.loading(
+                :indeterminate="true"
+                v-if="puzzleStore.currentSolverCommand === 'count-solutions'"
+              )
+              .label {{ puzzleStore.currentSolverCommand === 'count-solutions' ? 'Cancel' : 'Solution Count' }}
+            v-btn(
+              v-on:click="puzzleStore.currentSolverCommand === 'logical-step' ? puzzleStore.cancelSolverOperation() : puzzleStore.logicalStep()"
+            )
+              v-progress-circular.loading(
+                :indeterminate="true"
+                v-if="puzzleStore.currentSolverCommand === 'logical-step'"
+              )
+              .label {{ puzzleStore.currentSolverCommand === 'logical-step' ? 'Cancel' : 'Logical Step' }}
+            .candidates
+              v-btn.auto-toggle(
+                v-on:click="puzzleStore.autoTrueCandidates = !puzzleStore.autoTrueCandidates"
+                :active="puzzleStore.autoTrueCandidates"
+                :color="puzzleStore.autoTrueCandidates ? 'blue-grey' : 'black'"
+                :variant="puzzleStore.autoTrueCandidates ? 'default' : 'plain'"
+              )
+                v-icon(icon="mdi-sync")
+              v-btn(
+                v-on:click="puzzleStore.currentSolverCommand === 'true-candidates' ? puzzleStore.cancelSolverOperation() : puzzleStore.trueCandidates()"
+                :disabled="puzzleStore.autoTrueCandidates"
+              )
+                v-progress-circular.loading(
+                  :indeterminate="true"
+                  v-if="puzzleStore.currentSolverCommand === 'true-candidates'"
+                )
+                .label {{ puzzleStore.currentSolverCommand === 'true-candidates' ? 'Cancel' : 'Candidates' }}
+            v-btn(
+              v-on:click="puzzleStore.currentSolverCommand === 'check-puzzle' ? puzzleStore.cancelSolverOperation() : puzzleStore.checkPuzzle()"
+            )
+              v-progress-circular.loading(
+                :indeterminate="true"
+                v-if="puzzleStore.currentSolverCommand === 'check-puzzle'"
+              )
+              .label {{ puzzleStore.currentSolverCommand === 'check-puzzle' ? 'Cancel' : 'Check' }}
+          .solver-read-out {{ puzzleStore.solverDisplay }}
   .meta-controls
     v-btn.rule-editor-btn(
       v-on:click="modalActivators.rules.click()"
@@ -305,9 +372,66 @@ const includedConstraints = computed(() => {
   &.hide
     width 0
 
+  .solver-panel
+    .panel-title
+      padding 5px 15px
+      min-height unset
+      .panel-label
+        width 100%
+        display flex
+        align-items center
+        justify-content space-between
+        .panel-name
+          font-size 1.2rem
+    .solver-panel-contents
+      :deep(.v-expansion-panel-text__wrapper)
+        padding 0
+      .solver-controls
+        display flex
+        flex-direction column
+        gap 10px
+        padding 5px 10px 10px
+        .actions
+          display grid
+          grid-template-columns 1fr 1fr
+          gap 5px
+          .v-btn
+            padding 0
+            flex 1
+            .label
+              font-size 0.8rem
+          .loading
+            margin-right 5px
+            :deep(svg)
+              height 80%
+              width 80%
+          .candidates
+            display flex
+            align-items center
+            gap 5px
+            .auto-toggle
+              flex unset
+              min-width unset
+              height unset
+              padding 4px
+              :deep(.v-input__control)
+                justify-content center
+                .v-selection-control
+                  flex unset
+                  min-height unset
+        .solver-read-out
+          min-height 200px
+          max-height 400px
+          background-color #eee
+          border 1px solid #bbb
+          border-radius 10px
+          white-space pre-wrap
+          padding 5px 10px
+          font-size 1.2rem
   .meta-controls
     display flex
     padding 10px
+    margin-top 5px
     gap 10px
     .rule-editor-btn
       min-width unset

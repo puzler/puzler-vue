@@ -150,7 +150,11 @@ const includedConstraints = computed(() => {
               density="compact"
               :hide-details="true"
             )
-          .solver-read-out {{ puzzleStore.solverDisplay }}
+          .solver-read-out
+            .read-out-line(
+              v-for="line, i in puzzleStore.solverDisplay"
+              :key="`${i} - ${line}`"
+            ) {{ line }}
   .meta-controls
     v-btn.rule-editor-btn(
       v-on:click="modalActivators.rules.click()"
@@ -432,14 +436,31 @@ const includedConstraints = computed(() => {
           :deep(.v-checkbox .v-selection-control)
             min-height unset
         .solver-read-out
-          min-height 200px
-          max-height 400px
+          height 200px
+          overflow-y auto
           background-color #eee
           border 1px solid #bbb
           border-radius 10px
           white-space pre-wrap
           padding 5px 10px
           font-size 1.2rem
+          scrollbar-color transparent
+          &::-webkit-scrollbar
+            background transparent
+            width 15px
+            margin 2px
+          &::-webkit-scrollbar-thumb
+            background #bbb
+            border-radius 20px
+            border 5px solid #eee
+          .read-out-line
+            margin 10px 0
+            line-height 1.5rem
+            &:first-child
+              margin-top 0
+            &:last-child
+              margin-bottom 0
+
   .meta-controls
     display flex
     padding 10px

@@ -51,35 +51,35 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       currentSolverCommand.value = null
     },
     onInvalid: () => {
-      solverDisplay.value = 'Board is Invalid!'
+      solverDisplay.value = ['Board is Invalid!']
       currentSolverCommand.value = null
     },
     onCancelled: () => {
-      solverDisplay.value = 'Cancelled Action'
+      solverDisplay.value = ['Cancelled Action']
       currentSolverCommand.value = null
     },
     onNoSolution: () => {
-      solverDisplay.value = 'No Solution Found'
+      solverDisplay.value = ['No Solution Found']
       currentSolverCommand.value = null
     },
     onCount: (count, complete, cancelled) => {
       if (complete || cancelled) {
         if (complete) {
           if (count === 0) {
-            solverDisplay.value = 'There are no solutions'
+            solverDisplay.value = ['There are no solutions']
           } else if (count === 1) {
-            solverDisplay.value = 'There is a unique solution'
+            solverDisplay.value = ['There is a unique solution']
           } else if (currentSolverCommand.value === 'count') {
-            solverDisplay.value = `There are exacly ${count} solutions`
+            solverDisplay.value = [`There are exacly ${count} solutions`]
           } else {
-            solverDisplay.value = 'There are multiple solutions'
+            solverDisplay.value = ['There are multiple solutions']
           }
         } else {
-          solverDisplay.value = `There are at least ${count} solutions`
+          solverDisplay.value = [`There are at least ${count} solutions`]
         }
         currentSolverCommand.value = null
       } else {
-        solverDisplay.value = `Found ${count} solutions so far...`
+        solverDisplay.value = [`Found ${count} solutions so far...`]
       }
     },
     onTrueCandidates: (candidates, counts) => {
@@ -88,20 +88,20 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       currentSolverCommand.value = null
     },
     onStep: (desc, invalid, changed, candidates) => {
-      solverDisplay.value += `\n${desc}`
+      solverDisplay.value.push(desc)
       applySolverCandidates(candidates)
       
       currentSolverCommand.value = null
     },
     onLogicalSolve: (desc, invalid, changed, candidates) => {
-      solverDisplay.value = desc.join("\n")
+      solverDisplay.value = desc
       applySolverCandidates(candidates)
 
       currentSolverCommand.value = null
     },
   } as SolverConstructor)
 
-  const solverDisplay = ref('')
+  const solverDisplay = ref([] as Array<string>)
   const currentSolverCommand = ref(null as null|string)
   const autoTrueCandidates = ref(false)
 
@@ -201,9 +201,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     for (let row = 0; row < puzzle.value.size; row += 1) {
       for (let col = 0; col < puzzle.value.size; col += 1) {
         const cell = puzzle.value.cells[row][col]
-        if (cell.given) continue
 
-        cell.digit = null
+        if (!cell.given) cell.digit = null
         cell.centerMarks = []
         cell.cornerMarks = []
         cell.cellColors = []

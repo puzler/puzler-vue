@@ -5,6 +5,8 @@ import type {
   Xv,
   RegionSumLine,
   LittleKillerSum,
+  PalindromeLine,
+  Clone,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -18,6 +20,14 @@ const PuzlerBoardDefinition: BoardDefinition = {
     centerPencilMarks: ({ cell }: { cell: PuzzleSolveCell }) => cell.centerMarks,
   },
   constraints: {
+    antiking: (boardData: PuzzleSolve) => boardData.puzzleData.globalConstraints.chess?.king,
+    antiknight: (boardData: PuzzleSolve) => boardData.puzzleData.globalConstraints.chess?.knight,
+    'diagonal+': (boardData: PuzzleSolve) => boardData.puzzleData.globalConstraints.diagonals?.positive,
+    'diagonal-': (boardData: PuzzleSolve) => boardData.puzzleData.globalConstraints.diagonals?.negative,
+    disjointgroups: (boardData: PuzzleSolve) => boardData.puzzleData.globalConstraints.disjointSets?.enabled,
+    extraregion: {
+      collector: (boardData: PuzzleSolve) => boardData.puzzleData.localConstraints.extraRegions,
+    },
     arrow: {
       collector: (boardData: PuzzleSolve) => {
         return boardData.puzzleData.localConstraints.arrows
@@ -68,7 +78,24 @@ const PuzlerBoardDefinition: BoardDefinition = {
       collector: (boardData: PuzzleSolve) => {
         return boardData.puzzleData.localConstraints.regionSumLines
       },
-      lines: (instance: RegionSumLine) => [instance.points]
+      lines: (instance: RegionSumLine) => [instance.points],
+    },
+    palindrome: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.palindromeLines
+      },
+      lines: (instance: PalindromeLine) => [instance.points],
+    },
+    clone: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.clones
+      },
+      cloneGroups: (instance: Clone) => {
+        return [
+          instance.cells,
+          ...instance.cloneCells,
+        ]
+      }
     },
     littlekillersum: {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.littleKillerSums,

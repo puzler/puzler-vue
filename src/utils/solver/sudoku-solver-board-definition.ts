@@ -11,6 +11,7 @@ import type {
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
+import Board from "@puzler/sudokusolver-webworker/board"
 
 const PuzlerBoardDefinition: BoardDefinition = {
   grid: {
@@ -107,6 +108,12 @@ const PuzlerBoardDefinition: BoardDefinition = {
       collector: (boardData: PuzzleSolve) => {
         return boardData.puzzleData.localConstraints.oddCells
       }
+    },
+    maximum: {
+      collector: (boardData: PuzzleSolve) => boardData.puzzleData.localConstraints.maxCells,
+    },
+    minimum: {
+      collector: (boardData: PuzzleSolve) => boardData.puzzleData.localConstraints.minCells,
     },
     littlekillersum: {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.littleKillerSums,

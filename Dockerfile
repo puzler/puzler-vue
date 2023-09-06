@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:lts
 WORKDIR /puzler-vue
 
 RUN npm install --global http-server

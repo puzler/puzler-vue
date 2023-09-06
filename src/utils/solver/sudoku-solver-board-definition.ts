@@ -7,6 +7,7 @@ import type {
   LittleKillerSum,
   PalindromeLine,
   Clone,
+  EvenCell,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -95,6 +96,16 @@ const PuzlerBoardDefinition: BoardDefinition = {
           instance.cells,
           ...instance.cloneCells,
         ]
+      }
+    },
+    even: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.evenCells
+      },
+    },
+    odd: {
+      collector: (boardData: PuzzleSolve) => {
+        return boardData.puzzleData.localConstraints.oddCells
       }
     },
     littlekillersum: {

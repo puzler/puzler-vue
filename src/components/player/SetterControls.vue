@@ -363,6 +363,19 @@ const includedConstraints = computed(() => {
           :color="puzzleStore.settingMode === cosmeticType ? 'blue-grey' : 'white'"
         ) {{ cosmeticType }}
     .spacer
+    .undo-redo
+      v-btn(
+        v-on:click="puzzleStore.undo()"
+        :disabled="!puzzleStore.canUndo"
+        :ripple="false"
+      )
+        v-icon(icon="mdi-undo")
+      v-btn(
+        v-on:click="puzzleStore.redo()"
+        :disabled="!puzzleStore.canRedo"
+        :ripple="false"
+      )
+        v-icon(icon="mdi-redo")
     component.controller-vue(
       v-if="modeControllerVue !== undefined"
       :key="puzzleStore.settingMode"
@@ -461,6 +474,16 @@ const includedConstraints = computed(() => {
             &:last-child
               margin-bottom 0
 
+  .undo-redo
+    display flex
+    align-items center
+    justify-content end
+    gap 10px
+    margin-bottom 10px
+    .v-btn
+      height unset
+      min-width unset
+      padding 10px
   .meta-controls
     display flex
     padding 10px

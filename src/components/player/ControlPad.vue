@@ -8,6 +8,8 @@ const props = defineProps<{
   controller: Controller
   timer?: Timer
   hide?: boolean
+  canUndo: boolean
+  canRedo: boolean
 }>();
 const emit = defineEmits(['numpad-click', 'action-click'])
 
@@ -96,6 +98,17 @@ const actionBtns = [
       )
     .spacer
     .bottom
+      .undo-redo
+        v-btn.undo(
+          v-on:click="emit('action-click', 'undo')"
+          :disabled="!canUndo"
+        )
+          v-icon(icon="mdi-undo")
+        v-btn.redo(
+          v-on:click="emit('action-click', 'redo')"
+          :disabled="!canRedo"
+        )
+          v-icon(icon="mdi-redo")
       .mode-selectors
         v-btn.mode-selector-btn(
           v-for="mode in modes"

@@ -7,11 +7,9 @@ import type {
   LittleKillerSum,
   PalindromeLine,
   Clone,
-  EvenCell,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
-import Board from "@puzler/sudokusolver-webworker/board"
 
 const PuzlerBoardDefinition: BoardDefinition = {
   grid: {

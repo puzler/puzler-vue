@@ -68,7 +68,6 @@ class SudokuSolver {
           break
         case 'truecandidates':
           this.runningOp = null
-          console.log(data.candidates)
           if (this.onTrueCandidates) {
             if (data.counts) {
               const size = Math.cbrt(data.counts.length)

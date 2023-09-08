@@ -190,8 +190,21 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   function cancelSolverOperation() {
     solver.cancel()
   }
+  
+  const canUndo = computed(() => puzzle.value.canUndo)
+  const canRedo = computed(() => puzzle.value.canRedo)
 
-  function puzzleChanged() {
+  function undo() {
+    if (canUndo.value) puzzle.value.undo()
+  }
+
+  function redo() {
+    if (canRedo.value) puzzle.value.redo()
+  }
+
+  function puzzleChanged(saveState = true) {
+    if (saveState) puzzle.value.saveState()
+
     if (autoTrueCandidates.value) {
       trueCandidates()
     }
@@ -208,11 +221,13 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
         cell.cellColors = []
       }
     }
+
+    puzzleChanged()
   }
 
   function newPuzzle(size: number) {
     puzzle.value = new PuzzleSolve({ size })
-    puzzleChanged()
+    puzzleChanged(false)
     setMode('Given')
   }
 
@@ -277,8 +292,6 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       case 'Lines': return new CosmeticLineController(puzzle.value as PuzzleSolve)
     }
   }
-
-  modeController.value?.setup()
 
   function setMode(mode: string|null) {
     const newController = controllerForMode(mode)
@@ -392,6 +405,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       groupData[key] = initialValue
     }
 
+    puzzle.value.saveState()
     setMode(element)
   }
 
@@ -412,6 +426,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     }[group] as Record<string, any>
 
     delete dataGroup[key]
+    puzzle.value.saveState()
   }
 
   const destinationUrls = {
@@ -532,6 +547,10 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     addElementToPuzzle,
     removeElementFromPuzzle,
     exportPuzzle,
+    canRedo,
+    canUndo,
+    redo,
+    undo,
   }
 })
 

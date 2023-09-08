@@ -146,24 +146,28 @@ function handleEraseInput() {
     case ControllerMode.digit:
       if (anyDigits) {
         clearDigits(nonGiven)
+        props.puzzle.saveState()
         return
       }
       break
     case ControllerMode.center:
       if (anyCenter) {
         clearCenter(nonGiven)
+        props.puzzle.saveState()
         return
       }
       break
     case ControllerMode.corner:
       if (anyCorner) {
         clearCorner(nonGiven)
+        props.puzzle.saveState()
         return
       }
       break
     case ControllerMode.color:
       if (anyColor) {
         clearColor(selected)
+        props.puzzle.saveState()
         return
       }
       break
@@ -171,19 +175,15 @@ function handleEraseInput() {
 
   if (anyDigits) {
     clearDigits(nonGiven)
-    return
-  }
-  if (anyCenter) {
+  } else if (anyCenter) {
     clearCenter(nonGiven)
-    return
-  }
-  if (anyCorner) {
+  } else if (anyCorner) {
     clearCorner(nonGiven)
-    return
-  }
-  if (anyColor) {
+  } else if (anyColor) {
     clearColor(selected)
-  }
+  } else return
+
+  props.puzzle.saveState()
 }
 
 function handleActionInput(action: string, args = {} as Record<string, any>) {
@@ -213,6 +213,12 @@ function handleActionInput(action: string, args = {} as Record<string, any>) {
         return modalActivators.incorrectSolution.click()
       }
     }
+    case 'undo':
+      if (props.puzzle.canUndo) props.puzzle.undo()
+      break
+    case 'redo':
+      if (props.puzzle.canRedo) props.puzzle.redo()
+      break
   }
 }
 
@@ -225,7 +231,9 @@ function handleDigitInput(digit: number) {
     if (controller.value.activeMode !== ControllerMode.digit) {
       targetCells = targetCells.filter((cell) => cell.digit === null)
     }
-  } 
+  }
+
+  if (targetCells.length === 0) return
 
   switch (controller.value.activeMode) {
     case ControllerMode.digit:
@@ -294,6 +302,8 @@ function handleDigitInput(digit: number) {
       break
     }
   }
+
+  props.puzzle.saveState()
 }
 
 function releaseTempMode(event: KeyboardEvent) {
@@ -311,7 +321,21 @@ function releaseTempMode(event: KeyboardEvent) {
 function keyboardInput(event: KeyboardEvent) {
   if (props.disableControls) return
 
-  if (/^(Digit|Numpad)\d$/.test(event.code)) {
+  if (event.code === 'KeyZ' && (event.metaKey || event.ctrlKey)) {
+    if (event.shiftKey) {
+      if (props.puzzle.canRedo) props.puzzle.redo()
+    } else if (props.puzzle.canUndo) {
+      props.puzzle.undo()
+    }
+  } else if (event.code === 'KeyZ') {
+    controller.value.mode = ControllerMode.digit
+  } else if (event.code === 'KeyX') {
+    controller.value.mode = ControllerMode.corner
+  } else if (event.code === 'KeyC') {
+    controller.value.mode = ControllerMode.center
+  } else if (event.code === 'KeyV') {
+    controller.value.mode = ControllerMode.color
+  } else if (/^(Digit|Numpad)\d$/.test(event.code)) {
     handleDigitInput(
       parseInt(event.code.charAt(event.code.length - 1), 10),
     )
@@ -525,6 +549,8 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     :timer="hideTimer ? null : timer"
     :controller="controller"
     :hide="disableControls"
+    :canUndo="puzzle.canUndo"
+    :canRedo="puzzle.canRedo"
     v-on:numpad-click="handleDigitInput"
     v-on:action-click="handleActionInput"
   )

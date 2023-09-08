@@ -61,7 +61,16 @@ abstract class SettingModeController {
     this.deselecting = false
   }
 
-  keyboardNavigation(event: KeyboardEvent) {
+  handleKeyDown(event: KeyboardEvent) {
+    if (event.code === 'KeyZ' && (event.ctrlKey || event.metaKey)) {
+      if (event.shiftKey) {
+        if (this.puzzle.canRedo) this.puzzle.redo()
+      } else if (this.puzzle.canUndo) {
+        this.puzzle.undo()
+      }
+      return
+    }
+
     if (this.allowGridSelect) {
       if (/^(Key(A|W|S|D)|Arrow\w+)$/.test(event.code)) {
         if (event.code === 'KeyA' && (event.ctrlKey || event.metaKey)) {
@@ -112,15 +121,15 @@ abstract class SettingModeController {
     }
   }
 
-  keyboardNavEventHandler = (event: KeyboardEvent) => this.keyboardNavigation(event)
+  keydownHandler = (event: KeyboardEvent) => this.handleKeyDown(event)
   resetSelectingEventHandler = () => this.resetSelecting()
 
   controllerEvents = {} as Record<string, (event: any) => void>
 
   setup() {
+    window.addEventListener('keydown', this.keydownHandler)
     if (this.allowGridSelect) {
       window.addEventListener('mouseup', this.resetSelectingEventHandler)
-      window.addEventListener('keydown', this.keyboardNavEventHandler)
     }
 
     this.controllerEvents = Object.keys(this.events).reduce(
@@ -146,7 +155,7 @@ abstract class SettingModeController {
   reset() {
     if (this.allowGridSelect) {
       window.removeEventListener('mouseup', this.resetSelectingEventHandler)
-      window.removeEventListener('keydown', this.keyboardNavEventHandler)
+      window.removeEventListener('keydown', this.keydownHandler)
       this.lastSelected = null
     }
 

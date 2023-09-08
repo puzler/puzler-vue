@@ -15,6 +15,18 @@ import useColorStore from '@/stores/color'
 import ColorConverter from '@/utils/color-converter'
 import crypto from 'crypto-js'
 
+type PuzzleSaveState = {
+  cells: {
+    digit: number|null
+    given: boolean
+    centerMarks: number[]
+    cornerMarks: number[]
+    cellColors: string[]
+    region: number
+  }[][]
+  puzzleData: Puzzle
+}
+
 function dimensionsForSize(size: number): { width: number; height: number} {
   const factors = []
   for (let i = 1; i <= Math.floor(Math.sqrt(size)); i += 1) {
@@ -116,6 +128,10 @@ class PuzzleSolve {
         [] as Array<Array<PuzzleSolveCell>>,
       )
     }
+
+    this.undoStack = []
+    this.redoStack = []
+    this.saveState()
   }
 
   size: number
@@ -123,6 +139,76 @@ class PuzzleSolve {
   puzzleData: Puzzle
   gridOuterCells = false
   candidateCounts?: Record<number, number>[][]
+  private undoStack: PuzzleSaveState[]
+  private redoStack: PuzzleSaveState[]
+
+  saveState() {
+    this.redoStack = []
+    this.undoStack.push({
+      cells: this.cells.map(
+        (rowCells) => rowCells.map(
+          (cell) => ({
+            digit: cell.digit,
+            given: cell.given,
+            region: cell.region,
+            centerMarks: [...cell.centerMarks],
+            cornerMarks: [...cell.cornerMarks],
+            cellColors: [...cell.cellColors],
+          })
+        )
+      ),
+      puzzleData: JSON.parse(
+        JSON.stringify(this.puzzleData),
+      ) as Puzzle,
+    })
+  }
+
+  private rehydrateState(state: PuzzleSaveState) {
+    this.puzzleData = JSON.parse(
+      JSON.stringify(state.puzzleData),
+    ) as Puzzle
+
+    this.cells = state.cells.map(
+      (rowCells, row) => rowCells.map(
+        (cell, column) => {
+          const newCell = new PuzzleSolveCell({
+            region: cell.region,
+            address: { row, column, __typename: 'Address' },
+            puzzle: this,
+            given: cell.given,
+            digit: cell.digit === null ? undefined : cell.digit,
+          })
+          newCell.centerMarks = cell.centerMarks
+          newCell.cornerMarks = cell.cornerMarks
+          newCell.cellColors = cell.cellColors
+
+          return newCell
+        }
+      )
+    )
+  }
+
+  undo() {
+    if (!this.canUndo) return
+
+    this.redoStack.push(this.undoStack.pop()!)
+    this.rehydrateState(this.undoStack[this.undoStack.length - 1])
+  }
+
+  redo() {
+    if (!this.canRedo) return
+
+    this.undoStack.push(this.redoStack.pop()!)
+    this.rehydrateState(this.undoStack[this.undoStack.length - 1])
+  }
+
+  get canRedo() {
+    return this.redoStack.length > 0
+  }
+
+  get canUndo() {
+    return this.undoStack.length > 1
+  }
 
   deselectAll() {
     for (let row = 0; row < this.size; row += 1) {

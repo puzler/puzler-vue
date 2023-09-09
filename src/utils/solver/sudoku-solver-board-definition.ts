@@ -7,6 +7,8 @@ import type {
   LittleKillerSum,
   PalindromeLine,
   Clone,
+  GermanWhisperLine,
+  BetweenLine,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -141,7 +143,19 @@ const PuzlerBoardDefinition: BoardDefinition = {
 
         return cells
       }
-    }
+    },
+    germanwhispers: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.germanWhisperLines,
+      lines: (instance: GermanWhisperLine) => [instance.points],
+    },
+    dutchwhispers: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.dutchWhisperLines,
+      lines: (instance: GermanWhisperLine) => [instance.points],
+    },
+    betweenline: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.betweenLines,
+      lines: (instance: BetweenLine) => [instance.points],
+    },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }

@@ -222,6 +222,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       }
     }
 
+    solverDisplay.value = []
     puzzleChanged()
   }
 

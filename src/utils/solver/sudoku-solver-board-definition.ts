@@ -9,6 +9,7 @@ import type {
   Clone,
   GermanWhisperLine,
   BetweenLine,
+  RenbanLine,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -155,6 +156,10 @@ const PuzlerBoardDefinition: BoardDefinition = {
     betweenline: {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.betweenLines,
       lines: (instance: BetweenLine) => [instance.points],
+    },
+    renban: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.renbanLines,
+      lines: (instance: RenbanLine) => [instance.points],
     },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column

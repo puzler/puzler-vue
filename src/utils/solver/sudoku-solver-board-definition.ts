@@ -10,6 +10,7 @@ import type {
   GermanWhisperLine,
   BetweenLine,
   RenbanLine,
+  Quadruple,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -164,6 +165,26 @@ const PuzlerBoardDefinition: BoardDefinition = {
     thermometer: {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.thermometers,
     },
+    quadruple: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.quadruples,
+      cells: (instance: Quadruple) => {
+        const rows: Set<number> = new Set()
+        const columns: Set<number> = new Set()
+        instance.cells.forEach(({ row, column }) => {
+          rows.add(row)
+          columns.add(column)
+        })
+
+        const cells: Address[] = []
+        rows.forEach((row) => {
+          columns.forEach((column) => {
+            cells.push({ row, column })
+          })
+        })
+
+        return cells
+      },
+    }
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }

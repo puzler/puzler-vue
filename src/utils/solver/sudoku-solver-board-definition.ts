@@ -161,6 +161,9 @@ const PuzlerBoardDefinition: BoardDefinition = {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.renbanLines,
       lines: (instance: RenbanLine) => [instance.points],
     },
+    thermometer: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.thermometers,
+    },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }

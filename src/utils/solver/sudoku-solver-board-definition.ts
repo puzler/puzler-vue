@@ -12,6 +12,7 @@ import type {
   RenbanLine,
   Quadruple,
   XSum,
+  SandwichSum,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -228,7 +229,32 @@ const PuzlerBoardDefinition: BoardDefinition = {
           }),
         )
       },
-    }
+    },
+    sandwichsum: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.sandwichSums,
+      cells: (instance: SandwichSum, size: number) => {
+        const { row, column } = instance.location
+        const isRow = column < 0 || column >= size
+        const isColumn = row < 0 || row >= size
+        if (isColumn && isRow) return []
+
+        if (isRow) {
+          return Array.from(
+            { length: size },
+            (_, i) => ({ row, column: i }),
+          )
+        }
+
+        if (isColumn) {
+          return Array.from(
+            { length: size },
+            (_, i) => ({ column, row: i }),
+          )
+        }
+
+        return []
+      },
+    },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column
 }

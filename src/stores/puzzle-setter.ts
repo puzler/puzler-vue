@@ -83,19 +83,19 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       }
     },
     onTrueCandidates: (candidates, counts) => {
-      applySolverCandidates(candidates)
+      applySolverCandidates(candidates, true)
       puzzle.value.candidateCounts = counts
       currentSolverCommand.value = null
     },
     onStep: (desc, invalid, changed, candidates) => {
       solverDisplay.value.push(desc)
-      applySolverCandidates(candidates)
+      if (candidates) applySolverCandidates(candidates)
       
       currentSolverCommand.value = null
     },
     onLogicalSolve: (desc, invalid, changed, candidates) => {
       solverDisplay.value = desc
-      applySolverCandidates(candidates)
+      if (candidates) applySolverCandidates(candidates)
 
       currentSolverCommand.value = null
     },
@@ -112,8 +112,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     }
   }
 
-  function applySolverCandidates(candidates?: CandidatesList) {
-    candidates?.forEach((cellCandidates, index) => {
+  function applySolverCandidates(candidates: CandidatesList, singleCandidateAsGiven = false) {
+    candidates.forEach((cellCandidates, index) => {
       const row = Math.floor(index / puzzle.value.size)
       const column = index % puzzle.value.size
       const puzzleCell = puzzle.value.cells[row][column]
@@ -121,7 +121,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
       if (!puzzleCell.given) {
         puzzleCell.digit = null
         if (Array.isArray(cellCandidates)) {
-          if (cellCandidates.length === 1) {
+          if (singleCandidateAsGiven && cellCandidates.length === 1) {
+            puzzleCell.centerMarks = []
             puzzleCell.digit = cellCandidates[0]
           } else {
             puzzleCell.centerMarks = [...cellCandidates]

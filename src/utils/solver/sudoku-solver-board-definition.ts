@@ -11,6 +11,7 @@ import type {
   BetweenLine,
   RenbanLine,
   Quadruple,
+  XSum,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -183,6 +184,49 @@ const PuzlerBoardDefinition: BoardDefinition = {
         })
 
         return cells
+      },
+    },
+    xsum: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.xSums,
+      cells: (instance: XSum, size: number) => {
+        const { row, column } = instance.location
+        if (row < 0) {
+          return Array.from(
+            { length: size },
+            (_, i) => ({
+              row: i,
+              column,
+            }),
+          )
+        }
+
+        if (column < 0) {
+          return Array.from(
+            { length: size },
+            (_, i) => ({
+              row,
+              column: i,
+            })
+          )
+        }
+
+        if (row >= size) {
+          return Array.from(
+            { length: size },
+            (_, i) => ({
+              row: size - i - 1,
+              column,
+            }),
+          )
+        }
+
+        return Array.from(
+          { length: size },
+          (_, i) => ({
+            row,
+            column: size - i - 1,
+          }),
+        )
       },
     }
   },

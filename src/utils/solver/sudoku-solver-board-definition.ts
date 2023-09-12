@@ -13,6 +13,8 @@ import type {
   Quadruple,
   XSum,
   SandwichSum,
+  RowIndexCell,
+  ColumnIndexCell,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -254,6 +256,22 @@ const PuzlerBoardDefinition: BoardDefinition = {
 
         return []
       },
+    },
+    rowindexcell: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.rowIndexCells,
+      cells: (instance: RowIndexCell, size: number) => Array.from(
+        { length: size },
+        (_, i) => ({ row: instance.cell.row, column: i }),
+      ),
+      value: (instance: RowIndexCell) => instance.cell.column + 1
+    },
+    columnindexcell: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.columnIndexCells,
+      cells: (instance: ColumnIndexCell, size: number) => Array.from(
+        { length: size },
+        (_, i) => ({ row: i, column: instance.cell.column }),
+      ),
+      value: (instance: ColumnIndexCell) => instance.cell.row + 1
     },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column

@@ -15,6 +15,7 @@ import type {
   SandwichSum,
   RowIndexCell,
   ColumnIndexCell,
+  Skyscraper,
 } from "@/graphql/generated/types"
 import type { PuzzleSolve, PuzzleSolveCell } from "@/types"
 import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
@@ -193,41 +194,15 @@ const PuzlerBoardDefinition: BoardDefinition = {
       collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.xSums,
       cells: (instance: XSum, size: number) => {
         const { row, column } = instance.location
-        if (row < 0) {
-          return Array.from(
-            { length: size },
-            (_, i) => ({
-              row: i,
-              column,
-            }),
-          )
-        }
-
-        if (column < 0) {
-          return Array.from(
-            { length: size },
-            (_, i) => ({
-              row,
-              column: i,
-            })
-          )
-        }
-
-        if (row >= size) {
-          return Array.from(
-            { length: size },
-            (_, i) => ({
-              row: size - i - 1,
-              column,
-            }),
-          )
-        }
+        const isRowClue = column < 0 || column >= size
+        const isColumnClue = row < 0 || row >= size
+        if (isRowClue === isColumnClue) return []
 
         return Array.from(
           { length: size },
           (_, i) => ({
-            row,
-            column: size - i - 1,
+            row: isRowClue ? row : (row < 0 ? i : size - i - 1),
+            column: isColumnClue ? column : (column < 0 ? i : size - i - 1),
           }),
         )
       },
@@ -238,23 +213,15 @@ const PuzlerBoardDefinition: BoardDefinition = {
         const { row, column } = instance.location
         const isRow = column < 0 || column >= size
         const isColumn = row < 0 || row >= size
-        if (isColumn && isRow) return []
+        if (isColumn === isRow) return []
 
-        if (isRow) {
-          return Array.from(
-            { length: size },
-            (_, i) => ({ row, column: i }),
-          )
-        }
-
-        if (isColumn) {
-          return Array.from(
-            { length: size },
-            (_, i) => ({ column, row: i }),
-          )
-        }
-
-        return []
+        return Array.from(
+          { length: size },
+          (_, i) => ({
+            row: isRow ? row : i,
+            column: isColumn ? column : i,
+          })
+        )
       },
     },
     rowindexcell: {
@@ -272,6 +239,23 @@ const PuzlerBoardDefinition: BoardDefinition = {
         (_, i) => ({ row: i, column: instance.cell.column }),
       ),
       value: (instance: ColumnIndexCell) => instance.cell.row + 1
+    },
+    skyscraper: {
+      collector: (puzzle: PuzzleSolve) => puzzle.puzzleData.localConstraints.skyscrapers,
+      cells: (instance: Skyscraper, size: number) => {
+        const { row, column } = instance.location
+        const isRowClue = column < 0 || column >= size
+        const isColumnClue = row < 0 || row >= size
+        if (isRowClue === isColumnClue) return []
+
+        return Array.from(
+          { length: size },
+          (_, i) => ({
+            row: isRowClue ? row : (row < 0 ? i : size - i - 1),
+            column: isColumnClue ? column : (column < 0 ? i : size - i - 1),
+          }),
+        )
+      },
     },
   },
   indexForAddress: ({ row, column }: Address, size: number) => row * size + column

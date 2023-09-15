@@ -69,7 +69,7 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
             solverDisplay.value = ['There are no solutions']
           } else if (count === 1) {
             solverDisplay.value = ['There is a unique solution']
-          } else if (currentSolverCommand.value === 'count') {
+          } else if (currentSolverCommand.value === 'count-solutions') {
             solverDisplay.value = [`There are exacly ${count} solutions`]
           } else {
             solverDisplay.value = ['There are multiple solutions']

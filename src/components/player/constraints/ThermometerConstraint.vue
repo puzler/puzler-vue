@@ -24,8 +24,8 @@ const linePaths = computed(() => {
       const last = line[line.length - 1]
 
       const modifiers = {
-        x: (secondToLast?.column || last.column) - last.column,
-        y: (secondToLast?.row || last.row) - last.row,
+        x: secondToLast.column - last.column,
+        y: secondToLast.row - last.row,
       }
 
       pathData[pathData.length - 1] = `L${(last.column * 100) + (modifiers.x * 12.5)} ${(last.row * 100) + (modifiers.y * 12.5)}`

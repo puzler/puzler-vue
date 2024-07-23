@@ -4,9 +4,21 @@ import { PuzzleSolveCell } from '@/types'
 import PuzzlePlayer from './PuzzlePlayer.vue'
 import SetterControls from './SetterControls.vue'
 import usePuzzleSetterStore from '@/stores/puzzle-setter'
+import useAuthStore from '@/stores/auth'
 import NewGridModal from './setter-modals/NewGridModal.vue'
+import { onMounted } from 'vue'
+
+const props = defineProps<{ puzzleId?: string }>()
 
 const puzzleStore = usePuzzleSetterStore()
+const authStore = useAuthStore()
+
+onMounted(() => {
+  console.log(props)
+  if (props.puzzleId) {
+    puzzleStore.loadPuzzle(props.puzzleId)
+  }
+})
 
 function doubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   puzzleStore.modeController?.cellDoubleClick(event, cell)
@@ -112,11 +124,14 @@ const solverPanelOpen = ref(false)
         origin="auto"
         no-click-animation
       )
-        .tooltip Save Puzzle
+        .tooltip(v-if="authStore.authenticated") Save Puzzle
+        .tooltip(v-else) Sign in to save your puzzle!
         template(v-slot:activator="{ props }")
           v-btn(
             v-bind="props"
             variant="plain"
+            v-on:click="puzzleStore.savePuzzle(puzzleId)"
+            :disabled="!authStore.authenticated"
           )
             v-icon(icon="mdi-content-save")
     .puzzle-grid-container(v-on:pointerdown="cellClick")

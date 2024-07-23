@@ -63,8 +63,13 @@ const includedGlobals = computed(() => {
 })
 
 const includedConstraints = computed(() => {
-  return Object.keys(puzzleStore.puzzle.puzzleData.localConstraints).map(
-    (key) => puzzleStore.constraintNameMap[key]
+  const locals = puzzleStore.puzzle.puzzleData.localConstraints as Record<string, any>
+  return Object.keys(locals).reduce(
+    (list, key) => {
+      if (Array.isArray(locals[key])) return [...list, puzzleStore.constraintNameMap[key]]
+      return list
+    },
+    [] as string[],
   )
 })
 </script>

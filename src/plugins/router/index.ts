@@ -24,21 +24,15 @@ const router = createRouter({
           component: SolverView,
         },
         {
-          path: 'solve',
+          path: 'solve/:puzzleId?',
           name: 'solve',
+          props: true,
           component: SolverView,
-          children: [
-            {
-              path: '/:puzzleId',
-              name: 'solveId',
-              component: SolverView,
-              props: true,
-            },
-          ],
         },
         {
-          path: 'setter',
+          path: 'setter/:puzzleId?',
           name: 'setter',
+          props: true,
           component: SetterView,
         },
         AuthRoutes,

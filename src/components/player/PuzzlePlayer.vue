@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import useColorStore from '@/stores/color'
 import useSettingStore from '@/stores/setting'
 import PuzzleGrid from './PuzzleGrid.vue'
@@ -511,6 +511,36 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     })
   })
 }
+
+const gridSizeModifiers = computed(() => {
+  const modifiers = {
+    width: 1,
+    height: 1,
+  }
+
+  const {
+    minRow,
+    minColumn,
+    maxRow,
+    maxColumn,
+  } = props.puzzle.boundingDimensions
+
+  const rowCount = 1 + Math.abs(minRow) + maxRow
+  const colCount = 1 + Math.abs(minColumn) + maxColumn
+
+  console.log(rowCount, colCount)
+
+  if (rowCount > colCount) {
+    modifiers.width = (1.0 * colCount) / rowCount
+  } else if (colCount > rowCount) {
+    modifiers.height = (1.0 * rowCount) / colCount
+  }
+
+  return {
+    '--widthModifier': modifiers.width,
+    '--heightModifier': modifiers.height,
+  }
+})
 </script>
 
 <template lang="pug">
@@ -532,7 +562,10 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
     :activator="modalActivators.incorrectSolution"
   )
     .message-modal Something seems wrong
-  .puzzle-grid-container(:class="{ 'controls-hidden': disableControls }")
+  .puzzle-grid-container(
+    :class="{ 'controls-hidden': disableControls }"
+    :style="{ ...gridSizeModifiers }"
+  )
     PuzzleGrid(
       :puzzle="puzzle"
       :timer="hideTimer ? { paused: false } : timer"
@@ -569,15 +602,15 @@ function cellDoubleClick(event: PointerEvent, cell: PuzzleSolveCell) {
   gap 20px
 
   .puzzle-grid-container
-    height 100cqmin
-    width 100cqmin
-    max-height calc(79cqw - 20px)
-    max-width calc(79cqw - 20px)
+    height calc(100cqmin * var(--heightModifier))
+    width calc(100cqmin * var(--widthModifier))
+    max-height calc((79cqw - 20px) * var(--heightModifier))
+    max-width calc((79cqw - 20px) * var(--widthModifier))
     container-type inline-size
 
     &.controls-hidden
-      max-height 100cqmin
-      max-width 100cqmin
+      max-height calc(100cqmin * var(--heightModifier))
+      max-width calc(100cqmin * var(--widthModifier))
 
 .message-modal
   background-color white

@@ -30,7 +30,10 @@ import type { PuzzleInput } from '@/graphql/generated/types'
 
 import graphql from '@/plugins/graphql'
 import GenerateFPuzzleQuery from '@/graphql/gql/puzzles/queries/GenerateFPuzzle.graphql'
+import SavePuzzleMutation from '@/graphql/gql/puzzles/mutations/SavePuzzle.graphql'
+import FetchPuzzleQuery from '@/graphql/gql/puzzles/queries/FetchPuzzle.graphql'
 import { faListCheck } from '@fortawesome/free-solid-svg-icons'
+import router from '@/plugins/router'
 
 const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   const puzzle = ref(new PuzzleSolve({ size: 9 }))
@@ -206,6 +209,10 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
   function puzzleChanged(saveState = true) {
     if (saveState) puzzle.value.saveState()
 
+    if (!countCandidates.value) {
+      puzzle.value.candidateCounts = undefined
+    }
+
     if (autoTrueCandidates.value) {
       trueCandidates()
     }
@@ -227,10 +234,29 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     puzzleChanged()
   }
 
+  async function loadPuzzle(puzzleId: string) {
+    const response = await graphql.query({
+      query: FetchPuzzleQuery,
+      variables: { id: puzzleId },
+      fetchPolicy: 'no-cache',
+    })
+
+    const dbPuzzle = response.data.fetchPuzzle
+    if (dbPuzzle) {
+      puzzle.value = new PuzzleSolve({ puzzle: dbPuzzle, size: dbPuzzle.size })
+      setMode('Given')
+      puzzleChanged(false)
+    }
+  }
+
   function newPuzzle(size: number) {
     puzzle.value = new PuzzleSolve({ size })
     puzzleChanged(false)
     setMode('Given')
+
+    if (router.currentRoute.value.name === 'setterId') {
+      router.replace({ name: 'setter' })
+    }
   }
 
   function controllerForMode(mode: string|null): void|SettingModeController {
@@ -505,6 +531,26 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     return parsed
   })
 
+  async function savePuzzle() {
+    const response = await graphql.mutate({
+      mutation: SavePuzzleMutation,
+      variables: {
+        input: {
+          puzzle: puzzleInput.value,
+        },
+      },
+    })
+
+    const { success, puzzle } = response.data.savePuzzle
+    if (!success) return false
+
+    if (router.currentRoute.value.name === 'setter') {
+      router.replace({ name: 'setterId', params: { puzzleId: puzzle.id } })
+    }
+
+    return true
+  }
+
   async function convertToFPuzzle() {
     const response = await graphql.query({
       query: GenerateFPuzzleQuery,
@@ -553,6 +599,8 @@ const usePuzzleSetterStore = defineStore('puzzle-setter', () => {
     canUndo,
     redo,
     undo,
+    savePuzzle,
+    loadPuzzle,
   }
 })
 

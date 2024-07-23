@@ -114,10 +114,10 @@ export const FullPuzzle: DocumentNode;
 }
     
 
-declare module '*/CreatePuzzle.graphql' {
+declare module '*/SavePuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const CreatePuzzle: DocumentNode;
+  export const SavePuzzle: DocumentNode;
 
   export default defaultDocument;
 }

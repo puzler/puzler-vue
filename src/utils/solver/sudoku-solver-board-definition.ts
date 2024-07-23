@@ -23,7 +23,14 @@ import type { BoardDefinition } from "@puzler/sudokusolver-webworker"
 const PuzlerBoardDefinition: BoardDefinition = {
   grid: {
     cells: (boardData: PuzzleSolve) => {
-      return boardData.cells
+      return boardData.puzzleData.cells.map(
+        (rowCells, row) => rowCells.map(
+          (cell, column) => ({
+            ...cell,
+            centerMarks: [...boardData.cells[row][column].centerMarks],
+          })
+        ),
+      )
     },
     value: ({ cell }: { cell: PuzzleSolveCell }) => cell.digit,
     centerPencilMarks: ({ cell }: { cell: PuzzleSolveCell }) => cell.centerMarks,

@@ -85,14 +85,20 @@ const spacerOutlines = computed(() => {
     maxX,
     maxY,
   } = minMaxXY.value
-  const lineSize = (maxY - minY + 1) * 100
-
-  for (let i = 0; i < maxX - minX; i += 1) {
+  
+  const verticalLineSize = (maxY - minY + 1) * 100
+  for (let i = 0; i < Math.max(maxX - minX, props.puzzle.size + 1); i += 1) {
     paths.push(
       `M${(minX + i) * 100 + 50} ${minY * 100 - 50}`,
-      `v${lineSize}`,
+      `v${verticalLineSize}`,
+    )
+  }
+
+  const horizontalLineSize = (maxX - minX + 1) * 100
+  for (let i = 0; i < Math.max(maxY - minY, props.puzzle.size + 1); i += 1) {
+    paths.push(
       `M${minX * 100 - 50} ${(minY + i) * 100 + 50}`,
-      `h${lineSize}`,
+      `h${horizontalLineSize}`,
     )
   }
 
@@ -154,19 +160,6 @@ const spacerCounts = computed(() => {
 
   if (maxColumn >= props.puzzle.size) {
     right = maxColumn - (props.puzzle.size - 1)
-  }
-
-  const vertical = top + bottom
-  const horizontal = left + right
-  
-  if (vertical < horizontal) {
-    const vertToAdd = horizontal - vertical
-    top += Math.ceil(vertToAdd / 2.0)
-    bottom += Math.floor(vertToAdd / 2.0)
-  } else if (vertical > horizontal) {
-    const horToAdd = vertical - horizontal
-    left += Math.ceil(horToAdd / 2.0)
-    right += Math.floor(horToAdd / 2.0)
   }
 
   return {
@@ -266,11 +259,39 @@ const selectionBorderPaths = computed(() => {
 })
 
 const errorAddresses = computed(() => props.puzzle.errorAddresses)
+
+const gridContainerStyle = computed(() => {
+  const { top, bottom, left, right } = spacerCounts.value
+  const verticalSpace = top + bottom + props.puzzle.size
+  const horizontalSpace = left + right + props.puzzle.size
+
+  const style = {
+    puzzleSize: Math.min(verticalSpace, horizontalSpace),
+    heightModifier: 1,
+    widthModifier: 1,
+    puzzleRows: verticalSpace,
+    puzzleCols: horizontalSpace,
+  }
+
+  if (verticalSpace > horizontalSpace) {
+    style.widthModifier = verticalSpace / horizontalSpace
+  } else if (horizontalSpace > verticalSpace) {
+    style.heightModifier = verticalSpace / horizontalSpace
+  }
+
+  return {
+    '--puzzleSize': style.puzzleSize,
+    '--heightModifier': style.heightModifier,
+    '--widthModifier': style.widthModifier,
+    '--puzzleRows': style.puzzleRows,
+    '--puzzleCols': style.puzzleCols,
+  }
+})
 </script>
 
 <template lang="pug">
 .grid-container(
-  :style="{ '--puzzleSize': puzzle.size + spacerCounts.top + spacerCounts.bottom }"
+  :style="gridContainerStyle"
 )
   svg(
     :viewBox="svgViewBox"
@@ -460,8 +481,8 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
 <style scoped lang="stylus">
 .grid-container
   position relative
-  height 100cqmin
-  width 100cqmin
+  height calc(100cqmin * var(--heightModifier))
+  width calc(100cqmin * var(--widthModifier))
   display flex
   user-select none
   touch-action none
@@ -522,12 +543,12 @@ const errorAddresses = computed(() => props.puzzle.errorAddresses)
     position relative
     font-size calc(100cqw / var(--puzzleSize))
     flex 1
-    grid-template-rows repeat(var(--puzzleSize), 1fr)
+    grid-template-rows repeat(var(--puzzleRows), 1fr)
     --selectedBorderWidth calc(10cqmin / var(--puzzleSize))
 
     .row
       display grid
-      grid-template-columns repeat(var(--puzzleSize), 1fr)
+      grid-template-columns repeat(var(--puzzleCols), 1fr)
 
     .grid-overlay
       position absolute

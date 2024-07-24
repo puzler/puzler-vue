@@ -14,7 +14,6 @@ const puzzleStore = usePuzzleSetterStore()
 const authStore = useAuthStore()
 
 onMounted(() => {
-  console.log(props)
   if (props.puzzleId) {
     puzzleStore.loadPuzzle(props.puzzleId)
   }

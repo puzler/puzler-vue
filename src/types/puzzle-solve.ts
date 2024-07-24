@@ -279,7 +279,6 @@ class PuzzleSolve {
       { rows: [], columns: [] } as { rows: Array<number>, columns: Array<number> },
     )
 
-    console.log(rows, columns)
     const defaultMin = this.gridOuterCells ? -1 : 0
     const defaultMax = this.gridOuterCells ? this.size : this.size - 1
 

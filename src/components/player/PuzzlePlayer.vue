@@ -528,8 +528,6 @@ const gridSizeModifiers = computed(() => {
   const rowCount = 1 + Math.abs(minRow) + maxRow
   const colCount = 1 + Math.abs(minColumn) + maxColumn
 
-  console.log(rowCount, colCount)
-
   if (rowCount > colCount) {
     modifiers.width = (1.0 * colCount) / rowCount
   } else if (colCount > rowCount) {

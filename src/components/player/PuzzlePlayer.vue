@@ -606,7 +606,7 @@ const gridSizeModifiers = computed(() => {
     width calc(100cqmin * var(--widthModifier))
     max-height calc((79cqw - 20px) * var(--heightModifier))
     max-width calc((79cqw - 20px) * var(--widthModifier))
-    container-type inline-size
+    container-type size
 
     &.controls-hidden
       max-height calc(100cqmin * var(--heightModifier))
@@ -627,6 +627,7 @@ const gridSizeModifiers = computed(() => {
     flex-direction column
     padding 10px
     .puzzle-grid-container
+      container-type size
       max-height calc(60cqh - 20px)
       max-width calc(60cqh - 20px)
 </style>

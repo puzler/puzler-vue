@@ -87,7 +87,7 @@ const spacerOutlines = computed(() => {
   } = minMaxXY.value
   
   const verticalLineSize = (maxY - minY + 1) * 100
-  for (let i = 0; i < Math.max(maxX - minX, props.puzzle.size + 1); i += 1) {
+  for (let i = 0; i < Math.max(maxX - minX, props.puzzle.size - 1); i += 1) {
     paths.push(
       `M${(minX + i) * 100 + 50} ${minY * 100 - 50}`,
       `v${verticalLineSize}`,
@@ -95,7 +95,7 @@ const spacerOutlines = computed(() => {
   }
 
   const horizontalLineSize = (maxX - minX + 1) * 100
-  for (let i = 0; i < Math.max(maxY - minY, props.puzzle.size + 1); i += 1) {
+  for (let i = 0; i < Math.max(maxY - minY, props.puzzle.size - 1); i += 1) {
     paths.push(
       `M${minX * 100 - 50} ${(minY + i) * 100 + 50}`,
       `h${horizontalLineSize}`,
@@ -265,26 +265,10 @@ const gridContainerStyle = computed(() => {
   const verticalSpace = top + bottom + props.puzzle.size
   const horizontalSpace = left + right + props.puzzle.size
 
-  const style = {
-    puzzleSize: Math.min(verticalSpace, horizontalSpace),
-    heightModifier: 1,
-    widthModifier: 1,
-    puzzleRows: verticalSpace,
-    puzzleCols: horizontalSpace,
-  }
-
-  if (verticalSpace > horizontalSpace) {
-    style.widthModifier = verticalSpace / horizontalSpace
-  } else if (horizontalSpace > verticalSpace) {
-    style.heightModifier = verticalSpace / horizontalSpace
-  }
-
   return {
-    '--puzzleSize': style.puzzleSize,
-    '--heightModifier': style.heightModifier,
-    '--widthModifier': style.widthModifier,
-    '--puzzleRows': style.puzzleRows,
-    '--puzzleCols': style.puzzleCols,
+    '--puzzleSize': Math.min(verticalSpace, horizontalSpace),
+    '--puzzleRows': verticalSpace,
+    '--puzzleCols': horizontalSpace,
   }
 })
 </script>
@@ -481,8 +465,8 @@ const gridContainerStyle = computed(() => {
 <style scoped lang="stylus">
 .grid-container
   position relative
-  height calc(100cqmin * var(--heightModifier))
-  width calc(100cqmin * var(--widthModifier))
+  height 100cqh
+  width 100cqw
   display flex
   user-select none
   touch-action none

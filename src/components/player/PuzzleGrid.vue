@@ -393,12 +393,12 @@ const gridContainerStyle = computed(() => {
     )
       .spacer-cell(
         v-for="j in puzzle.size + spacerCounts.left + spacerCounts.right"
-        :key="`bottom-spacer-cell-${i}${j}`"
-        :class="`R${spacerCounts.top - i - 1}C${j - spacerCounts.left - 1}`"
-        v-on:pointerdown="(event) => spacerClick(event, spacerCounts.top - i - 1, j - 1 - spacerCounts.left)"
+        :key="`top-spacer-cell-${i}${j}`"
+        :class="`R${i - 1 - spacerCounts.top}C${j - spacerCounts.left - 1}`"
+        v-on:pointerdown="(event) => spacerClick(event, i - 1 - spacerCounts.top, j - 1 - spacerCounts.left)"
       )
         .spacer-enter-target(
-          v-on:pointerenter="(event) => spacerEnter(event, spacerCounts.top - i - 1, j - 1 - spacerCounts.left)"
+          v-on:pointerenter="(event) => spacerEnter(event, i - 1 - spacerCounts.top, j - 1 - spacerCounts.left)"
         )
     .row(
       v-for="rowCells, row in puzzle.cells"

@@ -2,9 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 
+export interface ActiveConstraint {
+  id: string
+  type: string
+  label: string
+  category: string
+}
+
 export const useEditorStore = defineStore('editor', () => {
   const givenDigits = ref<Record<string, number>>({})
   const selection = ref<Set<string>>(new Set())
+  const activeTool = ref<string>('digit')
+  const activeConstraints = ref<ActiveConstraint[]>([])
   const { canUndo, canRedo, execute, undo, redo, clear: clearHistory } = useUndoRedo()
 
   const hasSelection = computed(() => selection.value.size > 0)
@@ -54,15 +63,35 @@ export const useEditorStore = defineStore('editor', () => {
     selection.value = new Set()
   }
 
+  function setActiveTool(tool: string) {
+    activeTool.value = tool
+  }
+
+  function addConstraint(type: string, label: string, category: string) {
+    if (category === 'global' && activeConstraints.value.some((c) => c.type === type)) return
+    activeConstraints.value.push({ id: crypto.randomUUID(), type, label, category })
+  }
+
+  function removeConstraint(id: string) {
+    activeConstraints.value = activeConstraints.value.filter((c) => c.id !== id)
+  }
+
   function reset() {
     givenDigits.value = {}
     selection.value = new Set()
+    activeTool.value = 'digit'
+    activeConstraints.value = []
     clearHistory()
   }
 
   return {
     givenDigits,
     selection,
+    activeTool,
+    activeConstraints,
+    setActiveTool,
+    addConstraint,
+    removeConstraint,
     hasSelection,
     canUndo,
     canRedo,

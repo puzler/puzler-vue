@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center p-8">
+  <div class="flex-1 flex flex-col items-center justify-center p-8">
     <h1 class="text-5xl font-bold mb-4">
       Puzler
     </h1>

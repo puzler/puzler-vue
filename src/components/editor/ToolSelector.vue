@@ -85,8 +85,33 @@ function handlePick(type: string, label: string) {
 </script>
 
 <template>
-  <aside class="w-48 flex flex-col border-r border-gray-200 bg-white overflow-y-auto shrink-0">
-    <!-- Digit tool -->
+  <aside class="flex flex-col bg-white overflow-y-auto">
+    <!-- Puzzle metadata -->
+    <div class="px-2 py-3 border-b border-gray-100">
+      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-2">
+        Puzzle
+      </p>
+      <div class="flex flex-col gap-1.5 px-1">
+        <input
+          v-model="editor.puzzleName"
+          placeholder="Puzzle name"
+          class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400"
+        >
+        <input
+          v-model="editor.puzzleAuthor"
+          placeholder="Author"
+          class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400"
+        >
+        <textarea
+          v-model="editor.puzzleRules"
+          placeholder="Rules..."
+          rows="3"
+          class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400 resize-none"
+        />
+      </div>
+    </div>
+
+    <!-- Tool selection -->
     <div class="px-2 py-3 border-b border-gray-100">
       <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">
         Tools
@@ -98,7 +123,16 @@ function handlePick(type: string, label: string) {
           : 'text-gray-700 hover:bg-gray-100'"
         @click="editor.setActiveTool('digit')"
       >
-        Digits
+        Given Digits
+      </button>
+      <button
+        class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors"
+        :class="editor.activeTool === 'region'
+          ? 'bg-blue-50 text-blue-700 font-medium'
+          : 'text-gray-700 hover:bg-gray-100'"
+        @click="editor.setActiveTool('region')"
+      >
+        Regions
       </button>
     </div>
 

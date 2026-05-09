@@ -6,7 +6,7 @@ import GridCell from './GridCell.vue'
 import type { CellState } from '@/types/grid'
 
 const props = defineProps<{
-  selection: Set<string>
+  selection?: Set<string>
   cellStates?: Record<string, CellState>
 }>()
 
@@ -16,7 +16,6 @@ interface CellInfo {
   key: string
   row: number
   col: number
-  selected: boolean
   color: string | null
 }
 
@@ -29,7 +28,6 @@ const cells = computed<CellInfo[]>(() => {
         key,
         row: r,
         col: c,
-        selected: props.selection.has(key),
         color: props.cellStates?.[key]?.color ?? null,
       })
     }
@@ -45,7 +43,6 @@ const cells = computed<CellInfo[]>(() => {
       :key="cell.key"
       :row="cell.row"
       :col="cell.col"
-      :selected="cell.selected"
       :color="cell.color"
     />
   </g>

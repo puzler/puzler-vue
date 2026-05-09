@@ -11,25 +11,22 @@ const props = defineProps<{
 
 const grid = useGridStore()
 
-// Fixed corner mark positions for digits 1-9 within a cell.
-// Each digit occupies a dedicated spot in a 3×3 sub-grid in the top portion of the cell.
-const MARK_COLS = 3
-const MARK_ROWS = 3
 const MARK_FONT = 11
-const MARK_PAD_X = 4
-const MARK_PAD_Y = 12
-const MARK_STEP_X = (CELL_SIZE - MARK_PAD_X * 2) / (MARK_COLS - 1)
-const MARK_STEP_Y = (CELL_SIZE * 0.45) / (MARK_ROWS - 1)
+const MARK_PAD = 5
 
-function cornerMarkPos(digit: number, cellX: number, cellY: number): { x: number; y: number } {
-  const idx = digit - 1
-  const col = idx % MARK_COLS
-  const row = Math.floor(idx / MARK_COLS)
-  return {
-    x: cellX + MARK_PAD_X + col * MARK_STEP_X,
-    y: cellY + MARK_PAD_Y + row * MARK_STEP_Y,
-  }
-}
+// Slots listed in activation priority order (fewest marks uses first slots).
+// readOrder controls digit assignment: top-left → top-right, row by row.
+const MARK_SLOTS = [
+  { readOrder: 0, dx: MARK_PAD,              dy: MARK_PAD,              anchor: 'start',  baseline: 'hanging'  }, // top-left
+  { readOrder: 2, dx: CELL_SIZE - MARK_PAD,  dy: MARK_PAD,              anchor: 'end',    baseline: 'hanging'  }, // top-right
+  { readOrder: 6, dx: MARK_PAD,              dy: CELL_SIZE - MARK_PAD,  anchor: 'start',  baseline: 'auto'     }, // bottom-left
+  { readOrder: 8, dx: CELL_SIZE - MARK_PAD,  dy: CELL_SIZE - MARK_PAD,  anchor: 'end',    baseline: 'auto'     }, // bottom-right
+  { readOrder: 1, dx: CELL_SIZE / 2,         dy: MARK_PAD,              anchor: 'middle', baseline: 'hanging'  }, // top-middle
+  { readOrder: 3, dx: MARK_PAD,              dy: CELL_SIZE / 2,         anchor: 'start',  baseline: 'central'  }, // left-middle
+  { readOrder: 5, dx: CELL_SIZE - MARK_PAD,  dy: CELL_SIZE / 2,         anchor: 'end',    baseline: 'central'  }, // right-middle
+  { readOrder: 7, dx: CELL_SIZE / 2,         dy: CELL_SIZE - MARK_PAD,  anchor: 'middle', baseline: 'auto'     }, // bottom-middle
+  { readOrder: 4, dx: CELL_SIZE / 2,         dy: CELL_SIZE / 2,         anchor: 'middle', baseline: 'central'  }, // center
+] as const
 
 interface DigitEntry {
   key: string
@@ -44,6 +41,8 @@ interface CornerMarkEntry {
   x: number
   y: number
   digit: number
+  anchor: string
+  baseline: string
 }
 
 interface CenterMarkEntry {
@@ -80,9 +79,21 @@ const cornerMarks = computed<CornerMarkEntry[]>(() => {
       if (!state?.cornerMarks.length || state.value != null || props.givenDigits[key] !== undefined) continue
       const cellX = PADDING + c * CELL_SIZE
       const cellY = PADDING + r * CELL_SIZE
-      state.cornerMarks.forEach((d) => {
-        const pos = cornerMarkPos(d, cellX, cellY)
-        out.push({ key: `cm-${key}-${d}`, x: pos.x, y: pos.y, digit: d })
+      const digits = [...state.cornerMarks].sort((a, b) => a - b)
+      const n = Math.min(digits.length, MARK_SLOTS.length)
+      // Take the first n slots by priority, then sort them by reading order
+      const active = MARK_SLOTS.slice(0, n)
+        .map((slot) => ({ ...slot }))
+        .sort((a, b) => a.readOrder - b.readOrder)
+      active.forEach((slot, i) => {
+        out.push({
+          key: `cm-${key}-${digits[i]}`,
+          x: cellX + slot.dx,
+          y: cellY + slot.dy,
+          digit: digits[i],
+          anchor: slot.anchor,
+          baseline: slot.baseline,
+        })
       })
     }
   }
@@ -130,8 +141,8 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :key="m.key"
       :x="m.x"
       :y="m.y"
-      text-anchor="middle"
-      dominant-baseline="central"
+      :text-anchor="m.anchor"
+      :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
       font-family="sans-serif"
       fill="#2563eb"

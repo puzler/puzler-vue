@@ -25,6 +25,7 @@ function hitCell(event: PointerEvent): string | null {
 }
 
 function onPointerDown(event: PointerEvent) {
+  if (event.button === 2) return
   const key = hitCell(event)
   if (!key) return
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)

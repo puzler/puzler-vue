@@ -6,6 +6,7 @@ import GridBackground from './GridBackground.vue'
 import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
 import CellLayer from './CellLayer.vue'
+import SelectionLayer from './SelectionLayer.vue'
 import DigitLayer from './DigitLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
 import type { CellState, GridMode } from '@/types/grid'
@@ -19,6 +20,7 @@ defineProps<{
 
 const emit = defineEmits<{
   'update:selection': [sel: Set<string>]
+  'clear-selection': []
 }>()
 
 const grid = useGridStore()
@@ -34,14 +36,14 @@ const viewBox = computed(() => `0 0 ${svgWidth(grid.cols)} ${svgHeight(grid.rows
     preserveAspectRatio="xMidYMid meet"
     class="w-full h-full select-none"
     xmlns="http://www.w3.org/2000/svg"
+    @click.self="emit('clear-selection')"
+    @contextmenu.prevent
   >
     <GridBackground />
     <CosmeticLayer />
     <ConstraintLayer />
-    <CellLayer
-      :selection="selection"
-      :cell-states="cellStates"
-    />
+    <CellLayer :cell-states="cellStates" />
+    <SelectionLayer :selection="selection" />
     <DigitLayer
       :given-digits="givenDigits"
       :cell-states="cellStates"

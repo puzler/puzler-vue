@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
+import { cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR } from '@/types/constraints'
 import type {
@@ -82,6 +83,77 @@ export const useEditorStore = defineStore('editor', () => {
   const { canUndo, canRedo, execute, undo, redo, clear: clearHistory } = useUndoRedo()
 
   const hasSelection = computed(() => selection.value.size > 0)
+
+  // For each cell: the set of full digits visible to it (same row, col, or region)
+  const seenDigitsByCell = computed<Map<string, Set<number>>>(() => {
+    const gridStore = useGridStore()
+    const byRow = new Map<number, Set<number>>()
+    const byCol = new Map<number, Set<number>>()
+    const byRegion = new Map<string, Set<number>>()
+
+    for (let r = 0; r < gridStore.rows; r++) {
+      for (let c = 0; c < gridStore.cols; c++) {
+        const key = cellKey(r, c)
+        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
+        if (digit === null) continue
+        if (!byRow.has(r)) byRow.set(r, new Set())
+        byRow.get(r)!.add(digit)
+        if (!byCol.has(c)) byCol.set(c, new Set())
+        byCol.get(c)!.add(digit)
+        const region = gridStore.cellRegionLabelMap.get(key)
+        if (region !== null && region !== undefined) {
+          if (!byRegion.has(region)) byRegion.set(region, new Set())
+          byRegion.get(region)!.add(digit)
+        }
+      }
+    }
+
+    const result = new Map<string, Set<number>>()
+    for (let r = 0; r < gridStore.rows; r++) {
+      for (let c = 0; c < gridStore.cols; c++) {
+        const key = cellKey(r, c)
+        const seen = new Set<number>()
+        byRow.get(r)?.forEach(d => seen.add(d))
+        byCol.get(c)?.forEach(d => seen.add(d))
+        const region = gridStore.cellRegionLabelMap.get(key)
+        if (region) byRegion.get(region)?.forEach(d => seen.add(d))
+        if (seen.size > 0) result.set(key, seen)
+      }
+    }
+    return result
+  })
+
+  const errorCells = computed<Set<string>>(() => {
+    const gridStore = useGridStore()
+    const filled = new Map<string, number>()
+    for (let r = 0; r < gridStore.rows; r++) {
+      for (let c = 0; c < gridStore.cols; c++) {
+        const key = cellKey(r, c)
+        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
+        if (digit !== null) filled.set(key, digit)
+      }
+    }
+
+    const errors = new Set<string>()
+    const entries = Array.from(filled.entries())
+    for (let i = 0; i < entries.length; i++) {
+      const [keyA, digitA] = entries[i]
+      const mA = keyA.match(/r(\d+)c(\d+)/)!
+      const rowA = Number(mA[1]), colA = Number(mA[2])
+      const regionA = gridStore.cellRegionLabelMap.get(keyA)
+      for (let j = i + 1; j < entries.length; j++) {
+        const [keyB, digitB] = entries[j]
+        if (digitA !== digitB) continue
+        const mB = keyB.match(/r(\d+)c(\d+)/)!
+        const rowB = Number(mB[1]), colB = Number(mB[2])
+        const regionB = gridStore.cellRegionLabelMap.get(keyB)
+        const sees = rowA === rowB || colA === colB
+          || (regionA !== null && regionA === regionB)
+        if (sees) { errors.add(keyA); errors.add(keyB) }
+      }
+    }
+    return errors
+  })
 
   function setGivenDigitsForSelection(digit: number | null) {
     const keys = Array.from(selection.value)
@@ -527,6 +599,15 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  function clearSolverState() {
+    if (Object.keys(solverCellStates.value).length === 0) return
+    const prev = { ...solverCellStates.value }
+    execute({
+      execute: () => { solverCellStates.value = {} },
+      undo: () => { solverCellStates.value = prev },
+    })
+  }
+
   function reset() {
     givenDigits.value = {}
     solverCellStates.value = {}
@@ -618,6 +699,8 @@ export const useEditorStore = defineStore('editor', () => {
     updateActiveTextPresetStyle,
     toggleTextAt,
     hasSelection,
+    seenDigitsByCell,
+    errorCells,
     canUndo,
     canRedo,
     setGivenDigitsForSelection,
@@ -630,6 +713,7 @@ export const useEditorStore = defineStore('editor', () => {
     toggleCell,
     addCell,
     clearSelection,
+    clearSolverState,
     undo,
     redo,
     reset,

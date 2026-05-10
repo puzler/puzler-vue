@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
+import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, THIN_STROKE, BOX_STROKE, OUTER_STROKE, cellKey } from '@/composables/useGrid'
 
 const grid = useGridStore()
+const editor = useEditorStore()
 
 interface Segment {
   x1: number
@@ -119,6 +121,36 @@ const activeCellRects = computed<CellRect[]>(() => {
   }
   return rects
 })
+
+interface ColorRect { x: number; y: number; color: string; opacity?: number }
+
+const cellColorRects = computed<ColorRect[]>(() => {
+  const m = editor.cosmeticCellColors
+  const presets = editor.cellColorPresets
+  return Object.entries(m).flatMap(([cell, presetId]) => {
+    const color = presets.find(p => p.id === presetId)?.color
+    if (!color) return []
+    const match = cell.match(/r(\d+)c(\d+)/)!
+    return [{ x: PADDING + Number(match[2]) * CELL_SIZE, y: PADDING + Number(match[1]) * CELL_SIZE, color }]
+  })
+})
+
+const pendingColorRects = computed<ColorRect[]>(() => {
+  const color = editor.activeCellColorPreset?.color
+  if (!color) return []
+  return editor.pendingBrushCells.flatMap(cell => {
+    const match = cell.match(/r(\d+)c(\d+)/)!
+    return [{ x: PADDING + Number(match[2]) * CELL_SIZE, y: PADDING + Number(match[1]) * CELL_SIZE, color, opacity: 0.55 }]
+  })
+})
+
+const errorRects = computed<CellRect[]>(() =>
+  Array.from(editor.errorCells).flatMap(key => {
+    const m = key.match(/r(\d+)c(\d+)/)
+    if (!m) return []
+    return [{ x: PADDING + Number(m[2]) * CELL_SIZE, y: PADDING + Number(m[1]) * CELL_SIZE }]
+  }),
+)
 </script>
 
 <template>
@@ -138,6 +170,35 @@ const activeCellRects = computed<CellRect[]>(() => {
       :width="CELL_SIZE"
       :height="CELL_SIZE"
       fill="white"
+    />
+    <rect
+      v-for="(cr, i) in cellColorRects"
+      :key="`cc-${i}`"
+      :x="cr.x"
+      :y="cr.y"
+      :width="CELL_SIZE"
+      :height="CELL_SIZE"
+      :fill="cr.color"
+    />
+    <rect
+      v-for="(cr, i) in pendingColorRects"
+      :key="`pc-${i}`"
+      :x="cr.x"
+      :y="cr.y"
+      :width="CELL_SIZE"
+      :height="CELL_SIZE"
+      :fill="cr.color"
+      :opacity="cr.opacity"
+    />
+    <rect
+      v-for="(er, i) in errorRects"
+      :key="`err-${i}`"
+      :x="er.x"
+      :y="er.y"
+      :width="CELL_SIZE"
+      :height="CELL_SIZE"
+      fill="#ef4444"
+      opacity="0.2"
     />
     <g
       stroke="#333"

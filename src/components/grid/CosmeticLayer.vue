@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import CosmeticLineComp from '@/components/cosmetics/CosmeticLine.vue'
-import CosmeticCellColor from '@/components/cosmetics/CosmeticCellColor.vue'
 import CosmeticShape from '@/components/cosmetics/CosmeticShape.vue'
 import CosmeticText from '@/components/cosmetics/CosmeticText.vue'
 import { cellsToPath } from '@/utils/linePath'
@@ -27,19 +26,6 @@ const lineInstances = computed<ResolvedLine[]>(() =>
 
 const pendingPath = computed(() => cellsToPath(editor.pendingLineCells))
 const activeLineStyle = computed(() => editor.activeLinePreset?.style ?? DEFAULT_LINE_STYLE)
-
-// ── Cell colors ──────────────────────────────────────────────────────────────
-
-const colorEntries = computed(() =>
-  Object.entries(editor.cosmeticCellColors)
-    .map(([cell, presetId]) => ({
-      cell,
-      color: editor.cellColorPresets.find(p => p.id === presetId)?.color ?? null,
-    }))
-    .filter((e): e is { cell: string; color: string } => e.color !== null),
-)
-
-const pendingBrushColor = computed(() => editor.activeCellColorPreset?.color ?? '#fff9c4')
 
 // ── Shapes ───────────────────────────────────────────────────────────────────
 
@@ -73,21 +59,6 @@ const textInstances = computed(() =>
 
 <template>
   <g>
-    <!-- Cell colors (beneath all other cosmetics) -->
-    <CosmeticCellColor
-      v-for="entry in colorEntries"
-      :key="entry.cell"
-      :cell="entry.cell"
-      :color="entry.color"
-    />
-    <CosmeticCellColor
-      v-for="cell in editor.pendingBrushCells"
-      :key="`pending-color-${cell}`"
-      :cell="cell"
-      :color="pendingBrushColor"
-      :opacity="0.55"
-    />
-
     <!-- Lines -->
     <CosmeticLineComp
       v-for="inst in lineInstances"

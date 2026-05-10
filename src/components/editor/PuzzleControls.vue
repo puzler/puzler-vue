@@ -80,13 +80,19 @@ async function copyPuzzleData() {
 
     <div class="w-px h-5 bg-gray-200" />
 
-    <!-- New Grid — centered -->
-    <div class="flex-1 flex justify-center">
+    <!-- New Grid + Clear — centered -->
+    <div class="flex-1 flex justify-center gap-2">
       <button
         class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         @click="openNewGrid"
       >
         New Grid
+      </button>
+      <button
+        class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        @click="editor.clearSolverState()"
+      >
+        Clear
       </button>
     </div>
 

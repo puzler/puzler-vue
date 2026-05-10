@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
+import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
 
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const grid = useGridStore()
+const editor = useEditorStore()
 
 const MARK_FONT = 11
 const MARK_PAD = 5
@@ -38,6 +40,7 @@ interface DigitEntry {
 
 interface CornerMarkEntry {
   key: string
+  cell: string
   x: number
   y: number
   digit: number
@@ -47,6 +50,7 @@ interface CornerMarkEntry {
 
 interface CenterMarkEntry {
   key: string
+  cell: string
   x: number
   y: number
   marks: number[]
@@ -88,6 +92,7 @@ const cornerMarks = computed<CornerMarkEntry[]>(() => {
       active.forEach((slot, i) => {
         out.push({
           key: `cm-${key}-${digits[i]}`,
+          cell: key,
           x: cellX + slot.dx,
           y: cellY + slot.dy,
           digit: digits[i],
@@ -110,7 +115,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       if (!state?.centerMarks.length || state.value != null || props.givenDigits[key] !== undefined) continue
       const cx = PADDING + c * CELL_SIZE + CELL_SIZE / 2
       const cy = PADDING + r * CELL_SIZE + CELL_SIZE / 2
-      out.push({ key: `km-${key}`, x: cx, y: cy, marks: state.centerMarks })
+      out.push({ key: `km-${key}`, cell: key, x: cx, y: cy, marks: state.centerMarks })
     }
   }
   return out
@@ -145,7 +150,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
       font-family="sans-serif"
-      fill="#2563eb"
+      :fill="editor.seenDigitsByCell.get(m.cell)?.has(m.digit) ? '#dc2626' : '#2563eb'"
     >
       {{ m.digit }}
     </text>
@@ -160,9 +165,12 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       dominant-baseline="central"
       :font-size="MARK_FONT + 1"
       font-family="sans-serif"
-      fill="#2563eb"
     >
-      {{ m.marks.join('') }}
+      <tspan
+        v-for="d in m.marks"
+        :key="d"
+        :fill="editor.seenDigitsByCell.get(m.cell)?.has(d) ? '#dc2626' : '#2563eb'"
+      >{{ d }}</tspan>
     </text>
   </g>
 </template>

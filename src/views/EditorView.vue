@@ -14,7 +14,7 @@ const editor = useEditorStore()
 const grid = useGridStore()
 const isMobile = useIsMobile()
 
-const TOOLS_WITH_CONTROLS = new Set(['digit', 'cosmetic_line'])
+const TOOLS_WITH_CONTROLS = new Set(['digit', 'cosmetic_line', 'cell_color', 'shape', 'text'])
 const activeToolHasControls = computed(() => TOOLS_WITH_CONTROLS.has(editor.activeTool))
 
 const puzzleControlsOpen = ref(false)

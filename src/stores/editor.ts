@@ -2,8 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE } from '@/types/constraints'
-import type { CosmeticInstance, CosmeticLineData, LinePreset, LineStyle } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR } from '@/types/constraints'
+import type {
+  CosmeticInstance, CosmeticLineData, LinePreset, LineStyle,
+  CellColorPreset,
+  ShapePreset, ShapeStyle, ShapeData, ShapeAnchor,
+  TextPreset, TextStyle, TextData,
+} from '@/types/constraints'
 
 export interface ActiveConstraint {
   id: string
@@ -26,6 +31,41 @@ export const useEditorStore = defineStore('editor', () => {
   const keyboardModeOverride = ref<'digit' | 'center' | 'corner' | null>(null)
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
+
+  // ── Cell color ────────────────────────────────────────────────────────────
+  const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
+
+  function makeColorPreset(label: string, color: string): CellColorPreset {
+    return { id: crypto.randomUUID(), label, color }
+  }
+  const _initialColor = makeColorPreset('Color 1', DEFAULT_CELL_COLOR)
+  const cellColorPresets = ref<CellColorPreset[]>([_initialColor])
+  const activeCellColorPresetId = ref<string>(_initialColor.id)
+  const activeCellColorPreset = computed(() =>
+    cellColorPresets.value.find(p => p.id === activeCellColorPresetId.value) ?? cellColorPresets.value[0],
+  )
+  const pendingBrushCells = ref<string[]>([])
+
+  // ── Shape ─────────────────────────────────────────────────────────────────
+  function makeShapePreset(label: string): ShapePreset {
+    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_SHAPE_STYLE } }
+  }
+  const _initialShape = makeShapePreset('Shape 1')
+  const shapePresets = ref<ShapePreset[]>([_initialShape])
+  const activeShapePresetId = ref<string>(_initialShape.id)
+  const activeShapePreset = computed(() =>
+    shapePresets.value.find(p => p.id === activeShapePresetId.value) ?? shapePresets.value[0],
+  )
+  // ── Text ──────────────────────────────────────────────────────────────────
+  function makeTextPreset(label: string): TextPreset {
+    return { id: crypto.randomUUID(), label, content: '?', style: { ...DEFAULT_TEXT_STYLE } }
+  }
+  const _initialText = makeTextPreset('Text 1')
+  const textPresets = ref<TextPreset[]>([_initialText])
+  const activeTextPresetId = ref<string>(_initialText.id)
+  const activeTextPreset = computed(() =>
+    textPresets.value.find(p => p.id === activeTextPresetId.value) ?? textPresets.value[0],
+  )
 
   function makePreset(label: string): LinePreset {
     return { id: crypto.randomUUID(), label, style: { ...DEFAULT_LINE_STYLE } }
@@ -257,19 +297,157 @@ export const useEditorStore = defineStore('editor', () => {
     activeConstraints.value = activeConstraints.value.filter((c) => c.id !== id)
   }
 
+  // ── Cell color actions ────────────────────────────────────────────────────
+
+  function addCellColorPreset() {
+    const preset = makeColorPreset(`Color ${cellColorPresets.value.length + 1}`, DEFAULT_CELL_COLOR)
+    cellColorPresets.value = [...cellColorPresets.value, preset]
+    activeCellColorPresetId.value = preset.id
+  }
+
+  function setActiveCellColorPreset(id: string) {
+    if (cellColorPresets.value.some(p => p.id === id)) activeCellColorPresetId.value = id
+  }
+
+  function updateActiveCellColorPreset(patch: Partial<Pick<CellColorPreset, 'label' | 'color'>>) {
+    cellColorPresets.value = cellColorPresets.value.map(p =>
+      p.id === activeCellColorPresetId.value ? { ...p, ...patch } : p,
+    )
+  }
+
+  function setPendingBrushCells(cells: string[]) {
+    pendingBrushCells.value = cells
+  }
+
+  function paintCells(keys: string[]) {
+    if (!keys.length) return
+    const presetId = activeCellColorPresetId.value
+    const prev = Object.fromEntries(keys.map(k => [k, cosmeticCellColors.value[k] ?? null]))
+    execute({
+      execute: () => { keys.forEach(k => { cosmeticCellColors.value[k] = presetId }) },
+      undo: () => {
+        keys.forEach(k => {
+          if (prev[k] === null) delete cosmeticCellColors.value[k]
+          else cosmeticCellColors.value[k] = prev[k]!
+        })
+      },
+    })
+  }
+
+  function eraseCells(keys: string[]) {
+    const filtered = keys.filter(k => cosmeticCellColors.value[k] !== undefined)
+    if (!filtered.length) return
+    const prev = Object.fromEntries(filtered.map(k => [k, cosmeticCellColors.value[k]]))
+    execute({
+      execute: () => { filtered.forEach(k => { delete cosmeticCellColors.value[k] }) },
+      undo: () => { filtered.forEach(k => { cosmeticCellColors.value[k] = prev[k] }) },
+    })
+  }
+
+  // ── Shape actions ─────────────────────────────────────────────────────────
+
+  function addShapePreset() {
+    const preset = makeShapePreset(`Shape ${shapePresets.value.length + 1}`)
+    shapePresets.value = [...shapePresets.value, preset]
+    activeShapePresetId.value = preset.id
+  }
+
+  function setActiveShapePreset(id: string) {
+    if (shapePresets.value.some(p => p.id === id)) activeShapePresetId.value = id
+  }
+
+  function updateActiveShapePreset(patch: Partial<ShapeStyle>) {
+    shapePresets.value = shapePresets.value.map(p =>
+      p.id === activeShapePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
+    )
+  }
+
+  function toggleShapeAt(cell: string, anchor: ShapeAnchor) {
+    const existingIdx = cosmeticInstances.value.findIndex(
+      i => i.type === 'shape' && (i.data as ShapeData).cell === cell && (i.data as ShapeData).anchor === anchor,
+    )
+    if (existingIdx !== -1) {
+      const existing = cosmeticInstances.value[existingIdx]
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id) },
+        undo: () => { cosmeticInstances.value.splice(existingIdx, 0, existing) },
+      })
+    } else {
+      const instance: CosmeticInstance = {
+        id: crypto.randomUUID(),
+        type: 'shape',
+        data: { cell, anchor, presetId: activeShapePresetId.value } satisfies ShapeData,
+      }
+      execute({
+        execute: () => { cosmeticInstances.value.push(instance) },
+        undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+      })
+    }
+  }
+
+  // ── Text actions ──────────────────────────────────────────────────────────
+
+  function addTextPreset() {
+    const preset = makeTextPreset(`Text ${textPresets.value.length + 1}`)
+    textPresets.value = [...textPresets.value, preset]
+    activeTextPresetId.value = preset.id
+  }
+
+  function setActiveTextPreset(id: string) {
+    if (textPresets.value.some(p => p.id === id)) activeTextPresetId.value = id
+  }
+
+  function updateActiveTextPresetContent(content: string) {
+    textPresets.value = textPresets.value.map(p =>
+      p.id === activeTextPresetId.value ? { ...p, content } : p,
+    )
+  }
+
+  function updateActiveTextPresetStyle(patch: Partial<TextStyle>) {
+    textPresets.value = textPresets.value.map(p =>
+      p.id === activeTextPresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
+    )
+  }
+
+  function toggleTextAt(key: string) {
+    const existingIdx = cosmeticInstances.value.findIndex(
+      i => i.type === 'text' && (i.data as TextData).cell === key,
+    )
+    if (existingIdx !== -1) {
+      const existing = cosmeticInstances.value[existingIdx]
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id) },
+        undo: () => { cosmeticInstances.value.splice(existingIdx, 0, existing) },
+      })
+    } else {
+      const instance: CosmeticInstance = {
+        id: crypto.randomUUID(),
+        type: 'text',
+        data: { cell: key, presetId: activeTextPresetId.value } satisfies TextData,
+      }
+      execute({
+        execute: () => { cosmeticInstances.value.push(instance) },
+        undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+      })
+    }
+  }
+
   function removeCosmeticType(constraintId: string, type: string) {
     const idx = activeConstraints.value.findIndex(c => c.id === constraintId)
     if (idx === -1) return
     const constraint = activeConstraints.value[idx]
     const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
+    const removedColors = type === 'cell_color' ? { ...cosmeticCellColors.value } : null
     execute({
       execute: () => {
         activeConstraints.value = activeConstraints.value.filter(c => c.id !== constraintId)
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
+        if (type === 'cell_color') cosmeticCellColors.value = {}
       },
       undo: () => {
         activeConstraints.value.splice(idx, 0, constraint)
         cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
+        if (removedColors) cosmeticCellColors.value = removedColors
       },
     })
   }
@@ -349,6 +527,17 @@ export const useEditorStore = defineStore('editor', () => {
     const fresh = makePreset('Line 1')
     linePresets.value = [fresh]
     activeLinePresetId.value = fresh.id
+    cosmeticCellColors.value = {}
+    pendingBrushCells.value = []
+    const freshColor = makeColorPreset('Color 1', DEFAULT_CELL_COLOR)
+    cellColorPresets.value = [freshColor]
+    activeCellColorPresetId.value = freshColor.id
+    const freshShape = makeShapePreset('Shape 1')
+    shapePresets.value = [freshShape]
+    activeShapePresetId.value = freshShape.id
+    const freshText = makeTextPreset('Text 1')
+    textPresets.value = [freshText]
+    activeTextPresetId.value = freshText.id
     clearHistory()
   }
 
@@ -385,6 +574,32 @@ export const useEditorStore = defineStore('editor', () => {
     commitPendingLine,
     cancelPendingLine,
     removeCosmeticInstance,
+    cosmeticCellColors,
+    cellColorPresets,
+    activeCellColorPresetId,
+    activeCellColorPreset,
+    pendingBrushCells,
+    addCellColorPreset,
+    setActiveCellColorPreset,
+    updateActiveCellColorPreset,
+    setPendingBrushCells,
+    paintCells,
+    eraseCells,
+    shapePresets,
+    activeShapePresetId,
+    activeShapePreset,
+    addShapePreset,
+    setActiveShapePreset,
+    updateActiveShapePreset,
+    toggleShapeAt,
+    textPresets,
+    activeTextPresetId,
+    activeTextPreset,
+    addTextPreset,
+    setActiveTextPreset,
+    updateActiveTextPresetContent,
+    updateActiveTextPresetStyle,
+    toggleTextAt,
     hasSelection,
     canUndo,
     canRedo,

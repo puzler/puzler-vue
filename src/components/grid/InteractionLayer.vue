@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey } from '@/composables/useGrid'
-import type { CosmeticLineData } from '@/types/constraints'
+import type { CosmeticLineData, ShapeAnchor } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -20,14 +20,23 @@ const editor = useEditorStore()
 const isDragging = ref(false)
 const dragAdditive = ref(false)
 
-// Tools that build an ordered cell path rather than a selection set
 const DRAWING_TOOLS = new Set(['cosmetic_line'])
-const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
+const BRUSH_TOOLS = new Set(['cell_color'])
 
-// When drawing a line, the pointer must be this many SVG units inside a cell
-// boundary before that cell is added to the path. Prevents accidental diagonal
-// neighbours from being picked up when the pointer just clips a corner.
+const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
+const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
+
 const DRAW_BUFFER = CELL_SIZE * 0.15
+
+// Brush drag state (local — committed as a single undo step on pointerup)
+const brushMode = ref<'paint' | 'erase' | null>(null)
+const brushCells = ref<Set<string>>(new Set())
+
+const cursor = computed(() => {
+  if (isDrawing.value || isBrushing.value) return 'crosshair'
+  if (editor.activeTool === 'text') return 'text'
+  return 'default'
+})
 
 function hitCell(event: PointerEvent): string | null {
   if (!props.svgRef) return null
@@ -71,6 +80,40 @@ function findLineAtCell(key: string): string | null {
   return null
 }
 
+const ANCHOR_THRESHOLD = 0.3
+
+function computeShapeAnchor(event: PointerEvent, cell: string): ShapeAnchor {
+  if (!props.svgRef) return 'center'
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return 'center'
+
+  const m = cell.match(/r(\d+)c(\d+)/)!
+  const cellX = PADDING + parseInt(m[2]) * CELL_SIZE
+  const cellY = PADDING + parseInt(m[1]) * CELL_SIZE
+
+  const fx = (pt.x - cellX) / CELL_SIZE
+  const fy = (pt.y - cellY) / CELL_SIZE
+
+  const nearLeft = fx < ANCHOR_THRESHOLD
+  const nearRight = fx > 1 - ANCHOR_THRESHOLD
+  const nearTop = fy < ANCHOR_THRESHOLD
+  const nearBottom = fy > 1 - ANCHOR_THRESHOLD
+
+  if (nearTop && nearLeft) return 'top-left'
+  if (nearTop && nearRight) return 'top-right'
+  if (nearBottom && nearLeft) return 'bottom-left'
+  if (nearBottom && nearRight) return 'bottom-right'
+  if (nearTop) return 'top'
+  if (nearBottom) return 'bottom'
+  if (nearLeft) return 'left'
+  if (nearRight) return 'right'
+  return 'center'
+}
+
+function hasCellColor(key: string): boolean {
+  return editor.cosmeticCellColors[key] !== undefined
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
   const key = hitCell(event)
@@ -87,6 +130,16 @@ function onPointerDown(event: PointerEvent) {
     ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
     isDragging.value = true
     editor.startPendingLine(key)
+  } else if (isBrushing.value) {
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    brushCells.value = new Set([key])
+    brushMode.value = hasCellColor(key) ? 'erase' : 'paint'
+    if (brushMode.value === 'paint') editor.setPendingBrushCells([key])
+  } else if (editor.activeTool === 'text') {
+    editor.toggleTextAt(key)
+  } else if (editor.activeTool === 'shape') {
+    editor.toggleShapeAt(key, computeShapeAnchor(event, key))
   } else {
     ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
     isDragging.value = true
@@ -109,6 +162,11 @@ function onPointerMove(event: PointerEvent) {
   if (isDrawing.value) {
     const key = hitCellBuffered(event)
     if (key) editor.extendPendingLine(key)
+  } else if (isBrushing.value) {
+    const key = hitCell(event)
+    if (!key || brushCells.value.has(key)) return
+    brushCells.value = new Set([...brushCells.value, key])
+    if (brushMode.value === 'paint') editor.setPendingBrushCells(Array.from(brushCells.value))
   } else {
     const key = hitCell(event)
     if (!key || props.selection.has(key)) return
@@ -123,6 +181,15 @@ function onPointerUp(event: PointerEvent) {
 
   if (isDrawing.value) {
     editor.commitPendingLine()
+  } else if (isBrushing.value) {
+    const cells = Array.from(brushCells.value)
+    if (editor.activeTool === 'cell_color') {
+      editor.setPendingBrushCells([])
+      if (brushMode.value === 'paint') editor.paintCells(cells)
+      else if (brushMode.value === 'erase') editor.eraseCells(cells)
+    }
+    brushCells.value = new Set()
+    brushMode.value = null
   }
 }
 </script>
@@ -134,7 +201,7 @@ function onPointerUp(event: PointerEvent) {
     :width="grid.cols * CELL_SIZE"
     :height="grid.rows * CELL_SIZE"
     fill="transparent"
-    :style="{ cursor: isDrawing ? 'crosshair' : 'default' }"
+    :style="{ cursor }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"

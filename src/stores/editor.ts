@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
+import { useGridStore } from '@/stores/grid'
 import type { CellState } from '@/types/grid'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR } from '@/types/constraints'
 import type {
@@ -511,6 +512,21 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  // ── Region editing ────────────────────────────────────────────────────────
+
+  function setRegionForSelection(label: string | null) {
+    const keys = Array.from(selection.value)
+    if (!keys.length) return
+    const grid = useGridStore()
+    const prevRegions = grid.customCellRegions ? { ...grid.customCellRegions } : null
+    const newRegions = prevRegions ? { ...prevRegions } : {}
+    keys.forEach(k => { newRegions[k] = label })
+    execute({
+      execute: () => { grid.setCustomCellRegions(newRegions) },
+      undo: () => { grid.setCustomCellRegions(prevRegions) },
+    })
+  }
+
   function reset() {
     givenDigits.value = {}
     solverCellStates.value = {}
@@ -574,6 +590,7 @@ export const useEditorStore = defineStore('editor', () => {
     commitPendingLine,
     cancelPendingLine,
     removeCosmeticInstance,
+    setRegionForSelection,
     cosmeticCellColors,
     cellColorPresets,
     activeCellColorPresetId,

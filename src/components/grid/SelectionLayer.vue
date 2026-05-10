@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useGridStore } from '@/stores/grid'
 import {
-  CELL_SIZE, PADDING, THIN_STROKE, BOX_STROKE, OUTER_STROKE,
+  CELL_SIZE, PADDING, THIN_STROKE,
   cellKey, keyToRowCol,
 } from '@/composables/useGrid'
 
 const props = defineProps<{
   selection: Set<string>
 }>()
-
-const grid = useGridStore()
 
 const SEL_STROKE = 4
 const SEL_HALF = SEL_STROKE / 2
@@ -21,26 +18,13 @@ interface Point { x: number; y: number }
 function dist(a: Point, b: Point): number { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2) }
 function lerp(a: Point, b: Point, t: number): Point { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t } }
 
-// Returns how far inward the selection path center must sit from this cell boundary edge.
-// Guarantees the selection stroke (SEL_STROKE wide) won't overlap the border stroke.
-function edgeOffset(selectedKey: string, nr: number, nc: number): number {
-  if (nr < 0 || nr >= grid.rows || nc < 0 || nc >= grid.cols) {
-    return OUTER_STROKE / 2 + SEL_HALF
-  }
-  const nKey = cellKey(nr, nc)
-  if (!grid.areSameBox(selectedKey, nKey)) {
-    return BOX_STROKE / 2 + SEL_HALF
-  }
-  return THIN_STROKE / 2 + SEL_HALF
-}
-
 const pathSegments = computed<Point[][]>(() => {
   if (props.selection.size === 0) return []
 
   const paths = [] as Point[][]
   props.selection.forEach(key => {
     const { row, col } = keyToRowCol(key)
-    const offsetTo = (rowChange: number, colChange: number) => edgeOffset(key, row + rowChange, col + colChange)
+    const edgeOffset = SEL_HALF + THIN_STROKE
 
     const {
       top, right, bottom, left,
@@ -48,62 +32,62 @@ const pathSegments = computed<Point[][]>(() => {
     } = neighborsAreSelected(row, col)
 
     if (!(top && left && topLeft)) {
-      const start = { x: (col * CELL_SIZE) + PADDING + offsetTo(0, -1), y: (row * CELL_SIZE) + PADDING + offsetTo(-1, 0) }
+      const start = { x: (col * CELL_SIZE) + PADDING + edgeOffset, y: (row * CELL_SIZE) + PADDING + edgeOffset }
       if (top) {
         paths.push([
           start,
-          { x: start.x, y: start.y - (2 * offsetTo(-1, 0)) },
+          { x: start.x, y: start.y - (2 * edgeOffset) },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x + CELL_SIZE - offsetTo(0, -1) - offsetTo(0, 1), y: start.y },
+          { x: start.x + CELL_SIZE - (2 * edgeOffset), y: start.y },
         ])
       }
     }
 
     if (!(top && right && topRight)) {
-      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - offsetTo(0, 1), y: (row * CELL_SIZE) + PADDING + offsetTo(-1, 0) }
+      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - edgeOffset, y: (row * CELL_SIZE) + PADDING + edgeOffset }
       if (right) {
         paths.push([
           start,
-          { x: start.x + (2 * offsetTo(0, 1)), y: start.y },
+          { x: start.x + (2 * edgeOffset), y: start.y },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x, y: start.y + CELL_SIZE - offsetTo(-1, 0) - offsetTo(1, 0) },
+          { x: start.x, y: start.y + CELL_SIZE - (2 * edgeOffset) },
         ])
       }
     }
 
     if (!(bottom && right && bottomRight)) {
-      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - offsetTo(0, 1), y: ((row + 1) * CELL_SIZE) + PADDING - offsetTo(1, 0) }
+      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - edgeOffset, y: ((row + 1) * CELL_SIZE) + PADDING - edgeOffset }
       if (bottom) {
         paths.push([
           start,
-          { x: start.x, y: start.y + (2 * offsetTo(1, 0)) },
+          { x: start.x, y: start.y + (2 * edgeOffset) },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x - CELL_SIZE + offsetTo(0, -1) + offsetTo(0, 1), y: start.y },
+          { x: start.x - CELL_SIZE + (2 * edgeOffset), y: start.y },
         ])
       }
 
     }
 
     if (!(bottom && left && bottomLeft)) {
-      const start = { x: (col * CELL_SIZE) + PADDING + offsetTo(0, -1), y: ((row + 1) * CELL_SIZE) + PADDING - offsetTo(1, 0) }
+      const start = { x: (col * CELL_SIZE) + PADDING + edgeOffset, y: ((row + 1) * CELL_SIZE) + PADDING - edgeOffset }
       if (left) {
         paths.push([
           start,
-          { x: start.x - (2 * offsetTo(0, -1)), y: start.y },
+          { x: start.x - (2 * edgeOffset), y: start.y },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x, y: start.y - CELL_SIZE + offsetTo(-1, 0) + offsetTo(1, 0) },
+          { x: start.x, y: start.y - CELL_SIZE + (2 * edgeOffset) },
         ])
       }
     }

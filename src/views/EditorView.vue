@@ -14,7 +14,7 @@ const editor = useEditorStore()
 const grid = useGridStore()
 const isMobile = useIsMobile()
 
-const TOOLS_WITH_CONTROLS = new Set(['digit', 'cosmetic_line', 'cell_color', 'shape', 'text'])
+const TOOLS_WITH_CONTROLS = new Set(['digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region'])
 const activeToolHasControls = computed(() => TOOLS_WITH_CONTROLS.has(editor.activeTool))
 
 const puzzleControlsOpen = ref(false)
@@ -114,6 +114,26 @@ function onKeyDown(event: KeyboardEvent) {
 
   const digit = physicalDigit(event)
 
+  if (editor.activeTool === 'region') {
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault()
+      editor.setRegionForSelection(null)
+      return
+    }
+    if (digit !== null && digit >= 0 && digit <= 9) {
+      event.preventDefault()
+      editor.setRegionForSelection(String(digit))
+      return
+    }
+    const letter = event.key.toUpperCase()
+    if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
+      event.preventDefault()
+      editor.setRegionForSelection(letter)
+      return
+    }
+    return
+  }
+
   if (event.key === 'Backspace' || event.key === 'Delete' || digit === 0) {
     event.preventDefault()
     editor.placeDigitForSelection(null)
@@ -152,11 +172,11 @@ onUnmounted(() => {
 <template>
   <!-- ======================== MOBILE LAYOUT ======================== -->
   <div v-if="isMobile" class="flex-1 flex flex-col overflow-hidden">
-    <div class="flex-1 bg-gray-50 overflow-hidden min-h-0">
+    <div class="flex-1 bg-[#f0f0f0] overflow-hidden min-h-0">
       <SudokuGrid
         mode="edit"
-        :given-digits="editor.givenDigits"
-        :cell-states="solverCellStates"
+        :given-digits="editor.activeTool === 'region' ? {} : editor.givenDigits"
+        :cell-states="editor.activeTool === 'region' ? {} : solverCellStates"
         :selection="editor.selection"
         @update:selection="editor.selection = $event"
         @clear-selection="editor.clearSelection()"
@@ -268,7 +288,7 @@ onUnmounted(() => {
     <!-- Centre: Puzzle Controls + grid -->
     <main class="flex-1 flex flex-col overflow-hidden min-w-0">
       <PuzzleControls />
-      <div class="flex-1 bg-gray-50 overflow-hidden min-h-0">
+      <div class="flex-1 bg-[#f0f0f0] overflow-hidden min-h-0">
         <SudokuGrid
           mode="edit"
           :given-digits="editor.givenDigits"

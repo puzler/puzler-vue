@@ -7,6 +7,7 @@ import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
 import CellLayer from './CellLayer.vue'
 import SelectionLayer from './SelectionLayer.vue'
+import RegionLayer from './RegionLayer.vue'
 import DigitLayer from './DigitLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
 import type { CellState, GridMode } from '@/types/grid'
@@ -44,6 +45,7 @@ const viewBox = computed(() => `0 0 ${svgWidth(grid.cols)} ${svgHeight(grid.rows
     <CosmeticLayer />
     <ConstraintLayer />
     <SelectionLayer :selection="selection" />
+    <RegionLayer />
     <DigitLayer
       :given-digits="givenDigits"
       :cell-states="cellStates"

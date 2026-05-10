@@ -68,18 +68,27 @@ export function computeStandardBoxes(rows: number, cols: number): BoxRegion[] | 
   return boxes
 }
 
-export function pointerToCell(
+export function pointerToSvgPoint(
   event: PointerEvent,
   svgEl: SVGSVGElement,
-  rows: number,
-  cols: number,
-): { row: number; col: number } | null {
+): { x: number; y: number } | null {
   const pt = svgEl.createSVGPoint()
   pt.x = event.clientX
   pt.y = event.clientY
   const ctm = svgEl.getScreenCTM()
   if (!ctm) return null
   const svgPt = pt.matrixTransform(ctm.inverse())
+  return { x: svgPt.x, y: svgPt.y }
+}
+
+export function pointerToCell(
+  event: PointerEvent,
+  svgEl: SVGSVGElement,
+  rows: number,
+  cols: number,
+): { row: number; col: number } | null {
+  const svgPt = pointerToSvgPoint(event, svgEl)
+  if (!svgPt) return null
   const col = Math.floor((svgPt.x - PADDING) / CELL_SIZE)
   const row = Math.floor((svgPt.y - PADDING) / CELL_SIZE)
   if (row < 0 || row >= rows || col < 0 || col >= cols) return null

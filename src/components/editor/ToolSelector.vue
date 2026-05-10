@@ -15,12 +15,17 @@ interface Category {
   key: string
   label: string
   options: ConstraintOption[]
+  // 'list'     — add/remove instances tracked in activeConstraints (globals, future region/line)
+  // 'cosmetic' — same add/remove model, but clicking an item sets activeTool
+  // 'tool'     — (reserved) options always visible as tool buttons (unused for now)
+  mode: 'list' | 'cosmetic'
 }
 
 const categories: Category[] = [
   {
     key: 'global',
     label: 'Global Rules',
+    mode: 'list',
     options: [
       { type: 'diagonal', label: 'Diagonal' },
       { type: 'knights_move', label: "Knight's move" },
@@ -31,6 +36,7 @@ const categories: Category[] = [
   {
     key: 'region',
     label: 'Regions',
+    mode: 'list',
     options: [
       { type: 'killer_cage', label: 'Killer cage' },
       { type: 'windoku', label: 'Windoku' },
@@ -41,6 +47,7 @@ const categories: Category[] = [
   {
     key: 'line',
     label: 'Lines',
+    mode: 'list',
     options: [
       { type: 'thermometer', label: 'Thermometer' },
       { type: 'arrow', label: 'Arrow' },
@@ -54,9 +61,10 @@ const categories: Category[] = [
   {
     key: 'cosmetic',
     label: 'Cosmetics',
+    mode: 'cosmetic',
     options: [
-      { type: 'cell_color', label: 'Cell color' },
       { type: 'cosmetic_line', label: 'Line' },
+      { type: 'cell_color', label: 'Cell color' },
       { type: 'shape', label: 'Shape' },
       { type: 'text', label: 'Text' },
     ],
@@ -81,6 +89,23 @@ function addedTypesFor(key: string) {
 function handlePick(type: string, label: string) {
   if (!pickerCategory.value) return
   editor.addConstraint(type, label, pickerCategory.value.key)
+  // Auto-select newly added cosmetic tools
+  if (pickerCategory.value.mode === 'cosmetic') {
+    editor.setActiveTool(type)
+  }
+}
+
+function handleRemoveConfirm() {
+  if (!confirmTarget.value) return
+  if (editor.activeTool === confirmTarget.value.type) {
+    editor.setActiveTool('digit')
+  }
+  if (confirmTarget.value.category === 'cosmetic') {
+    editor.removeCosmeticType(confirmTarget.value.id, confirmTarget.value.type)
+  } else {
+    editor.removeConstraint(confirmTarget.value.id)
+  }
+  confirmId.value = null
 }
 </script>
 
@@ -136,13 +161,13 @@ function handlePick(type: string, label: string) {
       </button>
     </div>
 
-    <!-- Constraint categories -->
+    <!-- Constraint / cosmetic categories -->
     <div
       v-for="cat in categories"
       :key="cat.key"
       class="flex flex-col gap-0.5 px-2 py-3 border-b border-gray-100 last:border-b-0"
     >
-      <!-- Category header -->
+      <!-- Category header with + button -->
       <div class="flex items-center justify-between px-2 mb-1">
         <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
           {{ cat.label }}
@@ -156,28 +181,64 @@ function handlePick(type: string, label: string) {
         </button>
       </div>
 
-      <!-- Added constraints -->
-      <div
-        v-for="constraint in constraintsFor(cat.key)"
-        :key="constraint.id"
-        class="flex items-center justify-between px-3 py-1.5 rounded-md group hover:bg-gray-50"
-      >
-        <span class="text-sm text-gray-700 truncate">{{ constraint.label }}</span>
-        <button
-          class="ml-1 w-4 h-4 flex items-center justify-center rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0 text-xs leading-none"
-          title="Remove"
-          @click="confirmId = constraint.id"
+      <!-- Cosmetic mode: added items are active-tool selector buttons -->
+      <template v-if="cat.mode === 'cosmetic'">
+        <div
+          v-for="constraint in constraintsFor(cat.key)"
+          :key="constraint.id"
+          class="flex items-center justify-between px-3 py-1.5 rounded-md group"
+          :class="editor.activeTool === constraint.type ? 'bg-blue-50' : 'hover:bg-gray-50'"
         >
-          ×
-        </button>
-      </div>
+          <button
+            class="flex-1 text-left text-sm transition-colors"
+            :class="editor.activeTool === constraint.type
+              ? 'text-blue-700 font-medium'
+              : 'text-gray-700'"
+            @click="editor.setActiveTool(constraint.type)"
+          >
+            {{ constraint.label }}
+          </button>
+          <button
+            class="ml-1 w-4 h-4 flex items-center justify-center rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0 text-xs leading-none"
+            title="Remove"
+            @click="confirmId = constraint.id"
+          >
+            ×
+          </button>
+        </div>
 
-      <p
-        v-if="constraintsFor(cat.key).length === 0"
-        class="px-3 text-[11px] text-gray-300 italic"
-      >
-        None added
-      </p>
+        <p
+          v-if="constraintsFor(cat.key).length === 0"
+          class="px-3 text-[11px] text-gray-300 italic"
+        >
+          None added
+        </p>
+      </template>
+
+      <!-- List mode: add/remove constraint instances (globals, region, line) -->
+      <template v-else>
+        <div
+          v-for="constraint in constraintsFor(cat.key)"
+          :key="constraint.id"
+          class="flex items-center justify-between px-3 py-1.5 rounded-md group hover:bg-gray-50"
+        >
+          <span class="text-sm text-gray-700 truncate">{{ constraint.label }}</span>
+          <button
+            class="ml-1 w-4 h-4 flex items-center justify-center rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0 text-xs leading-none"
+            title="Remove"
+            @click="confirmId = constraint.id"
+          >
+            ×
+          </button>
+        </div>
+
+        <p
+          v-if="constraintsFor(cat.key).length === 0"
+          class="px-3 text-[11px] text-gray-300 italic"
+        >
+          None added
+        </p>
+      </template>
     </div>
   </aside>
 
@@ -186,7 +247,7 @@ function handlePick(type: string, label: string) {
     v-if="pickerCategory"
     :title="pickerCategory.label"
     :options="pickerCategory.options"
-    :disabled-types="pickerCategory.key === 'global' ? addedTypesFor('global') : []"
+    :disabled-types="addedTypesFor(pickerCategory.key)"
     @pick="handlePick"
     @close="pickerCategory = null"
   />
@@ -195,7 +256,7 @@ function handlePick(type: string, label: string) {
   <ConfirmModal
     v-if="confirmTarget"
     :message="`Remove '${confirmTarget.label}'?`"
-    @confirm="editor.removeConstraint(confirmTarget!.id); confirmId = null"
+    @confirm="handleRemoveConfirm"
     @cancel="confirmId = null"
   />
 </template>

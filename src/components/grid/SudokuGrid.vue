@@ -40,9 +40,9 @@ const viewBox = computed(() => `0 0 ${svgWidth(grid.cols)} ${svgHeight(grid.rows
     @contextmenu.prevent
   >
     <GridBackground />
+    <CellLayer :cell-states="cellStates" />
     <CosmeticLayer />
     <ConstraintLayer />
-    <CellLayer :cell-states="cellStates" />
     <SelectionLayer :selection="selection" />
     <DigitLayer
       :given-digits="givenDigits"

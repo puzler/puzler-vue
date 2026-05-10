@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import type { CellState } from '@/types/grid'
+import { DEFAULT_LINE_STYLE } from '@/types/constraints'
+import type { CosmeticInstance, CosmeticLineData, LinePreset, LineStyle } from '@/types/constraints'
 
 export interface ActiveConstraint {
   id: string
@@ -22,6 +24,19 @@ export const useEditorStore = defineStore('editor', () => {
   const mode = ref<'setting' | 'solving'>('setting')
   const inputMode = ref<'digit' | 'center' | 'corner'>('digit')
   const keyboardModeOverride = ref<'digit' | 'center' | 'corner' | null>(null)
+  const cosmeticInstances = ref<CosmeticInstance[]>([])
+  const pendingLineCells = ref<string[]>([])
+
+  function makePreset(label: string): LinePreset {
+    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_LINE_STYLE } }
+  }
+
+  const _initial = makePreset('Line 1')
+  const linePresets = ref<LinePreset[]>([_initial])
+  const activeLinePresetId = ref<string>(_initial.id)
+  const activeLinePreset = computed(() =>
+    linePresets.value.find(p => p.id === activeLinePresetId.value) ?? linePresets.value[0],
+  )
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
   const { canUndo, canRedo, execute, undo, redo, clear: clearHistory } = useUndoRedo()
 
@@ -231,11 +246,91 @@ export const useEditorStore = defineStore('editor', () => {
 
   function addConstraint(type: string, label: string, category: string) {
     if (category === 'global' && activeConstraints.value.some((c) => c.type === type)) return
-    activeConstraints.value.push({ id: crypto.randomUUID(), type, label, category })
+    const constraint = { id: crypto.randomUUID(), type, label, category }
+    execute({
+      execute: () => { activeConstraints.value.push(constraint) },
+      undo: () => { activeConstraints.value = activeConstraints.value.filter(c => c.id !== constraint.id) },
+    })
   }
 
   function removeConstraint(id: string) {
     activeConstraints.value = activeConstraints.value.filter((c) => c.id !== id)
+  }
+
+  function removeCosmeticType(constraintId: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === constraintId)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== constraintId)
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
+      },
+    })
+  }
+
+  function addLinePreset() {
+    const preset = makePreset(`Line ${linePresets.value.length + 1}`)
+    linePresets.value = [...linePresets.value, preset]
+    activeLinePresetId.value = preset.id
+  }
+
+  function setActiveLinePreset(id: string) {
+    if (linePresets.value.some(p => p.id === id)) activeLinePresetId.value = id
+  }
+
+  function updateActiveLinePreset(patch: Partial<LineStyle>) {
+    linePresets.value = linePresets.value.map(p =>
+      p.id === activeLinePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
+    )
+  }
+
+  function startPendingLine(cell: string) {
+    pendingLineCells.value = [cell]
+  }
+
+  function extendPendingLine(cell: string) {
+    if (pendingLineCells.value.at(-1) === cell) return
+    pendingLineCells.value = [...pendingLineCells.value, cell]
+  }
+
+  function commitPendingLine() {
+    if (pendingLineCells.value.length < 2) {
+      pendingLineCells.value = []
+      return
+    }
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'cosmetic_line',
+      data: {
+        cells: [...pendingLineCells.value],
+        presetId: activeLinePresetId.value,
+      } satisfies CosmeticLineData,
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+    pendingLineCells.value = []
+  }
+
+  function cancelPendingLine() {
+    pendingLineCells.value = []
+  }
+
+  function removeCosmeticInstance(id: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    const instance = cosmeticInstances.value[idx]
+    execute({
+      execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== id) },
+      undo: () => { cosmeticInstances.value.splice(idx, 0, instance) },
+    })
   }
 
   function reset() {
@@ -249,6 +344,11 @@ export const useEditorStore = defineStore('editor', () => {
     puzzleRules.value = ''
     mode.value = 'setting'
     inputMode.value = 'digit'
+    cosmeticInstances.value = []
+    pendingLineCells.value = []
+    const fresh = makePreset('Line 1')
+    linePresets.value = [fresh]
+    activeLinePresetId.value = fresh.id
     clearHistory()
   }
 
@@ -271,6 +371,20 @@ export const useEditorStore = defineStore('editor', () => {
     setKeyboardModeOverride,
     addConstraint,
     removeConstraint,
+    removeCosmeticType,
+    cosmeticInstances,
+    pendingLineCells,
+    linePresets,
+    activeLinePresetId,
+    activeLinePreset,
+    addLinePreset,
+    setActiveLinePreset,
+    updateActiveLinePreset,
+    startPendingLine,
+    extendPendingLine,
+    commitPendingLine,
+    cancelPendingLine,
+    removeCosmeticInstance,
     hasSelection,
     canUndo,
     canRedo,

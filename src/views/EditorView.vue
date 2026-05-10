@@ -14,7 +14,7 @@ const editor = useEditorStore()
 const grid = useGridStore()
 const isMobile = useIsMobile()
 
-const TOOLS_WITH_CONTROLS = new Set(['digit'])
+const TOOLS_WITH_CONTROLS = new Set(['digit', 'cosmetic_line'])
 const activeToolHasControls = computed(() => TOOLS_WITH_CONTROLS.has(editor.activeTool))
 
 const puzzleControlsOpen = ref(false)
@@ -71,6 +71,7 @@ function onKeyDown(event: KeyboardEvent) {
   }
 
   if (event.key === 'Escape') {
+    editor.cancelPendingLine()
     editor.clearSelection()
     return
   }

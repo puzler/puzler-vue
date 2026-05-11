@@ -4,12 +4,13 @@ import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS } from '@/types/constraints'
 import type {
-  CosmeticInstance, CosmeticLineData, LinePreset, LineStyle,
+  CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset,
   ShapePreset, ShapeStyle, ShapeData, ShapeAnchor,
   TextPreset, TextStyle, TextData,
+  CustomGlobalConstraint,
 } from '@/types/constraints'
 
 export interface ActiveConstraint {
@@ -33,6 +34,9 @@ export const useEditorStore = defineStore('editor', () => {
   const keyboardModeOverride = ref<'digit' | 'center' | 'corner' | null>(null)
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
+  const pendingBranchThermoId = ref<string | null>(null)
+  const activeGlobalVariants = ref<Set<string>>(new Set())
+  const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
 
   // ── Cell color ────────────────────────────────────────────────────────────
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
@@ -370,6 +374,59 @@ export const useEditorStore = defineStore('editor', () => {
     activeConstraints.value = activeConstraints.value.filter((c) => c.id !== id)
   }
 
+  function toggleGlobalVariant(variant: string) {
+    const prev = new Set(activeGlobalVariants.value)
+    const next = new Set(activeGlobalVariants.value)
+    if (next.has(variant)) {
+      next.delete(variant)
+    } else {
+      next.add(variant)
+      const exclusive = GLOBAL_VARIANT_EXCLUSIONS[variant]
+      if (exclusive) next.delete(exclusive)
+    }
+    execute({
+      execute: () => { activeGlobalVariants.value = next },
+      undo: () => { activeGlobalVariants.value = prev },
+    })
+  }
+
+  function removeGlobalConstraint(id: string, variantTypes: string[]) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const prevVariants = new Set(activeGlobalVariants.value)
+    const nextVariants = new Set([...prevVariants].filter(v => !variantTypes.includes(v)))
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        activeGlobalVariants.value = nextVariants
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        activeGlobalVariants.value = prevVariants
+      },
+    })
+  }
+
+  function addCustomGlobalConstraint(type: CustomGlobalConstraint['type'], value: number) {
+    if (customGlobalConstraints.value.some(c => c.type === type && c.value === value)) return
+    const constraint: CustomGlobalConstraint = { id: crypto.randomUUID(), type, value }
+    execute({
+      execute: () => { customGlobalConstraints.value = [...customGlobalConstraints.value, constraint] },
+      undo: () => { customGlobalConstraints.value = customGlobalConstraints.value.filter(c => c.id !== constraint.id) },
+    })
+  }
+
+  function removeCustomGlobalConstraint(id: string) {
+    const idx = customGlobalConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = customGlobalConstraints.value[idx]
+    execute({
+      execute: () => { customGlobalConstraints.value = customGlobalConstraints.value.filter(c => c.id !== id) },
+      undo: () => { customGlobalConstraints.value = [...customGlobalConstraints.value, constraint] },
+    })
+  }
+
   // ── Cell color actions ────────────────────────────────────────────────────
 
   function addCellColorPreset() {
@@ -551,18 +608,54 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function commitPendingLine() {
-    if (pendingLineCells.value.length < 2) {
+    const cells = [...pendingLineCells.value]
+    if (cells.length < 2) {
+      pendingLineCells.value = []
+      pendingBranchThermoId.value = null
+      return
+    }
+
+    const type = activeTool.value
+
+    if (type === 'thermometer') {
+      const newEdges: ThermoEdge[] = cells.slice(0, -1).map((c, i) => ({ from: c, to: cells[i + 1] }))
+
+      if (pendingBranchThermoId.value) {
+        const branchId = pendingBranchThermoId.value
+        const idx = cosmeticInstances.value.findIndex(i => i.id === branchId)
+        if (idx !== -1) {
+          const prev = cosmeticInstances.value[idx]
+          const prevData = prev.data as ThermometerData
+          const existingKeys = new Set(prevData.edges.map(e => `${e.from}>${e.to}`))
+          const fresh = newEdges.filter(e => !existingKeys.has(`${e.from}>${e.to}`))
+          if (fresh.length > 0) {
+            const next = { ...prev, data: { ...prevData, edges: [...prevData.edges, ...fresh] } }
+            execute({
+              execute: () => { cosmeticInstances.value = cosmeticInstances.value.map((inst, i) => i === idx ? next : inst) },
+              undo: () => { cosmeticInstances.value = cosmeticInstances.value.map((inst, i) => i === idx ? prev : inst) },
+            })
+          }
+        }
+        pendingBranchThermoId.value = null
+      } else {
+        const instance: CosmeticInstance = {
+          id: crypto.randomUUID(),
+          type: 'thermometer',
+          data: { root: cells[0], edges: newEdges } satisfies ThermometerData,
+        }
+        execute({
+          execute: () => { cosmeticInstances.value.push(instance) },
+          undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+        })
+      }
       pendingLineCells.value = []
       return
     }
-    const instance: CosmeticInstance = {
-      id: crypto.randomUUID(),
-      type: 'cosmetic_line',
-      data: {
-        cells: [...pendingLineCells.value],
-        presetId: activeLinePresetId.value,
-      } satisfies CosmeticLineData,
-    }
+
+    const data: CosmeticLineData | ConstraintLineData = type === 'cosmetic_line'
+      ? { cells, presetId: activeLinePresetId.value }
+      : { cells }
+    const instance: CosmeticInstance = { id: crypto.randomUUID(), type, data }
     execute({
       execute: () => { cosmeticInstances.value.push(instance) },
       undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
@@ -570,8 +663,67 @@ export const useEditorStore = defineStore('editor', () => {
     pendingLineCells.value = []
   }
 
+  function startBranchFromThermo(thermoId: string, cell: string) {
+    pendingBranchThermoId.value = thermoId
+    startPendingLine(cell)
+  }
+
+  function removeThermoSubtree(thermoId: string, cell: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === thermoId)
+    if (idx === -1) return
+    const inst = cosmeticInstances.value[idx]
+    const data = inst.data as ThermometerData
+
+    // BFS to collect the subtree rooted at cell
+    const subtree = new Set<string>([cell])
+    const queue = [cell]
+    while (queue.length > 0) {
+      const cur = queue.shift()!
+      for (const e of data.edges) {
+        if (e.from === cur && !subtree.has(e.to)) {
+          subtree.add(e.to)
+          queue.push(e.to)
+        }
+      }
+    }
+
+    // Remove the edge leading into cell and all edges within the subtree
+    const remaining = data.edges.filter(e => e.to !== cell && !subtree.has(e.from))
+
+    if (remaining.length === 0) {
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== thermoId) },
+        undo: () => { cosmeticInstances.value.splice(idx, 0, inst) },
+      })
+    } else {
+      const next = { ...inst, data: { ...data, edges: remaining } }
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.map((i, n) => n === idx ? next : i) },
+        undo: () => { cosmeticInstances.value = cosmeticInstances.value.map((i, n) => n === idx ? inst : i) },
+      })
+    }
+  }
+
   function cancelPendingLine() {
     pendingLineCells.value = []
+    pendingBranchThermoId.value = null
+  }
+
+  function removeConstraintLine(id: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
+      },
+    })
   }
 
   function removeCosmeticInstance(id: string) {
@@ -621,6 +773,9 @@ export const useEditorStore = defineStore('editor', () => {
     inputMode.value = 'digit'
     cosmeticInstances.value = []
     pendingLineCells.value = []
+    pendingBranchThermoId.value = null
+    activeGlobalVariants.value = new Set()
+    customGlobalConstraints.value = []
     const fresh = makePreset('Line 1')
     linePresets.value = [fresh]
     activeLinePresetId.value = fresh.id
@@ -657,9 +812,19 @@ export const useEditorStore = defineStore('editor', () => {
     setKeyboardModeOverride,
     addConstraint,
     removeConstraint,
+    removeGlobalConstraint,
+    activeGlobalVariants,
+    toggleGlobalVariant,
+    customGlobalConstraints,
+    addCustomGlobalConstraint,
+    removeCustomGlobalConstraint,
     removeCosmeticType,
+    removeConstraintLine,
     cosmeticInstances,
     pendingLineCells,
+    pendingBranchThermoId,
+    startBranchFromThermo,
+    removeThermoSubtree,
     linePresets,
     activeLinePresetId,
     activeLinePreset,

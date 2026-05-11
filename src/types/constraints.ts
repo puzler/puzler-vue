@@ -5,8 +5,8 @@ export interface LineStyle {
 }
 
 export const DEFAULT_LINE_STYLE: LineStyle = {
-  color: '#888888',
-  strokeWidth: 5,
+  color: '#777777',
+  strokeWidth: 8,
   opacity: 1,
 }
 
@@ -25,6 +25,87 @@ export interface CosmeticInstance {
   id: string
   type: string
   data: unknown
+}
+
+// ── Constraint lines ─────────────────────────────────────────────────────────
+
+export interface ConstraintLineData {
+  cells: string[]
+}
+
+export const CONSTRAINT_LINE_TYPES = new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum'])
+
+export interface ThermoEdge {
+  from: string
+  to: string
+}
+
+export interface ThermometerData {
+  root: string
+  edges: ThermoEdge[]
+}
+
+export const THERMO_STYLE = {
+  color: '#aaaaaa',
+  strokeWidth: 12,
+  bulbRadius: 18,
+}
+
+export interface ConstraintLineStyle {
+  color: string
+  strokeWidth: number
+  opacity: number
+}
+
+export const CONSTRAINT_LINE_STYLES: Record<string, ConstraintLineStyle> = {
+  renban:           { color: '#e879f9', strokeWidth: 8, opacity: 1 },
+  german_whispers:  { color: '#4ade80', strokeWidth: 8, opacity: 1 },
+  dutch_whispers:   { color: '#fb923c', strokeWidth: 8, opacity: 1 },
+  palindrome:       { color: '#94a3b8', strokeWidth: 8, opacity: 1 },
+  region_sum:       { color: '#2dd4bf', strokeWidth: 8, opacity: 1 },
+}
+
+// ── Global constraint variants ────────────────────────────────────────────────
+
+export interface GlobalVariant {
+  type: string
+  label: string
+}
+
+// Selecting one of these variants automatically deselects its paired counterpart
+export const GLOBAL_VARIANT_EXCLUSIONS: Record<string, string> = {
+  positive_diagonal:      'anti_positive_diagonal',
+  anti_positive_diagonal: 'positive_diagonal',
+  negative_diagonal:      'anti_negative_diagonal',
+  anti_negative_diagonal: 'negative_diagonal',
+}
+
+export const GLOBAL_VARIANTS: Record<string, GlobalVariant[]> = {
+  diagonals: [
+    { type: 'positive_diagonal', label: 'Positive diagonal' },
+    { type: 'negative_diagonal', label: 'Negative diagonal' },
+    { type: 'anti_positive_diagonal', label: 'Anti-positive diagonal' },
+    { type: 'anti_negative_diagonal', label: 'Anti-negative diagonal' },
+  ],
+  chess: [
+    { type: 'kings_move', label: "King's move" },
+    { type: 'knights_move', label: "Knight's move" },
+  ],
+  anti_kropki: [
+    { type: 'nonconsecutive', label: 'Nonconsecutive' },
+    { type: 'anti_black_kropki', label: 'Anti-black Kropki' },
+  ],
+  anti_xv: [
+    { type: 'anti_x', label: 'Anti-X' },
+    { type: 'anti_v', label: 'Anti-V' },
+  ],
+  disjoint_sets: [],
+}
+
+export interface CustomGlobalConstraint {
+  id: string
+  type: 'anti_diff' | 'anti_ratio' | 'anti_sum'
+  value: number
 }
 
 // ── Cell color ──────────────────────────────────────────────────────────────

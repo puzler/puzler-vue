@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey } from '@/composables/useGrid'
-import type { CosmeticLineData, ShapeAnchor } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES } from '@/types/constraints'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -20,7 +21,7 @@ const editor = useEditorStore()
 const isDragging = ref(false)
 const dragAdditive = ref(false)
 
-const DRAWING_TOOLS = new Set(['cosmetic_line'])
+const DRAWING_TOOLS = new Set(['cosmetic_line', 'thermometer', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
 
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
@@ -80,6 +81,26 @@ function findLineAtCell(key: string): string | null {
   return null
 }
 
+function findThermoAtCell(key: string): string | null {
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== 'thermometer') continue
+    const data = inst.data as ThermometerData
+    if (data.root === key || data.edges.some(e => e.from === key || e.to === key)) return inst.id
+  }
+  return null
+}
+
+function findConstraintLineAtCell(key: string): string | null {
+  const type = editor.activeTool
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== type) continue
+    if ((inst.data as ConstraintLineData).cells.includes(key)) return inst.id
+  }
+  return null
+}
+
 const ANCHOR_THRESHOLD = 0.3
 
 function computeShapeAnchor(event: PointerEvent, cell: string): ShapeAnchor {
@@ -120,8 +141,22 @@ function onPointerDown(event: PointerEvent) {
   if (!key) return
 
   if (isDrawing.value) {
-    if (!event.shiftKey) {
-      const existingId = findLineAtCell(key)
+    if (editor.activeTool === 'thermometer') {
+      const thermoId = findThermoAtCell(key)
+      if (thermoId !== null) {
+        if (event.shiftKey) {
+          ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+          isDragging.value = true
+          editor.startBranchFromThermo(thermoId, key)
+        } else {
+          editor.removeCosmeticInstance(thermoId)
+        }
+        return
+      }
+    } else if (!event.shiftKey) {
+      const existingId = editor.activeTool === 'cosmetic_line'
+        ? findLineAtCell(key)
+        : findConstraintLineAtCell(key)
       if (existingId !== null) {
         editor.removeCosmeticInstance(existingId)
         return
@@ -180,7 +215,19 @@ function onPointerUp(event: PointerEvent) {
   isDragging.value = false
 
   if (isDrawing.value) {
-    editor.commitPendingLine()
+    if (
+      editor.activeTool === 'thermometer' &&
+      editor.pendingBranchThermoId !== null &&
+      editor.pendingLineCells.length < 2
+    ) {
+      // Shift-click without drag → delete this branch/subtree
+      const thermoId = editor.pendingBranchThermoId
+      const cell = editor.pendingLineCells[0]
+      editor.cancelPendingLine()
+      if (cell) editor.removeThermoSubtree(thermoId, cell)
+    } else {
+      editor.commitPendingLine()
+    }
   } else if (isBrushing.value) {
     const cells = Array.from(brushCells.value)
     if (editor.activeTool === 'cell_color') {

@@ -28,7 +28,10 @@ const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
 </script>
 
 <template>
-  <g :opacity="opacity ?? 1" pointer-events="none">
+  <g
+    :opacity="opacity ?? 1"
+    pointer-events="none"
+  >
     <circle
       v-if="shapeStyle.shapeType === 'circle'"
       :cx="center.cx"

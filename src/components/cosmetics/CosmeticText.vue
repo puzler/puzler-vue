@@ -30,5 +30,7 @@ const center = computed(() => {
     :font-weight="textStyle.bold ? 'bold' : 'normal'"
     :opacity="opacity ?? 1"
     pointer-events="none"
-  >{{ text }}</text>
+  >
+    {{ text }}
+  </text>
 </template>

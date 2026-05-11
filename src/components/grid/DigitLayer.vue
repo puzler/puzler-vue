@@ -170,7 +170,9 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
         v-for="d in m.marks"
         :key="d"
         :fill="editor.seenDigitsByCell.get(m.cell)?.has(d) ? '#dc2626' : '#2563eb'"
-      >{{ d }}</tspan>
+      >
+        {{ d }}
+      </tspan>
     </text>
   </g>
 </template>

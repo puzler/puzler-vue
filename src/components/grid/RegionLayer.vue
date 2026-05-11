@@ -30,7 +30,10 @@ const labels = computed(() => {
 </script>
 
 <template>
-  <g v-if="visible" pointer-events="none">
+  <g
+    v-if="visible"
+    pointer-events="none"
+  >
     <text
       v-for="cell in labels"
       :key="cell.key"
@@ -41,6 +44,8 @@ const labels = computed(() => {
       font-size="26"
       font-weight="600"
       :fill="cell.isNull ? '#ddd' : '#bbb'"
-    >{{ cell.label }}</text>
+    >
+      {{ cell.label }}
+    </text>
   </g>
 </template>

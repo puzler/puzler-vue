@@ -67,7 +67,7 @@ const textInstances = computed(() =>
       :line-style="inst.style"
     />
     <path
-      v-if="pendingPath"
+      v-if="pendingPath && editor.activeTool === 'cosmetic_line'"
       :d="pendingPath"
       :stroke="activeLineStyle.color"
       :stroke-width="activeLineStyle.strokeWidth"

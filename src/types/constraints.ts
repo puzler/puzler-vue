@@ -1,3 +1,5 @@
+import { LINE_STYLES, SHAPE_STYLES, colorToCss } from '@/types/constraintStyles'
+
 export interface LineStyle {
   color: string
   strokeWidth: number
@@ -33,7 +35,7 @@ export interface ConstraintLineData {
   cells: string[]
 }
 
-export const CONSTRAINT_LINE_TYPES = new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum'])
+export const CONSTRAINT_LINE_TYPES = new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum', 'between_lines'])
 
 export interface ThermoEdge {
   from: string
@@ -58,11 +60,20 @@ export interface ConstraintLineStyle {
 }
 
 export const CONSTRAINT_LINE_STYLES: Record<string, ConstraintLineStyle> = {
-  renban:           { color: '#e879f9', strokeWidth: 8, opacity: 1 },
-  german_whispers:  { color: '#4ade80', strokeWidth: 8, opacity: 1 },
-  dutch_whispers:   { color: '#fb923c', strokeWidth: 8, opacity: 1 },
-  palindrome:       { color: '#94a3b8', strokeWidth: 8, opacity: 1 },
-  region_sum:       { color: '#2dd4bf', strokeWidth: 8, opacity: 1 },
+  renban:          { color: colorToCss(LINE_STYLES.renban.color),          strokeWidth: 8, opacity: 1 },
+  german_whispers: { color: colorToCss(LINE_STYLES.german_whispers.color), strokeWidth: 8, opacity: 1 },
+  dutch_whispers:  { color: colorToCss(LINE_STYLES.dutch_whispers.color),  strokeWidth: 8, opacity: 1 },
+  palindrome:      { color: colorToCss(LINE_STYLES.palindrome.color),      strokeWidth: 8, opacity: 1 },
+  region_sum:      { color: colorToCss(LINE_STYLES.region_sum.color),      strokeWidth: 8, opacity: 1 },
+}
+
+export const BETWEEN_LINE_STYLE = {
+  lineColor:        colorToCss(LINE_STYLES.between_lines.color),
+  lineStrokeWidth:  2,
+  circleRadius:     Math.round(SHAPE_STYLES.between_lines_bulb.width * 64 / 2), // 0.8 * 64 / 2 = 26
+  circleFill:       colorToCss(SHAPE_STYLES.between_lines_bulb.fillColor),
+  circleStrokeColor: colorToCss(SHAPE_STYLES.between_lines_bulb.outlineColor),
+  circleStrokeWidth: 2,
 }
 
 // ── Global constraint variants ────────────────────────────────────────────────
@@ -70,6 +81,14 @@ export const CONSTRAINT_LINE_STYLES: Record<string, ConstraintLineStyle> = {
 export interface GlobalVariant {
   type: string
   label: string
+}
+
+// Marking a cell with one of these types removes it from the paired type
+export const SINGLE_CELL_EXCLUSIONS: Record<string, string> = {
+  odd_cells: 'even_cells',
+  even_cells: 'odd_cells',
+  minimums: 'maximums',
+  maximums: 'minimums',
 }
 
 // Selecting one of these variants automatically deselects its paired counterpart

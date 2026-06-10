@@ -1,12 +1,42 @@
 @import "tailwindcss";
 
+/* "Ink & Paper" design tokens — see STYLE_GUIDE.md at the repo root.
+   Hierarchy by surface: ink chrome → canvas → paper panels → white cards.
+   Indigo = action accent, amber = spark accent (selection/nav only). */
+@theme {
+  --color-ink: #212B42;
+  --color-ink-2: #2F3C5C;
+  --color-paper: #F4F2ED;
+  --color-canvas: #EAE7E0;
+  --color-surface: #FFFFFF;
+  --color-line: #E3E0D8;
+  --color-ink-text: #232B3D;
+  --color-soft: #5C6475;
+  --color-faint: #9097A6;
+  --color-action: #4F46E5;
+  --color-action-deep: #4338CA;
+  --color-action-tint: #EEF0FE;
+  --color-spark: #F0A93B;
+  --color-spark-tint: #FBEED3;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* App is a light-themed UI. Opt out of OS dark-mode so the browser doesn't
+   tint native controls or paint a dark default canvas behind transparent areas. */
+:root {
+  color-scheme: light;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink-text);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

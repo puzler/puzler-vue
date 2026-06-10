@@ -1,12 +1,12 @@
 <template>
   <div class="min-h-screen p-8">
-    <h1 class="text-2xl font-bold mb-4">
+    <h1 class="font-display text-2xl font-bold mb-4">
       Puzzle Player
     </h1>
-    <p class="text-gray-500">
+    <p class="text-soft">
       Puzzle ID: {{ puzzleId }}
     </p>
-    <p class="text-gray-500 mt-2">
+    <p class="text-soft mt-2">
       — Player coming in Phase 5 —
     </p>
   </div>

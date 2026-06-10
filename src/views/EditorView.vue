@@ -176,22 +176,22 @@ onUnmounted(() => {
     class="flex-1 flex overflow-hidden"
   >
     <div
-      class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="editor.mode === 'setting' ? 'w-48' : 'w-0'"
+      class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
+      :class="editor.mode === 'setting' ? 'w-56' : 'w-0'"
     >
-      <ToolSelector class="w-48 h-full border-r border-gray-200" />
+      <ToolSelector class="w-56 flex-1 min-h-0 border-r border-line" />
     </div>
 
     <div
-      class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
+      class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
       :class="editor.mode === 'setting' && activeToolHasControls ? 'w-44' : 'w-0'"
     >
-      <ToolControlBox class="w-44 h-full border-r border-gray-200" />
+      <ToolControlBox class="w-44 flex-1 min-h-0 border-r border-line" />
     </div>
 
     <main class="flex-1 flex flex-col overflow-hidden min-w-0">
       <PuzzleControls />
-      <div class="flex-1 bg-[#f0f0f0] overflow-hidden min-h-0">
+      <div class="flex-1 bg-canvas overflow-hidden min-h-0">
         <SudokuGrid
           mode="edit"
           :given-digits="editor.givenDigits"
@@ -204,10 +204,10 @@ onUnmounted(() => {
     </main>
 
     <div
-      class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
+      class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
       :class="editor.mode === 'solving' ? 'w-52' : 'w-0'"
     >
-      <SolverNumpad class="w-52 h-full border-l border-gray-200" />
+      <SolverNumpad class="w-52 flex-1 min-h-0 border-l border-line" />
     </div>
   </div>
 </template>

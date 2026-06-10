@@ -1,31 +1,49 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import RulesModal from './RulesModal.vue'
 
 const editor = useEditorStore()
+
+const showRules = ref(false)
 </script>
 
 <template>
-  <div class="px-2 py-3 border-b border-gray-100">
-    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-2">
+  <div class="px-2 py-3 border-b border-line">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-soft px-2 mb-2">
       Puzzle
     </p>
     <div class="flex flex-col gap-1.5 px-1">
       <input
         v-model="editor.puzzleName"
         placeholder="Puzzle name"
-        class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400"
+        class="w-full text-sm px-2 py-1 rounded border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
       >
       <input
         v-model="editor.puzzleAuthor"
         placeholder="Author"
-        class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400"
+        class="w-full text-sm px-2 py-1 rounded border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
       >
-      <textarea
-        v-model="editor.puzzleRules"
-        placeholder="Rules..."
-        rows="3"
-        class="w-full text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400 resize-none"
-      />
+      <button
+        type="button"
+        class="w-full text-left text-sm px-2 py-1.5 rounded border border-line bg-surface hover:border-action transition-colors min-h-[2.5rem]"
+        @click="showRules = true"
+      >
+        <span
+          v-if="editor.puzzleRules"
+          class="line-clamp-2 text-ink-text"
+        >{{ editor.puzzleRules }}</span>
+        <span
+          v-else
+          class="text-faint"
+        >Rules…</span>
+      </button>
     </div>
+
+    <RulesModal
+      v-if="showRules"
+      v-model="editor.puzzleRules"
+      @close="showRules = false"
+    />
   </div>
 </template>

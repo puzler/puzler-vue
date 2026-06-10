@@ -6,17 +6,17 @@ const editor = useEditorStore()
 
 <template>
   <div class="flex flex-col h-full p-3 gap-3">
-    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
       Region
     </p>
-    <p class="text-[11px] text-gray-400 leading-snug">
+    <p class="text-[11px] text-faint leading-snug">
       Select cells, then click a label to assign them to that region.
     </p>
     <div class="grid grid-cols-3 gap-1">
       <button
         v-for="n in [1,2,3,4,5,6,7,8,9]"
         :key="n"
-        class="py-2 rounded border border-gray-200 text-sm font-mono font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition-colors"
+        class="py-2 rounded border border-line text-sm font-mono font-semibold text-ink-text hover:bg-action-tint hover:border-action hover:text-action transition-colors"
         @click="editor.setRegionForSelection(String(n))"
       >
         {{ n }}
@@ -24,7 +24,7 @@ const editor = useEditorStore()
     </div>
     <div class="grid grid-cols-3 gap-1">
       <button
-        class="py-2 rounded border border-gray-200 text-sm font-mono font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition-colors"
+        class="py-2 rounded border border-line text-sm font-mono font-semibold text-ink-text hover:bg-action-tint hover:border-action hover:text-action transition-colors"
         @click="editor.setRegionForSelection('0')"
       >
         0
@@ -36,7 +36,7 @@ const editor = useEditorStore()
         Remove
       </button>
     </div>
-    <p class="text-[11px] text-gray-400 leading-snug">
+    <p class="text-[11px] text-faint leading-snug">
       A–Z also accepted via keyboard.
     </p>
   </div>

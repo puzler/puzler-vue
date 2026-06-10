@@ -59,11 +59,11 @@ function addCustomSum() {
     v-if="activeConstraint"
     class="flex flex-col p-3 gap-3"
   >
-    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
       {{ activeConstraint.label }}
     </p>
 
-    <p class="text-[11px] text-gray-400 leading-snug">
+    <p class="text-[11px] text-faint leading-snug">
       {{ GLOBAL_CONSTRAINT_DESCRIPTIONS[editor.activeTool] }}
     </p>
 
@@ -78,11 +78,11 @@ function addCustomSum() {
       >
         <input
           type="checkbox"
-          class="accent-blue-600 w-3.5 h-3.5 cursor-pointer"
+          class="accent-action w-3.5 h-3.5 cursor-pointer"
           :checked="editor.activeGlobalVariants.has(v.type)"
           @change="editor.toggleGlobalVariant(v.type)"
         >
-        <span class="text-sm text-gray-700">{{ v.label }}</span>
+        <span class="text-sm text-ink-text">{{ v.label }}</span>
       </label>
     </div>
 

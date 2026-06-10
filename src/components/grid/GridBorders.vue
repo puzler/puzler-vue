@@ -59,7 +59,7 @@ const puzzleEdge = computed<Segment[]>(() => {
 
 <template>
   <g
-    stroke="#333"
+    stroke="#6E6A5E"
     :stroke-width="THIN_STROKE"
     stroke-linecap="square"
   >
@@ -81,7 +81,7 @@ const puzzleEdge = computed<Segment[]>(() => {
     />
   </g>
   <g
-    stroke="#111"
+    stroke="#232B3D"
     :stroke-width="BOX_STROKE"
     stroke-linecap="square"
   >
@@ -103,7 +103,7 @@ const puzzleEdge = computed<Segment[]>(() => {
     />
   </g>
   <g
-    stroke="#111"
+    stroke="#232B3D"
     :stroke-width="OUTER_STROKE"
     stroke-linecap="square"
   >

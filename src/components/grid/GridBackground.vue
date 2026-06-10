@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
-import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
+import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
 import GridBorders from './GridBorders.vue'
 
 const grid = useGridStore()
@@ -54,6 +55,20 @@ const errorRects = computed<CellRect[]>(() =>
     return [{ x: PADDING + Number(m[2]) * CELL_SIZE, y: PADDING + Number(m[1]) * CELL_SIZE }]
   }),
 )
+
+const singleCellBgRects = computed<ColorRect[]>(() => {
+  const result: ColorRect[] = []
+  for (const [type, marks] of Object.entries(editor.singleCellMarks)) {
+    const bg = CELL_BACKGROUND_COLORS[type]
+    if (!bg || !marks?.size) continue
+    const color = colorToCss(bg)
+    for (const key of marks) {
+      const { row, col } = keyToRowCol(key)
+      result.push({ x: PADDING + col * CELL_SIZE, y: PADDING + row * CELL_SIZE, color })
+    }
+  }
+  return result
+})
 </script>
 
 <template>
@@ -63,7 +78,7 @@ const errorRects = computed<CellRect[]>(() =>
       y="0"
       :width="totalW"
       :height="totalH"
-      fill="#f0f0f0"
+      fill="#EAE7E0"
     />
     <rect
       v-for="(cell, i) in activeCellRects"
@@ -102,6 +117,16 @@ const errorRects = computed<CellRect[]>(() =>
       :height="CELL_SIZE"
       fill="#ef4444"
       opacity="0.2"
+    />
+    <!-- Single-cell constraint backgrounds (under grid lines) -->
+    <rect
+      v-for="(cr, i) in singleCellBgRects"
+      :key="`scbg-${i}`"
+      :x="cr.x"
+      :y="cr.y"
+      :width="CELL_SIZE"
+      :height="CELL_SIZE"
+      :fill="cr.color"
     />
     <GridBorders />
   </g>

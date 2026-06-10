@@ -49,19 +49,19 @@ async function copyPuzzleData() {
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
       @click.self="emit('close')"
     >
-      <div class="bg-white rounded-2xl shadow-xl p-6 w-72 flex flex-col gap-4">
-        <span class="text-sm font-semibold text-gray-700">Export</span>
+      <div class="bg-surface rounded-2xl shadow-xl p-6 w-72 flex flex-col gap-4">
+        <span class="text-sm font-semibold text-ink-text">Export</span>
 
         <button
           class="flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left"
           :class="copied
             ? 'border-green-400 bg-green-50 text-green-700'
-            : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700'"
+            : 'border-line hover:border-action hover:bg-action-tint text-ink-text'"
           @click="copyPuzzleData"
         >
           <svg
             v-if="!copied"
-            class="w-5 h-5 shrink-0 text-gray-400"
+            class="w-5 h-5 shrink-0 text-faint"
             fill="none"
             stroke="currentColor"
             stroke-width="1.75"
@@ -89,7 +89,7 @@ async function copyPuzzleData() {
           </svg>
           <div class="flex flex-col">
             <span class="text-sm font-medium">{{ copied ? 'Copied!' : 'Copy Puzzle Data' }}</span>
-            <span class="text-xs text-gray-400">Full puzzle JSON to clipboard</span>
+            <span class="text-xs text-faint">Full puzzle JSON to clipboard</span>
           </div>
         </button>
       </div>

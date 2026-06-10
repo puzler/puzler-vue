@@ -29,12 +29,12 @@ defineExpose({ open })
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
       @click.self="emit('close')"
     >
-      <div class="bg-white rounded-2xl shadow-xl p-6 w-56 flex flex-col items-center gap-5">
-        <span class="text-sm font-semibold text-gray-700">New Grid</span>
+      <div class="bg-surface rounded-2xl shadow-xl p-6 w-56 flex flex-col items-center gap-5">
+        <span class="text-sm font-semibold text-ink-text">New Grid</span>
 
         <div class="flex items-center gap-3">
           <button
-            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             :disabled="pendingSize <= 2"
             @click="pendingSize--"
           >
@@ -52,11 +52,11 @@ defineExpose({ open })
               />
             </svg>
           </button>
-          <span class="w-14 text-center text-lg font-semibold text-gray-800 tabular-nums">
+          <span class="w-14 text-center text-lg font-semibold text-ink-text tabular-nums">
             {{ pendingSize }}×{{ pendingSize }}
           </span>
           <button
-            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             :disabled="pendingSize >= 16"
             @click="pendingSize++"
           >
@@ -77,7 +77,7 @@ defineExpose({ open })
         </div>
 
         <button
-          class="w-full py-2 text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors"
+          class="w-full py-2 text-sm font-medium bg-action text-white hover:bg-action-deep rounded-lg transition-colors"
           @click="confirm"
         >
           Create

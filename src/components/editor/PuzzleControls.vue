@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import MdiIcon from '@/components/MdiIcon.vue'
+import { mdiViewGridPlusOutline, mdiEraser, mdiTrayArrowUp, mdiContentSaveOutline } from '@mdi/js'
 import NewGridModal from './NewGridModal.vue'
 import ExportModal from './ExportModal.vue'
 
@@ -10,57 +12,98 @@ const showNewGrid = ref(false)
 const showExport = ref(false)
 const newGridModal = ref<InstanceType<typeof NewGridModal> | null>(null)
 
+const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface border border-line text-soft hover:text-action hover:border-action transition-colors'
+const ICON_BTN_DANGER = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface border border-line text-soft hover:text-red-600 hover:border-red-400 hover:bg-red-50 transition-colors'
+
 function openNewGrid() {
   showNewGrid.value = true
   newGridModal.value?.open()
 }
+
+function toggleMode() {
+  editor.setMode(editor.mode === 'setting' ? 'solving' : 'setting')
+}
 </script>
 
 <template>
-  <div class="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white shrink-0">
-    <div class="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2 border-b border-line bg-paper shrink-0">
+    <div class="flex items-center gap-1.5">
       <button
-        class="px-3 py-1.5 transition-colors"
-        :class="editor.mode === 'setting' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'"
+        title="New grid"
+        aria-label="New grid"
+        :class="ICON_BTN"
+        @click="openNewGrid"
+      >
+        <MdiIcon
+          :path="mdiViewGridPlusOutline"
+          :size="18"
+        />
+      </button>
+      <button
+        title="Clear"
+        aria-label="Clear"
+        :class="ICON_BTN_DANGER"
+        @click="editor.clearSolverState()"
+      >
+        <MdiIcon
+          :path="mdiEraser"
+          :size="18"
+        />
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        class="w-14 text-right text-sm transition-colors"
+        :class="editor.mode === 'setting' ? 'text-ink-text font-semibold' : 'text-soft hover:text-ink-text'"
         @click="editor.setMode('setting')"
       >
         Setting
       </button>
       <button
-        class="px-3 py-1.5 border-l border-gray-200 transition-colors"
-        :class="editor.mode === 'solving' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'"
+        role="switch"
+        :aria-checked="editor.mode === 'solving'"
+        aria-label="Toggle between setting and solving"
+        class="relative w-11 h-6 rounded-full bg-action hover:bg-action-deep transition-colors"
+        @click="toggleMode"
+      >
+        <span
+          class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface shadow-sm transition-transform duration-200 ease-out"
+          :class="{ 'translate-x-5': editor.mode === 'solving' }"
+        />
+      </button>
+      <button
+        class="w-14 text-left text-sm transition-colors"
+        :class="editor.mode === 'solving' ? 'text-ink-text font-semibold' : 'text-soft hover:text-ink-text'"
         @click="editor.setMode('solving')"
       >
         Solving
       </button>
     </div>
 
-    <div class="w-px h-5 bg-gray-200" />
-
-    <div class="flex-1 flex justify-center gap-2">
+    <div class="flex items-center justify-end gap-1.5">
       <button
-        class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-        @click="openNewGrid"
+        title="Export"
+        aria-label="Export"
+        :class="ICON_BTN"
+        @click="showExport = true"
       >
-        New Grid
+        <MdiIcon
+          :path="mdiTrayArrowUp"
+          :size="18"
+        />
       </button>
       <button
-        class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-        @click="editor.clearSolverState()"
+        title="Save"
+        aria-label="Save"
+        class="w-8 h-8 flex items-center justify-center rounded-lg bg-action text-white hover:bg-action-deep transition-colors"
       >
-        Clear
+        <MdiIcon
+          :path="mdiContentSaveOutline"
+          :size="18"
+        />
       </button>
     </div>
-
-    <button
-      class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-      @click="showExport = true"
-    >
-      Export
-    </button>
-    <button class="px-3 py-1.5 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors">
-      Save
-    </button>
   </div>
 
   <NewGridModal

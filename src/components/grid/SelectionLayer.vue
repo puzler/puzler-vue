@@ -1,17 +1,43 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  CELL_SIZE, PADDING, THIN_STROKE,
+  CELL_SIZE, PADDING, THIN_STROKE, BOX_STROKE, OUTER_STROKE,
   cellKey, keyToRowCol,
 } from '@/composables/useGrid'
+import { useGridStore } from '@/stores/grid'
 
 const props = defineProps<{
   selection: Set<string>
 }>()
 
+const grid = useGridStore()
+
 const SEL_STROKE = 4
 const SEL_HALF = SEL_STROKE / 2
 const CORNER_RADIUS = 3
+const EDGE_GAP = 0.25
+
+const STROKE_HALF = {
+  thin: THIN_STROKE / 2,
+  thick: BOX_STROKE / 2,
+  outer: OUTER_STROKE / 2,
+  none: THIN_STROKE / 2,
+} as const
+
+// Inset from the boundary between two cells, sized so the selection stroke
+// sits flush against whatever line is drawn there (thin cell line, thick
+// region border, or outer edge) without painting over it. Bridge segments
+// (where the outline crosses between two selected cells) compute the far
+// endpoint with the NEIGHBOR's edge inset — the loop-stitching below joins
+// segments by exact point equality, so both sides of a crossing must agree
+// even when the border changes thickness at that lattice point.
+function edgeInset(rowA: number, colA: number, rowB: number, colB: number): number {
+  const inBounds = (r: number, c: number) => r >= 0 && r < grid.rows && c >= 0 && c < grid.cols
+  const type = inBounds(rowA, colA) && inBounds(rowB, colB)
+    ? grid.regionBorderType(cellKey(rowA, colA), cellKey(rowB, colB))
+    : 'outer'
+  return SEL_HALF + STROKE_HALF[type] + EDGE_GAP
+}
 
 interface Point { x: number; y: number }
 
@@ -24,7 +50,16 @@ const pathSegments = computed<Point[][]>(() => {
   const paths = [] as Point[][]
   props.selection.forEach(key => {
     const { row, col } = keyToRowCol(key)
-    const edgeOffset = SEL_HALF + THIN_STROKE
+
+    const x0 = (col * CELL_SIZE) + PADDING
+    const y0 = (row * CELL_SIZE) + PADDING
+    const x1 = x0 + CELL_SIZE
+    const y1 = y0 + CELL_SIZE
+
+    const tOff = edgeInset(row - 1, col, row, col)
+    const bOff = edgeInset(row, col, row + 1, col)
+    const lOff = edgeInset(row, col - 1, row, col)
+    const rOff = edgeInset(row, col, row, col + 1)
 
     const {
       top, right, bottom, left,
@@ -32,62 +67,66 @@ const pathSegments = computed<Point[][]>(() => {
     } = neighborsAreSelected(row, col)
 
     if (!(top && left && topLeft)) {
-      const start = { x: (col * CELL_SIZE) + PADDING + edgeOffset, y: (row * CELL_SIZE) + PADDING + edgeOffset }
+      const start = { x: x0 + lOff, y: y0 + tOff }
       if (top) {
+        // Bridge up into the neighbor: far x uses ITS left-edge inset
         paths.push([
           start,
-          { x: start.x, y: start.y - (2 * edgeOffset) },
+          { x: x0 + edgeInset(row - 1, col - 1, row - 1, col), y: y0 - tOff },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x + CELL_SIZE - (2 * edgeOffset), y: start.y },
+          { x: x1 - rOff, y: y0 + tOff },
         ])
       }
     }
 
     if (!(top && right && topRight)) {
-      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - edgeOffset, y: (row * CELL_SIZE) + PADDING + edgeOffset }
+      const start = { x: x1 - rOff, y: y0 + tOff }
       if (right) {
+        // Bridge right into the neighbor: far y uses ITS top-edge inset
         paths.push([
           start,
-          { x: start.x + (2 * edgeOffset), y: start.y },
+          { x: x1 + rOff, y: y0 + edgeInset(row - 1, col + 1, row, col + 1) },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x, y: start.y + CELL_SIZE - (2 * edgeOffset) },
+          { x: x1 - rOff, y: y1 - bOff },
         ])
       }
     }
 
     if (!(bottom && right && bottomRight)) {
-      const start = { x: ((col + 1) * CELL_SIZE) + PADDING - edgeOffset, y: ((row + 1) * CELL_SIZE) + PADDING - edgeOffset }
+      const start = { x: x1 - rOff, y: y1 - bOff }
       if (bottom) {
+        // Bridge down into the neighbor: far x uses ITS right-edge inset
         paths.push([
           start,
-          { x: start.x, y: start.y + (2 * edgeOffset) },
+          { x: x1 - edgeInset(row + 1, col, row + 1, col + 1), y: y1 + bOff },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x - CELL_SIZE + (2 * edgeOffset), y: start.y },
+          { x: x0 + lOff, y: y1 - bOff },
         ])
       }
 
     }
 
     if (!(bottom && left && bottomLeft)) {
-      const start = { x: (col * CELL_SIZE) + PADDING + edgeOffset, y: ((row + 1) * CELL_SIZE) + PADDING - edgeOffset }
+      const start = { x: x0 + lOff, y: y1 - bOff }
       if (left) {
+        // Bridge left into the neighbor: far y uses ITS bottom-edge inset
         paths.push([
           start,
-          { x: start.x - (2 * edgeOffset), y: start.y },
+          { x: x0 - lOff, y: y1 - edgeInset(row, col - 1, row + 1, col - 1) },
         ])
       } else {
         paths.push([
           start,
-          { x: start.x, y: start.y - CELL_SIZE + (2 * edgeOffset) },
+          { x: x0 + lOff, y: y0 + tOff },
         ])
       }
     }
@@ -185,9 +224,9 @@ const neighborsAreSelected = (row: number, col: number) => {
       :key="i"
       :d="pathData"
       fill="none"
-      stroke="#3b82f6"
+      stroke="#F0A93B"
       :stroke-width="SEL_STROKE"
-      stroke-opacity="0.7"
+      stroke-opacity="0.85"
       stroke-linejoin="round"
     />
   </g>

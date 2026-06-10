@@ -23,9 +23,11 @@ const dragAdditive = ref(false)
 
 const DRAWING_TOOLS = new Set(['cosmetic_line', 'thermometer', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
+const SINGLE_CELL_TOOLS = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
 
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
 const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
+const isSingleCellTool = computed(() => SINGLE_CELL_TOOLS.has(editor.activeTool))
 
 const DRAW_BUFFER = CELL_SIZE * 0.15
 
@@ -34,7 +36,7 @@ const brushMode = ref<'paint' | 'erase' | null>(null)
 const brushCells = ref<Set<string>>(new Set())
 
 const cursor = computed(() => {
-  if (isDrawing.value || isBrushing.value) return 'crosshair'
+  if (isDrawing.value || isBrushing.value || isSingleCellTool.value) return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
 })
@@ -171,6 +173,8 @@ function onPointerDown(event: PointerEvent) {
     brushCells.value = new Set([key])
     brushMode.value = hasCellColor(key) ? 'erase' : 'paint'
     if (brushMode.value === 'paint') editor.setPendingBrushCells([key])
+  } else if (isSingleCellTool.value) {
+    editor.toggleSingleCellMark(editor.activeTool, key)
   } else if (editor.activeTool === 'text') {
     editor.toggleTextAt(key)
   } else if (editor.activeTool === 'shape') {

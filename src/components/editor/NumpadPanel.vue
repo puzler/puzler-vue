@@ -10,21 +10,21 @@ const emit = defineEmits<{
     <button
       v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
       :key="n"
-      class="aspect-square rounded-lg bg-white border border-gray-200 text-gray-800 text-xl font-semibold shadow-sm hover:bg-blue-50 hover:border-blue-300 active:bg-blue-100 transition-colors"
+      class="aspect-square rounded-lg bg-surface border border-line text-ink-text font-display text-xl font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors"
       @click="emit('digit', n)"
     >
       {{ n }}
     </button>
 
     <button
-      class="aspect-square rounded-lg bg-white border border-gray-200 text-gray-800 text-xl font-semibold shadow-sm hover:bg-blue-50 hover:border-blue-300 active:bg-blue-100 transition-colors"
+      class="aspect-square rounded-lg bg-surface border border-line text-ink-text font-display text-xl font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors"
       @click="emit('digit', 0)"
     >
       0
     </button>
 
     <button
-      class="col-span-2 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm font-medium shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 active:bg-red-100 transition-colors py-2"
+      class="col-span-2 rounded-lg bg-surface border border-line text-soft text-sm font-medium shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 active:bg-red-100 transition-colors py-2"
       @click="emit('delete')"
     >
       Delete

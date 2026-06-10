@@ -133,8 +133,8 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       text-anchor="middle"
       dominant-baseline="central"
       :font-size="CELL_SIZE * 0.6"
-      font-family="sans-serif"
-      :fill="d.isGiven ? '#111' : '#2563eb'"
+      font-family="'Space Grotesk', sans-serif"
+      :fill="d.isGiven ? '#232B3D' : '#4F46E5'"
       :font-weight="d.isGiven ? '700' : '400'"
     >
       {{ d.digit }}
@@ -149,8 +149,8 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :text-anchor="m.anchor"
       :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
-      font-family="sans-serif"
-      :fill="editor.seenDigitsByCell.get(m.cell)?.has(m.digit) ? '#dc2626' : '#2563eb'"
+      font-family="'Space Grotesk', sans-serif"
+      :fill="editor.seenDigitsByCell.get(m.cell)?.has(m.digit) ? '#dc2626' : '#4F46E5'"
     >
       {{ m.digit }}
     </text>
@@ -164,12 +164,12 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       text-anchor="middle"
       dominant-baseline="central"
       :font-size="MARK_FONT + 1"
-      font-family="sans-serif"
+      font-family="'Space Grotesk', sans-serif"
     >
       <tspan
         v-for="d in m.marks"
         :key="d"
-        :fill="editor.seenDigitsByCell.get(m.cell)?.has(d) ? '#dc2626' : '#2563eb'"
+        :fill="editor.seenDigitsByCell.get(m.cell)?.has(d) ? '#dc2626' : '#4F46E5'"
       >
         {{ d }}
       </tspan>

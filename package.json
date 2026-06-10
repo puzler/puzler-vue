@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.14.1",
+    "@mdi/js": "^7.4.47",
     "@vue/apollo-composable": "^4.2.2",
     "@vueuse/core": "^14.3.0",
     "graphql": "^16.14.0",

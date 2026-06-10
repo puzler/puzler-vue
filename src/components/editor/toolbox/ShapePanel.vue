@@ -7,13 +7,13 @@ const editor = useEditorStore()
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="px-3 pt-3 pb-2 border-b border-gray-100">
+    <div class="px-3 pt-3 pb-2 border-b border-line">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
           Shapes
         </p>
         <button
-          class="text-[11px] text-blue-500 hover:text-blue-700 font-medium transition-colors"
+          class="text-[11px] text-action hover:text-action font-medium transition-colors"
           @click="editor.addShapePreset()"
         >
           + Add
@@ -25,8 +25,8 @@ const editor = useEditorStore()
           :key="preset.id"
           class="flex items-center gap-2 w-full px-2 py-1.5 rounded-md transition-colors text-left"
           :class="preset.id === editor.activeShapePresetId
-            ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200'
-            : 'text-gray-700 hover:bg-gray-100'"
+            ? 'bg-action-tint text-action ring-1 ring-inset ring-action/30'
+            : 'text-ink-text hover:bg-line/60'"
           @click="editor.setActiveShapePreset(preset.id)"
         >
           <svg

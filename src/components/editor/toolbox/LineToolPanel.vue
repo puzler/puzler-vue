@@ -22,10 +22,10 @@ const description = computed(() => LINE_TOOL_DESCRIPTIONS[editor.activeTool] ?? 
 
 <template>
   <div class="flex flex-col p-3 gap-3">
-    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
       {{ label }}
     </p>
-    <p class="text-[11px] text-gray-400 leading-snug">
+    <p class="text-[11px] text-faint leading-snug">
       {{ description }}
     </p>
   </div>

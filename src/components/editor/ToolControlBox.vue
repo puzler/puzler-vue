@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
-import SolverNumpad from './SolverNumpad.vue'
 import DigitPanel from './toolbox/DigitPanel.vue'
 import GlobalConstraintPanel from './toolbox/GlobalConstraintPanel.vue'
 import CosmeticLinePanel from './toolbox/CosmeticLinePanel.vue'
@@ -24,15 +23,7 @@ const isLineTool = computed(() =>
 </script>
 
 <template>
-  <SolverNumpad
-    v-if="editor.mode === 'solving'"
-    class="w-full h-full"
-  />
-
-  <div
-    v-else
-    class="flex flex-col bg-white overflow-y-auto h-full"
-  >
+  <div class="flex flex-col bg-paper overflow-y-auto h-full">
     <DigitPanel v-if="editor.activeTool === 'digit'" />
     <GlobalConstraintPanel v-else-if="isGlobalTool" />
     <CosmeticLinePanel v-else-if="editor.activeTool === 'cosmetic_line'" />

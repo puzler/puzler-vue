@@ -4,7 +4,7 @@ import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset,
@@ -37,6 +37,7 @@ export const useEditorStore = defineStore('editor', () => {
   const pendingBranchThermoId = ref<string | null>(null)
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
+  const singleCellMarks = ref<Record<string, Set<string>>>({})
 
   // ── Cell color ────────────────────────────────────────────────────────────
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
@@ -371,7 +372,13 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function removeConstraint(id: string) {
-    activeConstraints.value = activeConstraints.value.filter((c) => c.id !== id)
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    execute({
+      execute: () => { activeConstraints.value = activeConstraints.value.filter(c => c.id !== id) },
+      undo: () => { activeConstraints.value.splice(idx, 0, constraint) },
+    })
   }
 
   function toggleGlobalVariant(variant: string) {
@@ -793,6 +800,55 @@ export const useEditorStore = defineStore('editor', () => {
     clearHistory()
   }
 
+  // ── Single cell constraints ───────────────────────────────────────────────
+
+  function toggleSingleCellMark(type: string, cellKey: string) {
+    const prev = singleCellMarks.value[type] ?? new Set<string>()
+    const next = new Set(prev)
+    if (next.has(cellKey)) {
+      next.delete(cellKey)
+    } else {
+      next.add(cellKey)
+    }
+
+    const excludedType = SINGLE_CELL_EXCLUSIONS[type]
+    const prevExcluded = excludedType ? (singleCellMarks.value[excludedType] ?? new Set<string>()) : null
+    const nextExcluded = prevExcluded ? new Set(prevExcluded) : null
+    if (nextExcluded) nextExcluded.delete(cellKey)
+
+    execute({
+      execute: () => {
+        const update = { ...singleCellMarks.value, [type]: next }
+        if (excludedType && nextExcluded) update[excludedType] = nextExcluded
+        singleCellMarks.value = update
+      },
+      undo: () => {
+        const update = { ...singleCellMarks.value, [type]: prev }
+        if (excludedType && prevExcluded) update[excludedType] = prevExcluded
+        singleCellMarks.value = update
+      },
+    })
+  }
+
+  function removeSingleCellConstraint(id: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const prevMarks = singleCellMarks.value[type] ?? new Set<string>()
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        const next = { ...singleCellMarks.value }
+        delete next[type]
+        singleCellMarks.value = next
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        singleCellMarks.value = { ...singleCellMarks.value, [type]: prevMarks }
+      },
+    })
+  }
+
   return {
     givenDigits,
     solverCellStates,
@@ -882,5 +938,8 @@ export const useEditorStore = defineStore('editor', () => {
     undo,
     redo,
     reset,
+    singleCellMarks,
+    toggleSingleCellMark,
+    removeSingleCellConstraint,
   }
 })

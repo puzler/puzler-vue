@@ -33,15 +33,15 @@ function onSizeChange(event: Event) {
     class="flex flex-col gap-3 px-3 py-3"
   >
     <div class="flex flex-col gap-1.5">
-      <label class="text-xs text-gray-500">Shape</label>
+      <label class="text-xs text-soft">Shape</label>
       <div class="flex gap-1.5">
         <button
           v-for="type in (['circle', 'square', 'diamond'] as ShapeType[])"
           :key="type"
           class="flex-1 py-1.5 rounded border text-xs transition-colors capitalize"
           :class="editor.activeShapePreset.style.shapeType === type
-            ? 'border-blue-400 bg-blue-50 text-blue-700 font-medium'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+            ? 'border-action bg-action-tint text-action font-medium'
+            : 'border-line text-soft hover:bg-line/40'"
           @click="setShapeType(type)"
         >
           {{ type }}
@@ -50,19 +50,19 @@ function onSizeChange(event: Event) {
     </div>
 
     <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500">Fill</label>
+      <label class="text-xs text-soft">Fill</label>
       <div class="flex items-center gap-2">
         <input
           type="color"
           :value="editor.activeShapePreset.style.fillColor === 'none' ? '#ffffff' : editor.activeShapePreset.style.fillColor"
-          class="w-8 h-8 rounded cursor-pointer border border-gray-200 p-0.5"
+          class="w-8 h-8 rounded cursor-pointer border border-line p-0.5"
           @input="onFillInput"
         >
         <button
           class="text-xs px-2 py-1 rounded border transition-colors"
           :class="editor.activeShapePreset.style.fillColor === 'none'
-            ? 'border-blue-400 bg-blue-50 text-blue-700'
-            : 'border-gray-200 text-gray-500 hover:bg-gray-50'"
+            ? 'border-action bg-action-tint text-action'
+            : 'border-line text-soft hover:bg-line/40'"
           @click="editor.updateActiveShapePreset({ fillColor: 'none' })"
         >
           None
@@ -71,48 +71,48 @@ function onSizeChange(event: Event) {
     </div>
 
     <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500">Stroke</label>
+      <label class="text-xs text-soft">Stroke</label>
       <div class="flex items-center gap-2">
         <input
           type="color"
           :value="editor.activeShapePreset.style.strokeColor"
-          class="w-8 h-8 rounded cursor-pointer border border-gray-200 p-0.5"
+          class="w-8 h-8 rounded cursor-pointer border border-line p-0.5"
           @input="onStrokeInput"
         >
-        <span class="text-xs text-gray-400 font-mono">{{ editor.activeShapePreset.style.strokeColor }}</span>
+        <span class="text-xs text-faint font-mono">{{ editor.activeShapePreset.style.strokeColor }}</span>
       </div>
     </div>
 
     <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500">Stroke width</label>
+      <label class="text-xs text-soft">Stroke width</label>
       <div class="flex items-center gap-2">
         <input
           type="number"
           :value="editor.activeShapePreset.style.strokeWidth"
           min="0"
           max="20"
-          class="w-16 text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400 text-center"
+          class="w-16 text-sm px-2 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
           @change="onStrokeWidthChange"
         >
-        <span class="text-xs text-gray-400">px</span>
+        <span class="text-xs text-faint">px</span>
       </div>
     </div>
 
     <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500">Size</label>
+      <label class="text-xs text-soft">Size</label>
       <div class="flex items-center gap-2">
         <input
           type="number"
           :value="Math.round(editor.activeShapePreset.style.size * 100)"
           min="10"
           max="90"
-          class="w-16 text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-400 text-center"
+          class="w-16 text-sm px-2 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
           @change="onSizeChange"
         >
-        <span class="text-xs text-gray-400">%</span>
+        <span class="text-xs text-faint">%</span>
       </div>
     </div>
-    <p class="text-[11px] text-gray-400 leading-snug">
+    <p class="text-[11px] text-faint leading-snug">
       Click a cell to place at the nearest anchor · click again to remove
     </p>
   </div>

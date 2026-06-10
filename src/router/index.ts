@@ -6,8 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      redirect: { name: 'editor-new' },
     },
     {
       path: '/editor',
@@ -64,7 +63,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    return { name: 'home' }
+    return { name: 'editor-new' }
   }
 })
 

@@ -71,7 +71,9 @@ export const CELL_BACKGROUND_COLORS: Record<string, Color> = {
   extra_regions:   greyscale(221),
   clone:           greyscale(204),
   row_index_cells: { red: 255, green: 200, blue: 200, opacity: 0.7 },
-  col_index_cells: { red: 220, green: 255, blue: 200, opacity: 0.7 },
+  col_index_cells: { red: 180, green: 235, blue: 195, opacity: 0.7 },
+  // Applied when a single cell is both a row and column index cell.
+  row_col_index_cells: { red: 255, green: 245, blue: 170, opacity: 0.7 },
   minimums:        greyscale(240),
   maximums:        greyscale(240),
 }

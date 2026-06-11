@@ -11,6 +11,7 @@ import type {
   ShapePreset, ShapeStyle, ShapeData, ShapeAnchor,
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
+  ConnectorDot, ConnectorDotType,
 } from '@/types/constraints'
 
 export interface ActiveConstraint {
@@ -38,6 +39,8 @@ export const useEditorStore = defineStore('editor', () => {
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   const singleCellMarks = ref<Record<string, Set<string>>>({})
+  const connectorDots = ref<Record<string, ConnectorDot>>({})  // border key → dot
+  const selectedDotKey = ref<string | null>(null)
 
   // ── Cell color ────────────────────────────────────────────────────────────
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
@@ -207,6 +210,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setActiveTool(tool: string) {
     activeTool.value = tool
+    selectedDotKey.value = null
   }
 
   function setMode(m: 'setting' | 'solving') {
@@ -350,6 +354,11 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function placeDigitForSelection(digit: number | null, modeOverride?: 'digit' | 'center' | 'corner') {
+    // A selected connector dot captures digit input (keyboard and numpad)
+    if (selectedDotKey.value && connectorDots.value[selectedDotKey.value]) {
+      setConnectorDotValue(digit)
+      return
+    }
     if (mode.value === 'setting') {
       setGivenDigitsForSelection(digit)
     } else if (digit === null) {
@@ -778,7 +787,11 @@ export const useEditorStore = defineStore('editor', () => {
     puzzleRules.value = ''
     mode.value = 'setting'
     inputMode.value = 'digit'
+    keyboardModeOverride.value = null
     cosmeticInstances.value = []
+    singleCellMarks.value = {}
+    connectorDots.value = {}
+    selectedDotKey.value = null
     pendingLineCells.value = []
     pendingBranchThermoId.value = null
     activeGlobalVariants.value = new Set()
@@ -845,6 +858,87 @@ export const useEditorStore = defineStore('editor', () => {
       undo: () => {
         activeConstraints.value.splice(idx, 0, constraint)
         singleCellMarks.value = { ...singleCellMarks.value, [type]: prevMarks }
+      },
+    })
+  }
+
+  // ── Connector dots ────────────────────────────────────────────────────────
+
+  function toggleConnectorDot(type: ConnectorDotType, border: string) {
+    const prev = connectorDots.value[border] ? { ...connectorDots.value[border] } : null
+    const prevSelected = selectedDotKey.value
+
+    if (prev?.type === type) {
+      // Same type → remove the dot
+      execute({
+        execute: () => {
+          const next = { ...connectorDots.value }
+          delete next[border]
+          connectorDots.value = next
+          if (selectedDotKey.value === border) selectedDotKey.value = null
+        },
+        undo: () => {
+          connectorDots.value = { ...connectorDots.value, [border]: prev }
+          selectedDotKey.value = prevSelected
+        },
+      })
+    } else {
+      // New dot, or other type → replace (difference/ratio are exclusive)
+      execute({
+        execute: () => {
+          connectorDots.value = { ...connectorDots.value, [border]: { type, value: null } }
+          selectedDotKey.value = border
+        },
+        undo: () => {
+          const next = { ...connectorDots.value }
+          if (prev) next[border] = prev
+          else delete next[border]
+          connectorDots.value = next
+          selectedDotKey.value = prevSelected
+        },
+      })
+    }
+  }
+
+  function selectConnectorDot(border: string | null) {
+    if (border !== null && !connectorDots.value[border]) return
+    selectedDotKey.value = border
+  }
+
+  function setConnectorDotValue(value: number | null) {
+    const border = selectedDotKey.value
+    if (!border) return
+    const prev = connectorDots.value[border]
+    if (!prev || prev.value === value) return
+    const prevDot = { ...prev }
+    execute({
+      execute: () => {
+        connectorDots.value = { ...connectorDots.value, [border]: { ...prevDot, value } }
+      },
+      undo: () => {
+        connectorDots.value = { ...connectorDots.value, [border]: prevDot }
+      },
+    })
+  }
+
+  function removeConnectorConstraint(id: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const prevDots = { ...connectorDots.value }
+    const prevSelected = selectedDotKey.value
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        connectorDots.value = Object.fromEntries(
+          Object.entries(connectorDots.value).filter(([, dot]) => dot.type !== type),
+        )
+        if (selectedDotKey.value && !connectorDots.value[selectedDotKey.value]) selectedDotKey.value = null
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        connectorDots.value = prevDots
+        selectedDotKey.value = prevSelected
       },
     })
   }
@@ -941,5 +1035,11 @@ export const useEditorStore = defineStore('editor', () => {
     singleCellMarks,
     toggleSingleCellMark,
     removeSingleCellConstraint,
+    connectorDots,
+    selectedDotKey,
+    toggleConnectorDot,
+    selectConnectorDot,
+    setConnectorDotValue,
+    removeConnectorConstraint,
   }
 })

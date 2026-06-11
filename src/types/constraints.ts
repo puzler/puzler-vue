@@ -76,6 +76,31 @@ export const BETWEEN_LINE_STYLE = {
   circleStrokeWidth: 2,
 }
 
+// ── Connector dots (difference / ratio) ──────────────────────────────────────
+
+export type ConnectorDotType = 'difference_dots' | 'ratio_dots'
+
+export const CONNECTOR_DOT_TYPES = new Set<string>(['difference_dots', 'ratio_dots'])
+
+// One dot per border — placing one type where the other exists replaces it,
+// so difference and ratio dots are mutually exclusive on a border.
+export interface ConnectorDot {
+  type: ConnectorDotType
+  // null means the default: difference of 1, or ratio of 2:1
+  value: number | null
+}
+
+// Canonical key for the border between two orthogonally adjacent cells,
+// ordered so either cell produces the same key.
+export function borderKey(cellA: string, cellB: string): string {
+  return [cellA, cellB].sort().join('|')
+}
+
+export function borderKeyCells(key: string): [string, string] {
+  const [a, b] = key.split('|')
+  return [a, b]
+}
+
 // ── Global constraint variants ────────────────────────────────────────────────
 
 export interface GlobalVariant {

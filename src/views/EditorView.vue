@@ -73,6 +73,7 @@ function onKeyDown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     editor.cancelPendingLine()
     editor.clearSelection()
+    editor.selectConnectorDot(null)
     return
   }
 
@@ -179,7 +180,7 @@ onUnmounted(() => {
       class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
       :class="editor.mode === 'setting' ? 'w-56' : 'w-0'"
     >
-      <ToolSelector class="w-56 flex-1 min-h-0 border-r border-line" />
+      <ToolSelector class="w-56" />
     </div>
 
     <div

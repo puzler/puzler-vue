@@ -58,14 +58,33 @@ const errorRects = computed<CellRect[]>(() =>
 
 const singleCellBgRects = computed<ColorRect[]>(() => {
   const result: ColorRect[] = []
+  // Cells marked as both row and column index get a single combined color
+  // instead of the two individual colors stacked on top of each other.
+  const rowIndexMarks = editor.singleCellMarks['row_index_cells']
+  const colIndexMarks = editor.singleCellMarks['col_index_cells']
+  const rowColOverlap = new Set<string>()
+  if (rowIndexMarks?.size && colIndexMarks?.size) {
+    for (const key of rowIndexMarks) {
+      if (colIndexMarks.has(key)) rowColOverlap.add(key)
+    }
+  }
+  const pushRect = (key: string, color: string) => {
+    const { row, col } = keyToRowCol(key)
+    result.push({ x: PADDING + col * CELL_SIZE, y: PADDING + row * CELL_SIZE, color })
+  }
   for (const [type, marks] of Object.entries(editor.singleCellMarks)) {
     const bg = CELL_BACKGROUND_COLORS[type]
     if (!bg || !marks?.size) continue
     const color = colorToCss(bg)
+    const isIndexType = type === 'row_index_cells' || type === 'col_index_cells'
     for (const key of marks) {
-      const { row, col } = keyToRowCol(key)
-      result.push({ x: PADDING + col * CELL_SIZE, y: PADDING + row * CELL_SIZE, color })
+      if (isIndexType && rowColOverlap.has(key)) continue
+      pushRect(key, color)
     }
+  }
+  const overlapColor = CELL_BACKGROUND_COLORS['row_col_index_cells']
+  if (overlapColor) {
+    for (const key of rowColOverlap) pushRect(key, colorToCss(overlapColor))
   }
   return result
 })

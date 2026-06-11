@@ -8,6 +8,10 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import PuzzleMetaFields from './PuzzleMetaFields.vue'
 import ConstraintCategorySection from './ConstraintCategorySection.vue'
 
+// Multiple root nodes (aside + teleported modals) prevent automatic attr
+// inheritance, so forward attrs to the aside explicitly
+defineOptions({ inheritAttrs: false })
+
 const editor = useEditorStore()
 
 interface ConstraintOption {
@@ -27,6 +31,7 @@ const LOCAL_TOOL_TYPES = new Set([
   'thermometer', 'arrow', 'renban', 'german_whispers', 'dutch_whispers',
   'palindrome', 'region_sum', 'between_lines',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
+  'difference_dots', 'ratio_dots',
 ])
 
 // Maps local constraint types to their storage category for correct removal routing
@@ -36,6 +41,7 @@ const LINE_CATEGORY_TYPES = new Set([
 ])
 const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone'])
 const SINGLE_CELL_TYPES = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
+const CONNECTOR_TYPES = new Set(['difference_dots', 'ratio_dots'])
 
 const globalCategory: Category = {
   key: 'global',
@@ -93,6 +99,8 @@ function handleLocalPick(type: string, label: string) {
     category = 'region'
   } else if (SINGLE_CELL_TYPES.has(type)) {
     category = 'single_cell'
+  } else if (CONNECTOR_TYPES.has(type)) {
+    category = 'connector'
   } else {
     category = 'local'
   }
@@ -118,6 +126,8 @@ function handleRemoveConfirm() {
     editor.removeConstraintLine(confirmTarget.value.id, confirmTarget.value.type)
   } else if (confirmTarget.value.category === 'single_cell') {
     editor.removeSingleCellConstraint(confirmTarget.value.id, confirmTarget.value.type)
+  } else if (confirmTarget.value.category === 'connector') {
+    editor.removeConnectorConstraint(confirmTarget.value.id, confirmTarget.value.type)
   } else {
     editor.removeConstraint(confirmTarget.value.id)
   }
@@ -126,7 +136,10 @@ function handleRemoveConfirm() {
 </script>
 
 <template>
-  <aside class="flex flex-col flex-1 min-h-0 bg-paper overflow-y-auto border-r border-line">
+  <aside
+    class="flex flex-col flex-1 min-h-0 bg-paper overflow-y-auto border-r border-line"
+    v-bind="$attrs"
+  >
     <PuzzleMetaFields />
 
     <div class="px-2 py-3 border-b border-line">

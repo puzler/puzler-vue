@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey } from '@/composables/useGrid'
-import { CONSTRAINT_LINE_TYPES } from '@/types/constraints'
-import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, CONNECTOR_DOT_TYPES, borderKey } from '@/types/constraints'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, ConnectorDotType } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -28,6 +28,7 @@ const SINGLE_CELL_TOOLS = new Set(['odd_cells', 'even_cells', 'minimums', 'maxim
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
 const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
 const isSingleCellTool = computed(() => SINGLE_CELL_TOOLS.has(editor.activeTool))
+const isDotTool = computed(() => CONNECTOR_DOT_TYPES.has(editor.activeTool))
 
 const DRAW_BUFFER = CELL_SIZE * 0.15
 
@@ -36,7 +37,7 @@ const brushMode = ref<'paint' | 'erase' | null>(null)
 const brushCells = ref<Set<string>>(new Set())
 
 const cursor = computed(() => {
-  if (isDrawing.value || isBrushing.value || isSingleCellTool.value) return 'crosshair'
+  if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
 })
@@ -137,8 +138,49 @@ function hasCellColor(key: string): boolean {
   return editor.cosmeticCellColors[key] !== undefined
 }
 
+// Max distance from an interior border (fraction of cell size) for a click to hit it
+const BORDER_THRESHOLD = 0.25
+
+function hitBorder(event: PointerEvent): string | null {
+  if (!props.svgRef) return null
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return null
+
+  const col = Math.floor((pt.x - PADDING) / CELL_SIZE)
+  const row = Math.floor((pt.y - PADDING) / CELL_SIZE)
+  if (row < 0 || row >= grid.rows || col < 0 || col >= grid.cols) return null
+
+  const fx = (pt.x - PADDING) / CELL_SIZE - col
+  const fy = (pt.y - PADDING) / CELL_SIZE - row
+
+  // Distance to each interior border; outer grid edges have no neighbor
+  const candidates: Array<{ dist: number; row: number; col: number }> = []
+  if (col > 0) candidates.push({ dist: fx, row, col: col - 1 })
+  if (col < grid.cols - 1) candidates.push({ dist: 1 - fx, row, col: col + 1 })
+  if (row > 0) candidates.push({ dist: fy, row: row - 1, col })
+  if (row < grid.rows - 1) candidates.push({ dist: 1 - fy, row: row + 1, col })
+
+  candidates.sort((a, b) => a.dist - b.dist)
+  const best = candidates[0]
+  if (!best || best.dist > BORDER_THRESHOLD) return null
+  return borderKey(cellKey(row, col), cellKey(best.row, best.col))
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
+
+  if (isDotTool.value) {
+    const border = hitBorder(event)
+    if (!border) {
+      editor.selectConnectorDot(null)
+    } else if (event.shiftKey) {
+      editor.selectConnectorDot(border)
+    } else {
+      editor.toggleConnectorDot(editor.activeTool as ConnectorDotType, border)
+    }
+    return
+  }
+
   const key = hitCell(event)
   if (!key) return
 

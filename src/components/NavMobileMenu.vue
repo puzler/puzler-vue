@@ -38,9 +38,17 @@ const auth = useAuthStore()
       >
         {{ auth.user?.username }}
       </RouterLink>
+      <RouterLink
+        to="/settings"
+        class="px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
+        active-class="!text-white bg-ink-2"
+        @click="emit('close')"
+      >
+        Settings
+      </RouterLink>
       <button
         class="text-left px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
-        @click="auth.clearAuth(); emit('close')"
+        @click="auth.logout(); emit('close')"
       >
         Sign out
       </button>

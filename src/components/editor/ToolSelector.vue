@@ -75,6 +75,7 @@ const cosmeticCategory: Category = {
     { type: 'cell_color', label: 'Cell color' },
     { type: 'shape', label: 'Shape' },
     { type: 'text', label: 'Text' },
+    { type: 'cosmetic_cage', label: 'Cage' },
   ],
 }
 

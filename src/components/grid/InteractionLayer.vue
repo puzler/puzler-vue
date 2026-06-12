@@ -41,7 +41,7 @@ const brushCells = ref<Set<string>>(new Set())
 
 const cursor = computed(() => {
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
-  if (editor.activeTool === 'killer_cage' || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
+  if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
@@ -135,10 +135,15 @@ function findExtraRegionAtCell(key: string): string | null {
   return null
 }
 
-function findCageAtCell(key: string): string | null {
+// Constraint cages and cosmetic cages share the brush/select flow; each tool
+// only sees cages of its own type
+const CAGE_TOOLS = new Set(['killer_cage', 'cosmetic_cage'])
+const isCageTool = computed(() => CAGE_TOOLS.has(editor.activeTool))
+
+function findCageAtCell(key: string, type: string): string | null {
   for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
     const inst = editor.cosmeticInstances[i]
-    if (inst.type !== 'killer_cage') continue
+    if (inst.type !== type) continue
     if ((inst.data as KillerCageData).cells.includes(key)) return inst.id
   }
   return null
@@ -372,11 +377,11 @@ function onPointerDown(event: PointerEvent) {
     return
   }
 
-  if (editor.activeTool === 'killer_cage') {
+  if (isCageTool.value) {
     const cageKey = hitCell(event)
     if (!cageKey) return
     const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
-    const cageId = findCageAtCell(cageKey)
+    const cageId = findCageAtCell(cageKey, editor.activeTool)
     if (mode === 'select') {
       editor.selectCage(cageId)
       return
@@ -498,9 +503,9 @@ function onPointerDown(event: PointerEvent) {
 function onPointerMove(event: PointerEvent) {
   if (!isDragging.value) return
 
-  if (editor.activeTool === 'killer_cage') {
+  if (isCageTool.value) {
     const key = hitCell(event)
-    if (!key || brushCells.value.has(key) || findCageAtCell(key) !== null) return
+    if (!key || brushCells.value.has(key) || findCageAtCell(key, editor.activeTool) !== null) return
     brushCells.value = new Set([...brushCells.value, key])
     editor.setPendingCageCells(Array.from(brushCells.value))
     return
@@ -555,8 +560,9 @@ function onPointerUp(event: PointerEvent) {
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false
 
-  if (editor.activeTool === 'killer_cage') {
-    editor.commitCage(Array.from(brushCells.value))
+  if (isCageTool.value) {
+    if (editor.activeTool === 'cosmetic_cage') editor.commitCosmeticCage(Array.from(brushCells.value))
+    else editor.commitCage(Array.from(brushCells.value))
     brushCells.value = new Set()
     return
   }

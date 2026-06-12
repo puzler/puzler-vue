@@ -1,0 +1,6 @@
+mutation PrepareOauthConnect($provider: String!) {
+  prepareOauthConnect(input: { provider: $provider }) {
+    url
+    errors
+  }
+}

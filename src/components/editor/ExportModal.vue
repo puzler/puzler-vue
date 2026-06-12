@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { serializePuzzle } from '@/utils/puzzleExport'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -12,30 +13,7 @@ const copied = ref(false)
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
 async function copyPuzzleData() {
-  const data = {
-    version: 1,
-    grid: {
-      rows: grid.rows,
-      cols: grid.cols,
-      customCellRegions: grid.customCellRegions,
-    },
-    meta: {
-      name: editor.puzzleName,
-      author: editor.puzzleAuthor,
-      rules: editor.puzzleRules,
-    },
-    givenDigits: editor.givenDigits,
-    solverCellStates: editor.solverCellStates,
-    activeConstraints: editor.activeConstraints,
-    cosmetics: {
-      cellColors: editor.cosmeticCellColors,
-      instances: editor.cosmeticInstances,
-      linePresets: editor.linePresets,
-      shapePresets: editor.shapePresets,
-      textPresets: editor.textPresets,
-      cellColorPresets: editor.cellColorPresets,
-    },
-  }
+  const data = serializePuzzle(editor, grid)
   await navigator.clipboard.writeText(JSON.stringify(data, null, 2))
   copied.value = true
   if (copiedTimer) clearTimeout(copiedTimer)

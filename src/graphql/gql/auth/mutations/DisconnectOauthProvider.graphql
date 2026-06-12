@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation DisconnectOauthProvider($provider: String!) {
+  disconnectOauthProvider(input: { provider: $provider }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

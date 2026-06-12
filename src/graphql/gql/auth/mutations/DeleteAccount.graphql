@@ -1,0 +1,6 @@
+mutation DeleteAccount($currentPassword: String, $confirmation: String) {
+  deleteAccount(input: { currentPassword: $currentPassword, confirmation: $confirmation }) {
+    success
+    errors
+  }
+}

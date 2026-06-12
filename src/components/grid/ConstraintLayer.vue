@@ -11,6 +11,7 @@ import MinMaxLayer from './constraints/MinMaxLayer.vue'
 import ThermometerLayer from './constraints/ThermometerLayer.vue'
 import ArrowLayer from './constraints/ArrowLayer.vue'
 import KillerCageLayer from './constraints/KillerCageLayer.vue'
+import CloneOriginalsLayer from './constraints/CloneOriginalsLayer.vue'
 import BetweenLinesLayer from './constraints/BetweenLinesLayer.vue'
 
 const editor = useEditorStore()
@@ -88,6 +89,7 @@ const pendingStyle = computed(() => CONSTRAINT_LINE_STYLES[editor.activeTool] ??
     <ThermometerLayer />
     <ArrowLayer />
     <KillerCageLayer />
+    <CloneOriginalsLayer />
     <BetweenLinesLayer />
 
     <!-- Constraint lines (renban, whispers, palindrome, region sum) -->

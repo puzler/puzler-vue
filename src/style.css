@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Self-hosted fonts (no Google Fonts CDN — keeps visitor IPs off Google's
+   servers, GDPR-safe). Weights match the @theme font stacks below. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+
 /* "Ink & Paper" design tokens — see STYLE_GUIDE.md at the repo root.
    Hierarchy by surface: ink chrome → canvas → paper panels → white cards.
    Indigo = action accent, amber = spark accent (selection/nav only). */
@@ -44,3 +53,42 @@ body {
 #app {
   min-height: 100svh;
 }
+
+/* Long-form prose for legal pages (see STYLE_GUIDE.md → Long-form prose).
+   Scoped recipe rather than @tailwindcss/typography to stay dependency-light
+   and on-palette with Ink & Paper. */
+.prose-legal {
+  color: var(--color-ink-text);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.prose-legal h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 2rem 0 0.75rem;
+}
+.prose-legal h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+}
+.prose-legal p { margin: 0.75rem 0; }
+.prose-legal a { color: var(--color-action); text-decoration: underline; }
+.prose-legal ul { margin: 0.75rem 0; padding-left: 1.25rem; list-style: disc; }
+.prose-legal li { margin: 0.35rem 0; }
+.prose-legal strong { font-weight: 600; }
+.prose-legal table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.prose-legal th, .prose-legal td {
+  border: 1px solid var(--color-line);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-legal th { background: var(--color-paper); font-weight: 600; }

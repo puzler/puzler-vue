@@ -18,7 +18,7 @@ const isMobile = useIsMobile()
 
 const TOOLS_WITH_CONTROLS = new Set([
   'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',
-  'difference_dots', 'ratio_dots', 'killer_cage', 'extra_regions', 'clone',
+  'difference_dots', 'ratio_dots', 'killer_cage', 'extra_regions', 'clone', 'cosmetic_cage',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
   'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
   'thermometer', ...CONSTRAINT_LINE_TYPES,

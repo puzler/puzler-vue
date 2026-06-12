@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import graphqlLoader from 'vite-plugin-graphql-loader'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), graphqlLoader()],
   test: {
     environment: 'happy-dom',
   },

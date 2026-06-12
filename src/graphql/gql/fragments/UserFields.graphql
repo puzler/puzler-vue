@@ -1,0 +1,13 @@
+fragment UserFields on User {
+  id
+  email
+  username
+  avatarUrl
+  bio
+  role
+  passwordSet
+  oauthConnections {
+    provider
+    createdAt
+  }
+}

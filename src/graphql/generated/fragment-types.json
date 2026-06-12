@@ -1,0 +1,31 @@
+{
+  "possibleTypes": {
+    "ConstraintMutations": [
+      "Mutation"
+    ],
+    "CosmeticMutations": [
+      "Mutation"
+    ],
+    "PlayMutations": [
+      "Mutation"
+    ],
+    "PuzzleMutations": [
+      "Mutation"
+    ],
+    "PuzzleQueries": [
+      "Query"
+    ],
+    "SocialMutations": [
+      "Mutation"
+    ],
+    "TagQueries": [
+      "Query"
+    ],
+    "UserMutations": [
+      "Mutation"
+    ],
+    "UserQueries": [
+      "Query"
+    ]
+  }
+}

@@ -19,6 +19,7 @@ import ExtraRegionsPanel from './toolbox/ExtraRegionsPanel.vue'
 import ClonePanel from './toolbox/ClonePanel.vue'
 import SingleCellPanel from './toolbox/SingleCellPanel.vue'
 import OuterCluePanel from './toolbox/OuterCluePanel.vue'
+import CosmeticCagePanel from './toolbox/CosmeticCagePanel.vue'
 import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES, CONNECTOR_DOT_TYPES, OUTER_CLUE_TYPES } from '@/types/constraints'
 
 const editor = useEditorStore()
@@ -52,6 +53,7 @@ const isOuterClueTool = computed(() => OUTER_CLUE_TYPES.has(editor.activeTool))
     <ThermoPanel v-else-if="editor.activeTool === 'thermometer'" />
     <KropkiDotsPanel v-else-if="isKropkiTool" />
     <KillerCagePanel v-else-if="editor.activeTool === 'killer_cage'" />
+    <CosmeticCagePanel v-else-if="editor.activeTool === 'cosmetic_cage'" />
     <ExtraRegionsPanel v-else-if="editor.activeTool === 'extra_regions'" />
     <ClonePanel v-else-if="editor.activeTool === 'clone'" />
     <SingleCellPanel v-else-if="isSingleCellTool" />

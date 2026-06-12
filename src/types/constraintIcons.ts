@@ -83,4 +83,5 @@ export const CONSTRAINT_ICONS: Record<string, ConstraintIcon> = {
   cell_color:      { path: mdiPalette },
   shape:           { path: mdiShape },
   text:            { path: mdiAlphabeticalVariant },
+  cosmetic_cage:   { path: mdiDotsSquare },
 }

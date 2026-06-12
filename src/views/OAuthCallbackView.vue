@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center">
+  <div class="h-full flex items-center justify-center">
     <p class="text-soft">
       {{ status }}
     </p>

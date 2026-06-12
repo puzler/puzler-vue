@@ -2,12 +2,14 @@ import { ApolloClient, InMemoryCache, createHttpLink, split } from '@apollo/clie
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
+import { getToken } from '@/utils/tokenStorage'
+import fragmentTypes from '@/graphql/generated/fragment-types.json'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const WS_URL = API_URL.replace(/^http/, 'ws')
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('puzler_token')
+  const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
@@ -22,7 +24,7 @@ const httpLink = createHttpLink({
 const wsLink = new GraphQLWsLink(
   createClient({
     url: `${WS_URL}/cable`,
-    connectionParams: () => ({ token: localStorage.getItem('puzler_token') }),
+    connectionParams: () => ({ token: getToken() }),
   }),
 )
 
@@ -37,7 +39,7 @@ const splitLink = split(
 
 export const apolloClient = new ApolloClient({
   link: splitLink,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({ possibleTypes: fragmentTypes.possibleTypes }),
   defaultOptions: {
     watchQuery: { fetchPolicy: 'cache-and-network' },
   },

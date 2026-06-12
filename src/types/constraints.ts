@@ -309,6 +309,30 @@ export interface ShapeData {
   presetId: string
 }
 
+// ── Cosmetic cages ────────────────────────────────────────────────────────────
+
+export interface CageCosmeticStyle {
+  cageColor: string
+  textColor: string
+}
+
+export const DEFAULT_CAGE_COSMETIC_STYLE: CageCosmeticStyle = {
+  cageColor: '#777777',
+  textColor: '#777777',
+}
+
+export interface CagePreset {
+  id: string
+  label: string
+  style: CageCosmeticStyle
+}
+
+export interface CosmeticCageData {
+  cells: string[]
+  sum: number | null
+  presetId: string
+}
+
 // ── Text ────────────────────────────────────────────────────────────────────
 
 export interface TextStyle {

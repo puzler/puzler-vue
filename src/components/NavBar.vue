@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import BrandMark from './BrandMark.vue'
 import NavMobileMenu from './NavMobileMenu.vue'
+import NavUserActions from './NavUserActions.vue'
 
-const auth = useAuthStore()
 const menuOpen = ref(false)
 </script>
 
@@ -13,8 +13,9 @@ const menuOpen = ref(false)
     <div class="h-14 flex items-center px-4 md:px-6 gap-4 md:gap-6">
       <RouterLink
         to="/"
-        class="font-display text-xl font-bold text-white tracking-tight hover:text-spark transition-colors"
+        class="flex items-center gap-2 font-display text-xl font-bold text-white tracking-tight hover:text-spark transition-colors"
       >
+        <BrandMark class="w-5 h-5" />
         Puzler
       </RouterLink>
 
@@ -37,36 +38,7 @@ const menuOpen = ref(false)
 
       <div class="flex-1" />
 
-      <div class="hidden md:flex items-center gap-3">
-        <template v-if="auth.isAuthenticated">
-          <RouterLink
-            :to="`/profile/${auth.user?.username}`"
-            class="text-sm text-white font-medium hover:text-spark transition-colors"
-          >
-            {{ auth.user?.username }}
-          </RouterLink>
-          <button
-            class="px-3 py-1.5 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
-            @click="auth.clearAuth()"
-          >
-            Sign out
-          </button>
-        </template>
-        <template v-else>
-          <RouterLink
-            to="/login"
-            class="px-3 py-1.5 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
-          >
-            Sign in
-          </RouterLink>
-          <RouterLink
-            to="/register"
-            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-action text-white hover:bg-action-deep transition-colors"
-          >
-            Sign up
-          </RouterLink>
-        </template>
-      </div>
+      <NavUserActions />
 
       <button
         class="md:hidden p-2 rounded-md text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"

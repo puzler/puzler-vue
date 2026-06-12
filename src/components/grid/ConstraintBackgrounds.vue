@@ -15,8 +15,6 @@ const grid = useGridStore()
 
 const EXTRA_REGION_COLOR = colorToCss(CELL_BACKGROUND_COLORS.extra_regions)
 const CLONE_COLOR = colorToCss(CELL_BACKGROUND_COLORS.clone)
-// Originals read slightly darker while the clone tool is active
-const CLONE_ORIGINAL_COLOR = 'rgba(178, 178, 178, 1)'
 
 interface ColorRect { x: number; y: number; color: string; opacity?: number }
 
@@ -41,19 +39,17 @@ const extraRegionRects = computed<ColorRect[]>(() =>
     .flatMap(i => (i.data as ExtraRegionData).cells.map(c => cellRect(c, EXTRA_REGION_COLOR))),
 )
 
-const cloneRects = computed<ColorRect[]>(() => {
-  const cloneToolActive = editor.activeTool === 'clone'
-  return editor.cosmeticInstances
+const cloneRects = computed<ColorRect[]>(() =>
+  editor.cosmeticInstances
     .filter(i => i.type === 'clone')
     .flatMap(i => {
       const data = i.data as CloneData
-      const originalColor = cloneToolActive ? CLONE_ORIGINAL_COLOR : CLONE_COLOR
       return [
-        ...data.cells.map(c => cellRect(c, originalColor)),
+        ...data.cells.map(c => cellRect(c, CLONE_COLOR)),
         ...data.copies.flatMap(off => translatedRects(data.cells, off.dRow, off.dCol, CLONE_COLOR)),
       ]
-    })
-})
+    }),
+)
 
 // Brush preview while painting an extra region or clone group
 const pendingBrushRects = computed<ColorRect[]>(() => {

@@ -4,7 +4,7 @@ import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset,
@@ -14,6 +14,7 @@ import type {
   ConnectorDot, BorderConnectorType, XvValue,
   ArrowData, KillerCageData, ExtraRegionData, CloneData,
   OuterClue, OuterClueType,
+  CagePreset, CageCosmeticStyle, CosmeticCageData,
 } from '@/types/constraints'
 
 export interface ActiveConstraint {
@@ -99,6 +100,17 @@ export const useEditorStore = defineStore('editor', () => {
   const activeShapePreset = computed(() =>
     shapePresets.value.find(p => p.id === activeShapePresetId.value) ?? shapePresets.value[0],
   )
+  // ── Cosmetic cages ────────────────────────────────────────────────────────
+  function makeCagePreset(label: string): CagePreset {
+    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_CAGE_COSMETIC_STYLE } }
+  }
+  const _initialCage = makeCagePreset('Cage 1')
+  const cagePresets = ref<CagePreset[]>([_initialCage])
+  const activeCagePresetId = ref<string>(_initialCage.id)
+  const activeCagePreset = computed(() =>
+    cagePresets.value.find(p => p.id === activeCagePresetId.value) ?? cagePresets.value[0],
+  )
+
   // ── Text ──────────────────────────────────────────────────────────────────
   function makeTextPreset(label: string): TextPreset {
     return { id: crypto.randomUUID(), label, content: '?', style: { ...DEFAULT_TEXT_STYLE } }
@@ -997,6 +1009,9 @@ export const useEditorStore = defineStore('editor', () => {
     const freshText = makeTextPreset('Text 1')
     textPresets.value = [freshText]
     activeTextPresetId.value = freshText.id
+    const freshCage = makeCagePreset('Cage 1')
+    cagePresets.value = [freshCage]
+    activeCagePresetId.value = freshCage.id
     clearHistory()
   }
 
@@ -1169,6 +1184,48 @@ export const useEditorStore = defineStore('editor', () => {
         cosmeticInstances.value.push(instance)
         selectedCageId.value = instance.id
         selectedDotKey.value = null
+        selectedOuterClueKey.value = null
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
+        selectedCageId.value = prevSelected
+      },
+    })
+  }
+
+  function addCagePreset() {
+    const preset = makeCagePreset(`Cage ${cagePresets.value.length + 1}`)
+    cagePresets.value = [...cagePresets.value, preset]
+    activeCagePresetId.value = preset.id
+  }
+
+  function setActiveCagePreset(id: string) {
+    if (cagePresets.value.some(p => p.id === id)) activeCagePresetId.value = id
+  }
+
+  function updateActiveCagePreset(patch: Partial<CageCosmeticStyle>) {
+    cagePresets.value = cagePresets.value.map(p =>
+      p.id === activeCagePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
+    )
+  }
+
+  // Cosmetic cages share the cage brush, selection, and sum entry with
+  // constraint cages — only the instance type and per-preset colors differ
+  function commitCosmeticCage(cells: string[]) {
+    pendingCageCells.value = []
+    if (cells.length === 0) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'cosmetic_cage',
+      data: { cells: [...new Set(cells)], sum: null, presetId: activeCagePresetId.value } satisfies CosmeticCageData,
+    }
+    const prevSelected = selectedCageId.value
+    execute({
+      execute: () => {
+        cosmeticInstances.value.push(instance)
+        selectedCageId.value = instance.id
+        selectedDotKey.value = null
+        selectedOuterClueKey.value = null
       },
       undo: () => {
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
@@ -1632,6 +1689,13 @@ export const useEditorStore = defineStore('editor', () => {
     pendingCageCells,
     setPendingCageCells,
     commitCage,
+    cagePresets,
+    activeCagePresetId,
+    activeCagePreset,
+    addCagePreset,
+    setActiveCagePreset,
+    updateActiveCagePreset,
+    commitCosmeticCage,
     selectCage,
     removeCage,
     appendCageSumDigit,

@@ -48,15 +48,49 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+      meta: { guestOnly: true },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/auth/callback/:provider',
       name: 'oauth-callback',
       component: () => import('@/views/OAuthCallbackView.vue'),
+    },
+    {
+      path: '/legal/tos',
+      name: 'terms',
+      component: () => import('@/views/legal/TermsView.vue'),
+    },
+    {
+      path: '/legal/privacy',
+      name: 'privacy',
+      component: () => import('@/views/legal/PrivacyView.vue'),
     },
   ],
 })
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
+  // main.ts kicks off fetchCurrentUser without awaiting it, so a deep link to
+  // a guarded route can arrive before the user is loaded. Settle the session
+  // first whenever a token exists but the user hasn't been fetched yet.
+  if (auth.token && !auth.user) {
+    await auth.fetchCurrentUser()
+  }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }

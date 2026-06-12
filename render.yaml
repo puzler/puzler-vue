@@ -1,0 +1,27 @@
+# Render Blueprint for the Puzler Vue SPA (this repo, puzler-vue).
+# The Rails API + Postgres + Redis have their own Blueprint in the puzler-api repo.
+
+services:
+  # Built and served as a static site (global CDN, free tier).
+  - type: web
+    name: puzler-web
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Build-time: Vite inlines this into the bundle. Set to the API's public
+      # URL (e.g. https://api.puzler.app) before the first build. Changing it
+      # later requires a redeploy so Vite re-inlines the new value.
+      - key: VITE_API_URL
+        sync: false
+      # Optional cookieless analytics — set to your domain once you have a
+      # Plausible account; leave unset to keep analytics off.
+      # - key: VITE_PLAUSIBLE_DOMAIN
+      #   sync: false
+    routes:
+      # SPA fallback so deep links (/legal/tos, /settings) resolve to index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html

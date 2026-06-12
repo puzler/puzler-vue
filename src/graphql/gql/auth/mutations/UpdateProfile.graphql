@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UpdateProfile($username: String, $bio: String) {
+  updateProfile(input: { username: $username, bio: $bio }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

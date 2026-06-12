@@ -30,7 +30,7 @@ const MODES = [
         Paint: drag to paint a group · click a group to remove it
       </p>
       <p class="text-[11px] text-soft leading-snug text-center">
-        Clone: drag from a group to place a copy · drag a copy to move it · originals show darker · holding Shift switches to Clone
+        Clone: drag from a group to place a copy · drag a copy to move it · originals show a purple outline · holding Shift switches to Clone
       </p>
     </div>
   </div>

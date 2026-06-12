@@ -145,6 +145,72 @@ export function cornerKeyToRowCol(key: string): { row: number; col: number } | n
   return m ? { row: Number(m[1]), col: Number(m[2]) } : null
 }
 
+// ── Multi-cell region constraints ─────────────────────────────────────────────
+
+export interface KillerCageData {
+  cells: string[]
+  sum: number | null
+}
+
+export interface ExtraRegionData {
+  cells: string[]
+}
+
+// Copies are stored as translations of the original cells, which keeps every
+// copy the same shape by construction
+export interface CloneData {
+  cells: string[]
+  copies: Array<{ dRow: number; dCol: number }>
+}
+
+// ── Outer clues ───────────────────────────────────────────────────────────────
+
+export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers'
+
+export const OUTER_CLUE_TYPES = new Set<string>(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers'])
+
+export type LittleKillerDirection = 'up-left' | 'up-right' | 'down-left' | 'down-right'
+
+export interface OuterClue {
+  type: OuterClueType
+  // null shows as an underscore (unset)
+  value: number | null
+  direction?: LittleKillerDirection
+}
+
+// Key for a clue cell in the ring outside the grid: row may be -1 or `rows`,
+// col may be -1 or `cols`. Needs its own parser since cell keys never carry
+// negative coordinates.
+export function outerKey(row: number, col: number): string {
+  return `o:r${row}c${col}`
+}
+
+export function parseOuterKey(key: string): { row: number; col: number } | null {
+  const m = key.match(/^o:r(-?\d+)c(-?\d+)$/)
+  return m ? { row: Number(m[1]), col: Number(m[2]) } : null
+}
+
+const DIRECTION_STEPS: Record<LittleKillerDirection, { dRow: number; dCol: number }> = {
+  'up-left':    { dRow: -1, dCol: -1 },
+  'up-right':   { dRow: -1, dCol: 1 },
+  'down-left':  { dRow: 1, dCol: -1 },
+  'down-right': { dRow: 1, dCol: 1 },
+}
+
+// Directions whose first diagonal step from this outer position lands inside
+// the grid. Corners get exactly one; edge cells get two.
+export function validLittleKillerDirections(row: number, col: number, rows: number, cols: number): LittleKillerDirection[] {
+  const inBounds = (r: number, c: number) => r >= 0 && r < rows && c >= 0 && c < cols
+  return (Object.keys(DIRECTION_STEPS) as LittleKillerDirection[]).filter(dir => {
+    const step = DIRECTION_STEPS[dir]
+    return inBounds(row + step.dRow, col + step.dCol)
+  })
+}
+
+export function littleKillerStep(dir: LittleKillerDirection): { dRow: number; dCol: number } {
+  return DIRECTION_STEPS[dir]
+}
+
 // ── Global constraint variants ────────────────────────────────────────────────
 
 export interface GlobalVariant {

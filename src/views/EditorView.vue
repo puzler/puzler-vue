@@ -18,6 +18,9 @@ const isMobile = useIsMobile()
 
 const TOOLS_WITH_CONTROLS = new Set([
   'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',
+  'difference_dots', 'ratio_dots', 'killer_cage', 'extra_regions', 'clone',
+  'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
+  'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
   'thermometer', ...CONSTRAINT_LINE_TYPES,
   ...Object.keys(GLOBAL_VARIANTS),
 ])
@@ -75,6 +78,8 @@ function onKeyDown(event: KeyboardEvent) {
     editor.cancelPendingLine()
     editor.clearSelection()
     editor.selectConnectorDot(null)
+    editor.selectCage(null)
+    editor.selectOuterClue(null)
     return
   }
 
@@ -145,6 +150,14 @@ function onKeyDown(event: KeyboardEvent) {
       editor.setRegionForSelection(letter)
       return
     }
+    return
+  }
+
+  // A selected cage or outer clue captures every digit 0-9 with append
+  // semantics — no grid-size cap and 0 appends rather than clearing
+  if ((editor.selectedCageId !== null || editor.selectedOuterClueKey !== null) && digit !== null) {
+    event.preventDefault()
+    editor.placeDigitForSelection(digit)
     return
   }
 

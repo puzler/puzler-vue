@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { svgWidth, svgHeight } from '@/composables/useGrid'
+import { useOuterMargins } from '@/composables/useOuterMargins'
 import GridBackground from './GridBackground.vue'
 import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
@@ -9,6 +10,7 @@ import CellLayer from './CellLayer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import RegionLayer from './RegionLayer.vue'
 import ConnectorDotsLayer from './constraints/ConnectorDotsLayer.vue'
+import OuterCluesLayer from './constraints/OuterCluesLayer.vue'
 import DigitLayer from './DigitLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
 import type { CellState, GridMode } from '@/types/grid'
@@ -27,8 +29,14 @@ const emit = defineEmits<{
 
 const grid = useGridStore()
 const svgEl = ref<SVGSVGElement | null>(null)
+const margins = useOuterMargins()
 
-const viewBox = computed(() => `0 0 ${svgWidth(grid.cols)} ${svgHeight(grid.rows)}`)
+// Outer clue margins extend the viewBox into negative space so all
+// PADDING-based cell math stays untouched
+const viewBox = computed(() => {
+  const m = margins.value
+  return `${-m.left} ${-m.top} ${svgWidth(grid.cols) + m.left + m.right} ${svgHeight(grid.rows) + m.top + m.bottom}`
+})
 </script>
 
 <template>
@@ -53,6 +61,7 @@ const viewBox = computed(() => `0 0 ${svgWidth(grid.cols)} ${svgHeight(grid.rows
       :given-digits="givenDigits"
       :cell-states="cellStates"
     />
+    <OuterCluesLayer />
     <InteractionLayer
       :svg-ref="svgEl"
       :selection="selection"

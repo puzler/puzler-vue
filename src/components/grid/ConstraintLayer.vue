@@ -10,6 +10,7 @@ import OddEvenCellsLayer from './constraints/OddEvenCellsLayer.vue'
 import MinMaxLayer from './constraints/MinMaxLayer.vue'
 import ThermometerLayer from './constraints/ThermometerLayer.vue'
 import ArrowLayer from './constraints/ArrowLayer.vue'
+import KillerCageLayer from './constraints/KillerCageLayer.vue'
 import BetweenLinesLayer from './constraints/BetweenLinesLayer.vue'
 
 const editor = useEditorStore()
@@ -86,6 +87,7 @@ const pendingStyle = computed(() => CONSTRAINT_LINE_STYLES[editor.activeTool] ??
     <!-- Thermometers render before constraint lines so lines overlap bulbs -->
     <ThermometerLayer />
     <ArrowLayer />
+    <KillerCageLayer />
     <BetweenLinesLayer />
 
     <!-- Constraint lines (renban, whispers, palindrome, region sum) -->

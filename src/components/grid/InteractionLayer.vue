@@ -2,9 +2,10 @@
 import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
-import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey } from '@/composables/useGrid'
-import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, borderKey, cornerKey } from '@/types/constraints'
-import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, BorderConnectorType, ArrowData } from '@/types/constraints'
+import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { useOuterMargins } from '@/composables/useOuterMargins'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -29,6 +30,8 @@ const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
 const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
 const isSingleCellTool = computed(() => SINGLE_CELL_TOOLS.has(editor.activeTool))
 const isDotTool = computed(() => BORDER_CONNECTOR_TYPES.has(editor.activeTool))
+const isOuterTool = computed(() => OUTER_CLUE_TYPES.has(editor.activeTool))
+const margins = useOuterMargins()
 
 const DRAW_BUFFER = CELL_SIZE * 0.15
 
@@ -38,6 +41,8 @@ const brushCells = ref<Set<string>>(new Set())
 
 const cursor = computed(() => {
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
+  if (editor.activeTool === 'killer_cage' || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
+  if (isOuterTool.value) return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
 })
@@ -90,6 +95,51 @@ function findThermoAtCell(key: string): string | null {
     if (inst.type !== 'thermometer') continue
     const data = inst.data as ThermometerData
     if (data.root === key || data.edges.some(e => e.from === key || e.to === key)) return inst.id
+  }
+  return null
+}
+
+function findCloneAt(key: string): { id: string; copyIndex: number | null } | null {
+  const { row, col } = keyToRowCol(key)
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== 'clone') continue
+    const data = inst.data as CloneData
+    if (data.cells.includes(key)) return { id: inst.id, copyIndex: null }
+    for (let c = data.copies.length - 1; c >= 0; c--) {
+      const offset = data.copies[c]
+      const sourceKey = cellKey(row - offset.dRow, col - offset.dCol)
+      if (data.cells.includes(sourceKey)) return { id: inst.id, copyIndex: c }
+    }
+  }
+  return null
+}
+
+// Active clone-copy drag: anchor cell plus the offset the grabbed group started at
+const cloneDrag = ref<{
+  id: string
+  copyIndex: number | null
+  anchorRow: number
+  anchorCol: number
+  baseDRow: number
+  baseDCol: number
+  moved: boolean
+} | null>(null)
+
+function findExtraRegionAtCell(key: string): string | null {
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== 'extra_regions') continue
+    if ((inst.data as ExtraRegionData).cells.includes(key)) return inst.id
+  }
+  return null
+}
+
+function findCageAtCell(key: string): string | null {
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== 'killer_cage') continue
+    if ((inst.data as KillerCageData).cells.includes(key)) return inst.id
   }
   return null
 }
@@ -177,6 +227,28 @@ function hitBorder(event: PointerEvent): string | null {
   return borderKey(cellKey(row, col), cellKey(best.row, best.col))
 }
 
+// Hit test for the ring of clue cells outside the grid. Edge positions have
+// exactly one axis at -1/rows/cols; corners (both axes outside) are only
+// valid for little killers.
+function hitOuterCell(event: PointerEvent): { row: number; col: number } | null {
+  if (!props.svgRef) return null
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return null
+
+  const row = Math.floor((pt.y - PADDING) / CELL_SIZE)
+  const col = Math.floor((pt.x - PADDING) / CELL_SIZE)
+  const rowOuter = row === -1 || row === grid.rows
+  const colOuter = col === -1 || col === grid.cols
+  if (!rowOuter && !colOuter) return null
+  if (row < -1 || row > grid.rows || col < -1 || col > grid.cols) return null
+  if (rowOuter && colOuter) {
+    // Corner positions are reserved for little killers
+    if (editor.activeTool !== 'little_killers') return null
+    return { row, col }
+  }
+  return { row, col }
+}
+
 // Max distance (per axis, fraction of cell size) from an interior corner
 // intersection for a click to snap to it
 const CORNER_THRESHOLD = 0.3
@@ -196,14 +268,137 @@ function hitCorner(event: PointerEvent): string | null {
   return cornerKey(row, col)
 }
 
+// Initial direction points at whichever valid diagonal corner is nearest
+// the click point within the outer cell
+function nearestLittleKillerDirection(pos: { row: number; col: number }, event: PointerEvent): LittleKillerDirection {
+  const dirs = validLittleKillerDirections(pos.row, pos.col, grid.rows, grid.cols)
+  if (dirs.length <= 1 || !props.svgRef) return dirs[0]
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return dirs[0]
+  const x0 = PADDING + pos.col * CELL_SIZE
+  const y0 = PADDING + pos.row * CELL_SIZE
+  let best = dirs[0]
+  let bestDist = Infinity
+  for (const dir of dirs) {
+    const step = littleKillerStep(dir)
+    const cx = x0 + (step.dCol > 0 ? CELL_SIZE : 0)
+    const cy = y0 + (step.dRow > 0 ? CELL_SIZE : 0)
+    const d = (pt.x - cx) ** 2 + (pt.y - cy) ** 2
+    if (d < bestDist) { bestDist = d; best = dir }
+  }
+  return best
+}
+
+function placeOuterClue(pos: { row: number; col: number }, key: string, event: PointerEvent) {
+  if (editor.activeTool === 'little_killers') {
+    if (editor.outerClues[key]?.type === 'little_killers') {
+      editor.cycleLittleKillerDirection(key)
+    } else {
+      editor.toggleOuterClue('little_killers', key, nearestLittleKillerDirection(pos, event))
+    }
+    return
+  }
+  editor.toggleOuterClue(editor.activeTool as OuterClueType, key)
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
 
+  if (isOuterTool.value) {
+    const pos = hitOuterCell(event)
+    const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
+    if (!pos) {
+      editor.selectOuterClue(null)
+      return
+    }
+    const key = outerKey(pos.row, pos.col)
+    if (mode === 'select') {
+      editor.selectOuterClue(editor.outerClues[key] ? key : null)
+    } else {
+      placeOuterClue(pos, key, event)
+    }
+    return
+  }
+
+  if (editor.activeTool === 'clone') {
+    const cloneKey = hitCell(event)
+    if (!cloneKey) return
+    const mode = event.shiftKey ? 'clone' : editor.effectiveCloneMode
+    const hit = findCloneAt(cloneKey)
+    if (mode === 'clone') {
+      // Press on a group arms a drag (copy from original, move a copy);
+      // releasing without moving removes instead (handled on pointerup)
+      if (!hit) return
+      const inst = editor.cosmeticInstances.find(i => i.id === hit.id)
+      const base = hit.copyIndex !== null
+        ? (inst?.data as CloneData).copies[hit.copyIndex]
+        : { dRow: 0, dCol: 0 }
+      const { row, col } = keyToRowCol(cloneKey)
+      ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+      isDragging.value = true
+      cloneDrag.value = {
+        id: hit.id, copyIndex: hit.copyIndex,
+        anchorRow: row, anchorCol: col,
+        baseDRow: base.dRow, baseDCol: base.dCol,
+        moved: false,
+      }
+      return
+    }
+    // Paint mode: same removal semantics so a click never deletes a whole family
+    if (hit) {
+      if (hit.copyIndex === null) editor.removeCloneOriginal(hit.id)
+      else editor.removeCloneCopy(hit.id, hit.copyIndex)
+      return
+    }
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    brushCells.value = new Set([cloneKey])
+    editor.setPendingRegionBrushCells([cloneKey])
+    return
+  }
+
+  if (editor.activeTool === 'extra_regions') {
+    const regionKey = hitCell(event)
+    if (!regionKey) return
+    const existing = findExtraRegionAtCell(regionKey)
+    if (existing !== null) {
+      editor.removeCosmeticInstance(existing)
+      return
+    }
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    brushCells.value = new Set([regionKey])
+    editor.setPendingRegionBrushCells([regionKey])
+    return
+  }
+
+  if (editor.activeTool === 'killer_cage') {
+    const cageKey = hitCell(event)
+    if (!cageKey) return
+    const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
+    const cageId = findCageAtCell(cageKey)
+    if (mode === 'select') {
+      editor.selectCage(cageId)
+      return
+    }
+    if (cageId !== null) {
+      editor.removeCage(cageId)
+      return
+    }
+    // Drag to define the cage's cells (a plain click makes a 1-cell cage)
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    brushCells.value = new Set([cageKey])
+    editor.setPendingCageCells([cageKey])
+    return
+  }
+
   if (isDotTool.value) {
     const border = editor.activeTool === 'quadruples' ? hitCorner(event) : hitBorder(event)
+    const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
     if (!border) {
       editor.selectConnectorDot(null)
-    } else if (event.shiftKey) {
+    } else if (mode === 'select') {
       editor.selectConnectorDot(border)
     } else {
       editor.toggleConnectorDot(editor.activeTool as BorderConnectorType, border)
@@ -244,15 +439,20 @@ function onPointerDown(event: PointerEvent) {
 
   if (isDrawing.value) {
     if (editor.activeTool === 'thermometer') {
+      const mode = event.shiftKey ? 'branch' : editor.effectiveThermoDrawMode
       const thermoId = findThermoAtCell(key)
-      if (thermoId !== null) {
-        if (event.shiftKey) {
+      if (mode === 'branch') {
+        // Drag from a thermo cell branches; tap removes that branch/subtree
+        // (handled on pointerup); empty cells do nothing
+        if (thermoId !== null) {
           ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
           isDragging.value = true
           editor.startBranchFromThermo(thermoId, key)
-        } else {
-          editor.removeCosmeticInstance(thermoId)
         }
+        return
+      }
+      if (thermoId !== null) {
+        editor.removeCosmeticInstance(thermoId)
         return
       }
     } else if (!event.shiftKey) {
@@ -298,6 +498,43 @@ function onPointerDown(event: PointerEvent) {
 function onPointerMove(event: PointerEvent) {
   if (!isDragging.value) return
 
+  if (editor.activeTool === 'killer_cage') {
+    const key = hitCell(event)
+    if (!key || brushCells.value.has(key) || findCageAtCell(key) !== null) return
+    brushCells.value = new Set([...brushCells.value, key])
+    editor.setPendingCageCells(Array.from(brushCells.value))
+    return
+  }
+
+  if (editor.activeTool === 'extra_regions') {
+    const key = hitCell(event)
+    if (!key || brushCells.value.has(key) || findExtraRegionAtCell(key) !== null) return
+    brushCells.value = new Set([...brushCells.value, key])
+    editor.setPendingRegionBrushCells(Array.from(brushCells.value))
+    return
+  }
+
+  if (editor.activeTool === 'clone') {
+    const key = hitCell(event)
+    if (!key) return
+    if (cloneDrag.value) {
+      // Cell-granular drag preview — only write when the offset changes
+      const { row, col } = keyToRowCol(key)
+      const drag = cloneDrag.value
+      const dRow = drag.baseDRow + (row - drag.anchorRow)
+      const dCol = drag.baseDCol + (col - drag.anchorCol)
+      const prev = editor.pendingCloneDrag
+      if (prev && prev.dRow === dRow && prev.dCol === dCol) return
+      if (dRow !== drag.baseDRow || dCol !== drag.baseDCol) drag.moved = true
+      editor.setPendingCloneDrag({ instanceId: drag.id, copyIndex: drag.copyIndex, dRow, dCol })
+      return
+    }
+    if (brushCells.value.has(key) || findCloneAt(key) !== null) return
+    brushCells.value = new Set([...brushCells.value, key])
+    editor.setPendingRegionBrushCells(Array.from(brushCells.value))
+    return
+  }
+
   if (isDrawing.value) {
     const key = hitCellBuffered(event)
     if (key) editor.extendPendingLine(key)
@@ -317,6 +554,39 @@ function onPointerUp(event: PointerEvent) {
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false
+
+  if (editor.activeTool === 'killer_cage') {
+    editor.commitCage(Array.from(brushCells.value))
+    brushCells.value = new Set()
+    return
+  }
+
+  if (editor.activeTool === 'extra_regions') {
+    editor.commitExtraRegion(Array.from(brushCells.value))
+    brushCells.value = new Set()
+    return
+  }
+
+  if (editor.activeTool === 'clone') {
+    if (cloneDrag.value) {
+      const drag = cloneDrag.value
+      const pending = editor.pendingCloneDrag
+      cloneDrag.value = null
+      editor.setPendingCloneDrag(null)
+      if (!drag.moved) {
+        // Tap: removal (removing an original promotes a copy)
+        if (drag.copyIndex === null) editor.removeCloneOriginal(drag.id)
+        else editor.removeCloneCopy(drag.id, drag.copyIndex)
+      } else if (pending) {
+        if (drag.copyIndex === null) editor.commitCloneCopy(drag.id, pending.dRow, pending.dCol)
+        else editor.moveCloneCopy(drag.id, drag.copyIndex, pending.dRow, pending.dCol)
+      }
+      return
+    }
+    editor.commitClonePaint(Array.from(brushCells.value))
+    brushCells.value = new Set()
+    return
+  }
 
   if (isDrawing.value) {
     if (
@@ -347,10 +617,10 @@ function onPointerUp(event: PointerEvent) {
 
 <template>
   <rect
-    :x="PADDING"
-    :y="PADDING"
-    :width="grid.cols * CELL_SIZE"
-    :height="grid.rows * CELL_SIZE"
+    :x="PADDING - margins.left"
+    :y="PADDING - margins.top"
+    :width="grid.cols * CELL_SIZE + margins.left + margins.right"
+    :height="grid.rows * CELL_SIZE + margins.top + margins.bottom"
     fill="transparent"
     :style="{ cursor }"
     @pointerdown="onPointerDown"

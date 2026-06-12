@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
-import { cellKey } from '@/composables/useGrid'
+import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset,
@@ -12,7 +12,8 @@ import type {
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
   ConnectorDot, BorderConnectorType, XvValue,
-  ArrowData,
+  ArrowData, KillerCageData, ExtraRegionData, CloneData,
+  OuterClue, OuterClueType,
 } from '@/types/constraints'
 
 export interface ActiveConstraint {
@@ -39,17 +40,40 @@ export const useEditorStore = defineStore('editor', () => {
   const pendingBranchThermoId = ref<string | null>(null)
   // Arrow instance receiving the arrow path being drawn; null while drawing a bulb
   const pendingArrowParentId = ref<string | null>(null)
-  // Sticky draw mode for the arrow tool; shift temporarily overrides to 'arrow'
+  // Sticky draw modes per tool family; holding shift temporarily overrides
+  // to the secondary mode (the toggle in the Tool Control Box highlights the
+  // effective mode while held)
   const arrowDrawMode = ref<'bulb' | 'arrow'>('bulb')
+  const thermoDrawMode = ref<'draw' | 'branch'>('draw')
+  const connectorMode = ref<'place' | 'select'>('place')
+  const cloneMode = ref<'paint' | 'clone'>('paint')
   const shiftHeld = ref(false)
   const effectiveArrowDrawMode = computed<'bulb' | 'arrow'>(() =>
     shiftHeld.value ? 'arrow' : arrowDrawMode.value,
   )
+  const effectiveThermoDrawMode = computed<'draw' | 'branch'>(() =>
+    shiftHeld.value ? 'branch' : thermoDrawMode.value,
+  )
+  const effectiveConnectorMode = computed<'place' | 'select'>(() =>
+    shiftHeld.value ? 'select' : connectorMode.value,
+  )
+  const effectiveCloneMode = computed<'paint' | 'clone'>(() =>
+    shiftHeld.value ? 'clone' : cloneMode.value,
+  )
+  // Live preview of a clone-copy drag: the offset the copy would land at
+  const pendingCloneDrag = ref<{ instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null>(null)
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   const singleCellMarks = ref<Record<string, Set<string>>>({})
   const connectorDots = ref<Record<string, ConnectorDot>>({})  // border key → dot
   const selectedDotKey = ref<string | null>(null)
+  const selectedCageId = ref<string | null>(null)
+  const pendingCageCells = ref<string[]>([])
+  const outerClues = ref<Record<string, OuterClue>>({})  // outer key → clue
+  const selectedOuterClueKey = ref<string | null>(null)
+  // Brush preview for extra regions and clone painting (the cell-color brush
+  // has its own pending ref tied to color presets)
+  const pendingRegionBrushCells = ref<string[]>([])
 
   // ── Cell color ────────────────────────────────────────────────────────────
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
@@ -220,10 +244,24 @@ export const useEditorStore = defineStore('editor', () => {
   function setActiveTool(tool: string) {
     activeTool.value = tool
     selectedDotKey.value = null
+    selectedCageId.value = null
+    selectedOuterClueKey.value = null
   }
 
   function setArrowDrawMode(mode: 'bulb' | 'arrow') {
     arrowDrawMode.value = mode
+  }
+
+  function setThermoDrawMode(mode: 'draw' | 'branch') {
+    thermoDrawMode.value = mode
+  }
+
+  function setConnectorMode(mode: 'place' | 'select') {
+    connectorMode.value = mode
+  }
+
+  function setCloneMode(mode: 'paint' | 'clone') {
+    cloneMode.value = mode
   }
 
   function setShiftHeld(held: boolean) {
@@ -233,6 +271,8 @@ export const useEditorStore = defineStore('editor', () => {
   function setMode(m: 'setting' | 'solving') {
     mode.value = m
     selectedDotKey.value = null
+    selectedCageId.value = null
+    selectedOuterClueKey.value = null
     if (m === 'setting') keyboardModeOverride.value = null
   }
 
@@ -385,6 +425,20 @@ export const useEditorStore = defineStore('editor', () => {
       }
       return
     }
+    // A selected cage captures digits (0 appends — sums have no maximum)
+    if (selectedCageId.value) {
+      if (digit === null) removeLastCageSumDigit()
+      else appendCageSumDigit(digit)
+      return
+    }
+    // Same append semantics for a selected outer clue
+    if (selectedOuterClueKey.value) {
+      if (digit === null) removeLastOuterClueDigit()
+      else appendOuterClueDigit(digit)
+      return
+    }
+    // For cells, 0 means clear (numpads with a 0 button route through here)
+    if (digit === 0) digit = null
     if (mode.value === 'setting') {
       setGivenDigitsForSelection(digit)
     } else if (digit === null) {
@@ -914,10 +968,19 @@ export const useEditorStore = defineStore('editor', () => {
     singleCellMarks.value = {}
     connectorDots.value = {}
     selectedDotKey.value = null
+    selectedCageId.value = null
+    pendingCageCells.value = []
+    pendingRegionBrushCells.value = []
+    outerClues.value = {}
+    selectedOuterClueKey.value = null
     pendingLineCells.value = []
     pendingBranchThermoId.value = null
     pendingArrowParentId.value = null
     arrowDrawMode.value = 'bulb'
+    thermoDrawMode.value = 'draw'
+    connectorMode.value = 'place'
+    cloneMode.value = 'paint'
+    pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
     customGlobalConstraints.value = []
     const fresh = makePreset('Line 1')
@@ -1028,6 +1091,10 @@ export const useEditorStore = defineStore('editor', () => {
   function selectConnectorDot(border: string | null) {
     if (border !== null && !connectorDots.value[border]) return
     selectedDotKey.value = border
+    if (border !== null) {
+      selectedCageId.value = null
+      selectedOuterClueKey.value = null
+    }
   }
 
   function setConnectorDotValue(value: number | XvValue | null) {
@@ -1080,6 +1147,350 @@ export const useEditorStore = defineStore('editor', () => {
     const dot = connectorDots.value[border]
     if (dot?.type !== 'quadruples' || !Array.isArray(dot.value) || dot.value.length === 0) return
     setQuadrupleDigits(border, [...dot.value], dot.value.slice(0, -1))
+  }
+
+  // ── Killer cages ──────────────────────────────────────────────────────────
+
+  function setPendingCageCells(cells: string[]) {
+    pendingCageCells.value = cells
+  }
+
+  function commitCage(cells: string[]) {
+    pendingCageCells.value = []
+    if (cells.length === 0) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'killer_cage',
+      data: { cells: [...new Set(cells)], sum: null } satisfies KillerCageData,
+    }
+    const prevSelected = selectedCageId.value
+    execute({
+      execute: () => {
+        cosmeticInstances.value.push(instance)
+        selectedCageId.value = instance.id
+        selectedDotKey.value = null
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
+        selectedCageId.value = prevSelected
+      },
+    })
+  }
+
+  function selectCage(id: string | null) {
+    selectedCageId.value = id
+    if (id !== null) {
+      selectedDotKey.value = null
+      selectedOuterClueKey.value = null
+    }
+  }
+
+  function removeCage(id: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    const instance = cosmeticInstances.value[idx]
+    const prevSelected = selectedCageId.value
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== id)
+        if (selectedCageId.value === id) selectedCageId.value = null
+      },
+      undo: () => {
+        cosmeticInstances.value.splice(idx, 0, instance)
+        selectedCageId.value = prevSelected
+      },
+    })
+  }
+
+  function patchCageSum(id: string, prevSum: number | null, nextSum: number | null) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    const prev = cosmeticInstances.value[idx]
+    const prevData = prev.data as KillerCageData
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map((inst, i) =>
+          i === idx ? { ...inst, data: { ...prevData, sum: nextSum } } : inst)
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map((inst, i) =>
+          i === idx ? { ...inst, data: { ...prevData, sum: prevSum } } : inst)
+      },
+    })
+  }
+
+  // Sums build digit-by-digit with no upper bound; backspace drops the last digit
+  function appendCageSumDigit(digit: number) {
+    const id = selectedCageId.value
+    if (!id) return
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst) return
+    const sum = (inst.data as KillerCageData).sum
+    patchCageSum(id, sum, (sum ?? 0) * 10 + digit)
+  }
+
+  function removeLastCageSumDigit() {
+    const id = selectedCageId.value
+    if (!id) return
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst) return
+    const sum = (inst.data as KillerCageData).sum
+    if (sum === null) return
+    patchCageSum(id, sum, Math.floor(sum / 10) || null)
+  }
+
+  // ── Extra regions ─────────────────────────────────────────────────────────
+
+  function setPendingRegionBrushCells(cells: string[]) {
+    pendingRegionBrushCells.value = cells
+  }
+
+  function commitExtraRegion(cells: string[]) {
+    pendingRegionBrushCells.value = []
+    if (cells.length === 0) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'extra_regions',
+      data: { cells: [...new Set(cells)] } satisfies ExtraRegionData,
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  // ── Clones ────────────────────────────────────────────────────────────────
+
+  function setPendingCloneDrag(drag: { instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null) {
+    pendingCloneDrag.value = drag
+  }
+
+  function translateCells(cells: string[], dRow: number, dCol: number): string[] {
+    return cells.map(c => {
+      const { row, col } = keyToRowCol(c)
+      return cellKey(row + dRow, col + dCol)
+    })
+  }
+
+  function cloneOffsetInBounds(cells: string[], dRow: number, dCol: number): boolean {
+    const gridStore = useGridStore()
+    return cells.every(c => {
+      const { row, col } = keyToRowCol(c)
+      const r = row + dRow
+      const cl = col + dCol
+      return r >= 0 && r < gridStore.rows && cl >= 0 && cl < gridStore.cols
+    })
+  }
+
+  function commitClonePaint(cells: string[]) {
+    pendingRegionBrushCells.value = []
+    if (cells.length === 0) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'clone',
+      data: { cells: [...new Set(cells)], copies: [] } satisfies CloneData,
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  function patchCloneData(id: string, prevData: CloneData, nextData: CloneData) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map((inst, i) =>
+          i === idx ? { ...inst, data: nextData } : inst)
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map((inst, i) =>
+          i === idx ? { ...inst, data: prevData } : inst)
+      },
+    })
+  }
+
+  function commitCloneCopy(id: string, dRow: number, dCol: number) {
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst) return
+    const data = inst.data as CloneData
+    if ((dRow === 0 && dCol === 0) || !cloneOffsetInBounds(data.cells, dRow, dCol)) return
+    patchCloneData(id, data, { ...data, copies: [...data.copies, { dRow, dCol }] })
+  }
+
+  function moveCloneCopy(id: string, copyIndex: number, dRow: number, dCol: number) {
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst) return
+    const data = inst.data as CloneData
+    if (copyIndex < 0 || copyIndex >= data.copies.length) return
+    if ((dRow === 0 && dCol === 0) || !cloneOffsetInBounds(data.cells, dRow, dCol)) return
+    const copies = data.copies.map((c, i) => i === copyIndex ? { dRow, dCol } : c)
+    patchCloneData(id, data, { ...data, copies })
+  }
+
+  function removeCloneCopy(id: string, copyIndex: number) {
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst) return
+    const data = inst.data as CloneData
+    if (copyIndex < 0 || copyIndex >= data.copies.length) return
+    patchCloneData(id, data, { ...data, copies: data.copies.filter((_, i) => i !== copyIndex) })
+  }
+
+  // Removing the original promotes the first copy: its cells become the new
+  // original and the remaining offsets are rebased onto it
+  function removeCloneOriginal(id: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    const inst = cosmeticInstances.value[idx]
+    const data = inst.data as CloneData
+    if (data.copies.length === 0) {
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== id) },
+        undo: () => { cosmeticInstances.value.splice(idx, 0, inst) },
+      })
+      return
+    }
+    const base = data.copies[0]
+    const next: CloneData = {
+      cells: translateCells(data.cells, base.dRow, base.dCol),
+      copies: data.copies.slice(1).map(c => ({ dRow: c.dRow - base.dRow, dCol: c.dCol - base.dCol })),
+    }
+    patchCloneData(id, data, next)
+  }
+
+  // ── Outer clues ───────────────────────────────────────────────────────────
+
+  function toggleOuterClue(type: OuterClueType, key: string, direction?: OuterClue['direction']) {
+    const prev = outerClues.value[key] ? { ...outerClues.value[key] } : null
+    const prevSelected = selectedOuterClueKey.value
+
+    if (prev?.type === type) {
+      // Same type → remove the clue
+      execute({
+        execute: () => {
+          const next = { ...outerClues.value }
+          delete next[key]
+          outerClues.value = next
+          if (selectedOuterClueKey.value === key) selectedOuterClueKey.value = null
+        },
+        undo: () => {
+          outerClues.value = { ...outerClues.value, [key]: prev }
+          selectedOuterClueKey.value = prevSelected
+        },
+      })
+      return
+    }
+
+    // New clue, or another type at this position → replace; auto-select
+    const fresh: OuterClue = { type, value: null, ...(direction ? { direction } : {}) }
+    execute({
+      execute: () => {
+        outerClues.value = { ...outerClues.value, [key]: fresh }
+        selectedOuterClueKey.value = key
+        selectedDotKey.value = null
+        selectedCageId.value = null
+      },
+      undo: () => {
+        const next = { ...outerClues.value }
+        if (prev) next[key] = prev
+        else delete next[key]
+        outerClues.value = next
+        selectedOuterClueKey.value = prevSelected
+      },
+    })
+  }
+
+  function selectOuterClue(key: string | null) {
+    if (key !== null && !outerClues.value[key]) return
+    selectedOuterClueKey.value = key
+    if (key !== null) {
+      selectedDotKey.value = null
+      selectedCageId.value = null
+    }
+  }
+
+  function patchOuterClue(key: string, prev: OuterClue, next: OuterClue) {
+    execute({
+      execute: () => { outerClues.value = { ...outerClues.value, [key]: next } },
+      undo: () => { outerClues.value = { ...outerClues.value, [key]: prev } },
+    })
+  }
+
+  function appendOuterClueDigit(digit: number) {
+    const key = selectedOuterClueKey.value
+    if (!key) return
+    const clue = outerClues.value[key]
+    if (!clue) return
+    patchOuterClue(key, { ...clue }, { ...clue, value: (clue.value ?? 0) * 10 + digit })
+  }
+
+  function removeLastOuterClueDigit() {
+    const key = selectedOuterClueKey.value
+    if (!key) return
+    const clue = outerClues.value[key]
+    if (!clue || clue.value === null) return
+    patchOuterClue(key, { ...clue }, { ...clue, value: Math.floor(clue.value / 10) || null })
+  }
+
+  // Re-clicking a little killer steps through the position's valid diagonal
+  // directions, then removes it after the last one
+  function cycleLittleKillerDirection(key: string) {
+    const clue = outerClues.value[key]
+    if (clue?.type !== 'little_killers' || !clue.direction) return
+    const pos = parseOuterKey(key)
+    if (!pos) return
+    const gridStore = useGridStore()
+    const dirs = validLittleKillerDirections(pos.row, pos.col, gridStore.rows, gridStore.cols)
+    const idx = dirs.indexOf(clue.direction)
+    if (idx === -1 || idx === dirs.length - 1) {
+      toggleOuterClue('little_killers', key)
+      return
+    }
+    patchOuterClue(key, { ...clue }, { ...clue, direction: dirs[idx + 1] })
+  }
+
+  function removeOuterClueConstraint(id: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const prevClues = { ...outerClues.value }
+    const prevSelected = selectedOuterClueKey.value
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        outerClues.value = Object.fromEntries(
+          Object.entries(outerClues.value).filter(([, clue]) => clue.type !== type),
+        )
+        if (selectedOuterClueKey.value && !outerClues.value[selectedOuterClueKey.value]) selectedOuterClueKey.value = null
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        outerClues.value = prevClues
+        selectedOuterClueKey.value = prevSelected
+      },
+    })
+  }
+
+  // Sidebar removal for region-category constraints (cages, clones, extra regions)
+  function removeRegionConstraint(id: string, type: string) {
+    const idx = activeConstraints.value.findIndex(c => c.id === id)
+    if (idx === -1) return
+    const constraint = activeConstraints.value[idx]
+    const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
+    const prevSelected = selectedCageId.value
+    execute({
+      execute: () => {
+        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
+        selectedCageId.value = null
+      },
+      undo: () => {
+        activeConstraints.value.splice(idx, 0, constraint)
+        cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
+        selectedCageId.value = prevSelected
+      },
+    })
   }
 
   function removeConnectorConstraint(id: string, type: string) {
@@ -1138,6 +1549,12 @@ export const useEditorStore = defineStore('editor', () => {
     arrowDrawMode,
     effectiveArrowDrawMode,
     setArrowDrawMode,
+    thermoDrawMode,
+    effectiveThermoDrawMode,
+    setThermoDrawMode,
+    connectorMode,
+    effectiveConnectorMode,
+    setConnectorMode,
     setShiftHeld,
     startBranchFromThermo,
     removeThermoSubtree,
@@ -1211,5 +1628,35 @@ export const useEditorStore = defineStore('editor', () => {
     addQuadrupleDigit,
     removeLastQuadrupleDigit,
     removeConnectorConstraint,
+    selectedCageId,
+    pendingCageCells,
+    setPendingCageCells,
+    commitCage,
+    selectCage,
+    removeCage,
+    appendCageSumDigit,
+    removeLastCageSumDigit,
+    removeRegionConstraint,
+    pendingRegionBrushCells,
+    setPendingRegionBrushCells,
+    commitExtraRegion,
+    cloneMode,
+    effectiveCloneMode,
+    setCloneMode,
+    pendingCloneDrag,
+    setPendingCloneDrag,
+    commitClonePaint,
+    commitCloneCopy,
+    moveCloneCopy,
+    removeCloneCopy,
+    removeCloneOriginal,
+    outerClues,
+    selectedOuterClueKey,
+    toggleOuterClue,
+    selectOuterClue,
+    appendOuterClueDigit,
+    removeLastOuterClueDigit,
+    cycleLittleKillerDirection,
+    removeOuterClueConstraint,
   }
 })

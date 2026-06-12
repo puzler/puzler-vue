@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import ModeSwitcher from './ModeSwitcher.vue'
 
 const editor = useEditorStore()
 
-const MODES: Array<{ key: 'bulb' | 'arrow'; label: string }> = [
+const MODES = [
   { key: 'bulb', label: 'Bulb' },
   { key: 'arrow', label: 'Arrow' },
 ]
@@ -16,25 +17,17 @@ const MODES: Array<{ key: 'bulb' | 'arrow'; label: string }> = [
         Arrows
       </p>
 
-      <div class="grid grid-cols-2 gap-1 p-1 rounded-lg bg-line/40">
-        <button
-          v-for="mode in MODES"
-          :key="mode.key"
-          class="py-1.5 rounded-md text-sm font-medium transition-colors"
-          :class="editor.effectiveArrowDrawMode === mode.key
-            ? 'bg-surface text-action shadow-sm'
-            : 'text-soft hover:text-ink-text'"
-          @click="editor.setArrowDrawMode(mode.key)"
-        >
-          {{ mode.label }}
-        </button>
-      </div>
+      <ModeSwitcher
+        :modes="MODES"
+        :active="editor.effectiveArrowDrawMode"
+        @select="editor.setArrowDrawMode($event as 'bulb' | 'arrow')"
+      />
 
       <p class="text-[11px] text-soft leading-snug text-center">
         Bulb: click or drag to place a bulb · tap a bulb or arrow to remove it
       </p>
       <p class="text-[11px] text-soft leading-snug text-center">
-        Arrow: drag from a bulb or arrow to draw · holding Shift switches to Arrow
+        Arrow: drag from a bulb or arrow to draw · drag from an arrow's tip to extend it · holding Shift switches to Arrow
       </p>
     </div>
   </div>

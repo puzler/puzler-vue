@@ -60,10 +60,11 @@ export interface TextConstraintStyle {
 }
 
 export const TEXT_STYLES: Record<string, TextConstraintStyle> = {
-  xv:            { fontColor: greyscale(0), size: 0.30 },
-  sandwich_sums: { fontColor: greyscale(0), size: 0.65 },
-  x_sums:        { fontColor: greyscale(0), size: 0.65 },
-  skyscrapers:   { fontColor: greyscale(0), size: 0.65 },
+  xv:             { fontColor: greyscale(0), size: 0.30 },
+  sandwich_sums:  { fontColor: greyscale(0), size: 0.65 },
+  x_sums:         { fontColor: greyscale(0), size: 0.65 },
+  skyscrapers:    { fontColor: greyscale(0), size: 0.65 },
+  little_killers: { fontColor: greyscale(0), size: 0.50 },
 }
 
 // ── Cell background colors ────────────────────────────────────────────────────

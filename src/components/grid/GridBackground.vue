@@ -3,11 +3,14 @@ import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { useOuterMargins } from '@/composables/useOuterMargins'
 import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
 import GridBorders from './GridBorders.vue'
+import ConstraintBackgrounds from './ConstraintBackgrounds.vue'
 
 const grid = useGridStore()
 const editor = useEditorStore()
+const margins = useOuterMargins()
 
 const totalW = computed(() => PADDING * 2 + grid.cols * CELL_SIZE)
 const totalH = computed(() => PADDING * 2 + grid.rows * CELL_SIZE)
@@ -93,10 +96,10 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
 <template>
   <g>
     <rect
-      x="0"
-      y="0"
-      :width="totalW"
-      :height="totalH"
+      :x="-margins.left"
+      :y="-margins.top"
+      :width="totalW + margins.left + margins.right"
+      :height="totalH + margins.top + margins.bottom"
       fill="#EAE7E0"
     />
     <rect
@@ -147,6 +150,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :height="CELL_SIZE"
       :fill="cr.color"
     />
+    <ConstraintBackgrounds />
     <GridBorders />
   </g>
 </template>

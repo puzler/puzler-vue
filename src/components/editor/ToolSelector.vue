@@ -32,6 +32,8 @@ const LOCAL_TOOL_TYPES = new Set([
   'palindrome', 'region_sum', 'between_lines',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
   'difference_dots', 'ratio_dots', 'xv', 'quadruples',
+  'killer_cage', 'extra_regions', 'clone',
+  'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
 ])
 
 // Maps local constraint types to their storage category for correct removal routing
@@ -39,9 +41,10 @@ const LINE_CATEGORY_TYPES = new Set([
   'renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum',
   'between_lines', 'thermometer', 'arrow',
 ])
-const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone'])
+const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone', 'extra_regions'])
 const SINGLE_CELL_TYPES = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
 const CONNECTOR_TYPES = new Set(['difference_dots', 'ratio_dots', 'xv', 'quadruples'])
+const OUTER_TYPES = new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers'])
 
 const globalCategory: Category = {
   key: 'global',
@@ -101,6 +104,8 @@ function handleLocalPick(type: string, label: string) {
     category = 'single_cell'
   } else if (CONNECTOR_TYPES.has(type)) {
     category = 'connector'
+  } else if (OUTER_TYPES.has(type)) {
+    category = 'outer'
   } else {
     category = 'local'
   }
@@ -128,6 +133,10 @@ function handleRemoveConfirm() {
     editor.removeSingleCellConstraint(confirmTarget.value.id, confirmTarget.value.type)
   } else if (confirmTarget.value.category === 'connector') {
     editor.removeConnectorConstraint(confirmTarget.value.id, confirmTarget.value.type)
+  } else if (confirmTarget.value.category === 'region') {
+    editor.removeRegionConstraint(confirmTarget.value.id, confirmTarget.value.type)
+  } else if (confirmTarget.value.category === 'outer') {
+    editor.removeOuterClueConstraint(confirmTarget.value.id, confirmTarget.value.type)
   } else {
     editor.removeConstraint(confirmTarget.value.id)
   }

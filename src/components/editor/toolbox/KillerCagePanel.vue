@@ -15,22 +15,26 @@ const MODES = [
   <div class="flex flex-col items-center justify-start flex-1 p-4">
     <div class="w-full max-w-[11rem] flex flex-col gap-3">
       <p class="text-[10px] font-semibold uppercase tracking-widest text-soft">
-        Quadruples
+        Killer Cages
       </p>
+
       <ModeSwitcher
         :modes="MODES"
         :active="editor.effectiveConnectorMode"
         @select="editor.setConnectorMode($event as 'place' | 'select')"
       />
+
+      <!-- 0 passes through: cage sums append digits, so 10/20/100 are typable -->
       <NumpadPanel
-        @digit="editor.placeDigitForSelection($event || null)"
+        @digit="editor.placeDigitForSelection($event)"
         @delete="editor.placeDigitForSelection(null)"
       />
+
       <p class="text-[11px] text-soft leading-snug text-center">
-        Place: click a corner to add or remove a clue · Select: click a clue to edit it (or hold Shift)
+        Place: drag to draw a cage · click a cage to remove it · Select: click a cage to edit it (or hold Shift)
       </p>
       <p class="text-[11px] text-soft leading-snug text-center">
-        Type digits to add them · up to four per clue, repeats allowed · Backspace removes the last digit
+        Type digits to build the sum · Backspace removes the last digit · cages without a sum are allowed
       </p>
     </div>
   </div>

@@ -9,6 +9,9 @@ import ShapePanel from './toolbox/ShapePanel.vue'
 import RegionPanel from './toolbox/RegionPanel.vue'
 import TextPanel from './toolbox/TextPanel.vue'
 import LineToolPanel from './toolbox/LineToolPanel.vue'
+import XvPanel from './toolbox/XvPanel.vue'
+import QuadruplesPanel from './toolbox/QuadruplesPanel.vue'
+import ArrowPanel from './toolbox/ArrowPanel.vue'
 import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES } from '@/types/constraints'
 
 const editor = useEditorStore()
@@ -31,6 +34,9 @@ const isLineTool = computed(() =>
     <ShapePanel v-else-if="editor.activeTool === 'shape'" />
     <RegionPanel v-else-if="editor.activeTool === 'region'" />
     <TextPanel v-else-if="editor.activeTool === 'text'" />
+    <XvPanel v-else-if="editor.activeTool === 'xv'" />
+    <QuadruplesPanel v-else-if="editor.activeTool === 'quadruples'" />
+    <ArrowPanel v-else-if="editor.activeTool === 'arrow'" />
     <LineToolPanel v-else-if="isLineTool" />
   </div>
 </template>

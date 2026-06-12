@@ -17,7 +17,7 @@ const grid = useGridStore()
 const isMobile = useIsMobile()
 
 const TOOLS_WITH_CONTROLS = new Set([
-  'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region',
+  'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',
   'thermometer', ...CONSTRAINT_LINE_TYPES,
   ...Object.keys(GLOBAL_VARIANTS),
 ])
@@ -50,6 +50,7 @@ function physicalDigit(event: KeyboardEvent): number | null {
 }
 
 function onKeyDown(event: KeyboardEvent) {
+  if (event.key === 'Shift') editor.setShiftHeld(true)
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
 
   if (editor.mode === 'solving') {
@@ -75,6 +76,18 @@ function onKeyDown(event: KeyboardEvent) {
     editor.clearSelection()
     editor.selectConnectorDot(null)
     return
+  }
+
+  // A selected XV clue captures X/V input (delete falls through to the
+  // generic handler, which routes it to the selected connector)
+  const selectedDot = editor.selectedDotKey ? editor.connectorDots[editor.selectedDotKey] : null
+  if (selectedDot?.type === 'xv') {
+    const letter = event.key.toUpperCase()
+    if (letter === 'X' || letter === 'V') {
+      event.preventDefault()
+      editor.setConnectorDotValue(letter)
+      return
+    }
   }
 
   if (editor.mode === 'solving' && !event.ctrlKey && !event.metaKey) {
@@ -153,19 +166,27 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 function onKeyUp(event: KeyboardEvent) {
+  if (event.key === 'Shift') editor.setShiftHeld(false)
   if (event.key !== 'Shift' && event.key !== 'Control' && event.key !== 'Meta') return
   if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
   else if (event.shiftKey) editor.setKeyboardModeOverride('corner')
   else editor.setKeyboardModeOverride(null)
 }
 
+// Releasing shift outside the window (e.g. after cmd+tab) never fires keyup
+function onWindowBlur() {
+  editor.setShiftHeld(false)
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
+  window.addEventListener('blur', onWindowBlur)
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
+  window.removeEventListener('blur', onWindowBlur)
 })
 </script>
 

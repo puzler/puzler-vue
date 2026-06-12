@@ -49,6 +49,7 @@ export const SHAPE_STYLES: Record<string, ShapeStyle> = {
   ratio_dots:         { fillColor: greyscale(0),   outlineColor: greyscale(0),   textColor: greyscale(255), height: 0.25, width: 0.25 },
   difference_dots:    { fillColor: greyscale(255), outlineColor: greyscale(0),   textColor: greyscale(0),   height: 0.25, width: 0.25 },
   between_lines_bulb: { fillColor: greyscale(255), outlineColor: greyscale(187), textColor: greyscale(0),   height: 0.80, width: 0.80 },
+  quadruples:         { fillColor: greyscale(255), outlineColor: greyscale(0),   textColor: greyscale(0),   height: 0.50, width: 0.50 },
 }
 
 // ── Text styles ───────────────────────────────────────────────────────────────

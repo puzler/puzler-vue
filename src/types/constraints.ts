@@ -53,6 +53,30 @@ export const THERMO_STYLE = {
   bulbRadius: 18,
 }
 
+// ── Arrows ────────────────────────────────────────────────────────────────────
+
+export interface ArrowPath {
+  // cells[0] anchors the arrow on a bulb cell or another arrow's cell; the
+  // rest is the drawn path, ending at the arrowhead
+  cells: string[]
+}
+
+export interface ArrowData {
+  bulbCells: string[]
+  arrows: ArrowPath[]
+}
+
+export const ARROW_STYLE = {
+  color: '#aaaaaa',
+  bulbRadius: 27,
+  outlineWidth: 2.5,
+  lineWidth: 2.5,
+  headLength: 11,
+  // Perpendicular spread of the chevron wings as a fraction of headLength —
+  // kept narrow so several arrows can end in one cell without touching
+  headSpread: 0.45,
+}
+
 export interface ConstraintLineStyle {
   color: string
   strokeWidth: number
@@ -76,18 +100,26 @@ export const BETWEEN_LINE_STYLE = {
   circleStrokeWidth: 2,
 }
 
-// ── Connector dots (difference / ratio) ──────────────────────────────────────
+// ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
 
 export type ConnectorDotType = 'difference_dots' | 'ratio_dots'
+export type BorderConnectorType = ConnectorDotType | 'xv' | 'quadruples'
+export type XvValue = 'X' | 'V'
 
 export const CONNECTOR_DOT_TYPES = new Set<string>(['difference_dots', 'ratio_dots'])
+export const BORDER_CONNECTOR_TYPES = new Set<string>([...CONNECTOR_DOT_TYPES, 'xv', 'quadruples'])
 
-// One dot per border — placing one type where the other exists replaces it,
-// so difference and ratio dots are mutually exclusive on a border.
+export const QUADRUPLE_MAX_DIGITS = 4
+
+// One connector per location — placing one type where another exists replaces
+// it. Border types share border keys; quadruples live at corner keys, so they
+// never collide with the border types.
 export interface ConnectorDot {
-  type: ConnectorDotType
-  // null means the default: difference of 1, or ratio of 2:1
-  value: number | null
+  type: BorderConnectorType
+  // Dots hold a number; XV holds 'X' or 'V'; quadruples hold up to four
+  // digits sorted ascending. null means the default: difference of 1,
+  // ratio of 2:1, or an unset XV (rendered as underscore)
+  value: number | XvValue | number[] | null
 }
 
 // Canonical key for the border between two orthogonally adjacent cells,
@@ -99,6 +131,18 @@ export function borderKey(cellA: string, cellB: string): string {
 export function borderKeyCells(key: string): [string, string] {
   const [a, b] = key.split('|')
   return [a, b]
+}
+
+// Key for the grid intersection where four cells meet. row/col are
+// intersection indices: corner (r, c) is the bottom-right corner of cell
+// (r-1, c-1), so interior corners range over 1..rows-1 / 1..cols-1.
+export function cornerKey(row: number, col: number): string {
+  return `+r${row}c${col}`
+}
+
+export function cornerKeyToRowCol(key: string): { row: number; col: number } | null {
+  const m = key.match(/^\+r(\d+)c(\d+)$/)
+  return m ? { row: Number(m[1]), col: Number(m[2]) } : null
 }
 
 // ── Global constraint variants ────────────────────────────────────────────────

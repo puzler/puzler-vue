@@ -9,6 +9,7 @@ import type { ConstraintLineData } from '@/types/constraints'
 import OddEvenCellsLayer from './constraints/OddEvenCellsLayer.vue'
 import MinMaxLayer from './constraints/MinMaxLayer.vue'
 import ThermometerLayer from './constraints/ThermometerLayer.vue'
+import ArrowLayer from './constraints/ArrowLayer.vue'
 import BetweenLinesLayer from './constraints/BetweenLinesLayer.vue'
 
 const editor = useEditorStore()
@@ -84,6 +85,7 @@ const pendingStyle = computed(() => CONSTRAINT_LINE_STYLES[editor.activeTool] ??
 
     <!-- Thermometers render before constraint lines so lines overlap bulbs -->
     <ThermometerLayer />
+    <ArrowLayer />
     <BetweenLinesLayer />
 
     <!-- Constraint lines (renban, whispers, palindrome, region sum) -->

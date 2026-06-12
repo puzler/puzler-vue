@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey } from '@/composables/useGrid'
-import { CONSTRAINT_LINE_TYPES, CONNECTOR_DOT_TYPES, borderKey } from '@/types/constraints'
-import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, ConnectorDotType } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, borderKey, cornerKey } from '@/types/constraints'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, BorderConnectorType, ArrowData } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -21,14 +21,14 @@ const editor = useEditorStore()
 const isDragging = ref(false)
 const dragAdditive = ref(false)
 
-const DRAWING_TOOLS = new Set(['cosmetic_line', 'thermometer', ...CONSTRAINT_LINE_TYPES])
+const DRAWING_TOOLS = new Set(['cosmetic_line', 'thermometer', 'arrow', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
 const SINGLE_CELL_TOOLS = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
 
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
 const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
 const isSingleCellTool = computed(() => SINGLE_CELL_TOOLS.has(editor.activeTool))
-const isDotTool = computed(() => CONNECTOR_DOT_TYPES.has(editor.activeTool))
+const isDotTool = computed(() => BORDER_CONNECTOR_TYPES.has(editor.activeTool))
 
 const DRAW_BUFFER = CELL_SIZE * 0.15
 
@@ -90,6 +90,17 @@ function findThermoAtCell(key: string): string | null {
     if (inst.type !== 'thermometer') continue
     const data = inst.data as ThermometerData
     if (data.root === key || data.edges.some(e => e.from === key || e.to === key)) return inst.id
+  }
+  return null
+}
+
+function findArrowAt(key: string): { id: string; kind: 'bulb' | 'arrow' } | null {
+  for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
+    const inst = editor.cosmeticInstances[i]
+    if (inst.type !== 'arrow') continue
+    const data = inst.data as ArrowData
+    if (data.bulbCells.includes(key)) return { id: inst.id, kind: 'bulb' }
+    if (data.arrows.some(p => p.cells.slice(1).includes(key))) return { id: inst.id, kind: 'arrow' }
   }
   return null
 }
@@ -166,23 +177,70 @@ function hitBorder(event: PointerEvent): string | null {
   return borderKey(cellKey(row, col), cellKey(best.row, best.col))
 }
 
+// Max distance (per axis, fraction of cell size) from an interior corner
+// intersection for a click to snap to it
+const CORNER_THRESHOLD = 0.3
+
+function hitCorner(event: PointerEvent): string | null {
+  if (!props.svgRef) return null
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return null
+
+  const gx = (pt.x - PADDING) / CELL_SIZE
+  const gy = (pt.y - PADDING) / CELL_SIZE
+  const col = Math.round(gx)
+  const row = Math.round(gy)
+  // Interior intersections only — a quadruple touches four cells
+  if (row < 1 || row > grid.rows - 1 || col < 1 || col > grid.cols - 1) return null
+  if (Math.abs(gx - col) > CORNER_THRESHOLD || Math.abs(gy - row) > CORNER_THRESHOLD) return null
+  return cornerKey(row, col)
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
 
   if (isDotTool.value) {
-    const border = hitBorder(event)
+    const border = editor.activeTool === 'quadruples' ? hitCorner(event) : hitBorder(event)
     if (!border) {
       editor.selectConnectorDot(null)
     } else if (event.shiftKey) {
       editor.selectConnectorDot(border)
     } else {
-      editor.toggleConnectorDot(editor.activeTool as ConnectorDotType, border)
+      editor.toggleConnectorDot(editor.activeTool as BorderConnectorType, border)
     }
     return
   }
 
   const key = hitCell(event)
   if (!key) return
+
+  if (editor.activeTool === 'arrow') {
+    const hit = findArrowAt(key)
+    const mode = event.shiftKey ? 'arrow' : editor.effectiveArrowDrawMode
+    if (mode === 'arrow') {
+      // From a bulb or arrow cell, drag out a new arrow (or branch)
+      if (hit) {
+        ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+        isDragging.value = true
+        editor.startArrowFrom(hit.id, key)
+      }
+      return
+    }
+    if (hit?.kind === 'bulb') {
+      // Removing a bulb takes its arrows with it
+      editor.removeCosmeticInstance(hit.id)
+      return
+    }
+    if (hit?.kind === 'arrow') {
+      editor.removeArrowPath(hit.id, key)
+      return
+    }
+    // Empty cell → draw a new bulb (drag for a multi-cell bulb)
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    editor.startPendingLine(key)
+    return
+  }
 
   if (isDrawing.value) {
     if (editor.activeTool === 'thermometer') {

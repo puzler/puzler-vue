@@ -31,7 +31,7 @@ const LOCAL_TOOL_TYPES = new Set([
   'thermometer', 'arrow', 'renban', 'german_whispers', 'dutch_whispers',
   'palindrome', 'region_sum', 'between_lines',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
-  'difference_dots', 'ratio_dots',
+  'difference_dots', 'ratio_dots', 'xv', 'quadruples',
 ])
 
 // Maps local constraint types to their storage category for correct removal routing
@@ -41,7 +41,7 @@ const LINE_CATEGORY_TYPES = new Set([
 ])
 const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone'])
 const SINGLE_CELL_TYPES = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
-const CONNECTOR_TYPES = new Set(['difference_dots', 'ratio_dots'])
+const CONNECTOR_TYPES = new Set(['difference_dots', 'ratio_dots', 'xv', 'quadruples'])
 
 const globalCategory: Category = {
   key: 'global',

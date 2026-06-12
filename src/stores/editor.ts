@@ -4,14 +4,15 @@ import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset,
   ShapePreset, ShapeStyle, ShapeData, ShapeAnchor,
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
-  ConnectorDot, ConnectorDotType,
+  ConnectorDot, BorderConnectorType, XvValue,
+  ArrowData,
 } from '@/types/constraints'
 
 export interface ActiveConstraint {
@@ -36,6 +37,14 @@ export const useEditorStore = defineStore('editor', () => {
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
   const pendingBranchThermoId = ref<string | null>(null)
+  // Arrow instance receiving the arrow path being drawn; null while drawing a bulb
+  const pendingArrowParentId = ref<string | null>(null)
+  // Sticky draw mode for the arrow tool; shift temporarily overrides to 'arrow'
+  const arrowDrawMode = ref<'bulb' | 'arrow'>('bulb')
+  const shiftHeld = ref(false)
+  const effectiveArrowDrawMode = computed<'bulb' | 'arrow'>(() =>
+    shiftHeld.value ? 'arrow' : arrowDrawMode.value,
+  )
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   const singleCellMarks = ref<Record<string, Set<string>>>({})
@@ -213,8 +222,17 @@ export const useEditorStore = defineStore('editor', () => {
     selectedDotKey.value = null
   }
 
+  function setArrowDrawMode(mode: 'bulb' | 'arrow') {
+    arrowDrawMode.value = mode
+  }
+
+  function setShiftHeld(held: boolean) {
+    shiftHeld.value = held
+  }
+
   function setMode(m: 'setting' | 'solving') {
     mode.value = m
+    selectedDotKey.value = null
     if (m === 'setting') keyboardModeOverride.value = null
   }
 
@@ -354,9 +372,17 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function placeDigitForSelection(digit: number | null, modeOverride?: 'digit' | 'center' | 'corner') {
-    // A selected connector dot captures digit input (keyboard and numpad)
-    if (selectedDotKey.value && connectorDots.value[selectedDotKey.value]) {
-      setConnectorDotValue(digit)
+    // A selected border connector captures digit input (keyboard and numpad).
+    // Digits only apply to dots; XV takes X/V via setConnectorDotValue, but
+    // delete clears any connector type back to its default.
+    const selectedDot = selectedDotKey.value ? connectorDots.value[selectedDotKey.value] : null
+    if (selectedDot) {
+      if (selectedDot.type === 'quadruples') {
+        if (digit === null) removeLastQuadrupleDigit()
+        else addQuadrupleDigit(digit)
+      } else if (digit === null || selectedDot.type !== 'xv') {
+        setConnectorDotValue(digit)
+      }
       return
     }
     if (mode.value === 'setting') {
@@ -625,6 +651,12 @@ export const useEditorStore = defineStore('editor', () => {
 
   function commitPendingLine() {
     const cells = [...pendingLineCells.value]
+
+    if (activeTool.value === 'arrow') {
+      commitPendingArrow(cells)
+      return
+    }
+
     if (cells.length < 2) {
       pendingLineCells.value = []
       pendingBranchThermoId.value = null
@@ -684,6 +716,95 @@ export const useEditorStore = defineStore('editor', () => {
     startPendingLine(cell)
   }
 
+  // ── Arrows ────────────────────────────────────────────────────────────────
+
+  function commitPendingArrow(cells: string[]) {
+    pendingLineCells.value = []
+    const parentId = pendingArrowParentId.value
+    pendingArrowParentId.value = null
+
+    if (parentId) {
+      // Arrow (or branch) drawn from a bulb or arrow cell
+      if (cells.length < 2) return
+      const idx = cosmeticInstances.value.findIndex(i => i.id === parentId)
+      if (idx === -1) return
+      const prev = cosmeticInstances.value[idx]
+      const prevData = prev.data as ArrowData
+      // Drawing from an arrow's tip continues that arrow; drawing from a bulb
+      // or a mid-path cell starts a new arrow (branch)
+      const anchor = cells[0]
+      let extendIdx = -1
+      for (let i = prevData.arrows.length - 1; i >= 0; i--) {
+        if (prevData.arrows[i].cells.at(-1) === anchor) { extendIdx = i; break }
+      }
+      const nextArrows = extendIdx === -1
+        ? [...prevData.arrows, { cells }]
+        : prevData.arrows.map((p, i) => i === extendIdx ? { cells: [...p.cells, ...cells.slice(1)] } : p)
+      const next = { ...prev, data: { ...prevData, arrows: nextArrows } }
+      execute({
+        execute: () => { cosmeticInstances.value = cosmeticInstances.value.map((inst, i) => i === idx ? next : inst) },
+        undo: () => { cosmeticInstances.value = cosmeticInstances.value.map((inst, i) => i === idx ? prev : inst) },
+      })
+      return
+    }
+
+    // Bulb — a plain click makes a single-cell bulb, dragging a multi-cell one
+    if (cells.length === 0) return
+    const bulbCells = [...new Set(cells)]
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'arrow',
+      data: { bulbCells, arrows: [] } satisfies ArrowData,
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  function startArrowFrom(instanceId: string, cell: string) {
+    pendingArrowParentId.value = instanceId
+    startPendingLine(cell)
+  }
+
+  // Removes the arrow path through `cell`, plus any branches anchored on the
+  // removed path's cells (recursively) so no branch is left dangling
+  function removeArrowPath(instanceId: string, cell: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === instanceId)
+    if (idx === -1) return
+    const inst = cosmeticInstances.value[idx]
+    const data = inst.data as ArrowData
+
+    let target = -1
+    for (let i = data.arrows.length - 1; i >= 0; i--) {
+      if (data.arrows[i].cells.slice(1).includes(cell)) { target = i; break }
+    }
+    if (target === -1) return
+
+    const removed = new Set<number>([target])
+    let changed = true
+    while (changed) {
+      changed = false
+      data.arrows.forEach((path, i) => {
+        if (removed.has(i)) return
+        const anchor = path.cells[0]
+        for (const r of removed) {
+          if (data.arrows[r].cells.slice(1).includes(anchor)) {
+            removed.add(i)
+            changed = true
+            break
+          }
+        }
+      })
+    }
+
+    const next = { ...inst, data: { ...data, arrows: data.arrows.filter((_, i) => !removed.has(i)) } }
+    execute({
+      execute: () => { cosmeticInstances.value = cosmeticInstances.value.map((i, n) => n === idx ? next : i) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.map((i, n) => n === idx ? inst : i) },
+    })
+  }
+
   function removeThermoSubtree(thermoId: string, cell: string) {
     const idx = cosmeticInstances.value.findIndex(i => i.id === thermoId)
     if (idx === -1) return
@@ -723,6 +844,7 @@ export const useEditorStore = defineStore('editor', () => {
   function cancelPendingLine() {
     pendingLineCells.value = []
     pendingBranchThermoId.value = null
+    pendingArrowParentId.value = null
   }
 
   function removeConstraintLine(id: string, type: string) {
@@ -794,6 +916,8 @@ export const useEditorStore = defineStore('editor', () => {
     selectedDotKey.value = null
     pendingLineCells.value = []
     pendingBranchThermoId.value = null
+    pendingArrowParentId.value = null
+    arrowDrawMode.value = 'bulb'
     activeGlobalVariants.value = new Set()
     customGlobalConstraints.value = []
     const fresh = makePreset('Line 1')
@@ -864,7 +988,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Connector dots ────────────────────────────────────────────────────────
 
-  function toggleConnectorDot(type: ConnectorDotType, border: string) {
+  function toggleConnectorDot(type: BorderConnectorType, border: string) {
     const prev = connectorDots.value[border] ? { ...connectorDots.value[border] } : null
     const prevSelected = selectedDotKey.value
 
@@ -883,10 +1007,11 @@ export const useEditorStore = defineStore('editor', () => {
         },
       })
     } else {
-      // New dot, or other type → replace (difference/ratio are exclusive)
+      // New dot, or other type → replace (connector types are exclusive)
+      const fresh: ConnectorDot = { type, value: type === 'quadruples' ? [] : null }
       execute({
         execute: () => {
-          connectorDots.value = { ...connectorDots.value, [border]: { type, value: null } }
+          connectorDots.value = { ...connectorDots.value, [border]: fresh }
           selectedDotKey.value = border
         },
         undo: () => {
@@ -905,11 +1030,16 @@ export const useEditorStore = defineStore('editor', () => {
     selectedDotKey.value = border
   }
 
-  function setConnectorDotValue(value: number | null) {
+  function setConnectorDotValue(value: number | XvValue | null) {
     const border = selectedDotKey.value
     if (!border) return
     const prev = connectorDots.value[border]
     if (!prev || prev.value === value) return
+    // Reject values that don't match the connector type; quadruples are
+    // edited through addQuadrupleDigit/removeLastQuadrupleDigit instead
+    if (prev.type === 'quadruples') return
+    if (typeof value === 'number' && prev.type === 'xv') return
+    if (typeof value === 'string' && prev.type !== 'xv') return
     const prevDot = { ...prev }
     execute({
       execute: () => {
@@ -919,6 +1049,37 @@ export const useEditorStore = defineStore('editor', () => {
         connectorDots.value = { ...connectorDots.value, [border]: prevDot }
       },
     })
+  }
+
+  function setQuadrupleDigits(border: string, prevDigits: number[], nextDigits: number[]) {
+    execute({
+      execute: () => {
+        connectorDots.value = { ...connectorDots.value, [border]: { type: 'quadruples', value: nextDigits } }
+      },
+      undo: () => {
+        connectorDots.value = { ...connectorDots.value, [border]: { type: 'quadruples', value: prevDigits } }
+      },
+    })
+  }
+
+  // Digits are stored in entry order (display sorts them), so backspace can
+  // remove the most recently entered digit
+  function addQuadrupleDigit(digit: number) {
+    const border = selectedDotKey.value
+    if (!border) return
+    const dot = connectorDots.value[border]
+    if (dot?.type !== 'quadruples' || !Array.isArray(dot.value)) return
+    const prevDigits = [...dot.value]
+    if (prevDigits.length >= QUADRUPLE_MAX_DIGITS) return
+    setQuadrupleDigits(border, prevDigits, [...prevDigits, digit])
+  }
+
+  function removeLastQuadrupleDigit() {
+    const border = selectedDotKey.value
+    if (!border) return
+    const dot = connectorDots.value[border]
+    if (dot?.type !== 'quadruples' || !Array.isArray(dot.value) || dot.value.length === 0) return
+    setQuadrupleDigits(border, [...dot.value], dot.value.slice(0, -1))
   }
 
   function removeConnectorConstraint(id: string, type: string) {
@@ -973,8 +1134,15 @@ export const useEditorStore = defineStore('editor', () => {
     cosmeticInstances,
     pendingLineCells,
     pendingBranchThermoId,
+    pendingArrowParentId,
+    arrowDrawMode,
+    effectiveArrowDrawMode,
+    setArrowDrawMode,
+    setShiftHeld,
     startBranchFromThermo,
     removeThermoSubtree,
+    startArrowFrom,
+    removeArrowPath,
     linePresets,
     activeLinePresetId,
     activeLinePreset,
@@ -1040,6 +1208,8 @@ export const useEditorStore = defineStore('editor', () => {
     toggleConnectorDot,
     selectConnectorDot,
     setConnectorDotValue,
+    addQuadrupleDigit,
+    removeLastQuadrupleDigit,
     removeConnectorConstraint,
   }
 })

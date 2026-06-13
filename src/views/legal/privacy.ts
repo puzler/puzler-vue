@@ -59,7 +59,7 @@ export const privacy: LegalDoc = {
               ['Patreon', 'Optional sign-in, if you choose "Continue with Patreon".'],
               ['Plausible Analytics', 'Cookieless, privacy-friendly usage analytics.'],
               ['Error & performance monitoring', 'We may use services such as Bugsnag, Datadog, or New Relic to detect errors and monitor performance. These process technical data only.'],
-              ['Hosting provider', 'Our infrastructure host stores the data needed to run Puzler.'],
+              ['Render', 'Our server host; runs the application and stores the data needed to operate Puzler.'],
             ],
           },
         },

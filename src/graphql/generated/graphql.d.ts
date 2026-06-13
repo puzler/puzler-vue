@@ -116,6 +116,15 @@ declare module '*/CreatePuzzle.graphql' {
 }
     
 
+declare module '*/DeletePuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeletePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/DeletePuzzleVersion.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

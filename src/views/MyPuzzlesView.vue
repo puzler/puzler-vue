@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import MyPuzzlesDocument from '@/graphql/gql/puzzles/queries/MyPuzzles.graphql'
-import type { MyPuzzlesQuery, MyPuzzlesQueryVariables } from '@/graphql/generated/types'
+import DeletePuzzleDocument from '@/graphql/gql/puzzles/mutations/DeletePuzzle.graphql'
+import type {
+  MyPuzzlesQuery,
+  MyPuzzlesQueryVariables,
+  DeletePuzzleMutation,
+  DeletePuzzleMutationVariables,
+} from '@/graphql/generated/types'
 
 type MyPuzzle = MyPuzzlesQuery['myPuzzles'][number]
 
 const puzzles = ref<MyPuzzle[]>([])
 const loading = ref(true)
+const deleteTarget = ref<MyPuzzle | null>(null)
+const busy = ref(false)
 
 const VISIBILITY_LABEL: Record<string, string> = {
   private: 'Private',
@@ -19,6 +28,15 @@ const VISIBILITY_LABEL: Record<string, string> = {
   subscribers_only: 'Subscribers',
 }
 
+const deleteMessage = computed(() => {
+  const target = deleteTarget.value
+  if (!target) return ''
+  const base = `Permanently delete “${target.title}”? This can’t be undone.`
+  return target.status === 'published'
+    ? `${base} Any solves, comments, and ratings on it will be deleted too.`
+    : base
+})
+
 async function load() {
   const { data } = await apolloClient.query<MyPuzzlesQuery, MyPuzzlesQueryVariables>({
     query: MyPuzzlesDocument,
@@ -26,6 +44,22 @@ async function load() {
   })
   puzzles.value = data?.myPuzzles ?? []
   loading.value = false
+}
+
+async function confirmDelete() {
+  const target = deleteTarget.value
+  if (!target || busy.value) return
+  busy.value = true
+  try {
+    await apolloClient.mutate<DeletePuzzleMutation, DeletePuzzleMutationVariables>({
+      mutation: DeletePuzzleDocument,
+      variables: { id: target.id },
+    })
+    puzzles.value = puzzles.value.filter((p) => p.id !== target.id)
+    deleteTarget.value = null
+  } finally {
+    busy.value = false
+  }
 }
 
 onMounted(load)
@@ -92,8 +126,22 @@ onMounted(load)
           >
             Solve
           </RouterLink>
+          <button
+            class="text-sm text-soft hover:text-red-600 hover:underline shrink-0"
+            @click="deleteTarget = puzzle"
+          >
+            Delete
+          </button>
         </li>
       </ul>
     </div>
+
+    <ConfirmModal
+      v-if="deleteTarget"
+      :message="deleteMessage"
+      confirm-label="Delete"
+      @confirm="confirmDelete"
+      @cancel="deleteTarget = null"
+    />
   </ContentPage>
 </template>

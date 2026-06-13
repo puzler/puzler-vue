@@ -53,7 +53,7 @@ export const privacy: LegalDoc = {
           table: {
             head: ['Provider', 'Purpose'],
             rows: [
-              ['SendGrid (Twilio)', 'Sending account emails such as password resets.'],
+              ['Resend', 'Sending account emails such as password resets.'],
               ['Cloudflare R2', 'Storing uploaded files such as avatars.'],
               ['Google', 'Optional sign-in, if you choose "Continue with Google".'],
               ['Patreon', 'Optional sign-in, if you choose "Continue with Patreon".'],

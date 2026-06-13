@@ -161,10 +161,28 @@ declare module '*/UpdateCollection.graphql' {
 }
     
 
+declare module '*/CollectionByTokenPublic.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionByTokenPublic: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/CollectionDetail.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const CollectionDetail: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CollectionPublic.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionPublic: DocumentNode;
 
   export default defaultDocument;
 }
@@ -183,6 +201,15 @@ declare module '*/MyFolders.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const MyFolders: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CollectionPublicFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionPublicFields: DocumentNode;
 
   export default defaultDocument;
 }

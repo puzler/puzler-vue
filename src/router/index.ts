@@ -36,6 +36,11 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/collections/:id',
+      name: 'collection',
+      component: () => import('@/views/CollectionView.vue'),
+    },
+    {
       path: '/puzzles/:id',
       name: 'player',
       component: () => import('@/views/PlayerView.vue'),

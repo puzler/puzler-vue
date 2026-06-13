@@ -1,0 +1,7 @@
+#import "../../fragments/CollectionPublicFields.graphql"
+
+query CollectionPublic($id: ID!) {
+  collection(id: $id) {
+    ...CollectionPublicFields
+  }
+}

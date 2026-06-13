@@ -2194,12 +2194,26 @@ export type UpdateCollectionMutationVariables = Exact<{
 
 export type UpdateCollectionMutation = { updateCollection: { errors: Array<string>, collection: { id: string, title: string, description: string | null, visibility: string, mode: string } | null } | null };
 
+export type CollectionByTokenPublicQueryVariables = Exact<{
+  token: string;
+}>;
+
+
+export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+
 export type CollectionDetailQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
 export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, visibility: string, mode: string, shareToken: string | null, puzzles: Array<{ id: string, title: string, status: string, visibility: string }> } | null };
+
+export type CollectionPublicQueryVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
 export type MyCollectionsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2210,6 +2224,8 @@ export type MyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzzleCount: number }> };
+
+export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: string, mode: string, puzzleCount: number };
 

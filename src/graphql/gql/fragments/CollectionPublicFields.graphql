@@ -1,0 +1,17 @@
+fragment CollectionPublicFields on Collection {
+  id
+  title
+  description
+  mode
+  author {
+    id
+    username
+  }
+  puzzles {
+    id
+    title
+    constraintTypes
+    avgRating
+    solveCount
+  }
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import ContentPage from '@/components/ContentPage.vue'
@@ -74,6 +74,13 @@ function onSelect(event: Event) {
   return (event.target as HTMLSelectElement).value
 }
 
+// Public page link; unlisted collections carry their share token in the URL.
+const publicRoute = computed(() => ({
+  name: 'collection',
+  params: { id },
+  query: collection.value?.visibility === 'unlisted' && collection.value.shareToken ? { t: collection.value.shareToken } : {},
+}))
+
 onMounted(load)
 </script>
 
@@ -133,6 +140,14 @@ onMounted(load)
             </select>
           </label>
         </div>
+
+        <RouterLink
+          v-if="collection.visibility !== 'private'"
+          :to="publicRoute"
+          class="text-sm text-action hover:underline"
+        >
+          View public page →
+        </RouterLink>
 
         <CollectionPuzzleList
           :puzzles="puzzles"

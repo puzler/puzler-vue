@@ -1,0 +1,7 @@
+#import "../../fragments/CollectionPublicFields.graphql"
+
+query CollectionByTokenPublic($token: String!) {
+  collectionByToken(token: $token) {
+    ...CollectionPublicFields
+  }
+}

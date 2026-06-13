@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation GrantPuzzleAccess($puzzleId: ID!, $username: String!) {
+  grantPuzzleAccess(input: { puzzleId: $puzzleId, username: $username }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

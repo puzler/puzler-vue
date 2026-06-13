@@ -15,6 +15,8 @@ generates:
     config:
       scalars:
         Upload: File
+        ISO8601DateTime: string
+        ISO8601Date: string
   src/graphql/generated/schema.json:
     plugins:
       - "introspection"

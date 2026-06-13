@@ -1,0 +1,13 @@
+#import "../../fragments/VersionSummary.graphql"
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+query PuzzleForEdit($id: ID!) {
+  puzzle(id: $id) {
+    ...PuzzleAdminFields
+    title
+    description
+    versions {
+      ...VersionSummary
+    }
+  }
+}

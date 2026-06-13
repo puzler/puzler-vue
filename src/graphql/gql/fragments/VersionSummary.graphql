@@ -1,0 +1,9 @@
+fragment VersionSummary on PuzzleVersion {
+  id
+  versionNumber
+  displayName
+  label
+  isPublished
+  constraintTypes
+  createdAt
+}

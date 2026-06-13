@@ -1,0 +1,13 @@
+query Puzzles($page: Int, $perPage: Int, $sort: String, $constraintTypes: [String!]) {
+  puzzles(page: $page, perPage: $perPage, sort: $sort, constraintTypes: $constraintTypes) {
+    id
+    title
+    constraintTypes
+    avgRating
+    solveCount
+    author {
+      id
+      username
+    }
+  }
+}

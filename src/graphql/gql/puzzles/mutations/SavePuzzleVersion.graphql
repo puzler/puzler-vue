@@ -1,0 +1,10 @@
+#import "../../fragments/VersionSummary.graphql"
+
+mutation SavePuzzleVersion($puzzleId: ID!, $definition: JSON!, $solution: JSON, $label: String) {
+  savePuzzleVersion(input: { puzzleId: $puzzleId, definition: $definition, solution: $solution, label: $label }) {
+    version {
+      ...VersionSummary
+    }
+    errors
+  }
+}

@@ -1,0 +1,15 @@
+query PuzzleByTokenForPlay($token: String!) {
+  puzzleByToken(token: $token) {
+    id
+    title
+    author {
+      id
+      username
+    }
+    publishedVersion {
+      id
+      definition
+      solutionHash
+    }
+  }
+}

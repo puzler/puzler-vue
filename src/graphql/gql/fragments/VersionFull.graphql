@@ -1,0 +1,8 @@
+#import "./VersionSummary.graphql"
+
+fragment VersionFull on PuzzleVersion {
+  ...VersionSummary
+  definition
+  solution
+  solutionHash
+}

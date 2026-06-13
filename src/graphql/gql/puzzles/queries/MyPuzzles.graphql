@@ -1,0 +1,13 @@
+query MyPuzzles($status: String) {
+  myPuzzles(status: $status) {
+    id
+    title
+    status
+    visibility
+    shareToken
+    publishedVersion {
+      id
+      displayName
+    }
+  }
+}

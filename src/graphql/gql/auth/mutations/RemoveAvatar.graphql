@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation RemoveAvatar {
+  removeAvatar(input: {}) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

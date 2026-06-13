@@ -23,6 +23,7 @@
     "@mdi/js": "^7.4.47",
     "@vue/apollo-composable": "^4.2.2",
     "@vueuse/core": "^14.3.0",
+    "apollo-upload-client": "^17.0.0",
     "graphql": "^16.14.0",
     "graphql-ws": "^6.0.8",
     "js-sha256": "^0.11.1",

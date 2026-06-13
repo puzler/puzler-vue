@@ -12,6 +12,9 @@ generates:
     plugins:
       - "typescript"
       - "typescript-operations"
+    config:
+      scalars:
+        Upload: File
   src/graphql/generated/schema.json:
     plugins:
       - "introspection"

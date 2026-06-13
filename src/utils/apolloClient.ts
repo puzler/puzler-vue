@@ -1,7 +1,8 @@
-import { ApolloClient, InMemoryCache, createHttpLink, split } from '@apollo/client/core'
+import { ApolloClient, InMemoryCache, split } from '@apollo/client/core'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
+import { createUploadLink } from 'apollo-upload-client'
 import { getToken } from '@/utils/tokenStorage'
 import fragmentTypes from '@/graphql/generated/fragment-types.json'
 
@@ -13,9 +14,12 @@ function getAuthHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-const httpLink = createHttpLink({
+// createUploadLink is a drop-in for createHttpLink that sends a GraphQL
+// multipart request when variables contain a File/Blob (avatar upload),
+// and a normal JSON request otherwise.
+const httpLink = createUploadLink({
   uri: `${API_URL}/graphql`,
-  fetch: (uri, options = {}) => {
+  fetch: (uri: RequestInfo | URL, options: RequestInit = {}) => {
     const existing = (options.headers as Record<string, string>) ?? {}
     return fetch(uri, { ...options, headers: { ...existing, ...getAuthHeaders() } })
   },

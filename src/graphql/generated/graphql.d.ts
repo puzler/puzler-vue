@@ -35,10 +35,28 @@ declare module '*/PrepareOauthConnect.graphql' {
 }
     
 
+declare module '*/RemoveAvatar.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RemoveAvatar: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateProfile.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UpdateProfile: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UploadAvatar.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UploadAvatar: DocumentNode;
 
   export default defaultDocument;
 }

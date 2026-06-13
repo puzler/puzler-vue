@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UploadAvatar($file: Upload!) {
+  uploadAvatar(input: { file: $file }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

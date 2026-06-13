@@ -9,6 +9,8 @@ import ChangePasswordDocument from '@/graphql/gql/auth/mutations/ChangePassword.
 import DisconnectOauthProviderDocument from '@/graphql/gql/auth/mutations/DisconnectOauthProvider.graphql'
 import PrepareOauthConnectDocument from '@/graphql/gql/auth/mutations/PrepareOauthConnect.graphql'
 import DeleteAccountDocument from '@/graphql/gql/auth/mutations/DeleteAccount.graphql'
+import UploadAvatarDocument from '@/graphql/gql/auth/mutations/UploadAvatar.graphql'
+import RemoveAvatarDocument from '@/graphql/gql/auth/mutations/RemoveAvatar.graphql'
 import type {
   MeQuery,
   UserFieldsFragment,
@@ -22,6 +24,10 @@ import type {
   PrepareOauthConnectMutationVariables,
   DeleteAccountMutation,
   DeleteAccountMutationVariables,
+  UploadAvatarMutation,
+  UploadAvatarMutationVariables,
+  RemoveAvatarMutation,
+  RemoveAvatarMutationVariables,
 } from '@/graphql/generated/types'
 
 export type User = UserFieldsFragment
@@ -191,15 +197,29 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function uploadAvatar(file: Blob, filename = 'avatar') {
-    const formData = new FormData()
-    formData.append('avatar', file, filename)
-    await apiFetch('/me/avatar', { method: 'PUT', body: formData })
-    await fetchCurrentUser()
+    // apollo-upload-client turns a File/Blob variable into a GraphQL multipart
+    // request. Wrap a Blob in a File so it carries a filename.
+    const upload = file instanceof File ? file : new File([file], filename, { type: file.type })
+    const { data } = await apolloClient.mutate<UploadAvatarMutation, UploadAvatarMutationVariables>({
+      mutation: UploadAvatarDocument,
+      variables: { file: upload },
+    })
+    const result = data?.uploadAvatar
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
   }
 
   async function removeAvatar() {
-    await apiFetch('/me/avatar', { method: 'DELETE' })
-    await fetchCurrentUser()
+    const { data } = await apolloClient.mutate<RemoveAvatarMutation, RemoveAvatarMutationVariables>({
+      mutation: RemoveAvatarDocument,
+    })
+    const result = data?.removeAvatar
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
   }
 
   // --- Data rights (GDPR) ---

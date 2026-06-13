@@ -2317,6 +2317,35 @@
             "deprecationReason": null
           },
           {
+            "name": "revealSolveMessage",
+            "description": "Reveal a puzzle's custom solve message for a correct solution",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RevealSolveMessage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RevealSolveMessageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RevealSolveMessagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "revokePuzzleAccess",
             "description": "Revoke a user's access to a puzzle",
             "args": [
@@ -2809,6 +2838,35 @@
         "description": "Mutations for playing puzzles",
         "isOneOf": null,
         "fields": [
+          {
+            "name": "revealSolveMessage",
+            "description": "Reveal a puzzle's custom solve message for a correct solution",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RevealSolveMessage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RevealSolveMessageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RevealSolveMessagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
           {
             "name": "saveProgress",
             "description": "Persist the current cell state for an in-progress session",
@@ -4535,6 +4593,18 @@
             "deprecationReason": null
           },
           {
+            "name": "solveMessage",
+            "description": "Custom solve message; only visible to the author (revealed to solvers on a correct solve)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "versionNumber",
             "description": "Sequential per-puzzle version number",
             "args": [],
@@ -4553,6 +4623,70 @@
         ],
         "inputFields": null,
         "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "PuzzleVersionAttrsInput",
+        "description": "Editor state to snapshot as an immutable puzzle version",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "definition",
+            "description": "Full serialized puzzle definition (serializePuzzle output, minus solution)",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "JSON",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "label",
+            "description": "Optional name for this version (defaults to v{n})",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solution",
+            "description": "Solution grid; required before this version can be published",
+            "type": {
+              "kind": "SCALAR",
+              "name": "JSON",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solveMessage",
+            "description": "Custom message shown on a correct solve (blank uses the default)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
         "enumValues": null,
         "possibleTypes": null
       },
@@ -5204,6 +5338,126 @@
       },
       {
         "kind": "INPUT_OBJECT",
+        "name": "RevealSolveMessageInput",
+        "description": "Autogenerated input type of RevealSolveMessage",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "puzzleId",
+            "description": "ID of the solved puzzle",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "shareToken",
+            "description": "Share token, required to reach an unlisted puzzle",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solutionHash",
+            "description": "SHA-256 of the submitted board; must match the published solution",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "RevealSolveMessagePayload",
+        "description": "Autogenerated return type of RevealSolveMessage.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "correct",
+            "description": "Whether the submitted hash matches the solution",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solveMessage",
+            "description": "The author's custom message, present only on a correct solve with a non-blank message",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
         "name": "RevokePuzzleAccessInput",
         "description": "Autogenerated input type of RevokePuzzleAccess",
         "isOneOf": false,
@@ -5458,26 +5712,14 @@
         "fields": null,
         "inputFields": [
           {
-            "name": "clientMutationId",
-            "description": "A unique identifier for the client performing the mutation.",
-            "type": {
-              "kind": "SCALAR",
-              "name": "String",
-              "ofType": null
-            },
-            "defaultValue": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
-            "name": "definition",
-            "description": "Full serialized puzzle definition (serializePuzzle output, minus solution)",
+            "name": "attrs",
+            "description": "Editor state to snapshot",
             "type": {
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": "JSON",
-                "kind": "SCALAR",
+                "name": "PuzzleVersionAttrsInput",
+                "kind": "INPUT_OBJECT",
                 "ofType": null
               }
             },
@@ -5486,8 +5728,8 @@
             "deprecationReason": null
           },
           {
-            "name": "label",
-            "description": "Optional name for this version (defaults to v{n})",
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
             "type": {
               "kind": "SCALAR",
               "name": "String",
@@ -5508,18 +5750,6 @@
                 "kind": "SCALAR",
                 "ofType": null
               }
-            },
-            "defaultValue": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
-            "name": "solution",
-            "description": "Solution grid; required before this version can be published",
-            "type": {
-              "kind": "SCALAR",
-              "name": "JSON",
-              "ofType": null
             },
             "defaultValue": null,
             "isDeprecated": false,
@@ -8746,6 +8976,7 @@
         "deprecationReason": null,
         "locations": [
           "ARGUMENT_DEFINITION",
+          "DIRECTIVE_DEFINITION",
           "ENUM_VALUE",
           "FIELD_DEFINITION",
           "INPUT_FIELD_DEFINITION"
@@ -8753,7 +8984,7 @@
         "args": [
           {
             "name": "reason",
-            "description": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted in [Markdown](https://daringfireball.net/projects/markdown/).",
+            "description": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax, as specified by [CommonMark](https://commonmark.org/).",
             "type": {
               "kind": "SCALAR",
               "name": "String",
@@ -8797,7 +9028,7 @@
       },
       {
         "name": "oneOf",
-        "description": "Requires that exactly one field must be supplied and that field must not be `null`.",
+        "description": "Indicates exactly one field must be supplied and this field must not be `null`.",
         "isRepeatable": false,
         "isDeprecated": false,
         "deprecationReason": null,

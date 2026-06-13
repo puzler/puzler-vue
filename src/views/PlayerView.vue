@@ -6,16 +6,19 @@ import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { apolloClient } from '@/utils/apolloClient'
-import { deserializePuzzle, buildSolution, type SerializedPuzzle } from '@/utils/puzzleExport'
+import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
+import RevealSolveMessageDocument from '@/graphql/gql/puzzles/mutations/RevealSolveMessage.graphql'
 import type {
   PuzzleForPlayQuery,
   PuzzleForPlayQueryVariables,
   PuzzleByTokenForPlayQuery,
   PuzzleByTokenForPlayQueryVariables,
+  RevealSolveMessageMutation,
+  RevealSolveMessageMutationVariables,
 } from '@/graphql/generated/types'
 
 const route = useRoute()
@@ -26,20 +29,40 @@ const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const title = ref('')
 const authorName = ref('')
+const puzzleId = ref<string | null>(null)
 const solutionHash = ref<string | null>(null)
 const solved = ref(false)
+const solveMessage = ref<string | null>(null)
 
-// Re-check completion after every change: once the board is full, hash it and
-// compare to the published version's hash (no solution is ever sent to the client).
+const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
+
+// Re-check after every change: hash the filled cells and compare to the
+// published hash. Exact match means solved — which naturally supports variants
+// whose solution leaves some cells blank (the solution simply omits them).
 watch(
   () => [editor.givenDigits, editor.solverCellStates],
   () => {
     if (solved.value || !solutionHash.value) return
-    const board = buildSolution(editor, grid)
-    if (board && hashSolution(board) === solutionHash.value) solved.value = true
+    if (hashSolution(boardSnapshot(editor, grid)) === solutionHash.value) onSolved()
   },
   { deep: true },
 )
+
+// On a correct solve, ask the server for the author's custom message (it's
+// never sent in the puzzle data). Falls back to the default if there is none.
+async function onSolved() {
+  solved.value = true
+  if (!puzzleId.value || !solutionHash.value) return
+  try {
+    const { data } = await apolloClient.mutate<RevealSolveMessageMutation, RevealSolveMessageMutationVariables>({
+      mutation: RevealSolveMessageDocument,
+      variables: { puzzleId: puzzleId.value, solutionHash: solutionHash.value, shareToken: shareToken.value },
+    })
+    solveMessage.value = data?.revealSolveMessage?.solveMessage ?? null
+  } catch {
+    // Keep the default message if the reveal call fails.
+  }
+}
 
 async function fetchById(id: string) {
   const { data } = await apolloClient.query<PuzzleForPlayQuery, PuzzleForPlayQueryVariables>({
@@ -60,10 +83,9 @@ async function fetchByToken(token: string) {
 }
 
 async function loadPuzzle() {
-  const token = typeof route.query.t === 'string' ? route.query.t : null
   const id = typeof route.params.id === 'string' ? route.params.id : null
   try {
-    const puzzle = token ? await fetchByToken(token) : id ? await fetchById(id) : null
+    const puzzle = shareToken.value ? await fetchByToken(shareToken.value) : id ? await fetchById(id) : null
     if (!puzzle) {
       errorMessage.value = 'This puzzle isn’t available.'
       return
@@ -74,6 +96,7 @@ async function loadPuzzle() {
     }
     title.value = puzzle.title
     authorName.value = puzzle.author.username
+    puzzleId.value = puzzle.id
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
     editor.setMode('solving')
@@ -192,7 +215,10 @@ onUnmounted(() => {
         <div class="bg-surface rounded-2xl shadow-xl p-8 flex flex-col items-center gap-3 w-80">
           <span class="text-2xl">🎉</span>
           <span class="text-lg font-semibold text-ink-text">Solved!</span>
-          <span class="text-sm text-faint text-center">Nicely done — you completed “{{ title }}”.</span>
+          <span
+            class="text-sm text-center whitespace-pre-line"
+            :class="solveMessage ? 'text-ink-text' : 'text-faint'"
+          >{{ solveMessage || `Nicely done — you completed “${title}”.` }}</span>
           <button
             class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
             @click="solved = false"

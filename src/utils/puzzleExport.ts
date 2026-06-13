@@ -2,18 +2,21 @@ import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 
-// Bumped from 1 when constraint state beyond cosmetics (single-cell marks,
-// connector dots, outer clues, global variants) joined the export
-export const PUZZLE_EXPORT_VERSION = 2
+// 1 → 2: constraint state beyond cosmetics joined the export.
+// 2 → 3: solver scratch (solverCellStates) dropped from puzzle data; the
+// explicit solution and solve message joined instead.
+export const PUZZLE_EXPORT_VERSION = 3
 
 type EditorStore = ReturnType<typeof useEditorStore>
 type GridStore = ReturnType<typeof useGridStore>
 
 export type SerializedPuzzle = ReturnType<typeof serializePuzzle>
 
-// Serializes the full editor state as a JSON-safe object: everything is
-// plain data (Sets become sorted arrays) so the output round-trips through
-// JSON.stringify/parse without loss for a future import.
+// Serializes the puzzle as a JSON-safe object: everything is plain data (Sets
+// become sorted arrays) so the output round-trips through JSON.stringify/parse.
+// This is the export/import shape. It deliberately excludes solverCellStates —
+// the solver's scratch is never puzzle data — and carries the explicit solution
+// and solve message instead.
 export function serializePuzzle(
   editor: ReturnType<typeof useEditorStore>,
   grid: ReturnType<typeof useGridStore>,
@@ -29,9 +32,10 @@ export function serializePuzzle(
       name: editor.puzzleName,
       author: editor.puzzleAuthor,
       rules: editor.puzzleRules,
+      solveMessage: editor.solveMessage,
     },
+    solution: editor.solution,
     givenDigits: editor.givenDigits,
-    solverCellStates: editor.solverCellStates,
     activeConstraints: editor.activeConstraints,
     globals: {
       variants: Array.from(editor.activeGlobalVariants).sort(),
@@ -71,9 +75,12 @@ export function deserializePuzzle(editor: EditorStore, grid: GridStore, data: Se
   editor.puzzleName = data.meta.name ?? ''
   editor.puzzleAuthor = data.meta.author ?? ''
   editor.puzzleRules = data.meta.rules ?? ''
+  editor.solveMessage = data.meta.solveMessage ?? ''
+  editor.solution = data.solution ?? null
 
   editor.givenDigits = { ...data.givenDigits }
-  editor.solverCellStates = structuredClone(data.solverCellStates)
+  // solverCellStates is deliberately not restored — it's ephemeral scratch,
+  // never part of stored puzzle data, so it stays empty from reset().
   editor.activeConstraints = data.activeConstraints.map((c) => ({ ...c }))
 
   editor.activeGlobalVariants = new Set(data.globals.variants)
@@ -102,18 +109,41 @@ export function deserializePuzzle(editor: EditorStore, grid: GridStore, data: Se
   if (data.cosmetics.cagePresets[0]) editor.activeCagePresetId = data.cosmetics.cagePresets[0].id
 }
 
-// The solution is the fully-filled grid (givens plus solver-entered digits).
-// Returns null unless every cell has a value, so a partially-solved draft saves
-// without a solution and simply can't be published until it's complete.
-export function buildSolution(editor: EditorStore, grid: GridStore): Record<string, number> | null {
-  const solution: Record<string, number> = {}
+// The map of currently-filled cells (givens plus solver-entered digits), empty
+// cells omitted. Used both to capture the author's solution and to check a
+// player's board against the solution hash — so variants that intentionally
+// leave cells blank work: the solution simply doesn't include those cells.
+export function boardSnapshot(editor: EditorStore, grid: GridStore): Record<string, number> {
+  const board: Record<string, number> = {}
   for (let r = 0; r < grid.rows; r++) {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
       const value = editor.givenDigits[key] ?? editor.solverCellStates[key]?.value ?? null
-      if (value === null) return null
-      solution[key] = value
+      if (value !== null) board[key] = value
     }
   }
-  return solution
+  return board
+}
+
+// Parses and shape-validates pasted import JSON, throwing a readable error for
+// the import UI. Tolerates older export versions (deserialize fills gaps).
+export function parsePuzzleImport(text: string): SerializedPuzzle {
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error("That doesn't look like valid JSON.")
+  }
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Expected a puzzle object.')
+  }
+  const obj = data as Record<string, unknown>
+  const grid = obj.grid as { rows?: unknown; cols?: unknown } | undefined
+  if (!grid || typeof grid.rows !== 'number' || typeof grid.cols !== 'number') {
+    throw new Error('Missing or invalid grid dimensions — is this a Puzler export?')
+  }
+  if (typeof obj.version !== 'number' || obj.version > PUZZLE_EXPORT_VERSION) {
+    throw new Error('Unsupported puzzle format version.')
+  }
+  return data as SerializedPuzzle
 }

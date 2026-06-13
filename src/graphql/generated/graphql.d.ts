@@ -143,6 +143,15 @@ declare module '*/PublishPuzzleVersion.graphql' {
 }
     
 
+declare module '*/RevealSolveMessage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RevealSolveMessage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RevokePuzzleAccess.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

@@ -33,6 +33,11 @@ export const useEditorStore = defineStore('editor', () => {
   const puzzleName = ref<string>('')
   const puzzleAuthor = ref<string>('')
   const puzzleRules = ref<string>('')
+  // The author's designated answer (may legitimately omit cells for variants),
+  // and the custom message shown on solve (blank → default). Both are puzzle
+  // data, kept entirely separate from the ephemeral solverCellStates scratch.
+  const solution = ref<Record<string, number> | null>(null)
+  const solveMessage = ref<string>('')
   const mode = ref<'setting' | 'solving'>('setting')
   const inputMode = ref<'digit' | 'center' | 'corner'>('digit')
   const keyboardModeOverride = ref<'digit' | 'center' | 'corner' | null>(null)
@@ -980,6 +985,8 @@ export const useEditorStore = defineStore('editor', () => {
     puzzleName.value = ''
     puzzleAuthor.value = ''
     puzzleRules.value = ''
+    solution.value = null
+    solveMessage.value = ''
     mode.value = 'setting'
     inputMode.value = 'digit'
     keyboardModeOverride.value = null
@@ -1588,6 +1595,8 @@ export const useEditorStore = defineStore('editor', () => {
     puzzleName,
     puzzleAuthor,
     puzzleRules,
+    solution,
+    solveMessage,
     mode,
     inputMode,
     keyboardModeOverride,

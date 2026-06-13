@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { mdiTrayArrowUp, mdiHistory, mdiShareVariantOutline } from '@mdi/js'
+import { mdiTrayArrowUp, mdiTrayArrowDown, mdiHistory, mdiShareVariantOutline } from '@mdi/js'
 import ExportModal from './ExportModal.vue'
+import ImportModal from './ImportModal.vue'
 import VersionHistoryModal from './VersionHistoryModal.vue'
 import PublishModal from './PublishModal.vue'
 import SaveButton from './SaveButton.vue'
@@ -11,6 +12,7 @@ import SaveButton from './SaveButton.vue'
 const puzzle = usePuzzleStore()
 
 const showExport = ref(false)
+const showImport = ref(false)
 const showVersions = ref(false)
 const showPublish = ref(false)
 
@@ -27,6 +29,17 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
     >
       <MdiIcon
         :path="mdiHistory"
+        :size="18"
+      />
+    </button>
+    <button
+      title="Import puzzle JSON"
+      aria-label="Import puzzle JSON"
+      :class="ICON_BTN"
+      @click="showImport = true"
+    >
+      <MdiIcon
+        :path="mdiTrayArrowDown"
         :size="18"
       />
     </button>
@@ -58,6 +71,10 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
     <ExportModal
       v-if="showExport"
       @close="showExport = false"
+    />
+    <ImportModal
+      v-if="showImport"
+      @close="showImport = false"
     />
     <VersionHistoryModal
       v-if="showVersions"

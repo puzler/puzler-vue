@@ -5,4 +5,5 @@ fragment VersionFull on PuzzleVersion {
   definition
   solution
   solutionHash
+  solveMessage
 }

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, deserializePuzzle, buildSolution, type SerializedPuzzle } from '@/utils/puzzleExport'
+import { serializePuzzle, deserializePuzzle, type SerializedPuzzle } from '@/utils/puzzleExport'
 import CreatePuzzleDocument from '@/graphql/gql/puzzles/mutations/CreatePuzzle.graphql'
 import SavePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/SavePuzzleVersion.graphql'
 import DeletePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/DeletePuzzleVersion.graphql'
@@ -114,12 +114,17 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     errorMessage.value = null
     try {
       const puzzleId = await ensurePuzzle()
+      // The stored definition is play-safe: the solution and solve message are
+      // stripped from it and sent separately so they never reach a solver.
+      const full = serializePuzzle(editor, grid)
+      const definition = { ...full, solution: null, meta: { ...full.meta, solveMessage: '' } }
       const { data } = await apolloClient.mutate<SavePuzzleVersionMutation, SavePuzzleVersionMutationVariables>({
         mutation: SavePuzzleVersionDocument,
         variables: {
           puzzleId,
-          definition: serializePuzzle(editor, grid),
-          solution: buildSolution(editor, grid),
+          definition,
+          solution: editor.solution,
+          solveMessage: editor.solveMessage,
           label: label ?? null,
         },
       })
@@ -169,6 +174,10 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     const version = data?.puzzleVersion
     if (!version) throw new Error('Version not found')
     deserializePuzzle(editor, grid, version.definition as SerializedPuzzle)
+    // The solution and solve message live in their own columns (stripped from
+    // the definition), so restore them from the version, not the definition.
+    editor.solution = (version.solution as Record<string, number> | null) ?? null
+    editor.solveMessage = version.solveMessage ?? ''
     currentVersionId.value = versionId
   }
 

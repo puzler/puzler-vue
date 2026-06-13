@@ -280,12 +280,19 @@ export const useEditorStore = defineStore('editor', () => {
     shiftHeld.value = held
   }
 
+  // Setting-mode tools that act on the cell selection; every other tool draws
+  // or toggles on click, so a lingering selection is just visual noise.
+  const SELECTION_TOOLS = new Set(['digit', 'region'])
+
   function setMode(m: 'setting' | 'solving') {
     mode.value = m
     selectedDotKey.value = null
     selectedCageId.value = null
     selectedOuterClueKey.value = null
-    if (m === 'setting') keyboardModeOverride.value = null
+    if (m === 'setting') {
+      keyboardModeOverride.value = null
+      if (!SELECTION_TOOLS.has(activeTool.value)) selection.value = new Set()
+    }
   }
 
   function setKeyboardModeOverride(m: 'digit' | 'center' | 'corner' | null) {

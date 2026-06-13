@@ -1,0 +1,7 @@
+query MyFolders {
+  myFolders {
+    id
+    name
+    puzzleCount
+  }
+}

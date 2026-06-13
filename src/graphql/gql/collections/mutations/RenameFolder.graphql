@@ -1,0 +1,10 @@
+mutation RenameFolder($id: ID!, $name: String!) {
+  renameFolder(input: { id: $id, name: $name }) {
+    folder {
+      id
+      name
+      puzzleCount
+    }
+    errors
+  }
+}

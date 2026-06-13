@@ -1,0 +1,11 @@
+mutation ReorderCollectionPuzzles($collectionId: ID!, $orderedPuzzleIds: [ID!]!) {
+  reorderCollectionPuzzles(input: { collectionId: $collectionId, orderedPuzzleIds: $orderedPuzzleIds }) {
+    collection {
+      id
+      puzzles {
+        id
+      }
+    }
+    errors
+  }
+}

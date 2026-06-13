@@ -71,6 +71,132 @@ declare module '*/Me.graphql' {
 }
     
 
+declare module '*/AddPuzzleToCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const AddPuzzleToCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CreateCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreateCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CreateFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreateFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/DeleteCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeleteCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/DeleteFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeleteFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MovePuzzleToFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MovePuzzleToFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/RemovePuzzleFromCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RemovePuzzleFromCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/RenameFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RenameFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ReorderCollectionPuzzles.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ReorderCollectionPuzzles: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CollectionDetail.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionDetail: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MyCollections.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MyCollections: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MyFolders.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MyFolders: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CollectionSummary.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionSummary: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/PuzzleAdminFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

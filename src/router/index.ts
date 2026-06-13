@@ -30,6 +30,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/my-puzzles/collections/:id',
+      name: 'collection-detail',
+      component: () => import('@/views/CollectionDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/puzzles/:id',
       name: 'player',
       component: () => import('@/views/PlayerView.vue'),

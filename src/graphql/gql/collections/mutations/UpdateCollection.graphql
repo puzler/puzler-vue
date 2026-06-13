@@ -1,0 +1,14 @@
+mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: String, $mode: String) {
+  updateCollection(
+    input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode } }
+  ) {
+    collection {
+      id
+      title
+      description
+      visibility
+      mode
+    }
+    errors
+  }
+}

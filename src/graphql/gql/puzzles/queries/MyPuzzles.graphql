@@ -5,6 +5,10 @@ query MyPuzzles($status: String) {
     status
     visibility
     shareToken
+    folder {
+      id
+      name
+    }
     publishedVersion {
       id
       displayName

@@ -1,0 +1,14 @@
+mutation AddPuzzleToCollection($collectionId: ID!, $puzzleId: ID!) {
+  addPuzzleToCollection(input: { collectionId: $collectionId, puzzleId: $puzzleId }) {
+    collection {
+      id
+      puzzles {
+        id
+        title
+        status
+        visibility
+      }
+    }
+    errors
+  }
+}

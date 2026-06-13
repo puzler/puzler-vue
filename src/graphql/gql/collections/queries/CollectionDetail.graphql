@@ -1,0 +1,16 @@
+query CollectionDetail($id: ID!) {
+  collection(id: $id) {
+    id
+    title
+    description
+    visibility
+    mode
+    shareToken
+    puzzles {
+      id
+      title
+      status
+      visibility
+    }
+  }
+}

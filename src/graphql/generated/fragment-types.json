@@ -1,5 +1,11 @@
 {
   "possibleTypes": {
+    "CollectionMutations": [
+      "Mutation"
+    ],
+    "CollectionQueries": [
+      "Query"
+    ],
     "ConstraintMutations": [
       "Mutation"
     ],

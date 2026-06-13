@@ -190,9 +190,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
-  async function uploadAvatar(file: File) {
+  async function uploadAvatar(file: Blob, filename = 'avatar') {
     const formData = new FormData()
-    formData.append('avatar', file)
+    formData.append('avatar', file, filename)
     await apiFetch('/me/avatar', { method: 'PUT', body: formData })
     await fetchCurrentUser()
   }

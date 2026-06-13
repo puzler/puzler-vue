@@ -44,6 +44,14 @@ const menuOpen = ref(false)
         >
           My Puzzles
         </RouterLink>
+        <RouterLink
+          v-if="auth.isAuthenticated"
+          to="/feed"
+          class="flex items-center px-3 text-sm text-[#9AA3B8] border-b-2 border-transparent hover:text-white transition-colors"
+          active-class="!text-white !border-spark"
+        >
+          Updates
+        </RouterLink>
       </div>
 
       <div class="flex-1" />

@@ -494,6 +494,15 @@ declare module '*/ReorderSeriesEntries.graphql' {
 }
     
 
+declare module '*/ScheduleSeriesEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ScheduleSeriesEntry: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/ToggleSeriesSubscription.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -543,6 +552,15 @@ declare module '*/SeriesDetail.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const SeriesDetail: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesFeed.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesFeed: DocumentNode;
 
   export default defaultDocument;
 }

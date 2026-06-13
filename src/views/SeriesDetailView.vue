@@ -12,12 +12,14 @@ import UpdateSeriesDocument from '@/graphql/gql/series/mutations/UpdateSeries.gr
 import DeleteSeriesDocument from '@/graphql/gql/series/mutations/DeleteSeries.graphql'
 import RemoveSeriesEntryDocument from '@/graphql/gql/series/mutations/RemoveSeriesEntry.graphql'
 import ReorderSeriesEntriesDocument from '@/graphql/gql/series/mutations/ReorderSeriesEntries.graphql'
+import ScheduleSeriesEntryDocument from '@/graphql/gql/series/mutations/ScheduleSeriesEntry.graphql'
 import type {
   SeriesDetailQuery, SeriesDetailQueryVariables,
   UpdateSeriesMutation, UpdateSeriesMutationVariables,
   DeleteSeriesMutation, DeleteSeriesMutationVariables,
   RemoveSeriesEntryMutation, RemoveSeriesEntryMutationVariables,
   ReorderSeriesEntriesMutation, ReorderSeriesEntriesMutationVariables,
+  ScheduleSeriesEntryMutation, ScheduleSeriesEntryMutationVariables,
 } from '@/graphql/generated/types'
 
 type Series = NonNullable<SeriesDetailQuery['series']>
@@ -57,6 +59,17 @@ function move(index: number, delta: number) {
   apolloClient.mutate<ReorderSeriesEntriesMutation, ReorderSeriesEntriesMutationVariables>({
     mutation: ReorderSeriesEntriesDocument, variables: { seriesId: id, orderedEntryIds: next.map((e) => e.id) },
   })
+}
+
+async function schedule(entryId: string) {
+  const current = entries.value.find((e) => e.id === entryId)?.releasedAt
+  const input = window.prompt('Release date (YYYY-MM-DD), or leave blank to release immediately', current ? current.slice(0, 10) : '')
+  if (input === null) return
+  const releasedAt = input.trim() ? new Date(`${input.trim()}T00:00:00`).toISOString() : null
+  await apolloClient.mutate<ScheduleSeriesEntryMutation, ScheduleSeriesEntryMutationVariables>({
+    mutation: ScheduleSeriesEntryDocument, variables: { entryId, releasedAt },
+  })
+  await load()
 }
 
 async function removeEntry(entryId: string) {
@@ -129,6 +142,7 @@ onMounted(load)
           @move="move"
           @remove="removeEntry"
           @add="showAdd = true"
+          @schedule="schedule"
         />
 
         <div class="pt-4 border-t border-line">

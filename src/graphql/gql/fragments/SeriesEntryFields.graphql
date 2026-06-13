@@ -2,6 +2,8 @@ fragment SeriesEntryFields on SeriesEntry {
   id
   position
   entryType
+  released
+  releasedAt
   puzzle {
     id
     title

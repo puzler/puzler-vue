@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import MdiIcon from '@/components/MdiIcon.vue'
-import { mdiArrowUp, mdiArrowDown, mdiClose, mdiPuzzle, mdiFolderMultiple } from '@mdi/js'
+import { mdiArrowUp, mdiArrowDown, mdiClose, mdiPuzzle, mdiFolderMultiple, mdiClockOutline } from '@mdi/js'
 import type { SeriesDetailQuery } from '@/graphql/generated/types'
 
 type SeriesEntry = NonNullable<SeriesDetailQuery['series']>['entries'][number]
 
 defineProps<{ entries: SeriesEntry[] }>()
-const emit = defineEmits<{ move: [index: number, delta: number]; remove: [id: string]; add: [] }>()
+const emit = defineEmits<{
+  move: [index: number, delta: number]; remove: [id: string]; add: []; schedule: [id: string]
+}>()
 
 const ICON = 'p-1 text-soft hover:text-action disabled:opacity-30 disabled:hover:text-soft'
 
 function label(entry: SeriesEntry): string {
   return entry.entryType === 'Collection' ? (entry.collection?.title ?? 'Collection') : (entry.puzzle?.title ?? 'Puzzle')
+}
+
+function releaseLabel(entry: SeriesEntry): string {
+  if (!entry.releasedAt) return ''
+  const when = new Date(entry.releasedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return entry.released ? `Released ${when}` : `Scheduled ${when}`
 }
 </script>
 
@@ -51,7 +59,21 @@ function label(entry: SeriesEntry): string {
           class="text-faint shrink-0"
         />
         <span class="flex-1 truncate text-sm text-ink-text">{{ label(entry) }}</span>
-        <span class="text-xs text-faint shrink-0">{{ entry.entryType }}</span>
+        <span
+          v-if="entry.releasedAt"
+          class="text-xs shrink-0"
+          :class="entry.released ? 'text-faint' : 'text-action'"
+        >{{ releaseLabel(entry) }}</span>
+        <button
+          :class="ICON"
+          title="Schedule release"
+          @click="emit('schedule', entry.id)"
+        >
+          <MdiIcon
+            :path="mdiClockOutline"
+            :size="16"
+          />
+        </button>
         <button
           :class="ICON"
           :disabled="index === 0"

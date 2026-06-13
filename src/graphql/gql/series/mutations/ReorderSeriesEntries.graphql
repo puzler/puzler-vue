@@ -1,0 +1,8 @@
+mutation ReorderSeriesEntries($seriesId: ID!, $orderedEntryIds: [ID!]!) {
+  reorderSeriesEntries(input: { seriesId: $seriesId, orderedEntryIds: $orderedEntryIds }) {
+    series {
+      id
+    }
+    errors
+  }
+}

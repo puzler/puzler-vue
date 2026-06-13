@@ -1,0 +1,18 @@
+fragment SeriesEntryFields on SeriesEntry {
+  id
+  position
+  entryType
+  puzzle {
+    id
+    title
+    status
+    visibility
+    avgRating
+  }
+  collection {
+    id
+    title
+    visibility
+    puzzleCount
+  }
+}

@@ -4,8 +4,9 @@ import { RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
 import PuzzlesPanel from '@/components/mypuzzles/PuzzlesPanel.vue'
 import CollectionsPanel from '@/components/mypuzzles/CollectionsPanel.vue'
+import SeriesPanel from '@/components/mypuzzles/SeriesPanel.vue'
 
-const tab = ref<'puzzles' | 'collections'>('puzzles')
+const tab = ref<'puzzles' | 'collections' | 'series'>('puzzles')
 const TAB = 'px-3 py-1.5 text-sm transition-colors border-b-2'
 function tabClass(name: typeof tab.value) {
   return tab.value === name ? 'text-action border-action font-medium' : 'text-soft border-transparent hover:text-ink-text'
@@ -40,10 +41,17 @@ function tabClass(name: typeof tab.value) {
         >
           Collections
         </button>
+        <button
+          :class="[TAB, tabClass('series')]"
+          @click="tab = 'series'"
+        >
+          Series
+        </button>
       </div>
 
       <PuzzlesPanel v-if="tab === 'puzzles'" />
-      <CollectionsPanel v-else />
+      <CollectionsPanel v-else-if="tab === 'collections'" />
+      <SeriesPanel v-else />
     </div>
   </ContentPage>
 </template>

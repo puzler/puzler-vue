@@ -1,0 +1,18 @@
+#import "../../fragments/SeriesEntryFields.graphql"
+
+query SeriesByTokenPublic($token: String!) {
+  seriesByToken(token: $token) {
+    id
+    title
+    description
+    visibility
+    subscribed
+    subscriberCount
+    author {
+      username
+    }
+    entries {
+      ...SeriesEntryFields
+    }
+  }
+}

@@ -1,0 +1,18 @@
+#import "../../fragments/SeriesEntryFields.graphql"
+
+query SeriesPublic($id: ID!) {
+  series(id: $id) {
+    id
+    title
+    description
+    visibility
+    subscribed
+    subscriberCount
+    author {
+      username
+    }
+    entries {
+      ...SeriesEntryFields
+    }
+  }
+}

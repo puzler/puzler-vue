@@ -1,0 +1,10 @@
+#import "../../fragments/SeriesSummary.graphql"
+
+mutation CreateSeries($title: String!) {
+  createSeries(input: { title: $title }) {
+    series {
+      ...SeriesSummary
+    }
+    errors
+  }
+}

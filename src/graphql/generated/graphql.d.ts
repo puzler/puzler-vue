@@ -251,6 +251,24 @@ declare module '*/PuzzleAdminFields.graphql' {
 }
     
 
+declare module '*/SeriesEntryFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesEntryFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesSummary.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesSummary: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UserFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -426,6 +444,114 @@ declare module '*/Puzzles.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const Puzzles: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/AddSeriesEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const AddSeriesEntry: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CreateSeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreateSeries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/DeleteSeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeleteSeries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/RemoveSeriesEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RemoveSeriesEntry: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ReorderSeriesEntries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ReorderSeriesEntries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ToggleSeriesSubscription.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ToggleSeriesSubscription: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateSeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateSeries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MySeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MySeries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MySubscriptions.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MySubscriptions: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesByTokenPublic.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesByTokenPublic: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesDetail.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesDetail: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesPublic.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesPublic: DocumentNode;
 
   export default defaultDocument;
 }

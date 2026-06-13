@@ -1,0 +1,9 @@
+mutation RemoveSeriesEntry($entryId: ID!) {
+  removeSeriesEntry(input: { entryId: $entryId }) {
+    series {
+      id
+      entryCount
+    }
+    errors
+  }
+}

@@ -21,6 +21,12 @@
     "PuzzleQueries": [
       "Query"
     ],
+    "SeriesMutations": [
+      "Mutation"
+    ],
+    "SeriesQueries": [
+      "Query"
+    ],
     "SocialMutations": [
       "Mutation"
     ],

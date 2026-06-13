@@ -10,17 +10,13 @@ export const PUZZLE_EXPORT_VERSION = 3
 type EditorStore = ReturnType<typeof useEditorStore>
 type GridStore = ReturnType<typeof useGridStore>
 
-export type SerializedPuzzle = ReturnType<typeof serializePuzzle>
+export type SerializedPuzzle = ReturnType<typeof fullSerialize>
 
-// Serializes the puzzle as a JSON-safe object: everything is plain data (Sets
-// become sorted arrays) so the output round-trips through JSON.stringify/parse.
-// This is the export/import shape. It deliberately excludes solverCellStates —
+// Builds the complete puzzle object. Everything is plain data (Sets become
+// sorted arrays) so it round-trips through JSON. Excludes solverCellStates —
 // the solver's scratch is never puzzle data — and carries the explicit solution
 // and solve message instead.
-export function serializePuzzle(
-  editor: ReturnType<typeof useEditorStore>,
-  grid: ReturnType<typeof useGridStore>,
-) {
+function fullSerialize(editor: EditorStore, grid: GridStore) {
   return {
     version: PUZZLE_EXPORT_VERSION,
     grid: {
@@ -63,50 +59,102 @@ export function serializePuzzle(
   }
 }
 
+function isEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === '') return true
+  if (Array.isArray(value)) return value.length === 0
+  if (typeof value === 'object') return Object.keys(value).length === 0
+  return false
+}
+
+// Drops keys whose value is empty (empty array/object, null, '') — shallow, so
+// it never recurses into constraint/cosmetic data where an empty array can be
+// meaningful (e.g. an empty quadruple).
+function dropEmpty(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => !isEmptyValue(v)))
+}
+
+// Prunes empty containers from the serialized object so a simple puzzle exports
+// without a pile of empty maps/arrays. The structural sections are compacted
+// first, then the top level (which drops any section emptied by that pass).
+function compactExport(data: ReturnType<typeof fullSerialize>): SerializedPuzzle {
+  const compacted = {
+    ...data,
+    grid: dropEmpty(data.grid),
+    meta: dropEmpty(data.meta),
+    globals: dropEmpty(data.globals),
+    constraints: dropEmpty(data.constraints),
+    cosmetics: dropEmpty(data.cosmetics),
+  }
+  return dropEmpty(compacted) as SerializedPuzzle
+}
+
+// The export/import shape — clean, with the solution and solve message.
+export function serializePuzzle(editor: EditorStore, grid: GridStore): SerializedPuzzle {
+  return compactExport(fullSerialize(editor, grid))
+}
+
+// The play-safe definition stored on a version: same shape, but the solution
+// and solve message are stripped (they live in their own version columns and
+// must never reach a solver).
+export function serializePlayDefinition(editor: EditorStore, grid: GridStore): SerializedPuzzle {
+  const data = fullSerialize(editor, grid)
+  return compactExport({ ...data, solution: null, meta: { ...data.meta, solveMessage: '' } })
+}
+
 // Inverse of serializePuzzle: hydrates the editor and grid stores from a stored
 // definition. reset() first gives a clean slate and clears undo history, so
 // loading a version is not itself an undoable step. Arrays become Sets again.
 export function deserializePuzzle(editor: EditorStore, grid: GridStore, data: SerializedPuzzle) {
   editor.reset()
 
+  // Empty containers are omitted from the export, so every section is read
+  // defensively with a default.
+  const meta = data.meta ?? {}
+  const globals = data.globals ?? {}
+  const constraints = data.constraints ?? {}
+  const cosmetics = data.cosmetics ?? {}
+
   grid.setDimensions(data.grid.rows, data.grid.cols)
   grid.setCustomCellRegions(data.grid.customCellRegions ?? null)
 
-  editor.puzzleName = data.meta.name ?? ''
-  editor.puzzleAuthor = data.meta.author ?? ''
-  editor.puzzleRules = data.meta.rules ?? ''
-  editor.solveMessage = data.meta.solveMessage ?? ''
+  editor.puzzleName = meta.name ?? ''
+  editor.puzzleAuthor = meta.author ?? ''
+  editor.puzzleRules = meta.rules ?? ''
+  editor.solveMessage = meta.solveMessage ?? ''
   editor.solution = data.solution ?? null
 
-  editor.givenDigits = { ...data.givenDigits }
+  editor.givenDigits = { ...(data.givenDigits ?? {}) }
   // solverCellStates is deliberately not restored — it's ephemeral scratch,
   // never part of stored puzzle data, so it stays empty from reset().
-  editor.activeConstraints = data.activeConstraints.map((c) => ({ ...c }))
+  editor.activeConstraints = (data.activeConstraints ?? []).map((c) => ({ ...c }))
 
-  editor.activeGlobalVariants = new Set(data.globals.variants)
-  editor.customGlobalConstraints = data.globals.custom.map((c) => ({ ...c }))
+  editor.activeGlobalVariants = new Set(globals.variants ?? [])
+  editor.customGlobalConstraints = (globals.custom ?? []).map((c) => ({ ...c }))
 
   editor.singleCellMarks = Object.fromEntries(
-    Object.entries(data.constraints.singleCellMarks).map(([type, cells]) => [type, new Set(cells)]),
+    Object.entries(constraints.singleCellMarks ?? {}).map(([type, cells]) => [type, new Set(cells)]),
   )
-  editor.connectorDots = structuredClone(data.constraints.connectorDots)
-  editor.outerClues = structuredClone(data.constraints.outerClues)
+  editor.connectorDots = structuredClone(constraints.connectorDots ?? {})
+  editor.outerClues = structuredClone(constraints.outerClues ?? {})
 
-  editor.cosmeticCellColors = { ...data.cosmetics.cellColors }
-  editor.cosmeticInstances = structuredClone(data.cosmetics.instances)
-  editor.linePresets = structuredClone(data.cosmetics.linePresets)
-  editor.shapePresets = structuredClone(data.cosmetics.shapePresets)
-  editor.textPresets = structuredClone(data.cosmetics.textPresets)
-  editor.cellColorPresets = structuredClone(data.cosmetics.cellColorPresets)
-  editor.cagePresets = structuredClone(data.cosmetics.cagePresets)
+  editor.cosmeticCellColors = { ...(cosmetics.cellColors ?? {}) }
+  editor.cosmeticInstances = structuredClone(cosmetics.instances ?? [])
+
+  // Presets are only overwritten when present, so an import that omits them
+  // keeps the default preset reset() created (the line/shape tools need one).
+  if (cosmetics.linePresets) editor.linePresets = structuredClone(cosmetics.linePresets)
+  if (cosmetics.shapePresets) editor.shapePresets = structuredClone(cosmetics.shapePresets)
+  if (cosmetics.textPresets) editor.textPresets = structuredClone(cosmetics.textPresets)
+  if (cosmetics.cellColorPresets) editor.cellColorPresets = structuredClone(cosmetics.cellColorPresets)
+  if (cosmetics.cagePresets) editor.cagePresets = structuredClone(cosmetics.cagePresets)
 
   // Point the active-preset selectors at the restored presets (reset() left
   // them on freshly-generated default ids).
-  if (data.cosmetics.linePresets[0]) editor.activeLinePresetId = data.cosmetics.linePresets[0].id
-  if (data.cosmetics.shapePresets[0]) editor.activeShapePresetId = data.cosmetics.shapePresets[0].id
-  if (data.cosmetics.textPresets[0]) editor.activeTextPresetId = data.cosmetics.textPresets[0].id
-  if (data.cosmetics.cellColorPresets[0]) editor.activeCellColorPresetId = data.cosmetics.cellColorPresets[0].id
-  if (data.cosmetics.cagePresets[0]) editor.activeCagePresetId = data.cosmetics.cagePresets[0].id
+  if (cosmetics.linePresets?.[0]) editor.activeLinePresetId = cosmetics.linePresets[0].id
+  if (cosmetics.shapePresets?.[0]) editor.activeShapePresetId = cosmetics.shapePresets[0].id
+  if (cosmetics.textPresets?.[0]) editor.activeTextPresetId = cosmetics.textPresets[0].id
+  if (cosmetics.cellColorPresets?.[0]) editor.activeCellColorPresetId = cosmetics.cellColorPresets[0].id
+  if (cosmetics.cagePresets?.[0]) editor.activeCagePresetId = cosmetics.cagePresets[0].id
 }
 
 // The map of currently-filled cells (givens plus solver-entered digits), empty

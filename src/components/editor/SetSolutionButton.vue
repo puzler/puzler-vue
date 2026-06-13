@@ -24,18 +24,17 @@ function setSolution() {
 
 <template>
   <button
-    title="Set the current grid as the puzzle's solution"
+    title="Set the current grid as the solution"
     aria-label="Set as solution"
-    class="h-8 px-2.5 flex items-center gap-1.5 rounded-lg border transition-colors"
+    class="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors"
     :class="justSet
-      ? 'border-green-400 bg-green-50 text-green-700'
-      : 'border-line bg-surface text-soft hover:text-action hover:border-action'"
+      ? 'border-green-400 bg-green-50 text-green-600'
+      : 'bg-surface border-line text-soft hover:text-action hover:border-action'"
     @click="setSolution"
   >
     <MdiIcon
       :path="justSet ? mdiCheck : mdiClipboardCheckOutline"
       :size="18"
     />
-    <span class="text-xs font-medium">{{ justSet ? 'Solution set' : 'Set as solution' }}</span>
   </button>
 </template>

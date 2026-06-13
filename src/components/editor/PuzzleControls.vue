@@ -6,6 +6,7 @@ import { mdiViewGridPlusOutline, mdiEraser } from '@mdi/js'
 import NewGridModal from './NewGridModal.vue'
 import EditorActions from './EditorActions.vue'
 import SetSolutionButton from './SetSolutionButton.vue'
+import ViewSolutionButton from './ViewSolutionButton.vue'
 
 const editor = useEditorStore()
 
@@ -51,6 +52,7 @@ function toggleMode() {
         />
       </button>
       <SetSolutionButton v-if="editor.mode === 'solving'" />
+      <ViewSolutionButton v-if="editor.mode === 'solving'" />
     </div>
 
     <div class="flex items-center gap-2">

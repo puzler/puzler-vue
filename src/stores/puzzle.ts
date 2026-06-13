@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, deserializePuzzle, type SerializedPuzzle } from '@/utils/puzzleExport'
+import { serializePlayDefinition, deserializePuzzle, type SerializedPuzzle } from '@/utils/puzzleExport'
 import CreatePuzzleDocument from '@/graphql/gql/puzzles/mutations/CreatePuzzle.graphql'
 import SavePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/SavePuzzleVersion.graphql'
 import DeletePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/DeletePuzzleVersion.graphql'
@@ -116,13 +116,11 @@ export const usePuzzleStore = defineStore('puzzle', () => {
       const puzzleId = await ensurePuzzle()
       // The stored definition is play-safe: the solution and solve message are
       // stripped from it and sent separately so they never reach a solver.
-      const full = serializePuzzle(editor, grid)
-      const definition = { ...full, solution: null, meta: { ...full.meta, solveMessage: '' } }
       const { data } = await apolloClient.mutate<SavePuzzleVersionMutation, SavePuzzleVersionMutationVariables>({
         mutation: SavePuzzleVersionDocument,
         variables: {
           puzzleId,
-          definition,
+          definition: serializePlayDefinition(editor, grid),
           solution: editor.solution,
           solveMessage: editor.solveMessage,
           label: label ?? null,

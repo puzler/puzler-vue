@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, deserializePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
+import { serializePuzzle, serializePlayDefinition, deserializePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
 
 describe('serializePuzzle', () => {
   beforeEach(() => {
@@ -64,6 +64,34 @@ describe('serializePuzzle', () => {
     const roundTripped = JSON.parse(JSON.stringify(data))
     expect(roundTripped).toEqual(data)
   })
+
+  it('omits empty containers and unset fields', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.givenDigits = { r0c0: 5 }
+    const data = serializePuzzle(editor, grid) as Record<string, unknown>
+    expect('constraints' in data).toBe(false)
+    expect('globals' in data).toBe(false)
+    expect('activeConstraints' in data).toBe(false)
+    expect('solution' in data).toBe(false)
+    expect((data.grid as Record<string, unknown>).customCellRegions).toBeUndefined()
+  })
+})
+
+describe('serializePlayDefinition', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('strips the solution and solve message from the play-safe definition', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.solution = { r0c0: 5 }
+    editor.solveMessage = 'secret clue'
+    const def = serializePlayDefinition(editor, grid) as Record<string, unknown>
+    expect('solution' in def).toBe(false)
+    expect((def.meta as Record<string, unknown> | undefined)?.solveMessage).toBeUndefined()
+  })
 })
 
 describe('deserializePuzzle', () => {
@@ -96,6 +124,16 @@ describe('deserializePuzzle', () => {
     expect(editor2.solution).toEqual({ r0c0: 5, r1c1: 3 })
     expect(editor2.solveMessage).toBe('The keyword is CIPHER')
     expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+  })
+
+  it('handles a minimal pruned object (only version + grid + givens)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, { version: 3, grid: { rows: 9, cols: 9 }, givenDigits: { r0c0: 7 } } as never)
+    expect(grid.rows).toBe(9)
+    expect(editor.givenDigits).toEqual({ r0c0: 7 })
+    expect(editor.solution).toBeNull()
+    expect(editor.linePresets.length).toBeGreaterThan(0) // default preset preserved
   })
 
   it('restores grid dimensions, custom regions, and Set-backed marks', () => {

@@ -125,6 +125,15 @@ declare module '*/MovePuzzleToFolder.graphql' {
 }
     
 
+declare module '*/RecordCollectionSolveTime.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RecordCollectionSolveTime: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RemovePuzzleFromCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -174,6 +183,15 @@ declare module '*/CollectionDetail.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const CollectionDetail: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CollectionLeaderboard.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionLeaderboard: DocumentNode;
 
   export default defaultDocument;
 }

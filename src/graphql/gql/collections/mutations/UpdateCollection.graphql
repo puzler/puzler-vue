@@ -1,6 +1,6 @@
-mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: String, $mode: String) {
+mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: String, $mode: String, $timed: Boolean) {
   updateCollection(
-    input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode } }
+    input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode, timed: $timed } }
   ) {
     collection {
       id
@@ -8,6 +8,7 @@ mutation UpdateCollection($id: ID!, $title: String, $description: String, $visib
       description
       visibility
       mode
+      timed
     }
     errors
   }

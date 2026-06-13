@@ -2,7 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
+import MdiIcon from '@/components/MdiIcon.vue'
+import CollectionLeaderboard from '@/components/collections/CollectionLeaderboard.vue'
+import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
+import { solvedIds } from '@/utils/solveProgress'
 import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
 import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
 import type {
@@ -15,9 +19,21 @@ type Collection = NonNullable<CollectionPublicQuery['collection']>
 const route = useRoute()
 const collection = ref<Collection | null>(null)
 const loading = ref(true)
+const solved = ref(new Set<string>())
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
 const isSequence = computed(() => collection.value?.mode === 'sequence')
+
+function linkQuery(): Record<string, string> {
+  if (!collection.value) return {}
+  return { collection: collection.value.id, ...(shareToken.value ? { ct: shareToken.value } : {}) }
+}
+
+// In a sequence collection, a puzzle unlocks only once every earlier one is solved.
+function isUnlocked(index: number): boolean {
+  if (!isSequence.value || !collection.value) return true
+  return collection.value.puzzles.slice(0, index).every((p) => solved.value.has(p.id))
+}
 
 async function load() {
   const id = typeof route.params.id === 'string' ? route.params.id : null
@@ -33,6 +49,7 @@ async function load() {
       })
       collection.value = data?.collection ?? null
     }
+    solved.value = solvedIds()
   } finally {
     loading.value = false
   }
@@ -73,7 +90,13 @@ onMounted(load)
           v-if="isSequence"
           class="text-xs text-action mt-3"
         >
-          Meant to be solved in order.
+          Solve these in order — each unlocks the next.
+        </p>
+        <p
+          v-if="collection.timed"
+          class="text-xs text-action mt-1"
+        >
+          ⏱ Timed — your solve times are ranked below.
         </p>
 
         <ol class="mt-6 flex flex-col gap-3">
@@ -82,31 +105,38 @@ onMounted(load)
             :key="puzzle.id"
           >
             <RouterLink
-              :to="{ name: 'player', params: { id: puzzle.id } }"
+              v-if="isUnlocked(index)"
+              :to="{ name: 'player', params: { id: puzzle.id }, query: linkQuery() }"
               class="flex items-center gap-3 p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
             >
               <span
                 v-if="isSequence"
                 class="text-sm text-faint w-5 text-right shrink-0"
               >{{ index + 1 }}</span>
-              <div class="flex flex-col min-w-0 flex-1">
-                <span class="font-medium text-ink-text truncate">{{ puzzle.title }}</span>
-                <div
-                  v-if="puzzle.constraintTypes.length"
-                  class="mt-1 flex flex-wrap gap-1"
-                >
-                  <span
-                    v-for="type in puzzle.constraintTypes.slice(0, 4)"
-                    :key="type"
-                    class="text-[10px] px-1.5 py-0.5 rounded bg-line text-soft"
-                  >{{ type.replace(/_/g, ' ') }}</span>
-                </div>
-              </div>
+              <span class="font-medium text-ink-text truncate flex-1">{{ puzzle.title }}</span>
+              <MdiIcon
+                v-if="solved.has(puzzle.id)"
+                :path="mdiCheckCircle"
+                :size="16"
+                class="text-green-500 shrink-0"
+              />
               <span
-                v-if="puzzle.avgRating"
+                v-else-if="puzzle.avgRating"
                 class="text-xs text-faint shrink-0"
               >★ {{ puzzle.avgRating.toFixed(1) }}</span>
             </RouterLink>
+            <div
+              v-else
+              class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line text-faint cursor-not-allowed"
+            >
+              <span class="text-sm w-5 text-right shrink-0">{{ index + 1 }}</span>
+              <span class="truncate flex-1">{{ puzzle.title }}</span>
+              <MdiIcon
+                :path="mdiLockOutline"
+                :size="16"
+                class="shrink-0"
+              />
+            </div>
           </li>
         </ol>
 
@@ -116,6 +146,11 @@ onMounted(load)
         >
           No puzzles in this collection yet.
         </p>
+
+        <CollectionLeaderboard
+          v-if="collection.timed"
+          :collection-id="collection.id"
+        />
       </div>
     </div>
   </ContentPage>

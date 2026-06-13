@@ -5,6 +5,7 @@ query CollectionDetail($id: ID!) {
     description
     visibility
     mode
+    timed
     shareToken
     puzzles {
       id

@@ -77,6 +77,8 @@ export type Collection = {
   puzzles: Array<Puzzle>;
   /** Unguessable share key for unlisted access; only visible to the author */
   shareToken?: Maybe<Scalars['String']['output']>;
+  /** Whether solves are timed (competition mode) */
+  timed: Scalars['Boolean']['output'];
   /** Collection title */
   title: Scalars['String']['output'];
   /** Access mode: private, unlisted, public, patrons_only, or subscribers_only */
@@ -89,10 +91,23 @@ export type CollectionAttrsInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** Ordering mode: unordered or sequence */
   mode?: InputMaybe<Scalars['String']['input']>;
+  /** Competition timing on/off */
+  timed?: InputMaybe<Scalars['Boolean']['input']>;
   /** Collection title */
   title?: InputMaybe<Scalars['String']['input']>;
   /** private, unlisted, or public */
   visibility?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** One solver's standing in a timed collection */
+export type CollectionLeaderboardEntry = {
+  __typename?: 'CollectionLeaderboardEntry';
+  /** 1-based position (fastest first) */
+  rank: Scalars['Int']['output'];
+  /** Sum of best times across all puzzles */
+  totalSeconds: Scalars['Int']['output'];
+  /** The solver's username */
+  username: Scalars['String']['output'];
 };
 
 /** Mutations for managing folders and collections */
@@ -109,6 +124,8 @@ export type CollectionMutations = {
   deleteFolder?: Maybe<DeleteFolderPayload>;
   /** File or unfile a puzzle */
   movePuzzleToFolder?: Maybe<MovePuzzleToFolderPayload>;
+  /** Record a solve time for a timed collection */
+  recordCollectionSolveTime?: Maybe<RecordCollectionSolveTimePayload>;
   /** Remove a puzzle from a collection */
   removePuzzleFromCollection?: Maybe<RemovePuzzleFromCollectionPayload>;
   /** Rename a folder */
@@ -157,6 +174,12 @@ export type CollectionMutationsMovePuzzleToFolderArgs = {
 
 
 /** Mutations for managing folders and collections */
+export type CollectionMutationsRecordCollectionSolveTimeArgs = {
+  input: RecordCollectionSolveTimeInput;
+};
+
+
+/** Mutations for managing folders and collections */
 export type CollectionMutationsRemovePuzzleFromCollectionArgs = {
   input: RemovePuzzleFromCollectionInput;
 };
@@ -185,6 +208,8 @@ export type CollectionQueries = {
   collection?: Maybe<Collection>;
   /** Find a collection by its share token (for unlisted/series links) */
   collectionByToken?: Maybe<Collection>;
+  /** Ranked solver times for a timed collection (solvers who completed every puzzle) */
+  collectionLeaderboard: Array<CollectionLeaderboardEntry>;
   /** The current user's collections, newest first */
   myCollections: Array<Collection>;
   /** The current user's folders, in sort order */
@@ -201,6 +226,12 @@ export type CollectionQueriesCollectionArgs = {
 /** Folder and collection queries */
 export type CollectionQueriesCollectionByTokenArgs = {
   token: Scalars['String']['input'];
+};
+
+
+/** Folder and collection queries */
+export type CollectionQueriesCollectionLeaderboardArgs = {
+  collectionId: Scalars['ID']['input'];
 };
 
 /** A comment on a puzzle */
@@ -680,6 +711,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   publishPuzzleVersion?: Maybe<PublishPuzzleVersionPayload>;
   /** Rate a puzzle or cast a difficulty vote */
   ratePuzzle?: Maybe<RatePuzzlePayload>;
+  /** Record a solve time for a timed collection */
+  recordCollectionSolveTime?: Maybe<RecordCollectionSolveTimePayload>;
   /** Remove the current user's uploaded avatar */
   removeAvatar?: Maybe<RemoveAvatarPayload>;
   /** Remove a puzzle from a collection */
@@ -840,6 +873,12 @@ export type MutationPublishPuzzleVersionArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationRatePuzzleArgs = {
   input: RatePuzzleInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationRecordCollectionSolveTimeArgs = {
+  input: RecordCollectionSolveTimeInput;
 };
 
 
@@ -1328,6 +1367,8 @@ export type Query = CollectionQueries & PuzzleQueries & TagQueries & UserQueries
   collection?: Maybe<Collection>;
   /** Find a collection by its share token (for unlisted/series links) */
   collectionByToken?: Maybe<Collection>;
+  /** Ranked solver times for a timed collection (solvers who completed every puzzle) */
+  collectionLeaderboard: Array<CollectionLeaderboardEntry>;
   /** The currently authenticated user, or null if unauthenticated */
   me?: Maybe<User>;
   /** The current user's collections, newest first */
@@ -1360,6 +1401,12 @@ export type QueryCollectionArgs = {
 /** Root query type — all queries are composed from domain-specific schema modules */
 export type QueryCollectionByTokenArgs = {
   token: Scalars['String']['input'];
+};
+
+
+/** Root query type — all queries are composed from domain-specific schema modules */
+export type QueryCollectionLeaderboardArgs = {
+  collectionId: Scalars['ID']['input'];
 };
 
 
@@ -1441,6 +1488,29 @@ export type Rating = {
   stars?: Maybe<Scalars['Int']['output']>;
   /** User who submitted this rating */
   user: User;
+};
+
+/** Autogenerated input type of RecordCollectionSolveTime */
+export type RecordCollectionSolveTimeInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The collection */
+  collectionId: Scalars['ID']['input'];
+  /** The solved puzzle */
+  puzzleId: Scalars['ID']['input'];
+  /** Elapsed solve time in seconds */
+  seconds: Scalars['Int']['input'];
+};
+
+/** Autogenerated return type of RecordCollectionSolveTime. */
+export type RecordCollectionSolveTimePayload = {
+  __typename?: 'RecordCollectionSolveTimePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** Whether a time was recorded */
+  recorded: Scalars['Boolean']['output'];
 };
 
 /** Autogenerated input type of RemoveAvatar */
@@ -2159,6 +2229,15 @@ export type MovePuzzleToFolderMutationVariables = Exact<{
 
 export type MovePuzzleToFolderMutation = { movePuzzleToFolder: { errors: Array<string>, puzzle: { id: string, folder: { id: string, name: string } | null } | null } | null };
 
+export type RecordCollectionSolveTimeMutationVariables = Exact<{
+  collectionId: string | number;
+  puzzleId: string | number;
+  seconds: number;
+}>;
+
+
+export type RecordCollectionSolveTimeMutation = { recordCollectionSolveTime: { recorded: boolean, errors: Array<string> } | null };
+
 export type RemovePuzzleFromCollectionMutationVariables = Exact<{
   collectionId: string | number;
   puzzleId: string | number;
@@ -2189,31 +2268,39 @@ export type UpdateCollectionMutationVariables = Exact<{
   description?: string | null | undefined;
   visibility?: string | null | undefined;
   mode?: string | null | undefined;
+  timed?: boolean | null | undefined;
 }>;
 
 
-export type UpdateCollectionMutation = { updateCollection: { errors: Array<string>, collection: { id: string, title: string, description: string | null, visibility: string, mode: string } | null } | null };
+export type UpdateCollectionMutation = { updateCollection: { errors: Array<string>, collection: { id: string, title: string, description: string | null, visibility: string, mode: string, timed: boolean } | null } | null };
 
 export type CollectionByTokenPublicQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
 export type CollectionDetailQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, visibility: string, mode: string, shareToken: string | null, puzzles: Array<{ id: string, title: string, status: string, visibility: string }> } | null };
+export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, visibility: string, mode: string, timed: boolean, shareToken: string | null, puzzles: Array<{ id: string, title: string, status: string, visibility: string }> } | null };
+
+export type CollectionLeaderboardQueryVariables = Exact<{
+  collectionId: string | number;
+}>;
+
+
+export type CollectionLeaderboardQuery = { collectionLeaderboard: Array<{ rank: number, username: string, totalSeconds: number }> };
 
 export type CollectionPublicQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
 export type MyCollectionsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2225,7 +2312,7 @@ export type MyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzzleCount: number }> };
 
-export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: string, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
+export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: string, mode: string, puzzleCount: number };
 

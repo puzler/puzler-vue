@@ -6,6 +6,7 @@ import ContentPage from '@/components/ContentPage.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import AddPuzzlesModal from '@/components/mypuzzles/AddPuzzlesModal.vue'
 import CollectionPuzzleList from '@/components/mypuzzles/CollectionPuzzleList.vue'
+import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
 import CollectionDetailDocument from '@/graphql/gql/collections/queries/CollectionDetail.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import DeleteCollectionDocument from '@/graphql/gql/collections/mutations/DeleteCollection.graphql'
@@ -20,7 +21,7 @@ import type {
 } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionDetailQuery['collection']>
-type Attrs = Partial<Pick<UpdateCollectionMutationVariables, 'title' | 'visibility' | 'mode'>>
+type Attrs = Partial<Pick<UpdateCollectionMutationVariables, 'title' | 'visibility' | 'mode' | 'timed'>>
 
 const route = useRoute()
 const router = useRouter()
@@ -70,10 +71,6 @@ async function deleteCollection() {
   router.push({ name: 'my-puzzles' })
 }
 
-function onSelect(event: Event) {
-  return (event.target as HTMLSelectElement).value
-}
-
 // Public page link; unlisted collections carry their share token in the URL.
 const publicRoute = computed(() => ({
   name: 'collection',
@@ -110,36 +107,13 @@ onMounted(load)
         v-else
         class="mt-4 flex flex-col gap-6"
       >
-        <input
-          :value="collection.title"
-          class="font-display text-2xl font-bold bg-transparent focus:outline-none border-b border-transparent focus:border-line"
-          @change="save({ title: ($event.target as HTMLInputElement).value })"
-        >
-        <div class="flex flex-wrap gap-4">
-          <label class="text-sm text-soft flex items-center gap-2">
-            Visibility
-            <select
-              :value="collection.visibility"
-              class="text-sm px-2 py-1 rounded border border-line bg-surface"
-              @change="save({ visibility: onSelect($event) })"
-            >
-              <option value="private">Private</option>
-              <option value="unlisted">Unlisted</option>
-              <option value="public">Public</option>
-            </select>
-          </label>
-          <label class="text-sm text-soft flex items-center gap-2">
-            Order
-            <select
-              :value="collection.mode"
-              class="text-sm px-2 py-1 rounded border border-line bg-surface"
-              @change="save({ mode: onSelect($event) })"
-            >
-              <option value="unordered">Any order</option>
-              <option value="sequence">In sequence</option>
-            </select>
-          </label>
-        </div>
+        <CollectionSettings
+          :title="collection.title"
+          :visibility="collection.visibility"
+          :mode="collection.mode"
+          :timed="collection.timed"
+          @save="save"
+        />
 
         <RouterLink
           v-if="collection.visibility !== 'private'"

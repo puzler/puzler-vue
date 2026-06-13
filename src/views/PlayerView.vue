@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { useAuthStore } from '@/stores/auth'
 import { apolloClient } from '@/utils/apolloClient'
 import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
+import { markSolved } from '@/utils/solveProgress'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
 import RevealSolveMessageDocument from '@/graphql/gql/puzzles/mutations/RevealSolveMessage.graphql'
+import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
+import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
+import RecordCollectionSolveTimeDocument from '@/graphql/gql/collections/mutations/RecordCollectionSolveTime.graphql'
 import type {
   PuzzleForPlayQuery,
   PuzzleForPlayQueryVariables,
@@ -19,11 +24,19 @@ import type {
   PuzzleByTokenForPlayQueryVariables,
   RevealSolveMessageMutation,
   RevealSolveMessageMutationVariables,
+  CollectionPublicQuery,
+  CollectionPublicQueryVariables,
+  CollectionByTokenPublicQuery,
+  CollectionByTokenPublicQueryVariables,
+  RecordCollectionSolveTimeMutation,
+  RecordCollectionSolveTimeMutationVariables,
 } from '@/graphql/generated/types'
 
 const route = useRoute()
+const router = useRouter()
 const editor = useEditorStore()
 const grid = useGridStore()
+const auth = useAuthStore()
 
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
@@ -35,6 +48,65 @@ const solved = ref(false)
 const solveMessage = ref<string | null>(null)
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
+
+// Optional collection context: when playing inside a collection, we offer
+// "next puzzle" navigation. `ct` carries the collection's share token (unlisted).
+const collectionId = computed(() => (typeof route.query.collection === 'string' ? route.query.collection : null))
+const collectionToken = computed(() => (typeof route.query.ct === 'string' ? route.query.ct : null))
+const collectionTitle = ref('')
+const collectionTimed = ref(false)
+const orderedIds = ref<string[]>([])
+
+// Competition timer (only runs inside a timed collection).
+const elapsed = ref(0)
+let timer: ReturnType<typeof setInterval> | null = null
+const elapsedLabel = computed(() => {
+  const m = Math.floor(elapsed.value / 60)
+  const s = elapsed.value % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+})
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null }
+}
+function startTimer() {
+  stopTimer()
+  elapsed.value = 0
+  timer = setInterval(() => { elapsed.value += 1 }, 1000)
+}
+const nextId = computed(() => {
+  if (!puzzleId.value) return null
+  const idx = orderedIds.value.indexOf(puzzleId.value)
+  return idx >= 0 && idx < orderedIds.value.length - 1 ? orderedIds.value[idx + 1] : null
+})
+
+async function loadCollectionOrder() {
+  if (!collectionId.value) return
+  if (collectionToken.value) {
+    const { data } = await apolloClient.query<CollectionByTokenPublicQuery, CollectionByTokenPublicQueryVariables>({
+      query: CollectionByTokenPublicDocument, variables: { token: collectionToken.value }, fetchPolicy: 'network-only',
+    })
+    collectionTitle.value = data?.collectionByToken?.title ?? ''
+    collectionTimed.value = data?.collectionByToken?.timed ?? false
+    orderedIds.value = data?.collectionByToken?.puzzles.map((p) => p.id) ?? []
+  } else {
+    const { data } = await apolloClient.query<CollectionPublicQuery, CollectionPublicQueryVariables>({
+      query: CollectionPublicDocument, variables: { id: collectionId.value }, fetchPolicy: 'network-only',
+    })
+    collectionTitle.value = data?.collection?.title ?? ''
+    collectionTimed.value = data?.collection?.timed ?? false
+    orderedIds.value = data?.collection?.puzzles.map((p) => p.id) ?? []
+  }
+}
+
+function goToNext() {
+  if (!nextId.value) return
+  router.push({ name: 'player', params: { id: nextId.value }, query: { ...route.query } })
+}
+
+function backToCollection() {
+  if (!collectionId.value) return
+  router.push({ name: 'collection', params: { id: collectionId.value }, query: collectionToken.value ? { t: collectionToken.value } : {} })
+}
 
 // Re-check after every change: hash the filled cells and compare to the
 // published hash. Exact match means solved — which naturally supports variants
@@ -52,6 +124,15 @@ watch(
 // never sent in the puzzle data). Falls back to the default if there is none.
 async function onSolved() {
   solved.value = true
+  stopTimer()
+  if (puzzleId.value) markSolved(puzzleId.value)
+  // Record the time for the leaderboard (logged-in solvers, timed collections).
+  if (collectionTimed.value && collectionId.value && puzzleId.value && auth.isAuthenticated && elapsed.value > 0) {
+    apolloClient.mutate<RecordCollectionSolveTimeMutation, RecordCollectionSolveTimeMutationVariables>({
+      mutation: RecordCollectionSolveTimeDocument,
+      variables: { collectionId: collectionId.value, puzzleId: puzzleId.value, seconds: elapsed.value },
+    }).catch(() => { /* best-effort */ })
+  }
   if (!puzzleId.value || !solutionHash.value) return
   try {
     const { data } = await apolloClient.mutate<RevealSolveMessageMutation, RevealSolveMessageMutationVariables>({
@@ -83,6 +164,12 @@ async function fetchByToken(token: string) {
 }
 
 async function loadPuzzle() {
+  loading.value = true
+  errorMessage.value = null
+  solved.value = false
+  solveMessage.value = null
+  stopTimer()
+  editor.reset()
   const id = typeof route.params.id === 'string' ? route.params.id : null
   try {
     const puzzle = shareToken.value ? await fetchByToken(shareToken.value) : id ? await fetchById(id) : null
@@ -100,6 +187,7 @@ async function loadPuzzle() {
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
     editor.setMode('solving')
+    if (collectionTimed.value) startTimer()
   } catch (e) {
     errorMessage.value = e instanceof Error ? e.message : 'Could not load this puzzle.'
   } finally {
@@ -154,12 +242,17 @@ function onKeyDown(event: KeyboardEvent) {
 
 const subtitle = computed(() => (authorName.value ? `by ${authorName.value}` : ''))
 
-onMounted(() => {
-  loadPuzzle()
+// Re-load when navigating between puzzles in a collection (same route).
+watch(() => route.params.id, loadPuzzle)
+
+onMounted(async () => {
   window.addEventListener('keydown', onKeyDown)
+  await loadCollectionOrder() // sets collectionTimed before the timer can start
+  loadPuzzle()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
+  stopTimer()
   // Leave a clean slate so the editor store isn't holding a played puzzle.
   editor.reset()
 })
@@ -172,6 +265,11 @@ onUnmounted(() => {
         {{ title || 'Puzzle' }}
       </h1>
       <span class="text-xs text-faint">{{ subtitle }}</span>
+      <span
+        v-if="collectionTimed"
+        class="ml-auto text-sm font-mono tabular-nums text-ink-text"
+        :title="'Elapsed time'"
+      >⏱ {{ elapsedLabel }}</span>
     </header>
 
     <div
@@ -220,7 +318,21 @@ onUnmounted(() => {
             :class="solveMessage ? 'text-ink-text' : 'text-faint'"
           >{{ solveMessage || `Nicely done — you completed “${title}”.` }}</span>
           <button
+            v-if="collectionId && nextId"
             class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+            @click="goToNext"
+          >
+            Next puzzle →
+          </button>
+          <button
+            v-else-if="collectionId"
+            class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+            @click="backToCollection"
+          >
+            Back to {{ collectionTitle || 'collection' }}
+          </button>
+          <button
+            class="text-sm text-soft hover:text-ink-text"
             @click="solved = false"
           >
             Keep looking

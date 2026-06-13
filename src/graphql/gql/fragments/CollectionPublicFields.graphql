@@ -3,6 +3,7 @@ fragment CollectionPublicFields on Collection {
   title
   description
   mode
+  timed
   author {
     id
     username

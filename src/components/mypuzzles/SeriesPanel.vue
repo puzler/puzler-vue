@@ -8,13 +8,19 @@ import type {
   MySeriesQuery, MySeriesQueryVariables,
   CreateSeriesMutation, CreateSeriesMutationVariables,
 } from '@/graphql/generated/types'
+import { SeriesVisibilityEnum } from '@/graphql/generated/types'
 
 const series = ref<MySeriesQuery['mySeries']>([])
 const loading = ref(true)
 const router = useRouter()
 
 const VISIBILITY_LABEL: Record<string, string> = {
-  private: 'Private', unlisted: 'Unlisted', public: 'Public', patrons_only: 'Patrons', subscribers_only: 'Subscribers',
+  [SeriesVisibilityEnum.Private]: 'Private',
+  [SeriesVisibilityEnum.Unlisted]: 'Unlisted',
+  [SeriesVisibilityEnum.ContainersOnly]: 'Embedded',
+  [SeriesVisibilityEnum.Public]: 'Public',
+  [SeriesVisibilityEnum.PatronsOnly]: 'Patrons',
+  [SeriesVisibilityEnum.SubscribersOnly]: 'Subscribers',
 }
 
 async function load() {

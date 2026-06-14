@@ -1,11 +1,13 @@
 <script setup lang="ts">
-defineProps<{ title: string; visibility: string; mode: string; timed: boolean }>()
+import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
+
+defineProps<{ title: string; visibility: CollectionVisibilityEnum; mode: CollectionModeEnum; timed: boolean }>()
 const emit = defineEmits<{
-  save: [attrs: { title?: string; visibility?: string; mode?: string; timed?: boolean }]
+  save: [attrs: { title?: string; visibility?: CollectionVisibilityEnum; mode?: CollectionModeEnum; timed?: boolean }]
 }>()
 
-function selectValue(event: Event): string {
-  return (event.target as HTMLSelectElement).value
+function selectValue<T extends string>(event: Event): T {
+  return (event.target as HTMLSelectElement).value as T
 }
 </script>
 
@@ -22,11 +24,12 @@ function selectValue(event: Event): string {
         <select
           :value="visibility"
           class="text-sm px-2 py-1 rounded border border-line bg-surface"
-          @change="emit('save', { visibility: selectValue($event) })"
+          @change="emit('save', { visibility: selectValue<CollectionVisibilityEnum>($event) })"
         >
-          <option value="private">Private</option>
-          <option value="unlisted">Unlisted</option>
-          <option value="public">Public</option>
+          <option :value="CollectionVisibilityEnum.Private">Private</option>
+          <option :value="CollectionVisibilityEnum.Unlisted">Unlisted</option>
+          <option :value="CollectionVisibilityEnum.ContainersOnly">In series only</option>
+          <option :value="CollectionVisibilityEnum.Public">Public</option>
         </select>
       </label>
       <label class="text-sm text-soft flex items-center gap-2">
@@ -34,10 +37,10 @@ function selectValue(event: Event): string {
         <select
           :value="mode"
           class="text-sm px-2 py-1 rounded border border-line bg-surface"
-          @change="emit('save', { mode: selectValue($event) })"
+          @change="emit('save', { mode: selectValue<CollectionModeEnum>($event) })"
         >
-          <option value="unordered">Any order</option>
-          <option value="sequence">In sequence</option>
+          <option :value="CollectionModeEnum.Unordered">Any order</option>
+          <option :value="CollectionModeEnum.Sequence">In sequence</option>
         </select>
       </label>
       <label class="text-sm text-soft flex items-center gap-2">

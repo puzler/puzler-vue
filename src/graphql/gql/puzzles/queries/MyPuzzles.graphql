@@ -1,4 +1,4 @@
-query MyPuzzles($status: String) {
+query MyPuzzles($status: PuzzleStatusEnum) {
   myPuzzles(status: $status) {
     id
     title

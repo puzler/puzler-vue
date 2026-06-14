@@ -13,6 +13,7 @@ import type {
   DeletePuzzleMutation, DeletePuzzleMutationVariables,
   MovePuzzleToFolderMutation, MovePuzzleToFolderMutationVariables,
 } from '@/graphql/generated/types'
+import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
 
 type MyPuzzle = MyPuzzlesQuery['myPuzzles'][number]
 
@@ -23,7 +24,12 @@ const selectedFolderId = ref('all')
 const deleteTarget = ref<MyPuzzle | null>(null)
 
 const VISIBILITY_LABEL: Record<string, string> = {
-  private: 'Private', unlisted: 'Unlisted', public: 'Public', patrons_only: 'Patrons', subscribers_only: 'Subscribers',
+  [PuzzleVisibilityEnum.Private]: 'Private',
+  [PuzzleVisibilityEnum.Unlisted]: 'Unlisted',
+  [PuzzleVisibilityEnum.ContainersOnly]: 'Collections & series',
+  [PuzzleVisibilityEnum.Public]: 'Public',
+  [PuzzleVisibilityEnum.PatronsOnly]: 'Patrons',
+  [PuzzleVisibilityEnum.SubscribersOnly]: 'Subscribers',
 }
 
 const unfiledCount = computed(() => puzzles.value.filter((p) => !p.folder).length)
@@ -36,7 +42,7 @@ const deleteMessage = computed(() => {
   const t = deleteTarget.value
   if (!t) return ''
   const base = `Permanently delete “${t.title}”? This can’t be undone.`
-  return t.status === 'published' ? `${base} Any solves, comments, and ratings on it will be deleted too.` : base
+  return t.status === PuzzleStatusEnum.Published ? `${base} Any solves, comments, and ratings on it will be deleted too.` : base
 })
 
 async function load() {
@@ -102,7 +108,7 @@ onMounted(load)
         >
           <div class="flex flex-col min-w-0 flex-1">
             <span class="font-medium text-ink-text truncate">{{ puzzle.title }}</span>
-            <span class="text-xs text-faint">{{ puzzle.status === 'published' ? VISIBILITY_LABEL[puzzle.visibility] : 'Draft' }}</span>
+            <span class="text-xs text-faint">{{ puzzle.status === PuzzleStatusEnum.Published ? VISIBILITY_LABEL[puzzle.visibility] : 'Draft' }}</span>
           </div>
           <select
             class="text-xs px-2 py-1 rounded border border-line bg-surface text-soft max-w-[8rem]"

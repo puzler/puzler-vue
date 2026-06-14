@@ -7,6 +7,7 @@ fragment SeriesEntryFields on SeriesEntry {
   puzzle {
     id
     title
+    shareToken
     status
     visibility
     avgRating
@@ -14,6 +15,7 @@ fragment SeriesEntryFields on SeriesEntry {
   collection {
     id
     title
+    shareToken
     visibility
     puzzleCount
   }

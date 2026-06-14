@@ -12,6 +12,7 @@ fragment CollectionPublicFields on Collection {
   puzzles {
     id
     title
+    shareToken
     constraintTypes
     avgRating
     solveCount

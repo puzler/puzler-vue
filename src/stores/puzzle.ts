@@ -41,6 +41,7 @@ import type {
   PuzzleVersionQuery,
   PuzzleVersionQueryVariables,
 } from '@/graphql/generated/types'
+import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export type GrantedUser = PuzzleAdminFieldsFragment['grantedUsers'][number]
@@ -53,8 +54,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
   const shareToken = ref<string | null>(null)
   const currentVersionId = ref<string | null>(null)
   const publishedVersionId = ref<string | null>(null)
-  const status = ref<string>('draft')
-  const visibility = ref<string>('private')
+  const status = ref<PuzzleStatusEnum>(PuzzleStatusEnum.Draft)
+  const visibility = ref<PuzzleVisibilityEnum>(PuzzleVisibilityEnum.Private)
   const grantedUsers = ref<GrantedUser[]>([])
   const versions = ref<VersionSummaryFragment[]>([])
   const saveStatus = ref<SaveStatus>('idle')
@@ -65,8 +66,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     shareToken.value = null
     currentVersionId.value = null
     publishedVersionId.value = null
-    status.value = 'draft'
-    visibility.value = 'private'
+    status.value = PuzzleStatusEnum.Draft
+    visibility.value = PuzzleVisibilityEnum.Private
     grantedUsers.value = []
     versions.value = []
     saveStatus.value = 'idle'
@@ -200,7 +201,7 @@ export const usePuzzleStore = defineStore('puzzle', () => {
   }
 
   // Publish a specific version (defaults to the loaded one) at a given access mode.
-  async function publishVersion(versionId: string, mode?: string) {
+  async function publishVersion(versionId: string, mode?: PuzzleVisibilityEnum) {
     if (!serverPuzzleId.value) throw new Error('Save the puzzle before publishing')
     const { data } = await apolloClient.mutate<PublishPuzzleVersionMutation, PublishPuzzleVersionMutationVariables>({
       mutation: PublishPuzzleVersionDocument,
@@ -222,7 +223,7 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     applyAdminFields(result.puzzle)
   }
 
-  async function setVisibility(mode: string) {
+  async function setVisibility(mode: PuzzleVisibilityEnum) {
     if (!serverPuzzleId.value) throw new Error('Save the puzzle first')
     const { data } = await apolloClient.mutate<SetPuzzleVisibilityMutation, SetPuzzleVisibilityMutationVariables>({
       mutation: SetPuzzleVisibilityDocument,

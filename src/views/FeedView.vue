@@ -14,9 +14,13 @@ const items = ref<FeedItem[]>([])
 const loading = ref(true)
 
 function itemLink(item: FeedItem) {
-  return item.entryType === 'Collection'
-    ? { name: 'collection', params: { id: item.collection!.id } }
-    : { name: 'player', params: { id: item.puzzle!.id } }
+  // Container-only targets carry their own share token so the target resolves.
+  if (item.entryType === 'Collection') {
+    const token = item.collection?.shareToken
+    return { name: 'collection', params: { id: item.collection!.id }, query: token ? { t: token } : {} }
+  }
+  const token = item.puzzle?.shareToken
+  return { name: 'player', params: { id: item.puzzle!.id }, query: token ? { t: token } : {} }
 }
 
 function title(item: FeedItem): string {

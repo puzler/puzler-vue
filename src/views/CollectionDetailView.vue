@@ -19,6 +19,7 @@ import type {
   RemovePuzzleFromCollectionMutation, RemovePuzzleFromCollectionMutationVariables,
   ReorderCollectionPuzzlesMutation, ReorderCollectionPuzzlesMutationVariables,
 } from '@/graphql/generated/types'
+import { CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionDetailQuery['collection']>
 type Attrs = Partial<Pick<UpdateCollectionMutationVariables, 'title' | 'visibility' | 'mode' | 'timed'>>
@@ -75,7 +76,9 @@ async function deleteCollection() {
 const publicRoute = computed(() => ({
   name: 'collection',
   params: { id },
-  query: collection.value?.visibility === 'unlisted' && collection.value.shareToken ? { t: collection.value.shareToken } : {},
+  query: collection.value && collection.value.shareToken &&
+    (collection.value.visibility === CollectionVisibilityEnum.Unlisted || collection.value.visibility === CollectionVisibilityEnum.ContainersOnly)
+    ? { t: collection.value.shareToken } : {},
 }))
 
 onMounted(load)
@@ -116,7 +119,7 @@ onMounted(load)
         />
 
         <RouterLink
-          v-if="collection.visibility !== 'private'"
+          v-if="collection.visibility !== CollectionVisibilityEnum.Private"
           :to="publicRoute"
           class="text-sm text-action hover:underline"
         >

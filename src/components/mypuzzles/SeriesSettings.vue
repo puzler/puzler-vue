@@ -1,11 +1,13 @@
 <script setup lang="ts">
-defineProps<{ title: string; description: string | null; visibility: string }>()
+import { SeriesVisibilityEnum } from '@/graphql/generated/types'
+
+defineProps<{ title: string; description: string | null; visibility: SeriesVisibilityEnum }>()
 const emit = defineEmits<{
-  save: [attrs: { title?: string; description?: string; visibility?: string }]
+  save: [attrs: { title?: string; description?: string; visibility?: SeriesVisibilityEnum }]
 }>()
 
-function selectValue(event: Event): string {
-  return (event.target as HTMLSelectElement).value
+function selectValue<T extends string>(event: Event): T {
+  return (event.target as HTMLSelectElement).value as T
 }
 </script>
 
@@ -28,11 +30,11 @@ function selectValue(event: Event): string {
       <select
         :value="visibility"
         class="text-sm px-2 py-1 rounded border border-line bg-surface"
-        @change="emit('save', { visibility: selectValue($event) })"
+        @change="emit('save', { visibility: selectValue<SeriesVisibilityEnum>($event) })"
       >
-        <option value="private">Private</option>
-        <option value="unlisted">Unlisted</option>
-        <option value="public">Public</option>
+        <option :value="SeriesVisibilityEnum.Private">Private</option>
+        <option :value="SeriesVisibilityEnum.Unlisted">Unlisted</option>
+        <option :value="SeriesVisibilityEnum.Public">Public</option>
       </select>
     </label>
   </div>

@@ -57,7 +57,9 @@ const collectionId = computed(() => (typeof route.query.collection === 'string' 
 const collectionToken = computed(() => (typeof route.query.ct === 'string' ? route.query.ct : null))
 const collectionTitle = ref('')
 const collectionTimed = ref(false)
-const orderedIds = ref<string[]>([])
+// Puzzles in collection order, each with its own share token (present for
+// container-only puzzles) so next-puzzle navigation can build a working link.
+const orderedPuzzles = ref<{ id: string; token: string | null }[]>([])
 
 // Competition timer (only runs inside a timed collection).
 const elapsed = ref(0)
@@ -75,11 +77,12 @@ function startTimer() {
   elapsed.value = 0
   timer = setInterval(() => { elapsed.value += 1 }, 1000)
 }
-const nextId = computed(() => {
+const nextEntry = computed(() => {
   if (!puzzleId.value) return null
-  const idx = orderedIds.value.indexOf(puzzleId.value)
-  return idx >= 0 && idx < orderedIds.value.length - 1 ? orderedIds.value[idx + 1] : null
+  const idx = orderedPuzzles.value.findIndex((p) => p.id === puzzleId.value)
+  return idx >= 0 && idx < orderedPuzzles.value.length - 1 ? orderedPuzzles.value[idx + 1] : null
 })
+const nextId = computed(() => nextEntry.value?.id ?? null)
 
 async function loadCollectionOrder() {
   if (!collectionId.value) return
@@ -89,20 +92,27 @@ async function loadCollectionOrder() {
     })
     collectionTitle.value = data?.collectionByToken?.title ?? ''
     collectionTimed.value = data?.collectionByToken?.timed ?? false
-    orderedIds.value = data?.collectionByToken?.puzzles.map((p) => p.id) ?? []
+    orderedPuzzles.value = data?.collectionByToken?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
   } else {
     const { data } = await apolloClient.query<CollectionPublicQuery, CollectionPublicQueryVariables>({
       query: CollectionPublicDocument, variables: { id: collectionId.value }, fetchPolicy: 'network-only',
     })
     collectionTitle.value = data?.collection?.title ?? ''
     collectionTimed.value = data?.collection?.timed ?? false
-    orderedIds.value = data?.collection?.puzzles.map((p) => p.id) ?? []
+    orderedPuzzles.value = data?.collection?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
   }
 }
 
 function goToNext() {
-  if (!nextId.value) return
-  router.push({ name: 'player', params: { id: nextId.value }, query: { ...route.query } })
+  const next = nextEntry.value
+  if (!next) return
+  // Keep the collection context but swap in the next puzzle's own token (or drop
+  // it) so a container-only next puzzle still resolves.
+  const query: Record<string, string> = {}
+  if (typeof route.query.collection === 'string') query.collection = route.query.collection
+  if (typeof route.query.ct === 'string') query.ct = route.query.ct
+  if (next.token) query.t = next.token
+  router.push({ name: 'player', params: { id: next.id }, query })
 }
 
 function backToCollection() {

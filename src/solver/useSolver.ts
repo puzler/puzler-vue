@@ -1,4 +1,4 @@
-import type { SolverCommand, SolverPuzzle, SolverResult } from './types'
+import type { SolverCommand, SolverPuzzle, SolverResult, TechniqueLevel } from './types'
 
 export interface SolverCallbacks {
   onSolution?(solution: number[]): void
@@ -14,9 +14,12 @@ export interface SolverCallbacks {
 export interface SolverClient {
   solve(puzzle: SolverPuzzle, options?: { random?: boolean }): void
   count(puzzle: SolverPuzzle, options?: { maxSolutions?: number }): void
-  trueCandidates(puzzle: SolverPuzzle, options?: { maxSolutionsPerCandidate?: number }): void
-  step(puzzle: SolverPuzzle): void
-  logicalSolve(puzzle: SolverPuzzle): void
+  trueCandidates(
+    puzzle: SolverPuzzle,
+    options?: { maxSolutionsPerCandidate?: number; logical?: boolean; techniqueLevel?: TechniqueLevel },
+  ): void
+  step(puzzle: SolverPuzzle, options?: { techniqueLevel?: TechniqueLevel }): void
+  logicalSolve(puzzle: SolverPuzzle, options?: { techniqueLevel?: TechniqueLevel }): void
   cancel(): void
   dispose(): void
   isBusy(): boolean
@@ -70,18 +73,26 @@ export function createSolverClient(callbacks: SolverCallbacks): SolverClient {
   }
 
   function send(command: SolverCommand): void {
-    if (running) cancel()
+    // Superseding a running command is silent — the new command's state must
+    // stand, so we don't fire onCancelled here.
+    if (running) supersede()
     running = true
     getWorker().postMessage(command)
   }
 
-  function cancel(): void {
-    if (!running) return
+  // Kill the worker without notifying — used to make way for a new command.
+  function supersede(): void {
     running = false
     if (worker) {
       worker.terminate()
       worker = null
     }
+  }
+
+  // User-initiated cancel: stop work and notify.
+  function cancel(): void {
+    if (!running) return
+    supersede()
     callbacks.onCancelled?.()
   }
 
@@ -89,14 +100,10 @@ export function createSolverClient(callbacks: SolverCallbacks): SolverClient {
     solve: (puzzle, options) => send({ cmd: 'solve', puzzle, options }),
     count: (puzzle, options) => send({ cmd: 'count', puzzle, options }),
     trueCandidates: (puzzle, options) => send({ cmd: 'truecandidates', puzzle, options }),
-    step: (puzzle) => send({ cmd: 'step', puzzle }),
-    logicalSolve: (puzzle) => send({ cmd: 'logicalsolve', puzzle }),
+    step: (puzzle, options) => send({ cmd: 'step', puzzle, options }),
+    logicalSolve: (puzzle, options) => send({ cmd: 'logicalsolve', puzzle, options }),
     cancel,
-    dispose: () => {
-      running = false
-      worker?.terminate()
-      worker = null
-    },
+    dispose: supersede,
     isBusy: () => running,
   }
 }

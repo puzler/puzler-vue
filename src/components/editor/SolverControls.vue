@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { mdiSync } from '@mdi/js'
+import { ref } from 'vue'
+import { mdiSync, mdiCog } from '@mdi/js'
 import { useSolverStore, type SolverCommand } from '@/stores/solver'
+import SolverSettingsModal from './SolverSettingsModal.vue'
 
 const solver = useSolverStore()
+const showSettings = ref(false)
 
 const PRIMARY: Array<{ cmd: SolverCommand; label: string }> = [
   { cmd: 'solve', label: 'Solve' },
@@ -92,15 +95,19 @@ function toggle(cmd: SolverCommand): void {
       {{ isRunning('check') ? 'Cancel' : 'Check' }}
     </button>
 
-    <label class="flex items-center gap-2 text-xs text-ink-text select-none">
-      <input
-        type="checkbox"
-        class="accent-action"
-        :checked="solver.showCandidateCounts"
-        @change="solver.setShowCandidateCounts(($event.target as HTMLInputElement).checked)"
-      >
-      Show candidate counts
-    </label>
+    <button
+      class="flex items-center gap-1.5 self-start text-xs text-soft hover:text-action transition-colors"
+      @click="showSettings = true"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="w-3.5 h-3.5"
+      ><path
+        :d="mdiCog"
+        fill="currentColor"
+      /></svg>
+      Settings
+    </button>
 
     <div
       class="overflow-y-auto rounded-md bg-surface border border-line p-2 text-xs text-ink-text whitespace-pre-wrap"
@@ -114,5 +121,10 @@ function toggle(cmd: SolverCommand): void {
         {{ line }}
       </div>
     </div>
+
+    <SolverSettingsModal
+      v-if="showSettings"
+      @close="showSettings = false"
+    />
   </div>
 </template>

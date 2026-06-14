@@ -32,6 +32,8 @@ function countFor(cell: string, digit: number): number | undefined {
 }
 
 function centerMarkFill(cell: string, digit: number): string {
+  // Logical-candidate diagnostic: irreducible-but-impossible candidates are red.
+  if (solver.showLogicalCandidates && solver.redCandidates[cell]?.includes(digit)) return MARK_SEEN
   const count = countFor(cell, digit)
   if (count !== undefined) {
     if (count === 1) return COUNT_1

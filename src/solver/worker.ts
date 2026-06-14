@@ -1,7 +1,7 @@
 import type { SolverCommand, SolverPuzzle, SolverResult } from './types'
 import type { Board } from './engine/board'
 import { buildBoard } from './engine/buildBoard'
-import { findSolution, countSolutions, trueCandidates } from './engine/algorithms'
+import { findSolution, countSolutions, trueCandidates, logicalCandidates } from './engine/algorithms'
 import { logicalStep, logicalSolve } from './engine/logic/logicalSolver'
 import { minValue, valuesList } from './engine/bitmask'
 
@@ -65,7 +65,9 @@ function handle(command: SolverCommand): void {
       const { board, valid } = buildBoard(command.puzzle)
       if (!valid) return post({ result: 'invalid' })
       const max = command.options?.maxSolutionsPerCandidate ?? 1
-      const result = trueCandidates(board, max)
+      const result = command.options?.logical
+        ? logicalCandidates(board, command.options.techniqueLevel ?? 'advanced', max)
+        : trueCandidates(board, max)
       if (!result.valid) return post({ result: 'invalid' })
       return post({ result: 'truecandidates', candidates: result.candidates, counts: result.counts })
     }
@@ -80,7 +82,7 @@ function handle(command: SolverCommand): void {
         const state = solverState(board, givenCells)
         return post({ result: 'step', desc: 'Initial candidates', changed: true, ...state })
       }
-      const step = logicalStep(board)
+      const step = logicalStep(board, command.options?.techniqueLevel ?? 'advanced')
       const state = solverState(board, givenCells)
       const desc = step.changed ? step.desc : board.isSolved() ? 'Solved' : 'No logical steps'
       return post({ result: 'step', desc, changed: step.changed, ...state })
@@ -92,7 +94,7 @@ function handle(command: SolverCommand): void {
         return post({ result: 'logicalsolve', desc: ['Board is invalid'], changed: false, values: [], candidates: [] })
       }
       const lines = needsInitialCandidates(board, command.puzzle) ? ['Initial candidates'] : []
-      const solve = logicalSolve(board)
+      const solve = logicalSolve(board, command.options?.techniqueLevel ?? 'advanced')
       lines.push(...solve.desc)
       const state = solverState(board, givenCells)
       return post({

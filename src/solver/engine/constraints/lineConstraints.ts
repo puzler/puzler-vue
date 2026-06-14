@@ -1,6 +1,8 @@
 import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
-import { minValue } from '../bitmask'
+import { minValue, maxValue, valueBit, valuesList } from '../bitmask'
+import { cellName } from '../geometry'
+import { sumRangePrune } from './sumGroup'
 
 // Value of a committed cell, or 0 if not yet placed.
 export function placed(board: Board, cell: number): number {
@@ -46,6 +48,49 @@ export class RenbanConstraint extends Constraint {
     }
     return hi - lo <= this.cells.length - 1
   }
+
+  // Candidate pruning: the values form a length-L consecutive run, so they all
+  // lie within some window [lo, lo+L-1]. Keep only candidates that fall inside a
+  // window which (a) is fully covered by the line's candidates and (b) every
+  // cell can still reach. Only ever removes genuinely-impossible candidates.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const size = board.size
+    const length = this.cells.length
+    let union = 0
+    for (const c of this.cells) union |= board.candidateMask(c)
+
+    let allowed = 0
+    for (let lo = 1; lo + length - 1 <= size; lo += 1) {
+      let window = 0
+      for (let v = lo; v < lo + length; v += 1) window |= valueBit(v)
+      if ((union & window) !== window) continue // some window value has no home
+      let reachable = true
+      for (const c of this.cells) {
+        if ((board.candidateMask(c) & window) === 0) {
+          reachable = false
+          break
+        }
+      }
+      if (reachable) allowed |= window
+    }
+
+    const removed: number[] = []
+    for (const c of this.cells) {
+      if ((board.candidateMask(c) & ~allowed) === 0) continue
+      const result = board.keepMask(c, allowed)
+      if (result === ConstraintResult.INVALID) {
+        desc.push(`Renban ${cellName(c, size)} has no valid candidates`)
+        return ConstraintResult.INVALID
+      }
+      removed.push(c)
+    }
+    if (removed.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(
+      `Renban: digits must lie in ${minValue(allowed)}–${maxValue(allowed)}, ` +
+        `clearing ${removed.map((c) => cellName(c, size)).join(', ')}`,
+    )
+    return ConstraintResult.CHANGED
+  }
 }
 
 // Between line: the cells strictly between the two endpoints hold values strictly
@@ -77,6 +122,49 @@ export class BetweenLineConstraint extends Constraint {
       if (mv !== 0 && !(mv > lo && mv < hi)) return false
     }
     return true
+  }
+
+  // Candidate pruning: each middle must be strictly between *some* feasible pair
+  // of endpoint values; with middles present, endpoints must differ by ≥2.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    if (this.middles.length === 0) return ConstraintResult.UNCHANGED
+    const aMask = board.candidateMask(this.a)
+    const bMask = board.candidateMask(this.b)
+    const aMin = minValue(aMask)
+    const aMax = maxValue(aMask)
+    const bMin = minValue(bMask)
+    const bMax = maxValue(bMask)
+    const cleared: number[] = []
+
+    for (const m of this.middles) {
+      let keep = 0
+      for (const x of valuesList(board.candidateMask(m))) {
+        if ((aMin < x && bMax > x) || (bMin < x && aMax > x)) keep |= valueBit(x)
+      }
+      const res = board.keepMask(m, keep)
+      if (res === ConstraintResult.INVALID) return this.invalid(board, m, desc)
+      if (res === ConstraintResult.CHANGED) cleared.push(m)
+    }
+
+    for (const [self, otherMask] of [[this.a, bMask], [this.b, aMask]] as Array<[number, number]>) {
+      const others = valuesList(otherMask)
+      let keep = 0
+      for (const y of valuesList(board.candidateMask(self))) {
+        if (others.some((z) => Math.abs(y - z) >= 2)) keep |= valueBit(y)
+      }
+      const res = board.keepMask(self, keep)
+      if (res === ConstraintResult.INVALID) return this.invalid(board, self, desc)
+      if (res === ConstraintResult.CHANGED) cleared.push(self)
+    }
+
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(`Between line clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
+  }
+
+  private invalid(board: Board, cell: number, desc: string[]): ConstraintResult {
+    desc.push(`Between line empties ${cellName(cell, board.size)}`)
+    return ConstraintResult.INVALID
   }
 }
 
@@ -110,6 +198,44 @@ export class ArrowConstraint extends Constraint {
       if (target < sum + empties || target > sum + empties * board.size) return false
     }
     return true
+  }
+
+  // Candidate pruning for single-cell bulbs: the bulb equals each shaft's sum, so
+  // the bulb is bounded by the shaft's sum range and each shaft cell by the bulb.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    if (this.bulb.length !== 1) return ConstraintResult.UNCHANGED
+    const bulbCell = this.bulb[0]
+    const cleared: number[] = []
+    for (const shaft of this.shafts) {
+      if (shaft.length === 0) continue
+      let sMin = 0
+      let sMax = 0
+      for (const c of shaft) {
+        sMin += minValue(board.candidateMask(c))
+        sMax += maxValue(board.candidateMask(c))
+      }
+      const bulbMask = board.candidateMask(bulbCell)
+      let keepBulb = 0
+      for (const v of valuesList(bulbMask)) {
+        if (v >= sMin && v <= sMax) keepBulb |= valueBit(v)
+      }
+      if (keepBulb !== bulbMask) {
+        if (board.keepMask(bulbCell, keepBulb) === ConstraintResult.INVALID) {
+          desc.push('Arrow bulb has no candidates')
+          return ConstraintResult.INVALID
+        }
+        cleared.push(bulbCell)
+      }
+      const bMin = minValue(board.candidateMask(bulbCell))
+      const bMax = maxValue(board.candidateMask(bulbCell))
+      if (sumRangePrune(board, shaft, bMin, bMax, cleared)) {
+        desc.push('Arrow shaft cannot reach the bulb')
+        return ConstraintResult.INVALID
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(`Arrow clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
   }
 }
 
@@ -172,5 +298,49 @@ export class QuadrupleConstraint extends Constraint {
     let deficit = 0
     for (const [d, count] of need) deficit += Math.max(0, count - (have.get(d) ?? 0))
     return deficit <= empties
+  }
+
+  // When the still-needed digits exactly fill the free cells, those cells must
+  // hold only the needed digits.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const have = new Map<number, number>()
+    const free: number[] = []
+    for (const c of this.cells) {
+      const v = placed(board, c)
+      if (v === 0) free.push(c)
+      else have.set(v, (have.get(v) ?? 0) + 1)
+    }
+    const need = new Map<number, number>()
+    for (const d of this.required) need.set(d, (need.get(d) ?? 0) + 1)
+    const needed: number[] = []
+    for (const [d, count] of need) {
+      for (let k = have.get(d) ?? 0; k < count; k += 1) needed.push(d)
+    }
+    if (needed.length > free.length) {
+      desc.push('Quadruple cannot be satisfied')
+      return ConstraintResult.INVALID
+    }
+    for (const d of new Set(needed)) {
+      if (!free.some((c) => (board.candidateMask(c) & valueBit(d)) !== 0)) {
+        desc.push(`Quadruple digit ${d} has no home`)
+        return ConstraintResult.INVALID
+      }
+    }
+    if (needed.length === 0 || needed.length !== free.length) return ConstraintResult.UNCHANGED
+
+    let keep = 0
+    for (const d of needed) keep |= valueBit(d)
+    const cleared: number[] = []
+    for (const c of free) {
+      if ((board.candidateMask(c) & ~keep) === 0) continue
+      if (board.keepMask(c, keep) === ConstraintResult.INVALID) {
+        desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+        return ConstraintResult.INVALID
+      }
+      cleared.push(c)
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(`Quadruple clears ${cleared.map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
   }
 }

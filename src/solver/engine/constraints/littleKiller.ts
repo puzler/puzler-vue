@@ -24,5 +24,5 @@ export default defineModule<LittleKillerSpec>({
     }
     return specs
   },
-  build: (_board, spec) => new SumConstraint(spec.cells, spec.target),
+  build: (_board, spec) => new SumConstraint(spec.cells, spec.target, false, 'Little killer'),
 })

@@ -1,6 +1,7 @@
 import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
-import { valueBit } from '../bitmask'
+import { valueBit, valuesList } from '../bitmask'
+import { cellName } from '../geometry'
 
 // An extra all-different group (diagonal, disjoint set, extra region): registered
 // as a region once so both weak links and hidden-single logic cover it.
@@ -28,12 +29,22 @@ export class AllDifferentConstraint extends Constraint {
 export class ForbiddenPairsConstraint extends Constraint {
   private pairs: Array<[number, number]>
   private forbidden: (a: number, b: number) => boolean
+  // Whether to run arc-consistency candidate pruning. Off for same-value (all-
+  // different) relations like chess, where weak-link propagation already covers
+  // it and the pass would be wasted work over many pairs.
+  private arc: boolean
   private linked = false
 
-  constructor(name: string, pairs: Array<[number, number]>, forbidden: (a: number, b: number) => boolean) {
+  constructor(
+    name: string,
+    pairs: Array<[number, number]>,
+    forbidden: (a: number, b: number) => boolean,
+    arc = true,
+  ) {
     super(name)
     this.pairs = pairs
     this.forbidden = forbidden
+    this.arc = arc
   }
 
   init(board: Board): ConstraintResult {
@@ -49,6 +60,46 @@ export class ForbiddenPairsConstraint extends Constraint {
       }
     }
     return ConstraintResult.UNCHANGED
+  }
+
+  // Arc consistency: drop a candidate of one cell when its partner has no value
+  // that keeps the pair legal. Sound (removes only impossible candidates).
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    if (!this.arc) return ConstraintResult.UNCHANGED
+    const cleared: number[] = []
+    let invalid = false
+    for (const [cellA, cellB] of this.pairs) {
+      if (this.prune(board, cellA, cellB, true, cleared)) invalid = true
+      if (this.prune(board, cellA, cellB, false, cleared)) invalid = true
+      if (invalid) break
+    }
+    if (invalid) {
+      desc.push(`${this.name} leaves no candidates`)
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    const unique = [...new Set(cleared)]
+    desc.push(`${this.name} clears ${unique.map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
+  }
+
+  // Prune `self` (cellA when first, else cellB): keep only values that still have
+  // a legal partner. Returns true on contradiction.
+  private prune(board: Board, cellA: number, cellB: number, pruneFirst: boolean, cleared: number[]): boolean {
+    const self = pruneFirst ? cellA : cellB
+    const other = pruneFirst ? cellB : cellA
+    const selfMask = board.candidateMask(self)
+    const otherValues = valuesList(board.candidateMask(other))
+    let keep = 0
+    for (const v of valuesList(selfMask)) {
+      const ok = otherValues.some((w) => (pruneFirst ? !this.forbidden(v, w) : !this.forbidden(w, v)))
+      if (ok) keep |= valueBit(v)
+    }
+    if (keep === selfMask) return false
+    const result = board.keepMask(self, keep)
+    if (result === ConstraintResult.INVALID) return true
+    cleared.push(self)
+    return false
   }
 }
 
@@ -102,5 +153,37 @@ export class IndexCellConstraint extends Constraint {
       }
     }
     return ConstraintResult.UNCHANGED
+  }
+
+  // Arc consistency on the index relation: index k is possible only if cells[k-1]
+  // can hold indexedValue, and cells[k-1] = indexedValue is possible only if the
+  // index can be k.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const ivBit = valueBit(this.indexedValue)
+    const cleared: number[] = []
+    for (let k = 1; k <= this.cells.length; k += 1) {
+      const target = this.cells[k - 1]
+      const indexCanBeK = (board.candidateMask(this.indexCell) & valueBit(k)) !== 0
+      const targetCanBeValue = (board.candidateMask(target) & ivBit) !== 0
+      if (indexCanBeK && !targetCanBeValue) {
+        const r = board.keepMask(this.indexCell, board.candidateMask(this.indexCell) & ~valueBit(k))
+        if (r === ConstraintResult.INVALID) return this.invalid(desc)
+        if (r === ConstraintResult.CHANGED) cleared.push(this.indexCell)
+      }
+      if (targetCanBeValue && !indexCanBeK) {
+        const r = board.keepMask(target, board.candidateMask(target) & ~ivBit)
+        if (r === ConstraintResult.INVALID) return this.invalid(desc)
+        if (r === ConstraintResult.CHANGED) cleared.push(target)
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    const unique = [...new Set(cleared)]
+    desc.push(`${this.name} clears ${unique.map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
+  }
+
+  private invalid(desc: string[]): ConstraintResult {
+    desc.push(`${this.name} leaves no candidates`)
+    return ConstraintResult.INVALID
   }
 }

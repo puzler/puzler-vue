@@ -1,5 +1,7 @@
 import { Board, LogicResult } from './board'
 import { minValue, valuesList, valueBit } from './bitmask'
+import { logicalSolve } from './logic/logicalSolver'
+import type { TechniqueLevel } from '../types'
 
 function randomValue(mask: number): number {
   const values = valuesList(mask)
@@ -140,6 +142,44 @@ export function trueCandidates(
       if ((resultMask[cell] & valueBit(value)) !== 0) values.push(value)
     }
     candidates.push(values)
+  }
+  return { valid: true, candidates, counts }
+}
+
+// Logical candidates: the candidate set left after running the logical solver
+// (up to `level`) to a fixpoint — a superset of the true candidates. Each is
+// then tested for a real solution; `counts` is 0 for candidates that survive the
+// logic but actually break the puzzle (the red diagnostic), otherwise the true
+// solution count (capped by maxSolutionsPerCandidate). Always returns counts.
+export function logicalCandidates(
+  start: Board,
+  level: TechniqueLevel,
+  maxSolutionsPerCandidate: number,
+): TrueCandidatesResult {
+  const base = start.clone()
+  if (logicalSolve(base, level).invalid) return { valid: false, candidates: [] }
+
+  const size = base.size
+  const numCells = base.numCells
+  const wantCounts = maxSolutionsPerCandidate > 1
+  const counts = Array.from({ length: numCells }, () => new Array<number>(size).fill(0))
+  const candidates = base.candidatesPerCell()
+  const boardSolvable = findSolution(base) !== null
+
+  const countFor = (board: Board): number =>
+    wantCounts ? countSolutions(board, maxSolutionsPerCandidate).count : findSolution(board) ? 1 : 0
+
+  for (let cell = 0; cell < numCells; cell += 1) {
+    for (const value of candidates[cell]) {
+      if (base.isGiven(cell)) {
+        // A logically-placed cell is forced; it's a true candidate iff the whole
+        // board still has a solution.
+        counts[cell][value - 1] = boardSolvable ? countFor(base) : 0
+        continue
+      }
+      const trial = base.clone()
+      counts[cell][value - 1] = trial.setAsGiven(cell, value) ? countFor(trial) : 0
+    }
   }
   return { valid: true, candidates, counts }
 }

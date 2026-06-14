@@ -5,6 +5,13 @@ import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { buildSolverPuzzle } from '@/solver/adapter'
 import { createSolverClient } from '@/solver/useSolver'
+import {
+  loadSolverSettings,
+  saveSolverSettings,
+  type SolverTechniqueLevel,
+} from '@/utils/solverSettings'
+
+export type { SolverTechniqueLevel }
 
 // Which solver command is currently running (also drives each button's
 // Cancel/spinner state), or null when idle.
@@ -25,7 +32,22 @@ export const useSolverStore = defineStore('solver', () => {
   const currentCommand = ref<SolverCommand | null>(null)
   const display = ref<string[]>([])
   const autoTrueCandidates = ref(false)
-  const showCandidateCounts = ref(false)
+
+  // Persisted solver preferences (settings modal).
+  const persisted = loadSolverSettings()
+  const showCandidateCounts = ref(persisted.showCandidateCounts)
+  // Show candidates the chosen technique level can't logically eliminate; the
+  // ones that actually break the puzzle (0 solutions) render red.
+  const showLogicalCandidates = ref(persisted.showLogicalCandidates)
+  // How far the logical solver's standard techniques go.
+  const techniqueLevel = ref<SolverTechniqueLevel>(persisted.techniqueLevel)
+  watch([showCandidateCounts, showLogicalCandidates, techniqueLevel], () => {
+    saveSolverSettings({
+      showCandidateCounts: showCandidateCounts.value,
+      showLogicalCandidates: showLogicalCandidates.value,
+      techniqueLevel: techniqueLevel.value,
+    })
+  })
   // Panel chrome: the section can be collapsed (header only) and, when open,
   // expanded to fill the whole left toolbar for an easier read of the output.
   // Collapsed by default so it stays out of the way until opened.
@@ -33,10 +55,15 @@ export const useSolverStore = defineStore('solver', () => {
   const panelExpanded = ref(false)
   // cellKey → { digit → number of completing solutions } (only when counting).
   const candidateCounts = ref<Record<string, Record<number, number>>>({})
+  // cellKey → digits that are logically irreducible but actually impossible
+  // (shown red) — populated by "Show logical candidates" runs.
+  const redCandidates = ref<Record<string, number[]>>({})
 
   // True candidates triggered by the auto-watcher (or auto refreshes) write
   // non-undoably; an explicit "Candidates" click is undoable.
   let autoRun = false
+  // Whether the in-flight candidate run used the logical-candidate mode.
+  let runWasLogical = false
 
   function countsByCell(counts: number[][] | undefined): Record<string, Record<number, number>> {
     if (!counts) return {}
@@ -48,6 +75,18 @@ export const useSolverStore = defineStore('solver', () => {
         if (count > 0) map[valueIndex + 1] = count
       })
       out[cellKey(Math.floor(cell / size), cell % size)] = map
+    })
+    return out
+  }
+
+  // Candidates (marks) that have zero completing solutions → the red diagnostic.
+  function redByCell(candidates: number[][], counts: number[][] | undefined): Record<string, number[]> {
+    if (!counts) return {}
+    const size = useGridStore().rows
+    const out: Record<string, number[]> = {}
+    candidates.forEach((values, cell) => {
+      const reds = values.filter((v) => (counts[cell]?.[v - 1] ?? 0) === 0)
+      if (reds.length) out[cellKey(Math.floor(cell / size), cell % size)] = reds
     })
     return out
   }
@@ -86,9 +125,20 @@ export const useSolverStore = defineStore('solver', () => {
       }
     },
     onTrueCandidates: (candidates, counts) => {
-      useEditorStore().applySolverCandidates(candidates, true, !autoRun)
-      candidateCounts.value = countsByCell(counts)
-      display.value = ['True candidates filled']
+      const editor = useEditorStore()
+      if (runWasLogical) {
+        // Show the full logical-candidate set as marks (don't auto-place singles,
+        // so impossible ones can render red), splitting reds from the count scale.
+        editor.applySolverCandidates(candidates, false, !autoRun)
+        redCandidates.value = redByCell(candidates, counts)
+        candidateCounts.value = showCandidateCounts.value ? countsByCell(counts) : {}
+        display.value = ['Logical candidates filled']
+      } else {
+        editor.applySolverCandidates(candidates, true, !autoRun)
+        candidateCounts.value = countsByCell(counts)
+        redCandidates.value = {}
+        display.value = ['True candidates filled']
+      }
       currentCommand.value = null
     },
     onStep: (desc, _changed, values, candidates) => {
@@ -132,7 +182,9 @@ export const useSolverStore = defineStore('solver', () => {
     start('solve', 'Solving…', (puzzle) => client.solve(puzzle, { random: true }))
   }
   function runLogicalSolve() {
-    start('logical-solve', 'Logical solving…', (puzzle) => client.logicalSolve(puzzle))
+    start('logical-solve', 'Logical solving…', (puzzle) =>
+      client.logicalSolve(puzzle, { techniqueLevel: techniqueLevel.value }),
+    )
   }
   function runCount() {
     start('count', 'Counting solutions…', (puzzle) => client.count(puzzle, { maxSolutions: SOLUTION_COUNT_CAP }))
@@ -147,14 +199,19 @@ export const useSolverStore = defineStore('solver', () => {
     if (!lastWasStep) display.value = []
     lastWasStep = true
     currentCommand.value = 'logical-step'
-    client.step(puzzle)
+    client.step(puzzle, { techniqueLevel: techniqueLevel.value })
   }
   function runTrueCandidates(auto = false) {
     // Count up to 11 per candidate so the UI can distinguish the 5–10 bucket
     // from the ">10" bucket (11 = "more than 10"). 1 = just feasibility.
     autoRun = auto
+    runWasLogical = showLogicalCandidates.value
     start('true-candidates', 'Computing candidates…', (puzzle) =>
-      client.trueCandidates(puzzle, { maxSolutionsPerCandidate: showCandidateCounts.value ? 11 : 1 }),
+      client.trueCandidates(puzzle, {
+        maxSolutionsPerCandidate: showCandidateCounts.value ? 11 : 1,
+        logical: showLogicalCandidates.value,
+        techniqueLevel: techniqueLevel.value,
+      }),
     )
   }
   function runCheck() {
@@ -227,6 +284,16 @@ export const useSolverStore = defineStore('solver', () => {
     if (autoTrueCandidates.value) runTrueCandidates(true)
   }
 
+  function setShowLogicalCandidates(value: boolean) {
+    showLogicalCandidates.value = value
+    if (autoTrueCandidates.value) runTrueCandidates(true)
+  }
+
+  function setTechniqueLevel(value: SolverTechniqueLevel) {
+    techniqueLevel.value = value
+    if (autoTrueCandidates.value) runTrueCandidates(true)
+  }
+
   function togglePanelCollapsed() {
     panelCollapsed.value = !panelCollapsed.value
     if (panelCollapsed.value) panelExpanded.value = false
@@ -255,6 +322,11 @@ export const useSolverStore = defineStore('solver', () => {
     runCheck,
     cancel,
     toggleAutoTrueCandidates,
+    redCandidates,
+    showLogicalCandidates,
+    techniqueLevel,
     setShowCandidateCounts,
+    setShowLogicalCandidates,
+    setTechniqueLevel,
   }
 })

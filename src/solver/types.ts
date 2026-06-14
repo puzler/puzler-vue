@@ -25,12 +25,22 @@ export interface SolverPuzzle {
   constraints: SolverConstraintSpec[]
 }
 
+// How far the logical solver's standard (non-constraint) techniques go.
+export type TechniqueLevel = 'standard' | 'tough' | 'advanced'
+
 export type SolverCommand =
   | { cmd: 'solve'; puzzle: SolverPuzzle; options?: { random?: boolean } }
   | { cmd: 'count'; puzzle: SolverPuzzle; options?: { maxSolutions?: number } }
-  | { cmd: 'truecandidates'; puzzle: SolverPuzzle; options?: { maxSolutionsPerCandidate?: number } }
-  | { cmd: 'step'; puzzle: SolverPuzzle }
-  | { cmd: 'logicalsolve'; puzzle: SolverPuzzle }
+  | {
+      cmd: 'truecandidates'
+      puzzle: SolverPuzzle
+      // logical: return the logical-candidate set (at techniqueLevel) instead of
+      // brute-force true candidates; candidates with count 0 are "logically
+      // irreducible but impossible".
+      options?: { maxSolutionsPerCandidate?: number; logical?: boolean; techniqueLevel?: TechniqueLevel }
+    }
+  | { cmd: 'step'; puzzle: SolverPuzzle; options?: { techniqueLevel?: TechniqueLevel } }
+  | { cmd: 'logicalsolve'; puzzle: SolverPuzzle; options?: { techniqueLevel?: TechniqueLevel } }
 
 // `candidates` is, per cell (row-major), the list of still-possible values.
 export type SolverResult =

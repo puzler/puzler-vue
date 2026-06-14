@@ -25,7 +25,7 @@ export default defineModule<KillerCageSpec>({
   },
   build: (_board, spec) => {
     const constraints: Constraint[] = [new AllDifferentConstraint('Killer Cage', spec.cells)]
-    if (spec.sum != null) constraints.push(new SumConstraint(spec.cells, spec.sum))
+    if (spec.sum != null) constraints.push(new SumConstraint(spec.cells, spec.sum, true, 'Killer cage'))
     return constraints
   },
 })

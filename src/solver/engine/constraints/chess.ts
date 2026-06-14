@@ -22,5 +22,6 @@ export default defineModule<ChessSpec>({
       spec.move === 'king' ? "King's Move" : "Knight's Move",
       movePairs(board.size, spec.move),
       (a, b) => a === b,
+      false, // same-value relation — weak links already cover it
     ),
 })

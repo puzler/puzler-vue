@@ -1,10 +1,19 @@
 import type { Board } from '../board'
-import { popcount, minValue, valueBit } from '../bitmask'
+import type { SolverTechniqueLevel } from '../../../utils/solverSettings'
+import {
+  type Elimination,
+  nakedSingle,
+  hiddenSingle,
+  constraintStep,
+  nakedSubset,
+  hiddenSubset,
+  lockedCandidates,
+  fish,
+  xyWing,
+} from './techniques'
 
-// Standard sudoku coordinate name, 1-indexed: cell 0 → R1C1.
-export function cellName(cell: number, size: number): string {
-  return `R${Math.floor(cell / size) + 1}C${(cell % size) + 1}`
-}
+// Re-exported for callers that still import it from here.
+export { cellName } from '../geometry'
 
 export interface StepResult {
   changed: boolean
@@ -15,63 +24,51 @@ export interface StepResult {
 
 const STUCK: StepResult = { changed: false, invalid: false, solved: false, desc: 'No logical steps' }
 
-// Apply a single human-style deduction and describe it. Currently covers naked
-// and hidden singles; Phase 3 layers in tuples / pointing / claiming and
-// constraint-specific logic.
-export function logicalStep(board: Board): StepResult {
-  // Naked single — a cell with exactly one candidate.
-  for (let cell = 0; cell < board.numCells; cell += 1) {
-    if (board.isGiven(cell)) continue
-    const mask = board.candidateMask(cell)
-    if (popcount(mask) === 1) {
-      const value = minValue(mask)
-      if (!board.setAsGiven(cell, value)) {
-        return { changed: false, invalid: true, solved: false, desc: 'Board is invalid' }
-      }
+const LEVEL_RANK: Record<SolverTechniqueLevel, number> = { standard: 1, tough: 2, advanced: 3 }
+
+// The ordered technique pipeline for a given level (easy → hard). Singles and
+// constraint propagation always run; the standard human techniques are gated by
+// the chosen level (fish at Tough, wings/colouring at Advanced — added later).
+function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimination | null> {
+  const rank = LEVEL_RANK[level]
+  const techniques: Array<() => Elimination | null> = [
+    () => nakedSingle(board),
+    () => hiddenSingle(board),
+    () => constraintStep(board),
+  ]
+  if (rank >= 1) {
+    for (const n of [2, 3, 4]) techniques.push(() => nakedSubset(board, n))
+    for (const n of [2, 3, 4]) techniques.push(() => hiddenSubset(board, n))
+    techniques.push(() => lockedCandidates(board))
+  }
+  if (rank >= 2) {
+    // Tough: basic fish (X-Wing, Swordfish) over rows and columns.
+    for (const n of [2, 3]) {
+      techniques.push(() => fish(board, n, true))
+      techniques.push(() => fish(board, n, false))
+    }
+  }
+  if (rank >= 3) {
+    // Advanced: wings.
+    techniques.push(() => xyWing(board))
+  }
+  return techniques
+}
+
+// Apply a single human-style deduction and describe it, using techniques up to
+// the requested level.
+export function logicalStep(board: Board, level: SolverTechniqueLevel = 'advanced'): StepResult {
+  for (const technique of pipeline(board, level)) {
+    const result = technique()
+    if (result) {
       return {
-        changed: true,
-        invalid: false,
+        changed: !result.invalid,
+        invalid: !!result.invalid,
         solved: board.isSolved(),
-        desc: `Naked single: ${cellName(cell, board.size)} = ${value}`,
+        desc: result.desc,
       }
     }
   }
-
-  // Hidden single — a value with exactly one home in a full region.
-  for (const region of board.regions) {
-    if (region.length !== board.size) continue
-    for (let value = 1; value <= board.size; value += 1) {
-      const vb = valueBit(value)
-      let home = -1
-      let count = 0
-      let alreadyPlaced = false
-      for (const cell of region) {
-        if ((board.candidateMask(cell) & vb) === 0) continue
-        if (board.isGiven(cell)) {
-          alreadyPlaced = true
-          break
-        }
-        count += 1
-        home = cell
-      }
-      if (alreadyPlaced) continue
-      if (count === 0) {
-        return { changed: false, invalid: true, solved: false, desc: 'Board is invalid' }
-      }
-      if (count === 1) {
-        if (!board.setAsGiven(home, value)) {
-          return { changed: false, invalid: true, solved: false, desc: 'Board is invalid' }
-        }
-        return {
-          changed: true,
-          invalid: false,
-          solved: board.isSolved(),
-          desc: `Hidden single: ${cellName(home, board.size)} = ${value}`,
-        }
-      }
-    }
-  }
-
   return STUCK
 }
 
@@ -84,11 +81,11 @@ export interface SolveResult {
 
 // Apply logical steps until solved, stuck, or contradicted, collecting the
 // description of every step taken.
-export function logicalSolve(board: Board): SolveResult {
+export function logicalSolve(board: Board, level: SolverTechniqueLevel = 'advanced'): SolveResult {
   const desc: string[] = []
   let changed = false
   for (;;) {
-    const step = logicalStep(board)
+    const step = logicalStep(board, level)
     if (step.invalid) {
       desc.push('Board is invalid')
       return { desc, changed, invalid: true, solved: false }

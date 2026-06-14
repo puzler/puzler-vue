@@ -1,7 +1,24 @@
-import { Constraint } from '../constraint'
+import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
-import { minValue } from '../bitmask'
+import { minValue, maxValue, valueBit, valuesList, popcount } from '../bitmask'
 import { placed } from './lineConstraints'
+import { cellName } from '../geometry'
+import { sumRangePrune, sumCombinationPrune, MAX_COMBINATION_CELLS } from './sumGroup'
+
+// Shared: keep `cell` to `keep`, recording a contradiction or a cleared cell.
+// Returns true on contradiction.
+function applyKeep(board: Board, cell: number, keep: number, cleared: number[]): boolean {
+  if ((board.candidateMask(cell) & ~keep) === 0) return false
+  if (board.keepMask(cell, keep) === ConstraintResult.INVALID) return true
+  cleared.push(cell)
+  return false
+}
+
+function reportClears(board: Board, name: string, cleared: number[], desc: string[]): ConstraintResult {
+  if (cleared.length === 0) return ConstraintResult.UNCHANGED
+  desc.push(`${name} clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+  return ConstraintResult.CHANGED
+}
 
 // Feasible-sum range for a set of cells given current placements: [committed +
 // empties·1, committed + empties·size]. A target outside this range is doomed.
@@ -17,21 +34,42 @@ function sumInRange(board: Board, cells: number[], target: number): boolean {
 }
 
 // A group of cells summing to a fixed target (killer cage sum, little killer).
+// `distinct` enables combination pruning (cage cells are all-different; little
+// killer diagonals may repeat).
 export class SumConstraint extends Constraint {
   private cells: number[]
   private target: number
+  private distinct: boolean
   private involved: Set<number>
 
-  constructor(cells: number[], target: number) {
-    super('Sum')
+  constructor(cells: number[], target: number, distinct = false, name = 'Sum') {
+    super(name)
     this.cells = cells
     this.target = target
+    this.distinct = distinct
     this.involved = new Set(cells)
   }
 
   enforce(board: Board, cell: number) {
     if (!this.involved.has(cell)) return true
     return sumInRange(board, this.cells, this.target)
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const cleared: number[] = []
+    if (sumRangePrune(board, this.cells, this.target, this.target, cleared)) {
+      desc.push(`${this.name} ${this.target} is unreachable`)
+      return ConstraintResult.INVALID
+    }
+    if (this.distinct && this.cells.length <= MAX_COMBINATION_CELLS) {
+      if (sumCombinationPrune(board, this.cells, this.target, cleared)) {
+        desc.push(`${this.name} ${this.target} has no valid combination`)
+        return ConstraintResult.INVALID
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(`${this.name} clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    return ConstraintResult.CHANGED
   }
 }
 
@@ -55,6 +93,47 @@ export class XSumConstraint extends Constraint {
     if (!board.isGiven(first)) return true
     const n = minValue(board.candidateMask(first))
     return sumInRange(board, this.line.slice(0, n), this.target)
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const first = this.line[0]
+    const cleared: number[] = []
+    // Viable lengths N: the first N cells can reach the target (line cells are
+    // distinct, but a sound range check suffices to prune obviously-bad N).
+    const firstMask = board.candidateMask(first)
+    let keepFirst = 0
+    for (const n of valuesList(firstMask)) {
+      if (n > this.line.length) continue
+      let lo = n
+      let hi = n
+      for (let i = 1; i < n; i += 1) {
+        lo += minValue(board.candidateMask(this.line[i]))
+        hi += maxValue(board.candidateMask(this.line[i]))
+      }
+      if (this.target >= lo && this.target <= hi) keepFirst |= valueBit(n)
+    }
+    if (keepFirst === 0) {
+      desc.push('X-sum has no valid length')
+      return ConstraintResult.INVALID
+    }
+    if (applyKeep(board, first, keepFirst, cleared)) {
+      desc.push('X-sum has no valid length')
+      return ConstraintResult.INVALID
+    }
+    // Once the length is fixed, the window sums to the target with distinct digits.
+    const fixed = board.candidateMask(first)
+    if (popcount(fixed) === 1) {
+      const window = this.line.slice(0, minValue(fixed))
+      if (sumRangePrune(board, window, this.target, this.target, cleared)) {
+        desc.push('X-sum is unreachable')
+        return ConstraintResult.INVALID
+      }
+      if (window.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, window, this.target, cleared)) {
+        desc.push('X-sum has no valid combination')
+        return ConstraintResult.INVALID
+      }
+    }
+    return reportClears(board, 'X-sum', cleared, desc)
   }
 }
 
@@ -85,6 +164,36 @@ export class SandwichConstraint extends Constraint {
     const lo = Math.min(p1, pHigh)
     const hi = Math.max(p1, pHigh)
     return sumInRange(board, this.line.slice(lo + 1, hi), this.target)
+  }
+
+  // Once 1 and the size are each confined to a single cell, the cells between
+  // them sum to the target (distinct, since the line is a row/column).
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const size = board.size
+    const oneHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(1)) !== 0)
+    const sizeHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(size)) !== 0)
+    if (oneHomes.length !== 1 || sizeHomes.length !== 1) return ConstraintResult.UNCHANGED
+
+    const i = this.line.indexOf(oneHomes[0])
+    const j = this.line.indexOf(sizeHomes[0])
+    const between = this.line.slice(Math.min(i, j) + 1, Math.max(i, j))
+    if (between.length === 0) {
+      if (this.target !== 0) {
+        desc.push('Sandwich target is unreachable')
+        return ConstraintResult.INVALID
+      }
+      return ConstraintResult.UNCHANGED
+    }
+    const cleared: number[] = []
+    if (sumRangePrune(board, between, this.target, this.target, cleared)) {
+      desc.push('Sandwich is unreachable')
+      return ConstraintResult.INVALID
+    }
+    if (between.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, between, this.target, cleared)) {
+      desc.push('Sandwich has no valid combination')
+      return ConstraintResult.INVALID
+    }
+    return reportClears(board, 'Sandwich', cleared, desc)
   }
 }
 
@@ -117,5 +226,42 @@ export class SkyscraperConstraint extends Constraint {
       }
     }
     return full ? visible === this.target : visible <= this.target
+  }
+
+  // Standard skyscraper deductions: clue 1 ⇒ the edge cell is the tallest; clue =
+  // size ⇒ strictly ascending; otherwise a cell can't be so tall so early that
+  // fewer than `clue` buildings could be seen (height ≤ size − clue + 1 + index).
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const size = board.size
+    const clue = this.target
+    const cleared: number[] = []
+
+    if (clue === 1) {
+      if (applyKeep(board, this.line[0], valueBit(size), cleared)) {
+        desc.push('Skyscraper edge cell has no candidates')
+        return ConstraintResult.INVALID
+      }
+    } else if (clue === size) {
+      for (let i = 0; i < this.line.length; i += 1) {
+        if (applyKeep(board, this.line[i], valueBit(i + 1), cleared)) {
+          desc.push('Skyscraper run is impossible')
+          return ConstraintResult.INVALID
+        }
+      }
+    } else {
+      for (let i = 0; i < this.line.length; i += 1) {
+        const maxHeight = size - clue + 1 + i
+        if (maxHeight >= size) continue
+        let keep = 0
+        for (const v of valuesList(board.candidateMask(this.line[i]))) {
+          if (v <= maxHeight) keep |= valueBit(v)
+        }
+        if (applyKeep(board, this.line[i], keep, cleared)) {
+          desc.push('Skyscraper bound empties a cell')
+          return ConstraintResult.INVALID
+        }
+      }
+    }
+    return reportClears(board, 'Skyscraper', cleared, desc)
   }
 }

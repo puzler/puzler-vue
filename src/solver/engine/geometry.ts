@@ -13,6 +13,11 @@ export function cellAt(row: number, col: number, size: number): number {
   return row * size + col
 }
 
+// 1-indexed display name: cell 0 → R1C1.
+export function cellName(cell: number, size: number): string {
+  return `R${rowOf(cell, size) + 1}C${colOf(cell, size) + 1}`
+}
+
 const ORTHO = [
   [-1, 0],
   [1, 0],

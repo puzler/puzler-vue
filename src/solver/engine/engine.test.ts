@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle } from '../types'
 import { buildBoard } from './buildBoard'
-import { findSolution, countSolutions, trueCandidates } from './algorithms'
+import { findSolution, countSolutions, trueCandidates, logicalCandidates } from './algorithms'
 import { logicalSolve } from './logic/logicalSolver'
 
 // Vanilla 9×9 regions: 9 rows, 9 columns, 9 boxes.
@@ -106,6 +106,19 @@ describe('solver engine', () => {
     // Unique solution → every cell has exactly one true candidate = the solution.
     const joined = result.candidates.map((vs) => (vs.length === 1 ? String(vs[0]) : '?')).join('')
     expect(joined).toBe(SOLUTION)
+  })
+
+  it('logical candidates resolve a singles puzzle with no false reds', () => {
+    const { board } = buildBoard(vanilla(EASY))
+    const result = logicalCandidates(board, 'standard', 1)
+    expect(result.valid).toBe(true)
+    expect(result.counts).toBeDefined()
+    // EASY solves on singles → every cell resolves to one feasible candidate
+    // (count 1), so nothing is red.
+    const solvedAndFeasible = result.candidates.every(
+      (vals, cell) => vals.length === 1 && result.counts?.[cell][vals[0] - 1] === 1,
+    )
+    expect(solvedAndFeasible).toBe(true)
   })
 
   it('true candidates with counts marks solving candidates', () => {

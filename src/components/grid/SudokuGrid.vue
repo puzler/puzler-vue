@@ -44,7 +44,7 @@ const viewBox = computed(() => {
     ref="svgEl"
     :viewBox="viewBox"
     preserveAspectRatio="xMidYMid meet"
-    class="w-full h-full select-none"
+    class="w-full h-full select-none touch-none"
     xmlns="http://www.w3.org/2000/svg"
     @click.self="emit('clear-selection')"
     @contextmenu.prevent

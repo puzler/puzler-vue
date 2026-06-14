@@ -582,6 +582,19 @@ function onPointerMove(event: PointerEvent) {
   }
 }
 
+// A pointercancel (system gesture, second finger, etc.) aborts the gesture
+// without a pointerup — reset transient state so we don't get stuck mid-drag.
+function onPointerCancel() {
+  if (!isDragging.value) return
+  isDragging.value = false
+  brushCells.value = new Set()
+  brushMode.value = null
+  cloneDrag.value = null
+  editor.setPendingCloneDrag(null)
+  editor.setPendingBrushCells([])
+  editor.cancelPendingLine()
+}
+
 function onPointerUp(event: PointerEvent) {
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
@@ -662,5 +675,6 @@ function onPointerUp(event: PointerEvent) {
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
+    @pointercancel="onPointerCancel"
   />
 </template>

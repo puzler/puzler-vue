@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation RevokePuzzleAccess($puzzleId: ID!, $userId: ID!) {
+  revokePuzzleAccess(input: { puzzleId: $puzzleId, userId: $userId }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

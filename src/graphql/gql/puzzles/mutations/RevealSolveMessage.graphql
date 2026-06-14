@@ -1,0 +1,6 @@
+mutation RevealSolveMessage($puzzleId: ID!, $solutionHash: String!, $shareToken: String) {
+  revealSolveMessage(input: { puzzleId: $puzzleId, solutionHash: $solutionHash, shareToken: $shareToken }) {
+    correct
+    solveMessage
+  }
+}

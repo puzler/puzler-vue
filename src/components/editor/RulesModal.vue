@@ -2,19 +2,26 @@
 import { ref } from 'vue'
 
 const props = defineProps<{
-  modelValue: string
+  rules: string
+  solveMessage: string
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:rules': [value: string]
+  'update:solveMessage': [value: string]
   close: []
 }>()
 
-// Edit a buffer so Cancel discards changes.
-const draft = ref(props.modelValue)
+const tab = ref<'rules' | 'solve'>('rules')
+// Edit buffers so Cancel discards changes; both stay mounted via v-show.
+const rulesDraft = ref(props.rules)
+const solveDraft = ref(props.solveMessage)
+
+const TAB = 'px-3 py-1.5 text-sm rounded-lg transition-colors'
 
 function save() {
-  emit('update:modelValue', draft.value.trim())
+  emit('update:rules', rulesDraft.value.trim())
+  emit('update:solveMessage', solveDraft.value.trim())
   emit('close')
 }
 </script>
@@ -26,15 +33,33 @@ function save() {
       @click.self="emit('close')"
     >
       <div class="bg-surface rounded-xl shadow-xl w-full max-w-xl p-6 flex flex-col gap-4">
-        <h2 class="font-display text-base font-semibold text-ink-text">
-          Puzzle Rules
-        </h2>
+        <div class="flex gap-1">
+          <button
+            :class="[TAB, tab === 'rules' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
+            @click="tab = 'rules'"
+          >
+            Rules
+          </button>
+          <button
+            :class="[TAB, tab === 'solve' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
+            @click="tab = 'solve'"
+          >
+            Solve Message
+          </button>
+        </div>
         <textarea
-          v-model="draft"
-          rows="14"
+          v-show="tab === 'rules'"
+          v-model="rulesDraft"
+          rows="13"
           placeholder="Describe how this puzzle is solved — normal sudoku rules plus any variant constraints…"
           class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
-          autofocus
+        />
+        <textarea
+          v-show="tab === 'solve'"
+          v-model="solveDraft"
+          rows="13"
+          placeholder="Shown when the puzzle is solved (leave blank for the default). Handy for puzzle-hunt clues — it stays hidden until a correct solve."
+          class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
         />
         <div class="flex gap-2 justify-end">
           <button

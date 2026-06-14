@@ -24,6 +24,40 @@ const router = createRouter({
       component: () => import('@/views/ArchiveView.vue'),
     },
     {
+      path: '/my-puzzles',
+      name: 'my-puzzles',
+      component: () => import('@/views/MyPuzzlesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my-puzzles/collections/:id',
+      name: 'collection-detail',
+      component: () => import('@/views/CollectionDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/collections/:id',
+      name: 'collection',
+      component: () => import('@/views/CollectionView.vue'),
+    },
+    {
+      path: '/my-puzzles/series/:id',
+      name: 'series-detail',
+      component: () => import('@/views/SeriesDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/series/:id',
+      name: 'series',
+      component: () => import('@/views/SeriesView.vue'),
+    },
+    {
+      path: '/feed',
+      name: 'feed',
+      component: () => import('@/views/FeedView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/puzzles/:id',
       name: 'player',
       component: () => import('@/views/PlayerView.vue'),

@@ -40,6 +40,9 @@ const brushMode = ref<'paint' | 'erase' | null>(null)
 const brushCells = ref<Set<string>>(new Set())
 
 const cursor = computed(() => {
+  // Solving mode ignores the setting tool entirely — interaction is plain
+  // cell selection so the solver can place digits and pencil marks.
+  if (editor.mode === 'solving') return 'default'
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
@@ -306,8 +309,39 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
   editor.toggleOuterClue(editor.activeTool as OuterClueType, key)
 }
 
+// Plain cell selection (shared by the setting-mode default tool and all of
+// solving mode). Ctrl/Cmd extends the selection; a bare click replaces it.
+function beginSelectionDrag(event: PointerEvent) {
+  const key = hitCell(event)
+  if (!key) return
+  ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+  isDragging.value = true
+  const additive = event.ctrlKey || event.metaKey
+  dragAdditive.value = additive
+  if (additive) {
+    const next = new Set(props.selection)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    emit('update:selection', next)
+  } else {
+    emit('update:selection', new Set([key]))
+  }
+}
+
+function extendSelectionDrag(event: PointerEvent) {
+  const key = hitCell(event)
+  if (!key || props.selection.has(key)) return
+  emit('update:selection', new Set([...props.selection, key]))
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
+
+  // Solving mode ignores the active setting tool — always plain selection.
+  if (editor.mode === 'solving') {
+    beginSelectionDrag(event)
+    return
+  }
 
   if (isOuterTool.value) {
     const pos = hitOuterCell(event)
@@ -485,23 +519,17 @@ function onPointerDown(event: PointerEvent) {
   } else if (editor.activeTool === 'shape') {
     editor.toggleShapeAt(key, computeShapeAnchor(event, key))
   } else {
-    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
-    isDragging.value = true
-    const additive = event.ctrlKey || event.metaKey
-    dragAdditive.value = additive
-    if (additive) {
-      const next = new Set(props.selection)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      emit('update:selection', next)
-    } else {
-      emit('update:selection', new Set([key]))
-    }
+    beginSelectionDrag(event)
   }
 }
 
 function onPointerMove(event: PointerEvent) {
   if (!isDragging.value) return
+
+  if (editor.mode === 'solving') {
+    extendSelectionDrag(event)
+    return
+  }
 
   if (isCageTool.value) {
     const key = hitCell(event)
@@ -549,9 +577,7 @@ function onPointerMove(event: PointerEvent) {
     brushCells.value = new Set([...brushCells.value, key])
     if (brushMode.value === 'paint') editor.setPendingBrushCells(Array.from(brushCells.value))
   } else {
-    const key = hitCell(event)
-    if (!key || props.selection.has(key)) return
-    emit('update:selection', new Set([...props.selection, key]))
+    extendSelectionDrag(event)
   }
 }
 
@@ -559,6 +585,9 @@ function onPointerUp(event: PointerEvent) {
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false
+
+  // Plain selection in solving mode has nothing to commit on release.
+  if (editor.mode === 'solving') return
 
   if (isCageTool.value) {
     if (editor.activeTool === 'cosmetic_cage') editor.commitCosmeticCage(Array.from(brushCells.value))

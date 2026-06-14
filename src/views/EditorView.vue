@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import ToolSelector from '@/components/editor/ToolSelector.vue'
 import ToolControlBox from '@/components/editor/ToolControlBox.vue'
@@ -8,12 +9,15 @@ import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import EditorMobileLayout from '@/components/editor/EditorMobileLayout.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { usePuzzleStore } from '@/stores/puzzle'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES } from '@/types/constraints'
 
 const editor = useEditorStore()
 const grid = useGridStore()
+const puzzle = usePuzzleStore()
+const route = useRoute()
 const isMobile = useIsMobile()
 
 const TOOLS_WITH_CONTROLS = new Set([
@@ -195,6 +199,16 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', onWindowBlur)
+
+  // Editing an existing puzzle (/editor/:id): load it and its latest version.
+  // A bare /editor that isn't the puzzle we already have loaded starts fresh.
+  const id = route.params.id
+  if (typeof id === 'string' && id) {
+    if (puzzle.serverPuzzleId !== id) puzzle.loadForEdit(id)
+  } else if (puzzle.serverPuzzleId) {
+    editor.reset()
+    puzzle.resetPuzzle()
+  }
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)

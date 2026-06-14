@@ -1,0 +1,13 @@
+#import "../../fragments/SeriesEntryFields.graphql"
+
+mutation AddSeriesEntry($seriesId: ID!, $entryableType: String!, $entryableId: ID!) {
+  addSeriesEntry(input: { seriesId: $seriesId, entryableType: $entryableType, entryableId: $entryableId }) {
+    series {
+      id
+      entries {
+        ...SeriesEntryFields
+      }
+    }
+    errors
+  }
+}

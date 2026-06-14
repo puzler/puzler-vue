@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, PUZZLE_EXPORT_VERSION } from './puzzleExport'
+import { serializePuzzle, serializePlayDefinition, deserializePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
 
 describe('serializePuzzle', () => {
   beforeEach(() => {
@@ -47,6 +47,17 @@ describe('serializePuzzle', () => {
     expect(data.globals.variants).toEqual(['knights_move', 'positive_diagonal'])
   })
 
+  it('excludes solver scratch and carries the explicit solution + solve message', () => {
+    const { editor, grid } = populatedStores()
+    editor.solverCellStates = { r8c8: { value: 9, cornerMarks: [], centerMarks: [], color: null } }
+    editor.solution = { r0c0: 5 }
+    editor.solveMessage = 'You found it!'
+    const data = serializePuzzle(editor, grid)
+    expect('solverCellStates' in data).toBe(false)
+    expect(data.solution).toEqual({ r0c0: 5 })
+    expect(data.meta.solveMessage).toBe('You found it!')
+  })
+
   it('round-trips through JSON without loss', () => {
     const { editor, grid } = populatedStores()
     const data = serializePuzzle(editor, grid)
@@ -54,15 +65,142 @@ describe('serializePuzzle', () => {
     expect(roundTripped).toEqual(data)
   })
 
-  it('serializes empty editor state without undefined or Set leftovers', () => {
+  it('omits empty containers and unset fields', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    const json = JSON.stringify(serializePuzzle(editor, grid))
-    expect(json).not.toContain('undefined')
-    expect(JSON.parse(json).constraints).toEqual({
-      singleCellMarks: {},
-      connectorDots: {},
-      outerClues: {},
-    })
+    editor.givenDigits = { r0c0: 5 }
+    const data = serializePuzzle(editor, grid) as Record<string, unknown>
+    expect('constraints' in data).toBe(false)
+    expect('globals' in data).toBe(false)
+    expect('activeConstraints' in data).toBe(false)
+    expect('solution' in data).toBe(false)
+    expect((data.grid as Record<string, unknown>).customCellRegions).toBeUndefined()
+  })
+})
+
+describe('serializePlayDefinition', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('strips the solution and solve message from the play-safe definition', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.solution = { r0c0: 5 }
+    editor.solveMessage = 'secret clue'
+    const def = serializePlayDefinition(editor, grid) as Record<string, unknown>
+    expect('solution' in def).toBe(false)
+    expect((def.meta as Record<string, unknown> | undefined)?.solveMessage).toBeUndefined()
+  })
+})
+
+describe('deserializePuzzle', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('round-trips serialize → JSON → deserialize → serialize with no loss', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(9, 9)
+    editor.puzzleName = 'Round Trip'
+    editor.puzzleRules = 'Normal sudoku rules.'
+    editor.solveMessage = 'The keyword is CIPHER'
+    editor.solution = { r0c0: 5, r1c1: 3 }
+    editor.givenDigits = { r0c0: 5, r1c1: 3 }
+    editor.singleCellMarks = { odd_cells: new Set(['r2c2', 'r1c1']) }
+    editor.connectorDots = { 'r0c0|r0c1': { type: 'ratio_dots', value: 2 } }
+    editor.outerClues = { 'o:r-1c3': { type: 'sandwich_sums', value: 12 } }
+    editor.activeGlobalVariants = new Set(['knights_move'])
+    editor.activeConstraints = [{ id: 'a', type: 'thermometer', label: 'Thermo', category: 'line' }]
+
+    const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, original)
+
+    expect(editor2.solution).toEqual({ r0c0: 5, r1c1: 3 })
+    expect(editor2.solveMessage).toBe('The keyword is CIPHER')
+    expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+  })
+
+  it('handles a minimal pruned object (only version + grid + givens)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, { version: 3, grid: { rows: 9, cols: 9 }, givenDigits: { r0c0: 7 } } as never)
+    expect(grid.rows).toBe(9)
+    expect(editor.givenDigits).toEqual({ r0c0: 7 })
+    expect(editor.solution).toBeNull()
+    expect(editor.linePresets.length).toBeGreaterThan(0) // default preset preserved
+  })
+
+  it('restores grid dimensions, custom regions, and Set-backed marks', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(6, 6)
+    grid.setCustomCellRegions({ r0c0: 'A', r0c1: 'A' })
+    editor.singleCellMarks = { even_cells: new Set(['r0c0']) }
+    const data = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, data)
+
+    expect(grid2.rows).toBe(6)
+    expect(grid2.customCellRegions).toEqual({ r0c0: 'A', r0c1: 'A' })
+    expect(editor2.singleCellMarks.even_cells).toBeInstanceOf(Set)
+    expect([...editor2.singleCellMarks.even_cells]).toEqual(['r0c0'])
+  })
+})
+
+describe('boardSnapshot', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns only the filled cells, omitting empties (never null)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(2, 2)
+    editor.givenDigits = { r0c0: 1, r0c1: 2, r1c0: 3 } // r1c1 intentionally empty
+    expect(boardSnapshot(editor, grid)).toEqual({ r0c0: 1, r0c1: 2, r1c0: 3 })
+  })
+
+  it('combines givens and solver digits', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(2, 2)
+    editor.givenDigits = { r0c0: 1, r0c1: 2 }
+    editor.solverCellStates = {
+      r1c0: { value: 3, cornerMarks: [], centerMarks: [], color: null },
+      r1c1: { value: 4, cornerMarks: [], centerMarks: [], color: null },
+    }
+    expect(boardSnapshot(editor, grid)).toEqual({ r0c0: 1, r0c1: 2, r1c0: 3, r1c1: 4 })
+  })
+})
+
+describe('parsePuzzleImport', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('parses a valid export', () => {
+    const data = serializePuzzle(useEditorStore(), useGridStore())
+    expect(parsePuzzleImport(JSON.stringify(data))).toMatchObject({ version: PUZZLE_EXPORT_VERSION })
+  })
+
+  it('rejects invalid JSON', () => {
+    expect(() => parsePuzzleImport('not json')).toThrow(/valid JSON/)
+  })
+
+  it('rejects an object without grid dimensions', () => {
+    expect(() => parsePuzzleImport('{"version":3}')).toThrow(/grid/)
+  })
+
+  it('rejects a future format version', () => {
+    expect(() => parsePuzzleImport(JSON.stringify({ version: 999, grid: { rows: 9, cols: 9 } }))).toThrow(/version/)
   })
 })

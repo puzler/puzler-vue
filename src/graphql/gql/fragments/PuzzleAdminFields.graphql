@@ -1,0 +1,13 @@
+fragment PuzzleAdminFields on Puzzle {
+  id
+  status
+  visibility
+  shareToken
+  publishedVersion {
+    id
+  }
+  grantedUsers {
+    id
+    username
+  }
+}

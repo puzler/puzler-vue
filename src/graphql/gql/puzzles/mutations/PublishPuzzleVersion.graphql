@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation PublishPuzzleVersion($puzzleId: ID!, $versionId: ID!, $visibility: String) {
+  publishPuzzleVersion(input: { puzzleId: $puzzleId, versionId: $versionId, visibility: $visibility }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

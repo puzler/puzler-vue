@@ -1,0 +1,10 @@
+#import "../../fragments/SeriesSummary.graphql"
+
+query MySubscriptions {
+  mySubscriptions {
+    ...SeriesSummary
+    author {
+      username
+    }
+  }
+}

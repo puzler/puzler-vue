@@ -1,0 +1,14 @@
+mutation RemovePuzzleFromCollection($collectionId: ID!, $puzzleId: ID!) {
+  removePuzzleFromCollection(input: { collectionId: $collectionId, puzzleId: $puzzleId }) {
+    collection {
+      id
+      puzzles {
+        id
+        title
+        status
+        visibility
+      }
+    }
+    errors
+  }
+}

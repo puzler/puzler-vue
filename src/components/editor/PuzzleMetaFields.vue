@@ -36,13 +36,14 @@ const showRules = ref(false)
         <span
           v-else
           class="text-faint"
-        >Rules…</span>
+        >Rules &amp; solve message…</span>
       </button>
     </div>
 
     <RulesModal
       v-if="showRules"
-      v-model="editor.puzzleRules"
+      v-model:rules="editor.puzzleRules"
+      v-model:solve-message="editor.solveMessage"
       @close="showRules = false"
     />
   </div>

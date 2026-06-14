@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation UnpublishPuzzle($id: ID!) {
+  unpublishPuzzle(input: { id: $id }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

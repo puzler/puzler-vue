@@ -1,0 +1,10 @@
+mutation ScheduleSeriesEntry($entryId: ID!, $releasedAt: ISO8601DateTime) {
+  scheduleSeriesEntry(input: { entryId: $entryId, releasedAt: $releasedAt }) {
+    entry {
+      id
+      released
+      releasedAt
+    }
+    errors
+  }
+}

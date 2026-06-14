@@ -1,0 +1,6 @@
+mutation RecordCollectionSolveTime($collectionId: ID!, $puzzleId: ID!, $seconds: Int!) {
+  recordCollectionSolveTime(input: { collectionId: $collectionId, puzzleId: $puzzleId, seconds: $seconds }) {
+    recorded
+    errors
+  }
+}

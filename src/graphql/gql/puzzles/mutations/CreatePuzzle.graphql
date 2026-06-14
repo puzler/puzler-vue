@@ -1,0 +1,10 @@
+mutation CreatePuzzle($title: String!, $gridRows: Int, $gridCols: Int) {
+  createPuzzle(input: { title: $title, gridRows: $gridRows, gridCols: $gridCols }) {
+    puzzle {
+      id
+      title
+      shareToken
+    }
+    errors
+  }
+}

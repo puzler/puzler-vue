@@ -4,7 +4,9 @@ import { RouterLink } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import NavMobileMenu from './NavMobileMenu.vue'
 import NavUserActions from './NavUserActions.vue'
+import { useAuthStore } from '@/stores/auth'
 
+const auth = useAuthStore()
 const menuOpen = ref(false)
 </script>
 
@@ -33,6 +35,22 @@ const menuOpen = ref(false)
           active-class="!text-white !border-spark"
         >
           Set a Puzzle
+        </RouterLink>
+        <RouterLink
+          v-if="auth.isAuthenticated"
+          to="/my-puzzles"
+          class="flex items-center px-3 text-sm text-[#9AA3B8] border-b-2 border-transparent hover:text-white transition-colors"
+          active-class="!text-white !border-spark"
+        >
+          My Puzzles
+        </RouterLink>
+        <RouterLink
+          v-if="auth.isAuthenticated"
+          to="/feed"
+          class="flex items-center px-3 text-sm text-[#9AA3B8] border-b-2 border-transparent hover:text-white transition-colors"
+          active-class="!text-white !border-spark"
+        >
+          Updates
         </RouterLink>
       </div>
 

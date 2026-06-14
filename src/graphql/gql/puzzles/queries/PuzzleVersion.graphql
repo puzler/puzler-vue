@@ -1,0 +1,7 @@
+#import "../../fragments/VersionFull.graphql"
+
+query PuzzleVersion($id: ID!) {
+  puzzleVersion(id: $id) {
+    ...VersionFull
+  }
+}

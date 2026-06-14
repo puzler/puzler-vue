@@ -1,0 +1,11 @@
+mutation UpdateSeries($id: ID!, $title: String, $description: String, $visibility: String) {
+  updateSeries(input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility } }) {
+    series {
+      id
+      title
+      description
+      visibility
+    }
+    errors
+  }
+}

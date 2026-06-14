@@ -1,0 +1,7 @@
+fragment CollectionSummary on Collection {
+  id
+  title
+  visibility
+  mode
+  puzzleCount
+}

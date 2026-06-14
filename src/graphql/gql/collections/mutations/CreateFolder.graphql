@@ -1,0 +1,10 @@
+mutation CreateFolder($name: String!) {
+  createFolder(input: { name: $name }) {
+    folder {
+      id
+      name
+      puzzleCount
+    }
+    errors
+  }
+}

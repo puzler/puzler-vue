@@ -1,5 +1,5 @@
 <template>
-  <section class="bg-paper border border-line rounded-xl p-6">
+  <section class="bg-paper border border-line rounded-xl p-6 mb-6">
     <h2 class="font-display text-lg font-semibold mb-1">
       Connections
     </h2>

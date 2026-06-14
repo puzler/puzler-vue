@@ -1,0 +1,7 @@
+query CollectionLeaderboard($collectionId: ID!) {
+  collectionLeaderboard(collectionId: $collectionId) {
+    rank
+    username
+    totalSeconds
+  }
+}

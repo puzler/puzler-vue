@@ -1,17 +1,22 @@
 import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
+import { cellKey } from '@/composables/useGrid'
 
-// Bumped from 1 when constraint state beyond cosmetics (single-cell marks,
-// connector dots, outer clues, global variants) joined the export
-export const PUZZLE_EXPORT_VERSION = 2
+// 1 → 2: constraint state beyond cosmetics joined the export.
+// 2 → 3: solver scratch (solverCellStates) dropped from puzzle data; the
+// explicit solution and solve message joined instead.
+export const PUZZLE_EXPORT_VERSION = 3
 
-// Serializes the full editor state as a JSON-safe object: everything is
-// plain data (Sets become sorted arrays) so the output round-trips through
-// JSON.stringify/parse without loss for a future import.
-export function serializePuzzle(
-  editor: ReturnType<typeof useEditorStore>,
-  grid: ReturnType<typeof useGridStore>,
-) {
+type EditorStore = ReturnType<typeof useEditorStore>
+type GridStore = ReturnType<typeof useGridStore>
+
+export type SerializedPuzzle = ReturnType<typeof fullSerialize>
+
+// Builds the complete puzzle object. Everything is plain data (Sets become
+// sorted arrays) so it round-trips through JSON. Excludes solverCellStates —
+// the solver's scratch is never puzzle data — and carries the explicit solution
+// and solve message instead.
+function fullSerialize(editor: EditorStore, grid: GridStore) {
   return {
     version: PUZZLE_EXPORT_VERSION,
     grid: {
@@ -23,9 +28,10 @@ export function serializePuzzle(
       name: editor.puzzleName,
       author: editor.puzzleAuthor,
       rules: editor.puzzleRules,
+      solveMessage: editor.solveMessage,
     },
+    solution: editor.solution,
     givenDigits: editor.givenDigits,
-    solverCellStates: editor.solverCellStates,
     activeConstraints: editor.activeConstraints,
     globals: {
       variants: Array.from(editor.activeGlobalVariants).sort(),
@@ -51,4 +57,141 @@ export function serializePuzzle(
       cagePresets: editor.cagePresets,
     },
   }
+}
+
+function isEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === '') return true
+  if (Array.isArray(value)) return value.length === 0
+  if (typeof value === 'object') return Object.keys(value).length === 0
+  return false
+}
+
+// Drops keys whose value is empty (empty array/object, null, '') — shallow, so
+// it never recurses into constraint/cosmetic data where an empty array can be
+// meaningful (e.g. an empty quadruple).
+function dropEmpty(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => !isEmptyValue(v)))
+}
+
+// Prunes empty containers from the serialized object so a simple puzzle exports
+// without a pile of empty maps/arrays. The structural sections are compacted
+// first, then the top level (which drops any section emptied by that pass).
+function compactExport(data: ReturnType<typeof fullSerialize>): SerializedPuzzle {
+  const compacted = {
+    ...data,
+    grid: dropEmpty(data.grid),
+    meta: dropEmpty(data.meta),
+    globals: dropEmpty(data.globals),
+    constraints: dropEmpty(data.constraints),
+    cosmetics: dropEmpty(data.cosmetics),
+  }
+  return dropEmpty(compacted) as SerializedPuzzle
+}
+
+// The export/import shape — clean, with the solution and solve message.
+export function serializePuzzle(editor: EditorStore, grid: GridStore): SerializedPuzzle {
+  return compactExport(fullSerialize(editor, grid))
+}
+
+// The play-safe definition stored on a version: same shape, but the solution
+// and solve message are stripped (they live in their own version columns and
+// must never reach a solver).
+export function serializePlayDefinition(editor: EditorStore, grid: GridStore): SerializedPuzzle {
+  const data = fullSerialize(editor, grid)
+  return compactExport({ ...data, solution: null, meta: { ...data.meta, solveMessage: '' } })
+}
+
+// Inverse of serializePuzzle: hydrates the editor and grid stores from a stored
+// definition. reset() first gives a clean slate and clears undo history, so
+// loading a version is not itself an undoable step. Arrays become Sets again.
+export function deserializePuzzle(editor: EditorStore, grid: GridStore, data: SerializedPuzzle) {
+  editor.reset()
+
+  // Empty containers are omitted from the export, so every section is read
+  // defensively with a default.
+  const meta = data.meta ?? {}
+  const globals = data.globals ?? {}
+  const constraints = data.constraints ?? {}
+  const cosmetics = data.cosmetics ?? {}
+
+  grid.setDimensions(data.grid.rows, data.grid.cols)
+  grid.setCustomCellRegions(data.grid.customCellRegions ?? null)
+
+  editor.puzzleName = meta.name ?? ''
+  editor.puzzleAuthor = meta.author ?? ''
+  editor.puzzleRules = meta.rules ?? ''
+  editor.solveMessage = meta.solveMessage ?? ''
+  editor.solution = data.solution ?? null
+
+  editor.givenDigits = { ...(data.givenDigits ?? {}) }
+  // solverCellStates is deliberately not restored — it's ephemeral scratch,
+  // never part of stored puzzle data, so it stays empty from reset().
+  editor.activeConstraints = (data.activeConstraints ?? []).map((c) => ({ ...c }))
+
+  editor.activeGlobalVariants = new Set(globals.variants ?? [])
+  editor.customGlobalConstraints = (globals.custom ?? []).map((c) => ({ ...c }))
+
+  editor.singleCellMarks = Object.fromEntries(
+    Object.entries(constraints.singleCellMarks ?? {}).map(([type, cells]) => [type, new Set(cells)]),
+  )
+  editor.connectorDots = structuredClone(constraints.connectorDots ?? {})
+  editor.outerClues = structuredClone(constraints.outerClues ?? {})
+
+  editor.cosmeticCellColors = { ...(cosmetics.cellColors ?? {}) }
+  editor.cosmeticInstances = structuredClone(cosmetics.instances ?? [])
+
+  // Presets are only overwritten when present, so an import that omits them
+  // keeps the default preset reset() created (the line/shape tools need one).
+  if (cosmetics.linePresets) editor.linePresets = structuredClone(cosmetics.linePresets)
+  if (cosmetics.shapePresets) editor.shapePresets = structuredClone(cosmetics.shapePresets)
+  if (cosmetics.textPresets) editor.textPresets = structuredClone(cosmetics.textPresets)
+  if (cosmetics.cellColorPresets) editor.cellColorPresets = structuredClone(cosmetics.cellColorPresets)
+  if (cosmetics.cagePresets) editor.cagePresets = structuredClone(cosmetics.cagePresets)
+
+  // Point the active-preset selectors at the restored presets (reset() left
+  // them on freshly-generated default ids).
+  if (cosmetics.linePresets?.[0]) editor.activeLinePresetId = cosmetics.linePresets[0].id
+  if (cosmetics.shapePresets?.[0]) editor.activeShapePresetId = cosmetics.shapePresets[0].id
+  if (cosmetics.textPresets?.[0]) editor.activeTextPresetId = cosmetics.textPresets[0].id
+  if (cosmetics.cellColorPresets?.[0]) editor.activeCellColorPresetId = cosmetics.cellColorPresets[0].id
+  if (cosmetics.cagePresets?.[0]) editor.activeCagePresetId = cosmetics.cagePresets[0].id
+}
+
+// The map of currently-filled cells (givens plus solver-entered digits), empty
+// cells omitted. Used both to capture the author's solution and to check a
+// player's board against the solution hash — so variants that intentionally
+// leave cells blank work: the solution simply doesn't include those cells.
+export function boardSnapshot(editor: EditorStore, grid: GridStore): Record<string, number> {
+  const board: Record<string, number> = {}
+  for (let r = 0; r < grid.rows; r++) {
+    for (let c = 0; c < grid.cols; c++) {
+      const key = cellKey(r, c)
+      const value = editor.givenDigits[key] ?? editor.solverCellStates[key]?.value ?? null
+      if (value !== null) board[key] = value
+    }
+  }
+  return board
+}
+
+// Parses and shape-validates pasted import JSON, throwing a readable error for
+// the import UI. Tolerates older export versions (deserialize fills gaps).
+export function parsePuzzleImport(text: string): SerializedPuzzle {
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error("That doesn't look like valid JSON.")
+  }
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Expected a puzzle object.')
+  }
+  const obj = data as Record<string, unknown>
+  const grid = obj.grid as { rows?: unknown; cols?: unknown } | undefined
+  if (!grid || typeof grid.rows !== 'number' || typeof grid.cols !== 'number') {
+    throw new Error('Missing or invalid grid dimensions — is this a Puzler export?')
+  }
+  if (typeof obj.version !== 'number' || obj.version > PUZZLE_EXPORT_VERSION) {
+    throw new Error('Unsupported puzzle format version.')
+  }
+  return data as SerializedPuzzle
 }

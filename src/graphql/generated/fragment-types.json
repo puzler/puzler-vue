@@ -1,5 +1,11 @@
 {
   "possibleTypes": {
+    "CollectionMutations": [
+      "Mutation"
+    ],
+    "CollectionQueries": [
+      "Query"
+    ],
     "ConstraintMutations": [
       "Mutation"
     ],
@@ -13,6 +19,12 @@
       "Mutation"
     ],
     "PuzzleQueries": [
+      "Query"
+    ],
+    "SeriesMutations": [
+      "Mutation"
+    ],
+    "SeriesQueries": [
       "Query"
     ],
     "SocialMutations": [

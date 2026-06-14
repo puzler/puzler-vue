@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation SetPuzzleVisibility($id: ID!, $visibility: String!) {
+  setPuzzleVisibility(input: { id: $id, visibility: $visibility }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

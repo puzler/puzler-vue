@@ -1,0 +1,10 @@
+#import "../../fragments/CollectionSummary.graphql"
+
+mutation CreateCollection($title: String!) {
+  createCollection(input: { title: $title }) {
+    collection {
+      ...CollectionSummary
+    }
+    errors
+  }
+}

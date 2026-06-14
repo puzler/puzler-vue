@@ -1,0 +1,12 @@
+mutation MovePuzzleToFolder($puzzleId: ID!, $folderId: ID) {
+  movePuzzleToFolder(input: { puzzleId: $puzzleId, folderId: $folderId }) {
+    puzzle {
+      id
+      folder {
+        id
+        name
+      }
+    }
+    errors
+  }
+}

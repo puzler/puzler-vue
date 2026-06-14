@@ -1,0 +1,15 @@
+query PuzzleForPlay($id: ID!) {
+  puzzle(id: $id) {
+    id
+    title
+    author {
+      id
+      username
+    }
+    publishedVersion {
+      id
+      definition
+      solutionHash
+    }
+  }
+}

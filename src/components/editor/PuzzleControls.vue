@@ -2,14 +2,15 @@
 import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { mdiViewGridPlusOutline, mdiEraser, mdiTrayArrowUp, mdiContentSaveOutline } from '@mdi/js'
+import { mdiViewGridPlusOutline, mdiEraser } from '@mdi/js'
 import NewGridModal from './NewGridModal.vue'
-import ExportModal from './ExportModal.vue'
+import EditorActions from './EditorActions.vue'
+import SetSolutionButton from './SetSolutionButton.vue'
+import ViewSolutionButton from './ViewSolutionButton.vue'
 
 const editor = useEditorStore()
 
 const showNewGrid = ref(false)
-const showExport = ref(false)
 const newGridModal = ref<InstanceType<typeof NewGridModal> | null>(null)
 
 const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface border border-line text-soft hover:text-action hover:border-action transition-colors'
@@ -50,6 +51,8 @@ function toggleMode() {
           :size="18"
         />
       </button>
+      <SetSolutionButton v-if="editor.mode === 'solving'" />
+      <ViewSolutionButton v-if="editor.mode === 'solving'" />
     </div>
 
     <div class="flex items-center gap-2">
@@ -81,38 +84,12 @@ function toggleMode() {
       </button>
     </div>
 
-    <div class="flex items-center justify-end gap-1.5">
-      <button
-        title="Export"
-        aria-label="Export"
-        :class="ICON_BTN"
-        @click="showExport = true"
-      >
-        <MdiIcon
-          :path="mdiTrayArrowUp"
-          :size="18"
-        />
-      </button>
-      <button
-        title="Save"
-        aria-label="Save"
-        class="w-8 h-8 flex items-center justify-center rounded-lg bg-action text-white hover:bg-action-deep transition-colors"
-      >
-        <MdiIcon
-          :path="mdiContentSaveOutline"
-          :size="18"
-        />
-      </button>
-    </div>
+    <EditorActions />
   </div>
 
   <NewGridModal
     v-if="showNewGrid"
     ref="newGridModal"
     @close="showNewGrid = false"
-  />
-  <ExportModal
-    v-if="showExport"
-    @close="showExport = false"
   />
 </template>

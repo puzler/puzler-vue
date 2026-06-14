@@ -1,0 +1,10 @@
+#import "../../fragments/VersionSummary.graphql"
+
+mutation UpdatePuzzleVersionLabel($id: ID!, $label: String) {
+  updatePuzzleVersionLabel(input: { id: $id, label: $label }) {
+    version {
+      ...VersionSummary
+    }
+    errors
+  }
+}

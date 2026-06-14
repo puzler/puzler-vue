@@ -1,0 +1,7 @@
+#import "../../fragments/SeriesSummary.graphql"
+
+query MySeries {
+  mySeries {
+    ...SeriesSummary
+  }
+}

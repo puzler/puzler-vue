@@ -1,0 +1,6 @@
+mutation DeleteSeries($id: ID!) {
+  deleteSeries(input: { id: $id }) {
+    deletedId
+    errors
+  }
+}

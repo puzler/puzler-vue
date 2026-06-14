@@ -1,0 +1,18 @@
+query SeriesFeed {
+  seriesFeed {
+    id
+    entryType
+    releasedAt
+    seriesId
+    seriesTitle
+    puzzle {
+      id
+      title
+    }
+    collection {
+      id
+      title
+      puzzleCount
+    }
+  }
+}

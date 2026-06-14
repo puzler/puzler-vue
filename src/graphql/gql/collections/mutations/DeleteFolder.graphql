@@ -1,0 +1,6 @@
+mutation DeleteFolder($id: ID!) {
+  deleteFolder(input: { id: $id }) {
+    success
+    errors
+  }
+}

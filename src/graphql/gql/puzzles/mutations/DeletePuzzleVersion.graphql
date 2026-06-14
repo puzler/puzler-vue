@@ -1,0 +1,6 @@
+mutation DeletePuzzleVersion($id: ID!) {
+  deletePuzzleVersion(input: { id: $id }) {
+    success
+    errors
+  }
+}

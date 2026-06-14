@@ -1,0 +1,6 @@
+mutation DeleteCollection($id: ID!) {
+  deleteCollection(input: { id: $id }) {
+    success
+    errors
+  }
+}

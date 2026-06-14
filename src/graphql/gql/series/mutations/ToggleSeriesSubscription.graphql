@@ -1,0 +1,6 @@
+mutation ToggleSeriesSubscription($seriesId: ID!) {
+  toggleSeriesSubscription(input: { seriesId: $seriesId }) {
+    subscribed
+    subscriberCount
+  }
+}

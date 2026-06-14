@@ -234,6 +234,62 @@ export function lockedCandidates(board: Board): Elimination | null {
   return null
 }
 
+// ── Linked pair (weak-link naked pair) ───────────────────────────────────────
+
+// Two cells restricted to the same two values that are mutually exclusive on
+// both (via any constraint's weak links — e.g. a renban) must hold those two
+// values between them, so any cell that "sees" both (is weak-linked to both on a
+// value) cannot be that value. Generalises the naked pair beyond a shared house.
+export function nakedPairLinks(board: Board): Elimination | null {
+  const byMask = new Map<number, number[]>()
+  for (let cell = 0; cell < board.numCells; cell += 1) {
+    if (board.isGiven(cell)) continue
+    const mask = board.candidateMask(cell)
+    if (popcount(mask) !== 2) continue
+    const group = byMask.get(mask)
+    if (group) group.push(cell)
+    else byMask.set(mask, [cell])
+  }
+
+  for (const [mask, group] of byMask) {
+    if (group.length < 2) continue
+    const [x, y] = valuesList(mask)
+    for (let i = 0; i < group.length; i += 1) {
+      for (let j = i + 1; j < group.length; j += 1) {
+        const a = group[i]
+        const b = group[j]
+        // The two cells must be an all-different pair (can't share a value).
+        if (!board.weakLinks[board.candidateIndex(a, x)].has(board.candidateIndex(b, x))) continue
+        if (!board.weakLinks[board.candidateIndex(a, y)].has(board.candidateIndex(b, y))) continue
+
+        const cleared: number[] = []
+        for (const v of [x, y]) {
+          const linksA = board.weakLinks[board.candidateIndex(a, v)]
+          const linksB = board.weakLinks[board.candidateIndex(b, v)]
+          const [small, large] = linksA.size <= linksB.size ? [linksA, linksB] : [linksB, linksA]
+          for (const candidate of small) {
+            if (!large.has(candidate) || board.valueFromCandidate(candidate) !== v) continue
+            const c = board.cellFromCandidate(candidate)
+            if (c === a || c === b || board.isGiven(c)) continue
+            if ((board.candidateMask(c) & valueBit(v)) === 0) continue
+            const res = board.keepMask(c, board.candidateMask(c) & ~valueBit(v))
+            if (res === ConstraintResult.INVALID) {
+              return { desc: `Linked pair empties ${cellName(c, board.size)}`, invalid: true }
+            }
+            if (res === ConstraintResult.CHANGED) cleared.push(c)
+          }
+        }
+        if (cleared.length) {
+          return {
+            desc: `Linked pair (${x}${y}) at ${cellName(a, board.size)}, ${cellName(b, board.size)} → clears ${cells(board, [...new Set(cleared)])}`,
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
 // ── Fish (X-Wing, Swordfish) — Tough ─────────────────────────────────────────
 
 const FISH_NAME: Record<number, string> = { 2: 'X-Wing', 3: 'Swordfish' }

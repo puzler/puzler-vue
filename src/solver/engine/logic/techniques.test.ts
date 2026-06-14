@@ -4,7 +4,7 @@ import { buildBoard } from '../buildBoard'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
 import { standardBoxes } from '../geometry'
-import { nakedSubset, hiddenSubset, lockedCandidates, fish, xyWing } from './techniques'
+import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, fish, xyWing } from './techniques'
 import { logicalSolve } from './logicalSolver'
 
 function vanillaRegions(): number[][] {
@@ -98,6 +98,40 @@ describe('standard sudoku techniques', () => {
     const result = xyWing(board)
     expect(result).not.toBeNull()
     expect(candidates(board, 10)).not.toContain(3) // r1c1 sees both pincers → loses 3
+  })
+
+  it('linked pair eliminates from cells seeing both renban pair cells', () => {
+    // Renban R1C3,R2C3,R3C3,R3C4 with 1 and 4 placed → free cells r1c2(11) and
+    // r2c3(21) form a {2,3} pair though they share no row/column/box.
+    const renban = { kind: 'renban', cells: [2, 11, 20, 21] }
+    const puzzle: SolverPuzzle = {
+      size: 9,
+      regions: vanillaRegions(),
+      givens: [{ cell: 2, value: 1 }, { cell: 20, value: 4 }],
+      constraints: [renban],
+    }
+    const board = buildBoard(puzzle).board
+    board.bruteForceLogic() // renban window reduces 11 and 21 to {2,3}
+    expect(candidates(board, 11)).toEqual([2, 3])
+    expect(candidates(board, 21)).toEqual([2, 3])
+    const result = nakedPairLinks(board)
+    expect(result).not.toBeNull()
+    // r1c3 (12) sees cell 11 (row 1) and cell 21 (box 1) → loses 2 and 3.
+    expect(candidates(board, 12)).not.toContain(2)
+    expect(candidates(board, 12)).not.toContain(3)
+  })
+
+  it('linked pair works via any all-different constraint (extra region)', () => {
+    // Two remote cells (no shared row/column/box) linked only by an extra region.
+    const region = { kind: 'extra_region', cells: [11, 21] }
+    const puzzle: SolverPuzzle = { size: 9, regions: vanillaRegions(), givens: [], constraints: [region] }
+    const board = buildBoard(puzzle).board
+    setCandidates(board, 11, [2, 3])
+    setCandidates(board, 21, [2, 3])
+    const result = nakedPairLinks(board)
+    expect(result).not.toBeNull()
+    expect(candidates(board, 12)).not.toContain(2) // r1c3 sees both → loses 2
+    expect(candidates(board, 12)).not.toContain(3)
   })
 
   it('XY-Wing is gated behind the Advanced level', () => {

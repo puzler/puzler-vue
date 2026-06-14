@@ -8,6 +8,7 @@ import {
   nakedSubset,
   hiddenSubset,
   lockedCandidates,
+  nakedPairLinks,
   fish,
   xyWing,
 } from './techniques'
@@ -40,6 +41,7 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
     for (const n of [2, 3, 4]) techniques.push(() => nakedSubset(board, n))
     for (const n of [2, 3, 4]) techniques.push(() => hiddenSubset(board, n))
     techniques.push(() => lockedCandidates(board))
+    techniques.push(() => nakedPairLinks(board))
   }
   if (rank >= 2) {
     // Tough: basic fish (X-Wing, Swordfish) over rows and columns.

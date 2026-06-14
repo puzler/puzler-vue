@@ -29,9 +29,14 @@ const subscriberCount = ref(0)
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
 
 function entryLink(entry: Entry) {
-  return entry.entryType === 'Collection'
-    ? { name: 'collection', params: { id: entry.collection!.id }, query: {} }
-    : { name: 'player', params: { id: entry.puzzle!.id }, query: {} }
+  // Container-only targets expose their own share token (only because we can see
+  // this series); pass it as `t` so the target page can resolve them.
+  if (entry.entryType === 'Collection') {
+    const token = entry.collection?.shareToken
+    return { name: 'collection', params: { id: entry.collection!.id }, query: token ? { t: token } : {} }
+  }
+  const token = entry.puzzle?.shareToken
+  return { name: 'player', params: { id: entry.puzzle!.id }, query: token ? { t: token } : {} }
 }
 
 async function load() {

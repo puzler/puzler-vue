@@ -1,6 +1,16 @@
 overwrite: true
 schema: "http://localhost:3000/graphql"
 documents: src/graphql/gql/**/*.graphql
+# Shared config, reused by both the base-types and operations outputs.
+# enumsAsConst emits `const` objects + types instead of TS `enum`s, which the
+# app's `erasableSyntaxOnly` tsconfig forbids — while still giving the frontend
+# referenceable values (e.g. PuzzleVisibilityEnum.Public).
+config: &config
+  enumsAsConst: true
+  scalars:
+    Upload: File
+    ISO8601DateTime: string
+    ISO8601Date: string
 generates:
   src/graphql/generated/graphql.d.ts:
     plugins:
@@ -8,15 +18,27 @@ generates:
   src/graphql/generated/fragment-types.json:
     plugins:
       - "fragment-matcher"
-  src/graphql/generated/types.ts:
+  # Base schema types (enums, input objects, scalars). Split into its own file
+  # so the operations plugin can import these named types instead of re-emitting
+  # them — re-emission of enums/inputs used in operations would otherwise collide
+  # with the definitions here ("Duplicate identifier").
+  src/graphql/generated/schema-types.ts:
     plugins:
       - "typescript"
+    config: *config
+  # Operation + fragment types. Imports the base types from schema-types and
+  # re-exports them (via the `add` line) so the rest of the app keeps importing
+  # everything — enums included — from a single module: generated/types.
+  src/graphql/generated/types.ts:
+    plugins:
+      - add:
+          content: "export * from './schema-types';"
       - "typescript-operations"
     config:
-      scalars:
-        Upload: File
-        ISO8601DateTime: string
-        ISO8601Date: string
+      <<: *config
+      # Resolved relative to the codegen cwd (app/), not the output file — point
+      # it at the actual file path so the generated import lands as ./schema-types.
+      importSchemaTypesFrom: "src/graphql/generated/schema-types"
   src/graphql/generated/schema.json:
     plugins:
       - "introspection"

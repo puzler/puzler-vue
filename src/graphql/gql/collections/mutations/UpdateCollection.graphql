@@ -1,4 +1,4 @@
-mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: String, $mode: String, $timed: Boolean) {
+mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: CollectionVisibilityEnum, $mode: CollectionModeEnum, $timed: Boolean) {
   updateCollection(
     input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode, timed: $timed } }
   ) {

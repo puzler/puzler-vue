@@ -13,6 +13,7 @@ vi.mock('@/utils/apolloClient', () => ({
 
 import { useAuthStore } from './auth'
 import { ApiError } from '@/utils/api'
+import { UserRoleEnum } from '@/graphql/generated/types'
 
 const ME = {
   id: '1',
@@ -21,7 +22,7 @@ const ME = {
   displayName: 'User One',
   avatarUrl: null,
   bio: null,
-  role: 'user',
+  role: UserRoleEnum.User,
   passwordSet: true,
   oauthConnections: [],
 }

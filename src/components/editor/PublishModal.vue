@@ -1,23 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
+import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
 import AccessManager from './AccessManager.vue'
 
 const emit = defineEmits<{ close: [] }>()
 const puzzle = usePuzzleStore()
 
 const MODES = [
-  { value: 'private', label: 'Private', hint: 'Only you and people you invite' },
-  { value: 'unlisted', label: 'Unlisted', hint: 'Anyone with the link, not in the archive' },
-  { value: 'public', label: 'Public', hint: 'Listed in the archive for everyone' },
+  { value: PuzzleVisibilityEnum.Private, label: 'Private', hint: 'Only you and people you invite' },
+  { value: PuzzleVisibilityEnum.Unlisted, label: 'Unlisted', hint: 'Anyone with the link, not in the archive' },
+  { value: PuzzleVisibilityEnum.ContainersOnly, label: 'Collections & series only', hint: 'Hidden from the archive; shown inside your collections and series' },
+  { value: PuzzleVisibilityEnum.Public, label: 'Public', hint: 'Listed in the archive for everyone' },
 ] as const
 
-const selectedMode = ref(puzzle.visibility === 'public' || puzzle.visibility === 'unlisted' ? puzzle.visibility : 'private')
+const SELECTABLE = MODES.map((m) => m.value) as readonly PuzzleVisibilityEnum[]
+const selectedMode = ref<PuzzleVisibilityEnum>(SELECTABLE.includes(puzzle.visibility) ? puzzle.visibility : PuzzleVisibilityEnum.Private)
 const busy = ref(false)
 const error = ref<string | null>(null)
 const copied = ref(false)
 
-const isPublished = computed(() => puzzle.status === 'published')
+const isPublished = computed(() => puzzle.status === PuzzleStatusEnum.Published)
 const versionToPublish = computed(() => puzzle.currentVersionId ?? puzzle.versions.at(-1)?.id ?? null)
 const shareUrl = computed(() =>
   puzzle.serverPuzzleId && puzzle.shareToken
@@ -94,7 +97,7 @@ async function copyLink() {
           </label>
         </div>
 
-        <AccessManager v-if="selectedMode === 'private'" />
+        <AccessManager v-if="selectedMode === PuzzleVisibilityEnum.Private" />
 
         <div
           v-if="isPublished && shareUrl"

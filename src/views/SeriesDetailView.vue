@@ -21,6 +21,7 @@ import type {
   ReorderSeriesEntriesMutation, ReorderSeriesEntriesMutationVariables,
   ScheduleSeriesEntryMutation, ScheduleSeriesEntryMutationVariables,
 } from '@/graphql/generated/types'
+import { SeriesVisibilityEnum } from '@/graphql/generated/types'
 
 type Series = NonNullable<SeriesDetailQuery['series']>
 type Attrs = Partial<Pick<UpdateSeriesMutationVariables, 'title' | 'description' | 'visibility'>>
@@ -87,7 +88,7 @@ async function deleteSeries() {
 const publicRoute = computed(() => ({
   name: 'series',
   params: { id },
-  query: series.value?.visibility === 'unlisted' && series.value.shareToken ? { t: series.value.shareToken } : {},
+  query: series.value?.visibility === SeriesVisibilityEnum.Unlisted && series.value.shareToken ? { t: series.value.shareToken } : {},
 }))
 
 const excludePuzzleIds = computed(() => entries.value.filter((e) => e.puzzle).map((e) => e.puzzle!.id))
@@ -130,7 +131,7 @@ onMounted(load)
         />
 
         <RouterLink
-          v-if="series.visibility !== 'private'"
+          v-if="series.visibility !== SeriesVisibilityEnum.Private"
           :to="publicRoute"
           class="text-sm text-action hover:underline"
         >

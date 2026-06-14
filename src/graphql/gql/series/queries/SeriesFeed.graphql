@@ -8,10 +8,12 @@ query SeriesFeed {
     puzzle {
       id
       title
+      shareToken
     }
     collection {
       id
       title
+      shareToken
       puzzleCount
     }
   }

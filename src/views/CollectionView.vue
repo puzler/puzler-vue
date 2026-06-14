@@ -14,6 +14,7 @@ import type {
   CollectionPublicQuery, CollectionPublicQueryVariables,
   CollectionByTokenPublicQuery, CollectionByTokenPublicQueryVariables,
 } from '@/graphql/generated/types'
+import { CollectionModeEnum } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionPublicQuery['collection']>
 
@@ -23,11 +24,18 @@ const loading = ref(true)
 const solved = ref(new Set<string>())
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
-const isSequence = computed(() => collection.value?.mode === 'sequence')
+const isSequence = computed(() => collection.value?.mode === CollectionModeEnum.Sequence)
 
-function linkQuery(): Record<string, string> {
+// The collection context (`collection` + `ct`) powers next-puzzle navigation.
+// A container-only puzzle isn't public, so we also pass its own share token —
+// surfaced by the API only because we can already see this collection.
+function puzzleLink(puzzle: { id: string; shareToken?: string | null }): Record<string, string> {
   if (!collection.value) return {}
-  return { collection: collection.value.id, ...(shareToken.value ? { ct: shareToken.value } : {}) }
+  return {
+    collection: collection.value.id,
+    ...(shareToken.value ? { ct: shareToken.value } : {}),
+    ...(puzzle.shareToken ? { t: puzzle.shareToken } : {}),
+  }
 }
 
 // In a sequence collection, a puzzle unlocks only once every earlier one is solved.
@@ -107,7 +115,7 @@ onMounted(load)
           >
             <RouterLink
               v-if="isUnlocked(index)"
-              :to="{ name: 'player', params: { id: puzzle.id }, query: linkQuery() }"
+              :to="{ name: 'player', params: { id: puzzle.id }, query: puzzleLink(puzzle) }"
               class="flex items-center gap-3 p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
             >
               <span

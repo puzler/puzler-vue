@@ -8,13 +8,19 @@ import type {
   MyCollectionsQuery, MyCollectionsQueryVariables,
   CreateCollectionMutation, CreateCollectionMutationVariables,
 } from '@/graphql/generated/types'
+import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 const collections = ref<MyCollectionsQuery['myCollections']>([])
 const loading = ref(true)
 const router = useRouter()
 
 const VISIBILITY_LABEL: Record<string, string> = {
-  private: 'Private', unlisted: 'Unlisted', public: 'Public', patrons_only: 'Patrons', subscribers_only: 'Subscribers',
+  [CollectionVisibilityEnum.Private]: 'Private',
+  [CollectionVisibilityEnum.Unlisted]: 'Unlisted',
+  [CollectionVisibilityEnum.ContainersOnly]: 'In series',
+  [CollectionVisibilityEnum.Public]: 'Public',
+  [CollectionVisibilityEnum.PatronsOnly]: 'Patrons',
+  [CollectionVisibilityEnum.SubscribersOnly]: 'Subscribers',
 }
 
 async function load() {
@@ -74,7 +80,7 @@ onMounted(load)
             <span class="text-xs text-faint shrink-0">{{ collection.puzzleCount }} puzzle{{ collection.puzzleCount === 1 ? '' : 's' }}</span>
           </div>
           <span class="text-xs text-soft">
-            {{ VISIBILITY_LABEL[collection.visibility] }} · {{ collection.mode === 'sequence' ? 'In sequence' : 'Any order' }}
+            {{ VISIBILITY_LABEL[collection.visibility] }} · {{ collection.mode === CollectionModeEnum.Sequence ? 'In sequence' : 'Any order' }}
           </span>
         </RouterLink>
       </li>

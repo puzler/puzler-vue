@@ -396,6 +396,128 @@ export const useEditorStore = defineStore('editor', () => {
     inputMode.value = m
   }
 
+  // Apply a full solver state (logical step/solve): values[i] > 0 → place that
+  // digit in cell i; otherwise show candidates[i] as center marks. Row-major,
+  // undoable, never touches given cells.
+  function applySolverState(values: number[], candidates: number[][]) {
+    const size = useGridStore().rows
+    const keys: string[] = []
+    const nextValue: Record<string, number | null> = {}
+    const nextMarks: Record<string, number[]> = {}
+    for (let i = 0; i < candidates.length; i++) {
+      const key = cellKey(Math.floor(i / size), i % size)
+      if (givenDigits.value[key] !== undefined) continue
+      keys.push(key)
+      if (values[i] > 0) {
+        nextValue[key] = values[i]
+        nextMarks[key] = []
+      } else {
+        nextValue[key] = null
+        nextMarks[key] = [...(candidates[i] ?? [])]
+      }
+    }
+    if (!keys.length) return
+    const prev = Object.fromEntries(
+      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
+    )
+    execute({
+      execute: () => {
+        keys.forEach((k) => {
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
+        })
+      },
+      undo: () => {
+        keys.forEach((k) => {
+          if (prev[k] === null) delete solverCellStates.value[k]
+          else solverCellStates.value[k] = prev[k]!
+        })
+      },
+    })
+  }
+
+  // ── Solver result write-back ───────────────────────────────────────────────
+  // Both apply a full-grid solver result to the ephemeral scratch (never to
+  // givenDigits) and are undoable. Index is row-major: cell i → r{i/size}c{i%size}.
+
+  function applySolverSolution(values: number[]) {
+    const size = useGridStore().rows
+    const keys: string[] = []
+    const next: Record<string, number> = {}
+    for (let i = 0; i < values.length; i++) {
+      const key = cellKey(Math.floor(i / size), i % size)
+      if (givenDigits.value[key] !== undefined) continue
+      keys.push(key)
+      next[key] = values[i]
+    }
+    if (!keys.length) return
+    const prev = Object.fromEntries(
+      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
+    )
+    execute({
+      execute: () => {
+        keys.forEach((k) => {
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          solverCellStates.value[k] = { ...cur, value: next[k], centerMarks: [] }
+        })
+      },
+      undo: () => {
+        keys.forEach((k) => {
+          if (prev[k] === null) delete solverCellStates.value[k]
+          else solverCellStates.value[k] = prev[k]!
+        })
+      },
+    })
+  }
+
+  // Fill each empty cell's center marks with its candidates. When singleAsValue,
+  // a cell with one candidate becomes a placed digit instead (used by the
+  // true-candidates view, matching the old setter behaviour). Auto True
+  // Candidates passes undoable=false so its continual refreshes don't flood the
+  // undo history; the scratch is overwritten on the next edit anyway.
+  function applySolverCandidates(candidates: number[][], singleAsValue: boolean, undoable = true) {
+    const size = useGridStore().rows
+    const keys: string[] = []
+    const nextValue: Record<string, number | null> = {}
+    const nextMarks: Record<string, number[]> = {}
+    for (let i = 0; i < candidates.length; i++) {
+      const key = cellKey(Math.floor(i / size), i % size)
+      if (givenDigits.value[key] !== undefined) continue
+      const cands = candidates[i]
+      keys.push(key)
+      if (singleAsValue && cands.length === 1) {
+        nextValue[key] = cands[0]
+        nextMarks[key] = []
+      } else {
+        nextValue[key] = null
+        nextMarks[key] = [...cands]
+      }
+    }
+    if (!keys.length) return
+    const prev = Object.fromEntries(
+      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
+    )
+    const apply = () => {
+      keys.forEach((k) => {
+        const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+        solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
+      })
+    }
+    if (!undoable) {
+      apply()
+      return
+    }
+    execute({
+      execute: apply,
+      undo: () => {
+        keys.forEach((k) => {
+          if (prev[k] === null) delete solverCellStates.value[k]
+          else solverCellStates.value[k] = prev[k]!
+        })
+      },
+    })
+  }
+
   function clearCornerMarksForKeys(keys: string[]) {
     const prev = Object.fromEntries(keys.map((k) => [k, { ...solverCellStates.value[k], cornerMarks: [...solverCellStates.value[k].cornerMarks] }]))
     execute({
@@ -1692,6 +1814,9 @@ export const useEditorStore = defineStore('editor', () => {
     toggleCornerMarkForSelection,
     toggleCenterMarkForSelection,
     deleteSolverContentForSelection,
+    applySolverSolution,
+    applySolverCandidates,
+    applySolverState,
     placeDigitForSelection,
     selectCell,
     toggleCell,

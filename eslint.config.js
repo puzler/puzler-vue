@@ -29,6 +29,15 @@ const templateMaxLines = {
   },
 }
 
+// Allow intentionally-unused identifiers when prefixed with `_` (e.g. no-op
+// default methods on base classes, ignored callback params).
+const noUnusedVars = {
+  '@typescript-eslint/no-unused-vars': [
+    'error',
+    { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+  ],
+}
+
 export default tseslint.config(
   { ignores: ['dist/**', 'coverage/**'] },
 
@@ -36,6 +45,7 @@ export default tseslint.config(
   {
     files: ['**/*.ts'],
     extends: [tseslint.configs.recommended],
+    rules: { ...noUnusedVars },
   },
 
   // Vue SFCs — vue parser wraps the TS parser for <script lang="ts">
@@ -52,6 +62,7 @@ export default tseslint.config(
       local: { rules: { 'template-max-lines': templateMaxLines } },
     },
     rules: {
+      ...noUnusedVars,
       'local/template-max-lines': ['error', 100],
     },
   },

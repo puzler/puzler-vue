@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
+import { useSolverStore } from '@/stores/solver'
 import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
 
@@ -12,6 +13,39 @@ const props = defineProps<{
 
 const grid = useGridStore()
 const editor = useEditorStore()
+const solver = useSolverStore()
+
+// Center-mark colours. When "show candidate counts" is on, a true candidate is
+// tinted by how many solutions remain if placed — fewer remaining = closer to
+// solving, so it stands out, while many-solution candidates recede to grey:
+//   1 → green, 2–4 → bright blue, 5–10 → faded blue, >10 → grey.
+// Otherwise the normal indigo / seen-red pencil-mark colours apply.
+const MARK_NORMAL = '#4F46E5'
+const MARK_SEEN = '#dc2626'
+const COUNT_1 = '#15c24f'    // vivid green: unique completing digit (also bolded)
+const COUNT_2_4 = '#2563eb'  // bright blue
+const COUNT_5_10 = '#60a5fa' // faded blue
+const COUNT_MANY = '#9ca3af' // grey: more than 10 solutions
+
+function countFor(cell: string, digit: number): number | undefined {
+  return solver.showCandidateCounts ? solver.candidateCounts[cell]?.[digit] : undefined
+}
+
+function centerMarkFill(cell: string, digit: number): string {
+  const count = countFor(cell, digit)
+  if (count !== undefined) {
+    if (count === 1) return COUNT_1
+    if (count <= 4) return COUNT_2_4
+    if (count <= 10) return COUNT_5_10
+    return COUNT_MANY
+  }
+  return editor.seenDigitsByCell.get(cell)?.has(digit) ? MARK_SEEN : MARK_NORMAL
+}
+
+// Bold the unique-completing candidate so it stands out clearly from the blues.
+function centerMarkWeight(cell: string, digit: number): string {
+  return countFor(cell, digit) === 1 ? '700' : '400'
+}
 
 const MARK_FONT = 11
 const MARK_PAD = 5
@@ -169,7 +203,8 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       <tspan
         v-for="d in m.marks"
         :key="d"
-        :fill="editor.seenDigitsByCell.get(m.cell)?.has(d) ? '#dc2626' : '#4F46E5'"
+        :fill="centerMarkFill(m.cell, d)"
+        :font-weight="centerMarkWeight(m.cell, d)"
       >
         {{ d }}
       </tspan>

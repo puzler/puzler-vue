@@ -7,12 +7,19 @@ import ConstraintPickerModal from './ConstraintPickerModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import PuzzleMetaFields from './PuzzleMetaFields.vue'
 import ConstraintCategorySection from './ConstraintCategorySection.vue'
+import SolverPanel from './SolverPanel.vue'
+import { useSolverStore } from '@/stores/solver'
 
 // Multiple root nodes (aside + teleported modals) prevent automatic attr
 // inheritance, so forward attrs to the aside explicitly
 defineOptions({ inheritAttrs: false })
 
+// Mobile gives the solver its own bottom-sheet, so the embedded panel is hidden
+// there to avoid duplicating it inside the Tools sheet.
+const props = withDefaults(defineProps<{ showSolver?: boolean }>(), { showSolver: true })
+
 const editor = useEditorStore()
+const solver = useSolverStore()
 
 interface ConstraintOption {
   type: string
@@ -147,12 +154,18 @@ function handleRemoveConfirm() {
 
 <template>
   <aside
-    class="flex flex-col flex-1 min-h-0 bg-paper overflow-y-auto border-r border-line"
+    class="flex flex-col flex-1 min-h-0 bg-paper border-r border-line"
+    :class="solver.panelExpanded ? 'overflow-hidden' : 'overflow-y-auto'"
     v-bind="$attrs"
   >
-    <PuzzleMetaFields />
+    <PuzzleMetaFields v-show="!solver.panelExpanded" />
 
-    <div class="px-2 py-3 border-b border-line">
+    <SolverPanel v-if="props.showSolver" />
+
+    <div
+      v-show="!solver.panelExpanded"
+      class="px-2 py-3 border-b border-line"
+    >
       <p class="text-[10px] font-semibold uppercase tracking-widest text-soft px-2 mb-1">
         Tools
       </p>
@@ -173,6 +186,7 @@ function handleRemoveConfirm() {
     </div>
 
     <ConstraintCategorySection
+      v-show="!solver.panelExpanded"
       :cat="globalCategory"
       :constraints="constraintsFor('global')"
       @open-picker="pickerCategory = globalCategory"
@@ -180,6 +194,7 @@ function handleRemoveConfirm() {
     />
 
     <ConstraintCategorySection
+      v-show="!solver.panelExpanded"
       :cat="localCategory"
       :constraints="localConstraints"
       :tool-types="LOCAL_TOOL_TYPES"
@@ -188,6 +203,7 @@ function handleRemoveConfirm() {
     />
 
     <ConstraintCategorySection
+      v-show="!solver.panelExpanded"
       :cat="cosmeticCategory"
       :constraints="constraintsFor('cosmetic')"
       @open-picker="pickerCategory = cosmeticCategory"

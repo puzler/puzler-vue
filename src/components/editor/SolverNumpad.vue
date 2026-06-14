@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import SolverNumpadControls from './SolverNumpadControls.vue'
 
 const editor = useEditorStore()
 
@@ -18,7 +19,7 @@ function modeClass(key: 'digit' | 'center' | 'corner'): string {
 </script>
 
 <template>
-  <div class="flex bg-paper overflow-y-auto h-full p-4">
+  <div class="flex flex-col gap-3 bg-paper overflow-y-auto h-full p-4">
     <div class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full content-start">
       <button
         v-for="n in [1, 2, 3]"
@@ -86,5 +87,7 @@ function modeClass(key: 'digit' | 'center' | 'corner'): string {
         Delete
       </button>
     </div>
+
+    <SolverNumpadControls />
   </div>
 </template>

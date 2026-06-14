@@ -53,6 +53,10 @@ export const useEditorStore = defineStore('editor', () => {
   const thermoDrawMode = ref<'draw' | 'branch'>('draw')
   const connectorMode = ref<'place' | 'select'>('place')
   const cloneMode = ref<'paint' | 'clone'>('paint')
+  // When on, a plain pointer click toggles a single cell's membership in the
+  // selection (like ctrl-click) instead of replacing it — a keyboard-free way
+  // to multi-select. Surfaced as a toggle on the solver numpad.
+  const multiSelectMode = ref(false)
   const shiftHeld = ref(false)
   const effectiveArrowDrawMode = computed<'bulb' | 'arrow'>(() =>
     shiftHeld.value ? 'arrow' : arrowDrawMode.value,
@@ -279,6 +283,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setCloneMode(mode: 'paint' | 'clone') {
     cloneMode.value = mode
+  }
+
+  function setMultiSelectMode(enabled: boolean) {
+    multiSelectMode.value = enabled
   }
 
   function setShiftHeld(held: boolean) {
@@ -1006,6 +1014,7 @@ export const useEditorStore = defineStore('editor', () => {
     thermoDrawMode.value = 'draw'
     connectorMode.value = 'place'
     cloneMode.value = 'paint'
+    multiSelectMode.value = false
     pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
     customGlobalConstraints.value = []
@@ -1723,6 +1732,8 @@ export const useEditorStore = defineStore('editor', () => {
     cloneMode,
     effectiveCloneMode,
     setCloneMode,
+    multiSelectMode,
+    setMultiSelectMode,
     pendingCloneDrag,
     setPendingCloneDrag,
     commitClonePaint,

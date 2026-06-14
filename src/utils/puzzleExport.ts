@@ -2,6 +2,8 @@ import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 
+// The export *format* version — the schema of this JSON, not a puzzle's save
+// version (v1/v2). Exported as `formatVersion`; bumped when the shape changes.
 // 1 → 2: constraint state beyond cosmetics joined the export.
 // 2 → 3: solver scratch (solverCellStates) dropped from puzzle data; the
 // explicit solution and solve message joined instead.
@@ -17,8 +19,10 @@ export type SerializedPuzzle = ReturnType<typeof fullSerialize>
 // the solver's scratch is never puzzle data — and carries the explicit solution
 // and solve message instead.
 function fullSerialize(editor: EditorStore, grid: GridStore) {
+  const hasCosmetic = (type: string) => editor.cosmeticInstances.some((i) => i.type === type)
+  const hasCellColors = Object.keys(editor.cosmeticCellColors).length > 0
   return {
-    version: PUZZLE_EXPORT_VERSION,
+    formatVersion: PUZZLE_EXPORT_VERSION,
     grid: {
       rows: grid.rows,
       cols: grid.cols,
@@ -50,11 +54,15 @@ function fullSerialize(editor: EditorStore, grid: GridStore) {
     cosmetics: {
       cellColors: editor.cosmeticCellColors,
       instances: editor.cosmeticInstances,
-      linePresets: editor.linePresets,
-      shapePresets: editor.shapePresets,
-      textPresets: editor.textPresets,
-      cellColorPresets: editor.cellColorPresets,
-      cagePresets: editor.cagePresets,
+      // Presets ship only when the puzzle actually uses that cosmetic kind —
+      // otherwise the default preset every store starts with would bloat exports
+      // of cosmetic-free puzzles. Empty arrays are pruned by dropEmpty below, so
+      // a puzzle with no cosmetics drops the whole cosmetics section.
+      linePresets: hasCosmetic('cosmetic_line') ? editor.linePresets : [],
+      shapePresets: hasCosmetic('shape') ? editor.shapePresets : [],
+      textPresets: hasCosmetic('text') ? editor.textPresets : [],
+      cellColorPresets: hasCellColors ? editor.cellColorPresets : [],
+      cagePresets: hasCosmetic('cosmetic_cage') ? editor.cagePresets : [],
     },
   }
 }
@@ -190,7 +198,9 @@ export function parsePuzzleImport(text: string): SerializedPuzzle {
   if (!grid || typeof grid.rows !== 'number' || typeof grid.cols !== 'number') {
     throw new Error('Missing or invalid grid dimensions — is this a Puzler export?')
   }
-  if (typeof obj.version !== 'number' || obj.version > PUZZLE_EXPORT_VERSION) {
+  // `formatVersion` is the current field; older exports carried it as `version`.
+  const formatVersion = typeof obj.formatVersion === 'number' ? obj.formatVersion : obj.version
+  if (typeof formatVersion !== 'number' || formatVersion > PUZZLE_EXPORT_VERSION) {
     throw new Error('Unsupported puzzle format version.')
   }
   return data as SerializedPuzzle

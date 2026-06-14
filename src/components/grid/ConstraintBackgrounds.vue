@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
+import { computeInsetOutlinePaths } from '@/utils/insetOutline'
 import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
 import type { ExtraRegionData, CloneData } from '@/types/constraints'
 
@@ -33,10 +34,22 @@ function translatedRects(cells: string[], dRow: number, dCol: number, color: str
   })
 }
 
-const extraRegionRects = computed<ColorRect[]>(() =>
+// Extra regions render as an inset, cage-like shape rather than full-cell fills:
+// a thin white margin shows around the region, closing up only where a cell's
+// neighbour (orthogonal OR diagonal) is also in the region — so fully-interior
+// cells have no gap. computeInsetOutlinePaths (shared with killer cages) does
+// the 8-neighbour bridging; we just fill the loops instead of stroking them.
+const EXTRA_REGION_INSET = 4
+const EXTRA_REGION_CORNER = 3
+
+const extraRegionPaths = computed<string[]>(() =>
   editor.cosmeticInstances
     .filter(i => i.type === 'extra_regions')
-    .flatMap(i => (i.data as ExtraRegionData).cells.map(c => cellRect(c, EXTRA_REGION_COLOR))),
+    .map(i => computeInsetOutlinePaths(
+      new Set((i.data as ExtraRegionData).cells),
+      { edgeInset: () => EXTRA_REGION_INSET, cornerRadius: EXTRA_REGION_CORNER },
+    ).join(' '))
+    .filter(d => d !== ''),
 )
 
 const cloneRects = computed<ColorRect[]>(() =>
@@ -76,7 +89,7 @@ const cloneDragRects = computed<ColorRect[]>(() => {
 <template>
   <g>
     <rect
-      v-for="(r, i) in [...extraRegionRects, ...cloneRects, ...pendingBrushRects, ...cloneDragRects]"
+      v-for="(r, i) in [...cloneRects, ...pendingBrushRects, ...cloneDragRects]"
       :key="i"
       :x="r.x"
       :y="r.y"
@@ -84,6 +97,13 @@ const cloneDragRects = computed<ColorRect[]>(() => {
       :height="CELL_SIZE"
       :fill="r.color"
       :opacity="r.opacity"
+    />
+    <path
+      v-for="(d, i) in extraRegionPaths"
+      :key="`er-${i}`"
+      :d="d"
+      :fill="EXTRA_REGION_COLOR"
+      fill-rule="evenodd"
     />
   </g>
 </template>

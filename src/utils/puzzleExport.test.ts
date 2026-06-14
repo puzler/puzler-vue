@@ -35,7 +35,7 @@ describe('serializePuzzle', () => {
     const { editor, grid } = populatedStores()
     const data = serializePuzzle(editor, grid)
 
-    expect(data.version).toBe(PUZZLE_EXPORT_VERSION)
+    expect(data.formatVersion).toBe(PUZZLE_EXPORT_VERSION)
     expect(data.constraints.singleCellMarks).toEqual({
       odd_cells: ['r1c1', 'r2c2'],
       maximums: ['r3c3'],
@@ -75,6 +75,39 @@ describe('serializePuzzle', () => {
     expect('activeConstraints' in data).toBe(false)
     expect('solution' in data).toBe(false)
     expect((data.grid as Record<string, unknown>).customCellRegions).toBeUndefined()
+  })
+
+  it('omits cosmetic presets entirely when the puzzle has no cosmetics', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.givenDigits = { r0c0: 5 }
+    // The store always starts with a default preset per kind; none should leak
+    // into an export that contains no cosmetics.
+    const data = serializePuzzle(editor, grid) as Record<string, unknown>
+    expect('cosmetics' in data).toBe(false)
+  })
+
+  it('ships only the presets for cosmetic kinds the puzzle actually uses', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.cosmeticInstances = [
+      { id: 'l1', type: 'cosmetic_line', data: { cells: ['r0c0', 'r0c1'], presetId: editor.linePresets[0].id } },
+    ]
+    const cosmetics = (serializePuzzle(editor, grid) as Record<string, unknown>).cosmetics as Record<string, unknown>
+    expect(cosmetics.linePresets).toBeDefined()
+    expect('shapePresets' in cosmetics).toBe(false)
+    expect('textPresets' in cosmetics).toBe(false)
+    expect('cagePresets' in cosmetics).toBe(false)
+    expect('cellColorPresets' in cosmetics).toBe(false)
+  })
+
+  it('ships cellColorPresets when cells are colored', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.cosmeticCellColors = { r0c0: editor.cellColorPresets[0].id }
+    const cosmetics = (serializePuzzle(editor, grid) as Record<string, unknown>).cosmetics as Record<string, unknown>
+    expect(cosmetics.cellColorPresets).toBeDefined()
+    expect('linePresets' in cosmetics).toBe(false)
   })
 })
 
@@ -129,7 +162,7 @@ describe('deserializePuzzle', () => {
   it('handles a minimal pruned object (only version + grid + givens)', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    deserializePuzzle(editor, grid, { version: 3, grid: { rows: 9, cols: 9 }, givenDigits: { r0c0: 7 } } as never)
+    deserializePuzzle(editor, grid, { formatVersion: 3, grid: { rows: 9, cols: 9 }, givenDigits: { r0c0: 7 } } as never)
     expect(grid.rows).toBe(9)
     expect(editor.givenDigits).toEqual({ r0c0: 7 })
     expect(editor.solution).toBeNull()
@@ -189,7 +222,11 @@ describe('parsePuzzleImport', () => {
 
   it('parses a valid export', () => {
     const data = serializePuzzle(useEditorStore(), useGridStore())
-    expect(parsePuzzleImport(JSON.stringify(data))).toMatchObject({ version: PUZZLE_EXPORT_VERSION })
+    expect(parsePuzzleImport(JSON.stringify(data))).toMatchObject({ formatVersion: PUZZLE_EXPORT_VERSION })
+  })
+
+  it('still accepts legacy exports that carried the older `version` field', () => {
+    expect(parsePuzzleImport(JSON.stringify({ version: 2, grid: { rows: 9, cols: 9 } }))).toBeTruthy()
   })
 
   it('rejects invalid JSON', () => {

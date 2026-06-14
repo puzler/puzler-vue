@@ -10,7 +10,7 @@ import { apolloClient } from '@/utils/apolloClient'
 import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
 import { markSolved } from '@/utils/solveProgress'
-import { cellKey, keyToRowCol } from '@/composables/useGrid'
+import { useGridKeyboard } from '@/composables/useGridKeyboard'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
 import RevealSolveMessageDocument from '@/graphql/gql/puzzles/mutations/RevealSolveMessage.graphql'
@@ -195,50 +195,10 @@ async function loadPuzzle() {
   }
 }
 
-const DIRECTIONS: Record<string, { dr: number; dc: number }> = {
-  ArrowUp: { dr: -1, dc: 0 }, ArrowDown: { dr: 1, dc: 0 }, ArrowLeft: { dr: 0, dc: -1 }, ArrowRight: { dr: 0, dc: 1 },
-}
-
-function physicalDigit(event: KeyboardEvent): number | null {
-  const m = event.code.match(/^(?:Digit|Numpad)(\d)$/)
-  return m ? Number(m[1]) : null
-}
-
-function onKeyDown(event: KeyboardEvent) {
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
-
-  const dir = DIRECTIONS[event.key]
-  if (dir) {
-    event.preventDefault()
-    const last = [...editor.selection].at(-1)
-    const { row, col } = last ? keyToRowCol(last) : { row: 0, col: 0 }
-    const key = cellKey((row + dir.dr + grid.rows) % grid.rows, (col + dir.dc + grid.cols) % grid.cols)
-    if (event.shiftKey) editor.addCell(key)
-    else editor.selectCell(key)
-    return
-  }
-  if (event.key === 'Escape') { editor.clearSelection(); return }
-  if (event.key === 'z' || event.key === 'Z') { editor.setInputMode('digit'); return }
-  if (event.key === 'x' || event.key === 'X') { editor.setInputMode('center'); return }
-  if (event.key === 'c' || event.key === 'C') { editor.setInputMode('corner'); return }
-  if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) {
-    event.preventDefault()
-    if (event.shiftKey) editor.redo()
-    else editor.undo()
-    return
-  }
-  if (event.key === 'Backspace' || event.key === 'Delete') {
-    event.preventDefault()
-    editor.placeDigitForSelection(null)
-    return
-  }
-  const digit = physicalDigit(event)
-  if (digit !== null && digit >= 1 && digit <= grid.cols) {
-    event.preventDefault()
-    const mode = event.ctrlKey || event.metaKey ? 'center' : event.shiftKey ? 'corner' : undefined
-    editor.placeDigitForSelection(digit, mode)
-  }
-}
+// Grid keyboard interaction is shared with the editor so the two stay in
+// lockstep (the editor-only branches are inert here). It self-registers its
+// own window listeners.
+useGridKeyboard()
 
 const subtitle = computed(() => (authorName.value ? `by ${authorName.value}` : ''))
 
@@ -246,12 +206,10 @@ const subtitle = computed(() => (authorName.value ? `by ${authorName.value}` : '
 watch(() => route.params.id, loadPuzzle)
 
 onMounted(async () => {
-  window.addEventListener('keydown', onKeyDown)
   await loadCollectionOrder() // sets collectionTimed before the timer can start
   loadPuzzle()
 })
 onUnmounted(() => {
-  window.removeEventListener('keydown', onKeyDown)
   stopTimer()
   // Leave a clean slate so the editor store isn't holding a played puzzle.
   editor.reset()

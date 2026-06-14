@@ -316,7 +316,8 @@ function beginSelectionDrag(event: PointerEvent) {
   if (!key) return
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
   isDragging.value = true
-  const additive = event.ctrlKey || event.metaKey
+  // The multi-select toggle makes a plain click behave like ctrl-click.
+  const additive = event.ctrlKey || event.metaKey || editor.multiSelectMode
   dragAdditive.value = additive
   if (additive) {
     const next = new Set(props.selection)

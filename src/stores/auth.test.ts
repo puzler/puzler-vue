@@ -18,6 +18,7 @@ const ME = {
   id: '1',
   email: 'user@example.com',
   username: 'user1',
+  displayName: 'User One',
   avatarUrl: null,
   bio: null,
   role: 'user',

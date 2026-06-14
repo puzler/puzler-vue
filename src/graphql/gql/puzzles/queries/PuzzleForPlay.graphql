@@ -2,9 +2,11 @@ query PuzzleForPlay($id: ID!) {
   puzzle(id: $id) {
     id
     title
+    authorName
     author {
       id
       username
+      displayName
     }
     publishedVersion {
       id

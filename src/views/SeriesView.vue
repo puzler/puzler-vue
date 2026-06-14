@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
+import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { mdiPuzzle, mdiFolderMultiple } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
 import { useAuthStore } from '@/stores/auth'
@@ -90,7 +91,7 @@ onMounted(load)
               {{ series.title }}
             </h1>
             <p class="text-sm text-soft mt-1">
-              by {{ series.author.username }} · {{ subscriberCount }} subscriber{{ subscriberCount === 1 ? '' : 's' }}
+              by <AuthorAttribution :author="series.author" /> · {{ subscriberCount }} subscriber{{ subscriberCount === 1 ? '' : 's' }}
             </p>
           </div>
           <button

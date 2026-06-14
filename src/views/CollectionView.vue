@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
+import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import CollectionLeaderboard from '@/components/collections/CollectionLeaderboard.vue'
 import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
@@ -78,7 +79,7 @@ onMounted(load)
           {{ collection.title }}
         </h1>
         <p class="text-sm text-soft mt-1">
-          by {{ collection.author.username }} · {{ collection.puzzles.length }} puzzle{{ collection.puzzles.length === 1 ? '' : 's' }}
+          by <AuthorAttribution :author="collection.author" /> · {{ collection.puzzles.length }} puzzle{{ collection.puzzles.length === 1 ? '' : 's' }}
         </p>
         <p
           v-if="collection.description"

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useAuthStore } from '@/stores/auth'
 import RulesModal from './RulesModal.vue'
 
 const editor = useEditorStore()
+const auth = useAuthStore()
 
 const showRules = ref(false)
 </script>
@@ -21,7 +23,7 @@ const showRules = ref(false)
       >
       <input
         v-model="editor.puzzleAuthor"
-        placeholder="Author"
+        :placeholder="auth.user?.displayName || 'Author'"
         class="w-full text-sm px-2 py-1 rounded border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
       >
       <button

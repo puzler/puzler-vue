@@ -9,5 +9,6 @@ fragment PuzzleAdminFields on Puzzle {
   grantedUsers {
     id
     username
+    displayName
   }
 }

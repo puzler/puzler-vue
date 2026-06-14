@@ -1,7 +1,7 @@
 #import "../../fragments/UserFields.graphql"
 
-mutation UpdateProfile($username: String, $bio: String) {
-  updateProfile(input: { username: $username, bio: $bio }) {
+mutation UpdateProfile($username: String, $displayName: String, $bio: String) {
+  updateProfile(input: { username: $username, displayName: $displayName, bio: $bio }) {
     user {
       ...UserFields
     }

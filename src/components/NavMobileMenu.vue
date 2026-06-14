@@ -36,7 +36,7 @@ const auth = useAuthStore()
         class="px-3 py-2 rounded-md text-sm text-white hover:bg-ink-2 transition-colors"
         @click="emit('close')"
       >
-        {{ auth.user?.username }}
+        {{ auth.user?.displayName }}
       </RouterLink>
       <RouterLink
         to="/settings"

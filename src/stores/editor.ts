@@ -991,6 +991,8 @@ export const useEditorStore = defineStore('editor', () => {
     activeTool.value = 'digit'
     activeConstraints.value = []
     puzzleName.value = ''
+    // Left blank by default; the editor shows the user's display name as the
+    // placeholder, and public attribution falls back to it when blank.
     puzzleAuthor.value = ''
     puzzleRules.value = ''
     solution.value = null

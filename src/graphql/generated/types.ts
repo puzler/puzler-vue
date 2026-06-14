@@ -125,11 +125,13 @@ export type CollectionAttrsInput = {
 /** One solver's standing in a timed collection */
 export type CollectionLeaderboardEntry = {
   __typename?: 'CollectionLeaderboardEntry';
+  /** The solver's display name (shown in the UI) */
+  displayName: Scalars['String']['output'];
   /** 1-based position (fastest first) */
   rank: Scalars['Int']['output'];
   /** Sum of best times across all puzzles */
   totalSeconds: Scalars['Int']['output'];
-  /** The solver's username */
+  /** The solver's unique handle (for linking to their profile) */
   username: Scalars['String']['output'];
 };
 
@@ -1222,8 +1224,10 @@ export type PublishPuzzleVersionPayload = {
 /** A variant sudoku puzzle */
 export type Puzzle = {
   __typename?: 'Puzzle';
-  /** Puzzle creator */
+  /** Puzzle creator (the owning account) */
   author: User;
+  /** Free-form author credit from the published puzzle's metadata; null when left blank, in which case attribution falls back to the author's display name */
+  authorName?: Maybe<Scalars['String']['output']>;
   /** Average difficulty rating from players (1–4 scale) */
   avgDifficulty?: Maybe<Scalars['Float']['output']>;
   /** Average star rating from players (1–5 scale) */
@@ -2262,7 +2266,9 @@ export type UpdateProfileInput = {
   bio?: InputMaybe<Scalars['String']['input']>;
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** Public display name */
+  /** Free-form name shown to others (not unique) */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Unique handle used in profile URLs and lookups */
   username?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2434,6 +2440,8 @@ export type User = {
   bio?: Maybe<Scalars['String']['output']>;
   /** When this account was created */
   createdAt: Scalars['ISO8601DateTime']['output'];
+  /** Free-form name shown to others (not unique) */
+  displayName: Scalars['String']['output'];
   /** User's email address (only visible to the user themselves) */
   email?: Maybe<Scalars['String']['output']>;
   /** Unique user ID */
@@ -2450,7 +2458,7 @@ export type User = {
   role: Scalars['String']['output'];
   /** Number of puzzles this user has completed */
   solveCount: Scalars['Int']['output'];
-  /** Public display name */
+  /** Unique handle used in profile URLs and lookups */
   username: Scalars['String']['output'];
 };
 
@@ -2540,7 +2548,7 @@ export type ChangePasswordMutationVariables = Exact<{
 }>;
 
 
-export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type DeleteAccountMutationVariables = Exact<{
   currentPassword?: string | null | undefined;
@@ -2555,7 +2563,7 @@ export type DisconnectOauthProviderMutationVariables = Exact<{
 }>;
 
 
-export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type PrepareOauthConnectMutationVariables = Exact<{
   provider: string;
@@ -2567,27 +2575,28 @@ export type PrepareOauthConnectMutation = { prepareOauthConnect: { url: string |
 export type RemoveAvatarMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateProfileMutationVariables = Exact<{
   username?: string | null | undefined;
+  displayName?: string | null | undefined;
   bio?: string | null | undefined;
 }>;
 
 
-export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UploadAvatarMutationVariables = Exact<{
   file: File;
 }>;
 
 
-export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { me: { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
+export type MeQuery = { me: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
 
 export type AddPuzzleToCollectionMutationVariables = Exact<{
   collectionId: string | number;
@@ -2683,7 +2692,7 @@ export type CollectionByTokenPublicQueryVariables = Exact<{
 }>;
 
 
-export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
 export type CollectionDetailQueryVariables = Exact<{
   id: string | number;
@@ -2697,14 +2706,14 @@ export type CollectionLeaderboardQueryVariables = Exact<{
 }>;
 
 
-export type CollectionLeaderboardQuery = { collectionLeaderboard: Array<{ rank: number, username: string, totalSeconds: number }> };
+export type CollectionLeaderboardQuery = { collectionLeaderboard: Array<{ rank: number, username: string, displayName: string, totalSeconds: number }> };
 
 export type CollectionPublicQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
 export type MyCollectionsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2716,17 +2725,17 @@ export type MyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzzleCount: number }> };
 
-export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
+export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: string, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: string, mode: string, puzzleCount: number };
 
-export type PuzzleAdminFieldsFragment = { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> };
+export type PuzzleAdminFieldsFragment = { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> };
 
 export type SeriesEntryFieldsFragment = { id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: string, visibility: string, avgRating: number | null } | null, collection: { id: string, title: string, visibility: string, puzzleCount: number } | null };
 
 export type SeriesSummaryFragment = { id: string, title: string, visibility: string, entryCount: number, subscriberCount: number };
 
-export type UserFieldsFragment = { id: string, email: string | null, username: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
+export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: string, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
 
 export type VersionFullFragment = { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
 
@@ -2761,7 +2770,7 @@ export type GrantPuzzleAccessMutationVariables = Exact<{
 }>;
 
 
-export type GrantPuzzleAccessMutation = { grantPuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null } | null };
+export type GrantPuzzleAccessMutation = { grantPuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type PublishPuzzleVersionMutationVariables = Exact<{
   puzzleId: string | number;
@@ -2770,7 +2779,7 @@ export type PublishPuzzleVersionMutationVariables = Exact<{
 }>;
 
 
-export type PublishPuzzleVersionMutation = { publishPuzzleVersion: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null } | null };
+export type PublishPuzzleVersionMutation = { publishPuzzleVersion: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type RevealSolveMessageMutationVariables = Exact<{
   puzzleId: string | number;
@@ -2787,7 +2796,7 @@ export type RevokePuzzleAccessMutationVariables = Exact<{
 }>;
 
 
-export type RevokePuzzleAccessMutation = { revokePuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null } | null };
+export type RevokePuzzleAccessMutation = { revokePuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type SavePuzzleVersionMutationVariables = Exact<{
   puzzleId: string | number;
@@ -2806,14 +2815,14 @@ export type SetPuzzleVisibilityMutationVariables = Exact<{
 }>;
 
 
-export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null } | null };
+export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type UnpublishPuzzleMutationVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type UnpublishPuzzleMutation = { unpublishPuzzle: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null } | null };
+export type UnpublishPuzzleMutation = { unpublishPuzzle: { errors: Array<string>, puzzle: { id: string, status: string, visibility: string, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type UpdatePuzzleVersionLabelMutationVariables = Exact<{
   id: string | number;
@@ -2835,21 +2844,21 @@ export type PuzzleByTokenForPlayQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, author: { id: string, username: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
 export type PuzzleForEditQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, id: string, status: string, visibility: string, shareToken: string | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string }> } | null };
+export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, id: string, status: string, visibility: string, shareToken: string | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
 
 export type PuzzleForPlayQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, author: { id: string, username: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
 export type PuzzleVersionQueryVariables = Exact<{
   id: string | number;
@@ -2866,7 +2875,7 @@ export type PuzzlesQueryVariables = Exact<{
 }>;
 
 
-export type PuzzlesQuery = { puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, author: { id: string, username: string } }> };
+export type PuzzlesQuery = { puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, authorName: string | null, author: { id: string, username: string, displayName: string } }> };
 
 export type AddSeriesEntryMutationVariables = Exact<{
   seriesId: string | number;
@@ -2939,14 +2948,14 @@ export type MySeriesQuery = { mySeries: Array<{ id: string, title: string, visib
 export type MySubscriptionsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: string, entryCount: number, subscriberCount: number, author: { username: string } }> };
+export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: string, entryCount: number, subscriberCount: number, author: { id: string, username: string, displayName: string } }> };
 
 export type SeriesByTokenPublicQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type SeriesByTokenPublicQuery = { seriesByToken: { id: string, title: string, description: string | null, visibility: string, subscribed: boolean, subscriberCount: number, author: { username: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: string, visibility: string, avgRating: number | null } | null, collection: { id: string, title: string, visibility: string, puzzleCount: number } | null }> } | null };
+export type SeriesByTokenPublicQuery = { seriesByToken: { id: string, title: string, description: string | null, visibility: string, subscribed: boolean, subscriberCount: number, author: { id: string, username: string, displayName: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: string, visibility: string, avgRating: number | null } | null, collection: { id: string, title: string, visibility: string, puzzleCount: number } | null }> } | null };
 
 export type SeriesDetailQueryVariables = Exact<{
   id: string | number;
@@ -2965,4 +2974,4 @@ export type SeriesPublicQueryVariables = Exact<{
 }>;
 
 
-export type SeriesPublicQuery = { series: { id: string, title: string, description: string | null, visibility: string, subscribed: boolean, subscriberCount: number, author: { username: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: string, visibility: string, avgRating: number | null } | null, collection: { id: string, title: string, visibility: string, puzzleCount: number } | null }> } | null };
+export type SeriesPublicQuery = { series: { id: string, title: string, description: string | null, visibility: string, subscribed: boolean, subscriberCount: number, author: { id: string, username: string, displayName: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: string, visibility: string, avgRating: number | null } | null, collection: { id: string, title: string, visibility: string, puzzleCount: number } | null }> } | null };

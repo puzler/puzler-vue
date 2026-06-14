@@ -5,9 +5,11 @@ query Puzzles($page: Int, $perPage: Int, $sort: String, $constraintTypes: [Strin
     constraintTypes
     avgRating
     solveCount
+    authorName
     author {
       id
       username
+      displayName
     }
   }
 }

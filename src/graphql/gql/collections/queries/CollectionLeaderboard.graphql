@@ -2,6 +2,7 @@ query CollectionLeaderboard($collectionId: ID!) {
   collectionLeaderboard(collectionId: $collectionId) {
     rank
     username
+    displayName
     totalSeconds
   }
 }

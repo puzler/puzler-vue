@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
+import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -41,7 +42,8 @@ const auth = useAuthStore()
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const title = ref('')
-const authorName = ref('')
+const author = ref<{ username: string; displayName: string } | null>(null)
+const authorCredit = ref<string | null>(null)
 const puzzleId = ref<string | null>(null)
 const solutionHash = ref<string | null>(null)
 const solved = ref(false)
@@ -182,7 +184,8 @@ async function loadPuzzle() {
       return
     }
     title.value = puzzle.title
-    authorName.value = puzzle.author.username
+    author.value = puzzle.author
+    authorCredit.value = puzzle.authorName ?? null
     puzzleId.value = puzzle.id
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
@@ -200,7 +203,6 @@ async function loadPuzzle() {
 // own window listeners.
 useGridKeyboard()
 
-const subtitle = computed(() => (authorName.value ? `by ${authorName.value}` : ''))
 
 // Re-load when navigating between puzzles in a collection (same route).
 watch(() => route.params.id, loadPuzzle)
@@ -222,7 +224,13 @@ onUnmounted(() => {
       <h1 class="text-sm font-semibold text-ink-text">
         {{ title || 'Puzzle' }}
       </h1>
-      <span class="text-xs text-faint">{{ subtitle }}</span>
+      <span
+        v-if="author"
+        class="text-xs text-faint"
+      >by <AuthorAttribution
+        :author="author"
+        :author-name="authorCredit"
+      /></span>
       <span
         v-if="collectionTimed"
         class="ml-auto text-sm font-mono tabular-nums text-ink-text"

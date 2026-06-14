@@ -12,7 +12,7 @@ const auth = useAuthStore()
         :to="`/profile/${auth.user?.username}`"
         class="text-sm text-white font-medium hover:text-spark transition-colors"
       >
-        {{ auth.user?.username }}
+        {{ auth.user?.displayName }}
       </RouterLink>
       <RouterLink
         to="/settings"

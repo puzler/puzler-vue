@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import CollectionLeaderboardDocument from '@/graphql/gql/collections/queries/CollectionLeaderboard.graphql'
 import type { CollectionLeaderboardQuery, CollectionLeaderboardQueryVariables } from '@/graphql/generated/types'
@@ -48,7 +49,12 @@ onMounted(async () => {
         class="flex items-center gap-3 px-3 py-2 rounded-lg border border-line text-sm"
       >
         <span class="text-faint w-5 text-right">{{ entry.rank }}</span>
-        <span class="flex-1 truncate text-ink-text">{{ entry.username }}</span>
+        <RouterLink
+          :to="`/profile/${entry.username}`"
+          class="flex-1 truncate text-ink-text hover:text-action transition-colors"
+        >
+          {{ entry.displayName }}
+        </RouterLink>
         <span class="font-mono tabular-nums text-soft">{{ formatTime(entry.totalSeconds) }}</span>
       </li>
     </ol>

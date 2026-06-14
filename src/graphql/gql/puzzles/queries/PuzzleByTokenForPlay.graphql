@@ -2,9 +2,11 @@ query PuzzleByTokenForPlay($token: String!) {
   puzzleByToken(token: $token) {
     id
     title
+    authorName
     author {
       id
       username
+      displayName
     }
     publishedVersion {
       id

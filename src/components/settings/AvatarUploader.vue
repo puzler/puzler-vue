@@ -11,7 +11,7 @@
         v-else
         class="w-16 h-16 rounded-full bg-surface border border-line flex items-center justify-center text-xl font-display font-semibold text-soft"
       >
-        {{ auth.user?.username?.charAt(0).toUpperCase() }}
+        {{ auth.user?.displayName?.charAt(0).toUpperCase() }}
       </div>
       <div class="flex gap-2">
         <label

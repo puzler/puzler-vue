@@ -184,7 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // --- Profile (the store owns `user`, so user-mutating actions live here) ---
 
-  async function updateProfile(attrs: { username?: string; bio?: string }) {
+  async function updateProfile(attrs: { username?: string; displayName?: string; bio?: string }) {
     const { data } = await apolloClient.mutate<UpdateProfileMutation, UpdateProfileMutationVariables>({
       mutation: UpdateProfileDocument,
       variables: attrs,

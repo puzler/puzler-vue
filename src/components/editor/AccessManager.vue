@@ -57,7 +57,7 @@ async function addUser() {
         :key="u.id"
         class="flex items-center justify-between text-sm px-2 py-1 rounded-lg bg-paper"
       >
-        <span>{{ u.username }}</span>
+        <span>{{ u.displayName }} <span class="text-faint">@{{ u.username }}</span></span>
         <button
           class="text-xs text-red-600 hover:underline"
           :disabled="busy"

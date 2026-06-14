@@ -20,6 +20,18 @@
           maxlength="30"
           class="mt-1 w-full px-4 py-2.5 bg-surface border border-line rounded-md text-ink-text focus:border-action focus:outline-none transition-colors"
         >
+        <span class="text-xs text-faint">Your unique handle, used in your profile link.</span>
+      </label>
+      <label class="text-sm text-soft">
+        Display name
+        <input
+          v-model="form.displayName"
+          type="text"
+          required
+          maxlength="50"
+          class="mt-1 w-full px-4 py-2.5 bg-surface border border-line rounded-md text-ink-text focus:border-action focus:outline-none transition-colors"
+        >
+        <span class="text-xs text-faint">Shown to others; spaces and punctuation are fine.</span>
       </label>
       <label class="text-sm text-soft">
         Bio
@@ -67,7 +79,7 @@ import AvatarUploader from '@/components/settings/AvatarUploader.vue'
 
 const auth = useAuthStore()
 
-const form = reactive({ username: '', bio: '' })
+const form = reactive({ username: '', displayName: '', bio: '' })
 const errors = ref<string[]>([])
 const pending = ref(false)
 const saved = ref(false)
@@ -77,6 +89,7 @@ watch(
   (user) => {
     if (user) {
       form.username = user.username
+      form.displayName = user.displayName
       form.bio = user.bio ?? ''
     }
   },
@@ -88,7 +101,7 @@ async function saveProfile() {
   saved.value = false
   pending.value = true
   try {
-    await auth.updateProfile({ username: form.username, bio: form.bio })
+    await auth.updateProfile({ username: form.username, displayName: form.displayName, bio: form.bio })
     saved.value = true
   } catch (e) {
     errors.value =

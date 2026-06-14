@@ -9,7 +9,9 @@ query SeriesPublic($id: ID!) {
     subscribed
     subscriberCount
     author {
+      id
       username
+      displayName
     }
     entries {
       ...SeriesEntryFields

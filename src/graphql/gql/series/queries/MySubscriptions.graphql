@@ -4,7 +4,9 @@ query MySubscriptions {
   mySubscriptions {
     ...SeriesSummary
     author {
+      id
       username
+      displayName
     }
   }
 }

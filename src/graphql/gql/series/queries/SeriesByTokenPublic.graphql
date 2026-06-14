@@ -9,7 +9,9 @@ query SeriesByTokenPublic($token: String!) {
     subscribed
     subscriberCount
     author {
+      id
       username
+      displayName
     }
     entries {
       ...SeriesEntryFields

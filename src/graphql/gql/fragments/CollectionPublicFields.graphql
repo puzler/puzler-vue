@@ -7,6 +7,7 @@ fragment CollectionPublicFields on Collection {
   author {
     id
     username
+    displayName
   }
   puzzles {
     id

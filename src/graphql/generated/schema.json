@@ -647,6 +647,22 @@
         "isOneOf": null,
         "fields": [
           {
+            "name": "displayName",
+            "description": "The solver's display name (shown in the UI)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "rank",
             "description": "1-based position (fastest first)",
             "args": [],
@@ -680,7 +696,7 @@
           },
           {
             "name": "username",
-            "description": "The solver's username",
+            "description": "The solver's unique handle (for linking to their profile)",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -5693,7 +5709,7 @@
         "fields": [
           {
             "name": "author",
-            "description": "Puzzle creator",
+            "description": "Puzzle creator (the owning account)",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -5703,6 +5719,18 @@
                 "kind": "OBJECT",
                 "ofType": null
               }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "authorName",
+            "description": "Free-form author credit from the published puzzle's metadata; null when left blank, in which case attribution falls back to the author's display name",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -11308,8 +11336,20 @@
             "deprecationReason": null
           },
           {
+            "name": "displayName",
+            "description": "Free-form name shown to others (not unique)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "username",
-            "description": "Public display name",
+            "description": "Unique handle used in profile URLs and lookups",
             "type": {
               "kind": "SCALAR",
               "name": "String",
@@ -12250,6 +12290,22 @@
             "deprecationReason": null
           },
           {
+            "name": "displayName",
+            "description": "Free-form name shown to others (not unique)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "email",
             "description": "User's email address (only visible to the user themselves)",
             "args": [],
@@ -12396,7 +12452,7 @@
           },
           {
             "name": "username",
-            "description": "Public display name",
+            "description": "Unique handle used in profile URLs and lookups",
             "args": [],
             "type": {
               "kind": "NON_NULL",

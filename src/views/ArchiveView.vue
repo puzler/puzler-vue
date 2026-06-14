@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
+import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import PuzzlesDocument from '@/graphql/gql/puzzles/queries/Puzzles.graphql'
 import type { PuzzlesQuery, PuzzlesQueryVariables } from '@/graphql/generated/types'
@@ -89,7 +90,11 @@ onMounted(load)
                 class="text-xs text-faint shrink-0"
               >★ {{ puzzle.avgRating.toFixed(1) }}</span>
             </div>
-            <span class="text-xs text-soft">by {{ puzzle.author.username }}</span>
+            <span class="text-xs text-soft">by <AuthorAttribution
+              :author="puzzle.author"
+              :author-name="puzzle.authorName"
+              plain
+            /></span>
             <div
               v-if="puzzle.constraintTypes.length"
               class="mt-2 flex flex-wrap gap-1"

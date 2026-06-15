@@ -7,6 +7,11 @@ import NewGridModal from './NewGridModal.vue'
 import EditorActions from './EditorActions.vue'
 import SetSolutionButton from './SetSolutionButton.vue'
 import ViewSolutionButton from './ViewSolutionButton.vue'
+import PuzzleMetaFields from './PuzzleMetaFields.vue'
+
+// Mobile shows the puzzle metadata (name/author/rules) here, grouped with the
+// other puzzle-level controls; the desktop top bar keeps it in the tool sidebar.
+withDefaults(defineProps<{ showMeta?: boolean }>(), { showMeta: false })
 
 const editor = useEditorStore()
 
@@ -27,8 +32,8 @@ function toggleMode() {
 </script>
 
 <template>
-  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2 border-b border-line bg-paper shrink-0">
-    <div class="flex items-center gap-1.5">
+  <div class="flex flex-col gap-4 py-1 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-3 md:px-4 md:py-2 md:border-b md:border-line bg-paper shrink-0">
+    <div class="order-2 md:order-none flex items-center justify-center md:justify-start gap-1.5 flex-wrap">
       <button
         title="New grid"
         aria-label="New grid"
@@ -55,7 +60,7 @@ function toggleMode() {
       <ViewSolutionButton v-if="editor.mode === 'solving'" />
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="order-1 md:order-none flex items-center justify-center gap-2">
       <button
         class="w-14 text-right text-sm transition-colors"
         :class="editor.mode === 'setting' ? 'text-ink-text font-semibold' : 'text-soft hover:text-ink-text'"
@@ -84,8 +89,12 @@ function toggleMode() {
       </button>
     </div>
 
-    <EditorActions />
+    <div class="order-3 md:order-none">
+      <EditorActions />
+    </div>
   </div>
+
+  <PuzzleMetaFields v-if="showMeta" />
 
   <NewGridModal
     v-if="showNewGrid"

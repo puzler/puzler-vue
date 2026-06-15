@@ -19,8 +19,8 @@ function modeClass(key: 'digit' | 'center' | 'corner'): string {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 bg-paper overflow-y-auto h-full p-4">
-    <div class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full content-start">
+  <div class="flex flex-col gap-2 md:gap-3 bg-paper overflow-y-auto h-full p-2 md:p-4">
+    <div class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full max-w-[14rem] md:max-w-none mx-auto content-start">
       <button
         v-for="n in [1, 2, 3]"
         :key="n"
@@ -88,6 +88,8 @@ function modeClass(key: 'digit' | 'center' | 'corner'): string {
       </button>
     </div>
 
-    <SolverNumpadControls />
+    <div class="w-full max-w-[14rem] md:max-w-none mx-auto">
+      <SolverNumpadControls />
+    </div>
   </div>
 </template>

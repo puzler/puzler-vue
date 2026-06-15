@@ -1,17 +1,32 @@
 <script setup lang="ts">
-const emit = defineEmits<{
-  'open-tools': []
-  'open-controls': []
-  'open-solver': []
-}>()
+import { mdiUndo, mdiRedo } from '@mdi/js'
+import { useEditorStore } from '@/stores/editor'
+import MdiIcon from '@/components/MdiIcon.vue'
+
+type MobileView = 'primary' | 'tools' | 'solver' | 'puzzle'
+
+const editor = useEditorStore()
+
+defineProps<{ activeView: MobileView }>()
+const emit = defineEmits<{ select: [view: 'tools' | 'solver' | 'puzzle'] }>()
+
+const BTN = 'w-9 h-9 flex items-center justify-center rounded-lg transition-colors'
+function cls(active: boolean): string {
+  return active
+    ? 'bg-action-tint text-action'
+    : 'text-soft hover:bg-line/60 active:bg-line'
+}
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-2 pt-3 px-1.5 border-r border-line bg-surface shrink-0 w-12">
+  <div class="flex flex-col items-center gap-2 py-3 px-1.5 border-r border-line bg-surface shrink-0 w-12">
     <button
-      class="w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors"
+      v-if="editor.mode === 'setting'"
+      :class="[BTN, cls(activeView === 'tools')]"
       title="Tools"
-      @click="emit('open-tools')"
+      aria-label="Tools"
+      :aria-pressed="activeView === 'tools'"
+      @click="emit('select', 'tools')"
     >
       <svg
         class="w-5 h-5"
@@ -28,9 +43,11 @@ const emit = defineEmits<{
       </svg>
     </button>
     <button
-      class="w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors"
+      :class="[BTN, cls(activeView === 'solver')]"
       title="Solver"
-      @click="emit('open-solver')"
+      aria-label="Solver"
+      :aria-pressed="activeView === 'solver'"
+      @click="emit('select', 'solver')"
     >
       <svg
         class="w-5 h-5"
@@ -47,9 +64,11 @@ const emit = defineEmits<{
       </svg>
     </button>
     <button
-      class="w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors"
+      :class="[BTN, cls(activeView === 'puzzle')]"
       title="Puzzle Controls"
-      @click="emit('open-controls')"
+      aria-label="Puzzle Controls"
+      :aria-pressed="activeView === 'puzzle'"
+      @click="emit('select', 'puzzle')"
     >
       <svg
         class="w-5 h-5"
@@ -69,6 +88,32 @@ const emit = defineEmits<{
           d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
         />
       </svg>
+    </button>
+
+    <!-- Undo / Redo float to the bottom of the bar -->
+    <button
+      class="mt-auto w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      title="Undo"
+      aria-label="Undo"
+      :disabled="!editor.canUndo"
+      @click="editor.undo()"
+    >
+      <MdiIcon
+        :path="mdiUndo"
+        :size="20"
+      />
+    </button>
+    <button
+      class="w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      title="Redo"
+      aria-label="Redo"
+      :disabled="!editor.canRedo"
+      @click="editor.redo()"
+    >
+      <MdiIcon
+        :path="mdiRedo"
+        :size="20"
+      />
     </button>
   </div>
 </template>

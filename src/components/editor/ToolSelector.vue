@@ -16,7 +16,7 @@ defineOptions({ inheritAttrs: false })
 
 // Mobile gives the solver its own bottom-sheet, so the embedded panel is hidden
 // there to avoid duplicating it inside the Tools sheet.
-const props = withDefaults(defineProps<{ showSolver?: boolean }>(), { showSolver: true })
+const props = withDefaults(defineProps<{ showSolver?: boolean; showMeta?: boolean }>(), { showSolver: true, showMeta: true })
 
 const editor = useEditorStore()
 const solver = useSolverStore()
@@ -158,7 +158,7 @@ function handleRemoveConfirm() {
     :class="solver.panelExpanded ? 'overflow-hidden' : 'overflow-y-auto'"
     v-bind="$attrs"
   >
-    <PuzzleMetaFields v-show="!solver.panelExpanded" />
+    <PuzzleMetaFields v-show="props.showMeta && !solver.panelExpanded" />
 
     <SolverPanel v-if="props.showSolver" />
 

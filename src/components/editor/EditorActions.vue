@@ -20,7 +20,7 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
 </script>
 
 <template>
-  <div class="flex items-center justify-end gap-1.5">
+  <div class="flex items-center justify-center md:justify-end gap-1.5 flex-wrap">
     <button
       title="Version history"
       aria-label="Version history"

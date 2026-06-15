@@ -6,7 +6,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="grid grid-cols-3 gap-1.5 w-full">
+  <!-- 4-wide on mobile (wide/short bottom bar), 3-wide on desktop sidebars.
+       Auto-flow places 1-9,0 then Delete spans the last 2 cells in either grid. -->
+  <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 w-full">
     <button
       v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
       :key="n"

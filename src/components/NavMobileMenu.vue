@@ -29,6 +29,24 @@ const auth = useAuthStore()
     >
       Set a Puzzle
     </RouterLink>
+    <RouterLink
+      v-if="auth.isAuthenticated"
+      to="/my-puzzles"
+      class="px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
+      active-class="!text-white bg-ink-2"
+      @click="emit('close')"
+    >
+      My Puzzles
+    </RouterLink>
+    <RouterLink
+      v-if="auth.isAuthenticated"
+      to="/feed"
+      class="px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
+      active-class="!text-white bg-ink-2"
+      @click="emit('close')"
+    >
+      Updates
+    </RouterLink>
     <div class="h-px bg-ink-2 my-1" />
     <template v-if="auth.isAuthenticated">
       <RouterLink

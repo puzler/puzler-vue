@@ -61,6 +61,9 @@ const router = createRouter({
       path: '/puzzles/:id',
       name: 'player',
       component: () => import('@/views/PlayerView.vue'),
+      // The solver is a focus screen — drop the global footer so the grid owns
+      // the viewport (especially on mobile).
+      meta: { hideFooter: true },
     },
     {
       path: '/profile/:username',

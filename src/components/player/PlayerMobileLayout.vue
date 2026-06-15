@@ -26,37 +26,39 @@ const BTN = 'w-9 h-9 flex items-center justify-center rounded-lg text-soft hover
 
 type Action = 'show-rules' | 'check' | 'settings' | 'reset'
 const fire = emit as unknown as (e: Action) => void
-const RAIL: { icon: string; label: string; title: string; event: Action; end?: boolean }[] = [
+const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
   { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', event: 'show-rules' },
   { icon: mdiCheckCircleOutline, label: 'Check solution', title: 'Check solution', event: 'check' },
-  { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings', end: true },
+  { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
   { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', event: 'reset' },
 ]
 </script>
 
 <template>
   <div class="flex-1 flex flex-col overflow-hidden">
-    <header class="px-3 py-1.5 border-b border-line bg-paper shrink-0 flex items-baseline gap-2">
-      <h1 class="font-display text-sm font-semibold text-ink-text truncate">
-        {{ title || 'Puzzle' }}
-      </h1>
-      <span
-        v-if="author"
-        class="text-xs text-faint truncate"
-      >by <AuthorAttribution
-        :author="author"
-        :author-name="authorName"
-      /></span>
+    <header class="px-3 py-2 border-b border-line bg-paper shrink-0 flex items-center gap-2">
+      <div class="min-w-0 flex flex-col">
+        <h1 class="font-display text-base font-semibold text-ink-text leading-tight truncate">
+          {{ title || 'Puzzle' }}
+        </h1>
+        <span
+          v-if="author"
+          class="text-xs text-soft truncate"
+        >by <AuthorAttribution
+          :author="author"
+          :author-name="authorName"
+        /></span>
+      </div>
       <div
         v-if="showTimer"
-        class="ml-auto shrink-0 flex items-center gap-1.5"
+        class="ml-auto shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
       >
         <span
-          class="text-sm font-mono tabular-nums text-ink-text"
+          class="font-mono text-sm tabular-nums text-ink-text"
           title="Elapsed time"
         >{{ elapsedLabel }}</span>
         <button
-          class="w-6 h-6 flex items-center justify-center rounded-md text-soft hover:bg-line/60 active:bg-line transition-colors"
+          class="w-5 h-5 flex items-center justify-center rounded-full text-[11px] text-soft hover:text-action transition-colors"
           :title="paused ? 'Resume' : 'Pause'"
           :aria-label="paused ? 'Resume timer' : 'Pause timer'"
           @click="$emit('toggle-pause')"
@@ -87,7 +89,7 @@ const RAIL: { icon: string; label: string; title: string; event: Action; end?: b
         <button
           v-for="b in RAIL"
           :key="b.event"
-          :class="[BTN, b.end ? 'mt-auto' : '']"
+          :class="BTN"
           :title="b.title"
           :aria-label="b.label"
           @click="fire(b.event)"

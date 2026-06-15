@@ -30,51 +30,61 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
 
 <template>
   <aside class="shrink-0 w-72 border-l border-line bg-paper flex flex-col min-h-0">
-    <!-- Title, author and rules sit at the top, scrolling if long. -->
-    <div class="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col gap-2">
-      <div class="flex items-baseline gap-2">
-        <h1 class="font-display text-base font-semibold text-ink-text leading-tight">
-          {{ title || 'Puzzle' }}
-        </h1>
-        <div
-          v-if="showTimer"
-          class="ml-auto shrink-0 flex items-center gap-1.5"
-        >
-          <span
-            class="text-sm font-mono tabular-nums text-ink-text"
-            title="Elapsed time"
-          >{{ elapsedLabel }}</span>
-          <button
-            class="w-6 h-6 flex items-center justify-center rounded-md text-soft hover:bg-line/60 active:bg-line transition-colors"
-            :title="paused ? 'Resume' : 'Pause'"
-            :aria-label="paused ? 'Resume timer' : 'Pause timer'"
-            @click="$emit('toggle-pause')"
+    <!-- Title, author and rules sit at the top; the rules scroll within a card. -->
+    <div class="flex-1 min-h-0 p-3 flex flex-col gap-3">
+      <div class="shrink-0 flex flex-col gap-1.5 px-1">
+        <div class="flex items-start gap-2">
+          <h1 class="flex-1 min-w-0 font-display text-lg font-semibold text-ink-text leading-snug">
+            {{ title || 'Puzzle' }}
+          </h1>
+          <div
+            v-if="showTimer"
+            class="shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
           >
-            {{ paused ? '▶' : '⏸' }}
-          </button>
+            <span
+              class="font-mono text-sm tabular-nums text-ink-text"
+              title="Elapsed time"
+            >{{ elapsedLabel }}</span>
+            <button
+              class="w-5 h-5 flex items-center justify-center rounded-full text-[11px] text-soft hover:text-action transition-colors"
+              :title="paused ? 'Resume' : 'Pause'"
+              :aria-label="paused ? 'Resume timer' : 'Pause timer'"
+              @click="$emit('toggle-pause')"
+            >
+              {{ paused ? '▶' : '⏸' }}
+            </button>
+          </div>
         </div>
+        <p
+          v-if="author"
+          class="text-xs text-soft"
+        >
+          by <AuthorAttribution
+            :author="author"
+            :author-name="authorName"
+          />
+        </p>
       </div>
-      <p
-        v-if="author"
-        class="text-xs text-faint"
-      >
-        by <AuthorAttribution
-          :author="author"
-          :author-name="authorName"
-        />
-      </p>
-      <div
-        v-if="rules"
-        class="mt-1 text-sm text-ink-text whitespace-pre-line leading-relaxed"
-      >
-        {{ rules }}
-      </div>
-      <p
-        v-else
-        class="mt-1 text-sm italic text-faint"
-      >
-        No rules provided for this puzzle.
-      </p>
+
+      <section class="flex-1 min-h-0 flex flex-col gap-1.5">
+        <p class="px-1 text-[10px] font-semibold uppercase tracking-widest text-soft">
+          Rules
+        </p>
+        <div class="flex-1 min-h-0 overflow-y-auto rounded-xl border border-line bg-surface p-3.5">
+          <p
+            v-if="rules"
+            class="text-sm text-ink-text whitespace-pre-line leading-relaxed"
+          >
+            {{ rules }}
+          </p>
+          <p
+            v-else
+            class="text-sm italic text-faint"
+          >
+            Normal sudoku rules apply.
+          </p>
+        </div>
+      </section>
     </div>
 
     <!-- Action controls sit just above the numpad. -->

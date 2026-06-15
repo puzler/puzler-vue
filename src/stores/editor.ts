@@ -51,6 +51,9 @@ export const useEditorStore = defineStore('editor', () => {
   // effective mode while held)
   const arrowDrawMode = ref<'bulb' | 'arrow'>('bulb')
   const thermoDrawMode = ref<'draw' | 'branch'>('draw')
+  // Shared by cosmetic and constraint lines: branch lets a drag start on an
+  // existing line cell (to branch off it) instead of deleting that line.
+  const lineDrawMode = ref<'draw' | 'branch'>('draw')
   const connectorMode = ref<'place' | 'select'>('place')
   const cloneMode = ref<'paint' | 'clone'>('paint')
   // When on, a plain pointer click toggles a single cell's membership in the
@@ -63,6 +66,9 @@ export const useEditorStore = defineStore('editor', () => {
   )
   const effectiveThermoDrawMode = computed<'draw' | 'branch'>(() =>
     shiftHeld.value ? 'branch' : thermoDrawMode.value,
+  )
+  const effectiveLineDrawMode = computed<'draw' | 'branch'>(() =>
+    shiftHeld.value ? 'branch' : lineDrawMode.value,
   )
   const effectiveConnectorMode = computed<'place' | 'select'>(() =>
     shiftHeld.value ? 'select' : connectorMode.value,
@@ -275,6 +281,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setThermoDrawMode(mode: 'draw' | 'branch') {
     thermoDrawMode.value = mode
+  }
+
+  function setLineDrawMode(mode: 'draw' | 'branch') {
+    lineDrawMode.value = mode
   }
 
   function setConnectorMode(mode: 'place' | 'select') {
@@ -1136,6 +1146,7 @@ export const useEditorStore = defineStore('editor', () => {
     pendingArrowParentId.value = null
     arrowDrawMode.value = 'bulb'
     thermoDrawMode.value = 'draw'
+    lineDrawMode.value = 'draw'
     connectorMode.value = 'place'
     cloneMode.value = 'paint'
     multiSelectMode.value = false
@@ -1758,6 +1769,9 @@ export const useEditorStore = defineStore('editor', () => {
     thermoDrawMode,
     effectiveThermoDrawMode,
     setThermoDrawMode,
+    lineDrawMode,
+    effectiveLineDrawMode,
+    setLineDrawMode,
     connectorMode,
     effectiveConnectorMode,
     setConnectorMode,

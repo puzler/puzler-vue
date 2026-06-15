@@ -495,13 +495,18 @@ function onPointerDown(event: PointerEvent) {
         editor.removeCosmeticInstance(thermoId)
         return
       }
-    } else if (!event.shiftKey) {
-      const existingId = editor.activeTool === 'cosmetic_line'
-        ? findLineAtCell(key)
-        : findConstraintLineAtCell(key)
-      if (existingId !== null) {
-        editor.removeCosmeticInstance(existingId)
-        return
+    } else {
+      // Draw: tapping an existing line deletes it. Branch (or Shift): start a
+      // new line even from an existing line's cell, so lines can branch.
+      const mode = event.shiftKey ? 'branch' : editor.effectiveLineDrawMode
+      if (mode === 'draw') {
+        const existingId = editor.activeTool === 'cosmetic_line'
+          ? findLineAtCell(key)
+          : findConstraintLineAtCell(key)
+        if (existingId !== null) {
+          editor.removeCosmeticInstance(existingId)
+          return
+        }
       }
     }
     ;(event.currentTarget as Element).setPointerCapture(event.pointerId)

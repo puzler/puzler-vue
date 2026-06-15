@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import ModeSwitcher from './ModeSwitcher.vue'
 
 const editor = useEditorStore()
+
+const MODES = [
+  { key: 'draw', label: 'Draw' },
+  { key: 'branch', label: 'Branch' },
+]
 
 function onColorInput(event: Event) {
   editor.updateActiveLinePreset({ color: (event.target as HTMLInputElement).value })
@@ -106,8 +112,14 @@ function onOpacityChange(event: Event) {
           <span class="text-xs text-faint">%</span>
         </div>
       </div>
+      <ModeSwitcher
+        :modes="MODES"
+        :active="editor.effectiveLineDrawMode"
+        @select="editor.setLineDrawMode($event as 'draw' | 'branch')"
+      />
       <p class="text-[11px] text-faint leading-snug">
-        Click and drag to draw · Click an existing line to erase
+        Draw: drag to add a line · tap one to erase. Branch: drag from an
+        existing line to branch off it (or hold Shift).
       </p>
     </div>
   </div>

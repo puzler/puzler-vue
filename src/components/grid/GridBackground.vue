@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
@@ -10,7 +11,15 @@ import ConstraintBackgrounds from './ConstraintBackgrounds.vue'
 
 const grid = useGridStore()
 const editor = useEditorStore()
+const player = usePlayerSettingsStore()
 const margins = useOuterMargins()
+
+// Conflict highlighting is a player setting on the solver page; in the setter
+// it always shows (it's an authoring aid). `seen` highlighting is opt-in only.
+const showConflicts = computed(() => editor.mode !== 'solving' || player.settings.highlightConflicts)
+// Solvers can hide the puzzle's built-in (author-placed) cell colours so they
+// can recolour freely; the setter always sees its own cosmetics.
+const hideCosmeticColors = computed(() => editor.mode === 'solving' && player.settings.hideColors)
 
 const totalW = computed(() => PADDING * 2 + grid.cols * CELL_SIZE)
 const totalH = computed(() => PADDING * 2 + grid.rows * CELL_SIZE)
@@ -32,6 +41,7 @@ const activeCellRects = computed<CellRect[]>(() => {
 interface ColorRect { x: number; y: number; color: string; opacity?: number }
 
 const cellColorRects = computed<ColorRect[]>(() => {
+  if (hideCosmeticColors.value) return []
   const m = editor.cosmeticCellColors
   const presets = editor.cellColorPresets
   return Object.entries(m).flatMap(([cell, presetId]) => {
@@ -51,13 +61,24 @@ const pendingColorRects = computed<ColorRect[]>(() => {
   })
 })
 
-const errorRects = computed<CellRect[]>(() =>
-  Array.from(editor.errorCells).flatMap(key => {
+const errorRects = computed<CellRect[]>(() => {
+  if (!showConflicts.value) return []
+  return Array.from(editor.errorCells).flatMap(key => {
     const m = key.match(/r(\d+)c(\d+)/)
     if (!m) return []
     return [{ x: PADDING + Number(m[2]) * CELL_SIZE, y: PADDING + Number(m[1]) * CELL_SIZE }]
-  }),
-)
+  })
+})
+
+// Cells the current selection can see — only when the player opts in.
+const seenRects = computed<CellRect[]>(() => {
+  if (!player.settings.highlightSeen) return []
+  return Array.from(editor.cellsSeenBySelection).flatMap(key => {
+    const m = key.match(/r(\d+)c(\d+)/)
+    if (!m) return []
+    return [{ x: PADDING + Number(m[2]) * CELL_SIZE, y: PADDING + Number(m[1]) * CELL_SIZE }]
+  })
+})
 
 const singleCellBgRects = computed<ColorRect[]>(() => {
   const result: ColorRect[] = []
@@ -129,6 +150,16 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :height="CELL_SIZE"
       :fill="cr.color"
       :opacity="cr.opacity"
+    />
+    <rect
+      v-for="(sr, i) in seenRects"
+      :key="`seen-${i}`"
+      :x="sr.x"
+      :y="sr.y"
+      :width="CELL_SIZE"
+      :height="CELL_SIZE"
+      fill="#334155"
+      opacity="0.08"
     />
     <rect
       v-for="(er, i) in errorRects"

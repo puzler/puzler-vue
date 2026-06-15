@@ -12,7 +12,7 @@ function viewSolution() {
   const states: typeof editor.solverCellStates = {}
   for (const [key, value] of Object.entries(editor.solution)) {
     if (editor.givenDigits[key] === undefined) {
-      states[key] = { value, cornerMarks: [], centerMarks: [], color: null }
+      states[key] = { value, cornerMarks: [], centerMarks: [], color: null, colors: [] }
     }
   }
   editor.solverCellStates = states

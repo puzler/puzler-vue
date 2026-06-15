@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UpdatePlayerPrefs($playerSettings: JSON, $colorPalette: JSON) {
+  updatePlayerPrefs(input: { playerSettings: $playerSettings, colorPalette: $colorPalette }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

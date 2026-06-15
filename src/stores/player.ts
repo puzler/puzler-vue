@@ -16,7 +16,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function initCell(key: string): CellState {
     if (!cellStates.value[key]) {
-      cellStates.value[key] = { value: null, cornerMarks: [], centerMarks: [], color: null }
+      cellStates.value[key] = { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
     }
     return cellStates.value[key]
   }

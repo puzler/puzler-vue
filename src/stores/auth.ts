@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '@/utils/api'
 import * as tokenStorage from '@/utils/tokenStorage'
 import MeDocument from '@/graphql/gql/auth/queries/Me.graphql'
 import UpdateProfileDocument from '@/graphql/gql/auth/mutations/UpdateProfile.graphql'
+import UpdatePlayerPrefsDocument from '@/graphql/gql/auth/mutations/UpdatePlayerPrefs.graphql'
 import ChangePasswordDocument from '@/graphql/gql/auth/mutations/ChangePassword.graphql'
 import DisconnectOauthProviderDocument from '@/graphql/gql/auth/mutations/DisconnectOauthProvider.graphql'
 import PrepareOauthConnectDocument from '@/graphql/gql/auth/mutations/PrepareOauthConnect.graphql'
@@ -16,6 +17,8 @@ import type {
   UserFieldsFragment,
   UpdateProfileMutation,
   UpdateProfileMutationVariables,
+  UpdatePlayerPrefsMutation,
+  UpdatePlayerPrefsMutationVariables,
   ChangePasswordMutation,
   ChangePasswordMutationVariables,
   DisconnectOauthProviderMutation,
@@ -196,6 +199,22 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
+  // Persist the player/solver preferences (settings and/or color palette) for
+  // a logged-in user. Fire-and-forget from the caller's perspective: the
+  // player-settings and color-palette stores own the local copy and only push
+  // here to sync. JSON blobs are stored verbatim by the API.
+  async function updatePlayerPrefs(attrs: { playerSettings?: unknown; colorPalette?: unknown }) {
+    const { data } = await apolloClient.mutate<UpdatePlayerPrefsMutation, UpdatePlayerPrefsMutationVariables>({
+      mutation: UpdatePlayerPrefsDocument,
+      variables: attrs,
+    })
+    const result = data?.updatePlayerPrefs
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
   async function uploadAvatar(file: Blob, filename = 'avatar') {
     // apollo-upload-client turns a File/Blob variable into a GraphQL multipart
     // request. Wrap a Blob in a File so it carries a filename.
@@ -267,6 +286,7 @@ export const useAuthStore = defineStore('auth', () => {
     connectProvider,
     disconnectProvider,
     updateProfile,
+    updatePlayerPrefs,
     uploadAvatar,
     removeAvatar,
     downloadData,

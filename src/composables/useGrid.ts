@@ -2,6 +2,8 @@ import type { BoxRegion } from '@/types/grid'
 
 export const CELL_SIZE = 64
 export const PADDING = 10
+// Gutter added outside the grid (top + left) for optional row/column labels.
+export const LABEL_GUTTER = 36
 export const THIN_STROKE = 0.5
 export const BOX_STROKE = 2.5
 export const OUTER_STROKE = 3

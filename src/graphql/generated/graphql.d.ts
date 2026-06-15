@@ -44,6 +44,15 @@ declare module '*/RemoveAvatar.graphql' {
 }
     
 
+declare module '*/UpdatePlayerPrefs.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePlayerPrefs: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateProfile.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -291,6 +300,15 @@ declare module '*/VersionSummary.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const VersionSummary: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CheckSolution.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CheckSolution: DocumentNode;
 
   export default defaultDocument;
 }

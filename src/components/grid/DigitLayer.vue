@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { useSolverStore } from '@/stores/solver'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
 import type { CellState } from '@/types/grid'
 
@@ -14,6 +15,17 @@ const props = defineProps<{
 const grid = useGridStore()
 const editor = useEditorStore()
 const solver = useSolverStore()
+const player = usePlayerSettingsStore()
+
+// Tinting pencil marks red when their digit is already "seen" is a player
+// setting on the solver page; in the setter it always applies (authoring aid).
+const showConflictMarks = computed(() => editor.mode !== 'solving' || player.settings.highlightConflictingPencilmarks)
+
+// A pencil mark's colour: red when it conflicts with a seen digit (if enabled),
+// otherwise the normal indigo. Shared by corner and (as a fallback) centre marks.
+function seenMarkFill(cell: string, digit: number): string {
+  return showConflictMarks.value && editor.seenDigitsByCell.get(cell)?.has(digit) ? MARK_SEEN : MARK_NORMAL
+}
 
 // Center-mark colours. When "show candidate counts" is on, a true candidate is
 // tinted by how many solutions remain if placed — fewer remaining = closer to
@@ -41,7 +53,7 @@ function centerMarkFill(cell: string, digit: number): string {
     if (count <= 10) return COUNT_5_10
     return COUNT_MANY
   }
-  return editor.seenDigitsByCell.get(cell)?.has(digit) ? MARK_SEEN : MARK_NORMAL
+  return seenMarkFill(cell, digit)
 }
 
 // Bold the unique-completing candidate so it stands out clearly from the blues.
@@ -186,7 +198,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
       font-family="'Space Grotesk', sans-serif"
-      :fill="editor.seenDigitsByCell.get(m.cell)?.has(m.digit) ? '#dc2626' : '#4F46E5'"
+      :fill="seenMarkFill(m.cell, m.digit)"
     >
       {{ m.digit }}
     </text>

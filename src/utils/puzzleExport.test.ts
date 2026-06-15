@@ -49,7 +49,7 @@ describe('serializePuzzle', () => {
 
   it('excludes solver scratch and carries the explicit solution + solve message', () => {
     const { editor, grid } = populatedStores()
-    editor.solverCellStates = { r8c8: { value: 9, cornerMarks: [], centerMarks: [], color: null } }
+    editor.solverCellStates = { r8c8: { value: 9, cornerMarks: [], centerMarks: [], color: null, colors: [] } }
     editor.solution = { r0c0: 5 }
     editor.solveMessage = 'You found it!'
     const data = serializePuzzle(editor, grid)
@@ -208,8 +208,8 @@ describe('boardSnapshot', () => {
     grid.setDimensions(2, 2)
     editor.givenDigits = { r0c0: 1, r0c1: 2 }
     editor.solverCellStates = {
-      r1c0: { value: 3, cornerMarks: [], centerMarks: [], color: null },
-      r1c1: { value: 4, cornerMarks: [], centerMarks: [], color: null },
+      r1c0: { value: 3, cornerMarks: [], centerMarks: [], color: null, colors: [] },
+      r1c1: { value: 4, cornerMarks: [], centerMarks: [], color: null, colors: [] },
     }
     expect(boardSnapshot(editor, grid)).toEqual({ r0c0: 1, r0c1: 2, r1c0: 3, r1c1: 4 })
   })

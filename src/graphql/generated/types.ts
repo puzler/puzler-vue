@@ -11,7 +11,7 @@ export type ChangePasswordMutationVariables = Exact<{
 }>;
 
 
-export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type DeleteAccountMutationVariables = Exact<{
   currentPassword?: string | null | undefined;
@@ -26,7 +26,7 @@ export type DisconnectOauthProviderMutationVariables = Exact<{
 }>;
 
 
-export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type PrepareOauthConnectMutationVariables = Exact<{
   provider: string;
@@ -38,7 +38,15 @@ export type PrepareOauthConnectMutation = { prepareOauthConnect: { url: string |
 export type RemoveAvatarMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+
+export type UpdatePlayerPrefsMutationVariables = Exact<{
+  playerSettings?: unknown;
+  colorPalette?: unknown;
+}>;
+
+
+export type UpdatePlayerPrefsMutation = { updatePlayerPrefs: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateProfileMutationVariables = Exact<{
   username?: string | null | undefined;
@@ -47,19 +55,19 @@ export type UpdateProfileMutationVariables = Exact<{
 }>;
 
 
-export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UploadAvatarMutationVariables = Exact<{
   file: File;
 }>;
 
 
-export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { me: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
+export type MeQuery = { me: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
 
 export type AddPuzzleToCollectionMutationVariables = Exact<{
   collectionId: string | number;
@@ -198,11 +206,20 @@ export type SeriesEntryFieldsFragment = { id: string, position: number, entryTyp
 
 export type SeriesSummaryFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number };
 
-export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
+export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
 
 export type VersionFullFragment = { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
 
 export type VersionSummaryFragment = { id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
+
+export type CheckSolutionMutationVariables = Exact<{
+  puzzleId: string | number;
+  board: unknown;
+  shareToken?: string | null | undefined;
+}>;
+
+
+export type CheckSolutionMutation = { checkSolution: { result: Types.CheckResultEnum } | null };
 
 export type CreatePuzzleMutationVariables = Exact<{
   title: string;

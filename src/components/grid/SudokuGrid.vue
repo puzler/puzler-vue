@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
-import { svgWidth, svgHeight } from '@/composables/useGrid'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { svgWidth, svgHeight, LABEL_GUTTER } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import GridBackground from './GridBackground.vue'
+import GridLabelsLayer from './GridLabelsLayer.vue'
 import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
 import CellLayer from './CellLayer.vue'
@@ -28,14 +30,21 @@ const emit = defineEmits<{
 }>()
 
 const grid = useGridStore()
+const player = usePlayerSettingsStore()
 const svgEl = ref<SVGSVGElement | null>(null)
 const margins = useOuterMargins()
 
+const showLabels = computed(() => player.settings.showRowColLabels)
+
 // Outer clue margins extend the viewBox into negative space so all
-// PADDING-based cell math stays untouched
+// PADDING-based cell math stays untouched; the optional row/column labels add a
+// further gutter on the top and left.
 const viewBox = computed(() => {
   const m = margins.value
-  return `${-m.left} ${-m.top} ${svgWidth(grid.cols) + m.left + m.right} ${svgHeight(grid.rows) + m.top + m.bottom}`
+  const g = showLabels.value ? LABEL_GUTTER : 0
+  const left = m.left + g
+  const top = m.top + g
+  return `${-left} ${-top} ${svgWidth(grid.cols) + left + m.right} ${svgHeight(grid.rows) + top + m.bottom}`
 })
 </script>
 
@@ -50,6 +59,7 @@ const viewBox = computed(() => {
     @contextmenu.prevent
   >
     <GridBackground />
+    <GridLabelsLayer v-if="showLabels" />
     <CellLayer :cell-states="cellStates" />
     <CosmeticLayer />
     <ConstraintLayer />

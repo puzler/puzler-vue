@@ -1,0 +1,5 @@
+mutation CheckSolution($puzzleId: ID!, $board: JSON!, $shareToken: String) {
+  checkSolution(input: { puzzleId: $puzzleId, board: $board, shareToken: $shareToken }) {
+    result
+  }
+}

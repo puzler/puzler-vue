@@ -2,8 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
+import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
-import type { CellState } from '@/types/grid'
+import type { CellState, SolverInputMode } from '@/types/grid'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
@@ -39,8 +40,8 @@ export const useEditorStore = defineStore('editor', () => {
   const solution = ref<Record<string, number> | null>(null)
   const solveMessage = ref<string>('')
   const mode = ref<'setting' | 'solving'>('setting')
-  const inputMode = ref<'digit' | 'center' | 'corner'>('digit')
-  const keyboardModeOverride = ref<'digit' | 'center' | 'corner' | null>(null)
+  const inputMode = ref<SolverInputMode>('digit')
+  const keyboardModeOverride = ref<SolverInputMode | null>(null)
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
   const pendingBranchThermoId = ref<string | null>(null)
@@ -191,6 +192,36 @@ export const useEditorStore = defineStore('editor', () => {
     return result
   })
 
+  // Every cell that the current selection can "see" (shares a row, column or
+  // region with a selected cell), excluding the selected cells themselves.
+  // Drives the optional "highlight seen cells" solving aid.
+  const cellsSeenBySelection = computed<Set<string>>(() => {
+    const gridStore = useGridStore()
+    const result = new Set<string>()
+    if (selection.value.size === 0) return result
+    const rows = new Set<number>()
+    const cols = new Set<number>()
+    const regions = new Set<string | number>()
+    for (const key of selection.value) {
+      const { row, col } = keyToRowCol(key)
+      rows.add(row)
+      cols.add(col)
+      const region = gridStore.cellRegionLabelMap.get(key)
+      if (region !== null && region !== undefined) regions.add(region)
+    }
+    for (let r = 0; r < gridStore.rows; r++) {
+      for (let c = 0; c < gridStore.cols; c++) {
+        const key = cellKey(r, c)
+        if (selection.value.has(key)) continue
+        const region = gridStore.cellRegionLabelMap.get(key)
+        if (rows.has(r) || cols.has(c) || (region !== null && region !== undefined && regions.has(region))) {
+          result.add(key)
+        }
+      }
+    }
+    return result
+  })
+
   const errorCells = computed<Set<string>>(() => {
     const gridStore = useGridStore()
     const filled = new Map<string, number>()
@@ -318,7 +349,7 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  function setKeyboardModeOverride(m: 'digit' | 'center' | 'corner' | null) {
+  function setKeyboardModeOverride(m: SolverInputMode | null) {
     keyboardModeOverride.value = m
   }
 
@@ -334,7 +365,7 @@ export const useEditorStore = defineStore('editor', () => {
           if (digit === null) {
             delete solverCellStates.value[k]
           } else {
-            const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+            const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
             solverCellStates.value[k] = { ...cur, value: digit }
           }
         })
@@ -359,7 +390,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => {
         keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
           const marks = cur.cornerMarks.includes(digit)
             ? cur.cornerMarks.filter((m) => m !== digit)
             : [...cur.cornerMarks, digit].sort((a, b) => a - b)
@@ -386,7 +417,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => {
         keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
           const marks = cur.centerMarks.includes(digit)
             ? cur.centerMarks.filter((m) => m !== digit)
             : [...cur.centerMarks, digit].sort((a, b) => a - b)
@@ -402,7 +433,7 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  function setInputMode(m: 'digit' | 'center' | 'corner') {
+  function setInputMode(m: SolverInputMode) {
     inputMode.value = m
   }
 
@@ -433,7 +464,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => {
         keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
           solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
         })
       },
@@ -467,7 +498,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => {
         keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
           solverCellStates.value[k] = { ...cur, value: next[k], centerMarks: [] }
         })
       },
@@ -509,7 +540,7 @@ export const useEditorStore = defineStore('editor', () => {
     )
     const apply = () => {
       keys.forEach((k) => {
-        const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null }
+        const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
         solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
       })
     }
@@ -575,7 +606,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (withCenter.length) { clearCenterMarksForKeys(withCenter); return }
   }
 
-  function placeDigitForSelection(digit: number | null, modeOverride?: 'digit' | 'center' | 'corner') {
+  function placeDigitForSelection(digit: number | null, modeOverride?: SolverInputMode) {
     // A selected border connector captures digit input (keyboard and numpad).
     // Digits only apply to dots; XV takes X/V via setConnectorDotValue, but
     // delete clears any connector type back to its default.
@@ -599,6 +630,17 @@ export const useEditorStore = defineStore('editor', () => {
     if (selectedOuterClueKey.value) {
       if (digit === null) removeLastOuterClueDigit()
       else appendOuterClueDigit(digit)
+      return
+    }
+    // Color mode (solving only): a numbered key toggles a palette color on the
+    // selection. 0 maps to the first colour (index 0), NOT clear; the Delete key
+    // (null) clears all colours. Handled before the generic 0→clear rule below.
+    if (mode.value === 'solving' && (modeOverride ?? inputMode.value) === 'color') {
+      if (digit === null) clearCellColorsForSelection()
+      else {
+        const key = useColorPaletteStore().currentPageKeys[digit]
+        if (key) toggleCellColorForSelection(key)
+      }
       return
     }
     // For cells, 0 means clear (numpads with a 0 button route through here)
@@ -1104,6 +1146,46 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => { grid.setCustomCellRegions(newRegions) },
       undo: () => { grid.setCustomCellRegions(prevRegions) },
+    })
+  }
+
+  // Player cell coloring. Unlike digits/marks, colors apply to ALL selected
+  // cells (givens included) and a cell may hold several at once (rendered as
+  // pie-slice wedges). Toggling the active color: if every selected cell
+  // already has it, remove it from all; otherwise add it to all.
+  function toggleCellColorForSelection(colorKey: string) {
+    const keys = Array.from(selection.value)
+    if (!keys.length) return
+    const prev = Object.fromEntries(
+      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k], colors: [...solverCellStates.value[k].colors] } : null]),
+    )
+    const allHave = keys.every((k) => solverCellStates.value[k]?.colors.includes(colorKey))
+    execute({
+      execute: () => {
+        keys.forEach((k) => {
+          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
+          const colors = allHave
+            ? cur.colors.filter((c) => c !== colorKey)
+            : cur.colors.includes(colorKey) ? cur.colors : [...cur.colors, colorKey].sort()
+          solverCellStates.value[k] = { ...cur, colors }
+        })
+      },
+      undo: () => {
+        keys.forEach((k) => {
+          if (prev[k] === null) delete solverCellStates.value[k]
+          else solverCellStates.value[k] = prev[k]!
+        })
+      },
+    })
+  }
+
+  function clearCellColorsForSelection() {
+    const keys = Array.from(selection.value).filter((k) => solverCellStates.value[k]?.colors.length)
+    if (!keys.length) return
+    const prev = Object.fromEntries(keys.map((k) => [k, { ...solverCellStates.value[k], colors: [...solverCellStates.value[k].colors] }]))
+    execute({
+      execute: () => { keys.forEach((k) => { solverCellStates.value[k] = { ...solverCellStates.value[k], colors: [] } }) },
+      undo: () => { keys.forEach((k) => { solverCellStates.value[k] = prev[k] }) },
     })
   }
 
@@ -1821,6 +1903,7 @@ export const useEditorStore = defineStore('editor', () => {
     hasSelection,
     seenDigitsByCell,
     errorCells,
+    cellsSeenBySelection,
     canUndo,
     canRedo,
     setGivenDigitsForSelection,
@@ -1837,6 +1920,8 @@ export const useEditorStore = defineStore('editor', () => {
     addCell,
     clearSelection,
     clearSolverState,
+    toggleCellColorForSelection,
+    clearCellColorsForSelection,
     undo,
     redo,
     reset,

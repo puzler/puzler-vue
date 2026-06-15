@@ -2,6 +2,7 @@ import { onMounted, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { cellKey, keyToRowCol } from './useGrid'
+import type { SolverInputMode } from '@/types/grid'
 
 // The grid's keyboard interaction, shared by the editor and the standalone
 // solver so both stay in lockstep. In solving mode the editor-only branches
@@ -84,11 +85,12 @@ export function useGridKeyboard() {
       if (event.key === 'z' || event.key === 'Z') { editor.setInputMode('digit'); return }
       if (event.key === 'x' || event.key === 'X') { editor.setInputMode('center'); return }
       if (event.key === 'c' || event.key === 'C') { editor.setInputMode('corner'); return }
+      if (event.key === 'v' || event.key === 'V') { editor.setInputMode('color'); return }
     }
 
     if (event.key === ' ' && editor.mode === 'solving') {
       event.preventDefault()
-      const cycle: Array<'digit' | 'center' | 'corner'> = ['digit', 'center', 'corner']
+      const cycle: SolverInputMode[] = ['digit', 'center', 'corner', 'color']
       const next = cycle[(cycle.indexOf(editor.inputMode) + 1) % cycle.length]
       editor.setInputMode(next)
       return
@@ -144,6 +146,22 @@ export function useGridKeyboard() {
       event.preventDefault()
       editor.placeDigitForSelection(digit)
       return
+    }
+
+    // Color mode: digits 0-9 toggle palette colours (0 = first colour, not
+    // clear); Backspace/Delete clears all colours on the selection. Must come
+    // before the generic 0/Delete→clear rule and the grid-size digit cap.
+    if (editor.mode === 'solving' && editor.effectiveInputMode === 'color' && editor.selection.size) {
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        event.preventDefault()
+        editor.placeDigitForSelection(null)
+        return
+      }
+      if (digit !== null && digit >= 0 && digit <= 9) {
+        event.preventDefault()
+        editor.placeDigitForSelection(digit)
+        return
+      }
     }
 
     if (event.key === 'Backspace' || event.key === 'Delete' || digit === 0) {

@@ -61,7 +61,22 @@ describe('useGridKeyboard', () => {
     press(' ', { code: 'Space' })
     expect(editor.inputMode).toBe('corner')
     press(' ', { code: 'Space' })
+    expect(editor.inputMode).toBe('color')
+    press(' ', { code: 'Space' })
     expect(editor.inputMode).toBe('digit')
+  })
+
+  it('enters color mode with V and toggles a palette colour on a digit press', () => {
+    editor.setMode('solving')
+    press('v', { code: 'KeyV' })
+    expect(editor.inputMode).toBe('color')
+
+    editor.selectCell('r0c0')
+    press('1', { code: 'Digit1' }) // toggles the first colour of the active page
+    expect(editor.solverCellStates['r0c0']?.colors).toHaveLength(1)
+
+    press('1', { code: 'Digit1' }) // pressing again toggles it back off
+    expect(editor.solverCellStates['r0c0']?.colors ?? []).toHaveLength(0)
   })
 
   it('Cmd/Ctrl+Z undoes instead of switching to digit mode', () => {

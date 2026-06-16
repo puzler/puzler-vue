@@ -193,6 +193,14 @@ export class ArrowConstraint extends Constraint {
     this.involved = new Set([...bulb, ...shafts.flat()])
   }
 
+  // A single-cell bulb equals each shaft's sum, so parity(bulb) = parity(Σ shaft):
+  // XOR of {bulb, ...shaft} parities is 0. (Multi-cell bulbs are base-10 numbers,
+  // whose parity isn't a clean XOR, so they contribute nothing.)
+  parityClues() {
+    if (this.bulb.length !== 1) return []
+    return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: [this.bulb[0], ...shaft], rhs: 0 }))
+  }
+
   enforce(board: Board, cell: number) {
     if (!this.involved.has(cell)) return true
     if (!this.bulb.every((c) => board.isGiven(c))) return true

@@ -73,6 +73,19 @@ export function orthogonalPairs(size: number): Array<[number, number]> {
   return out
 }
 
+// Drop unordered pairs that appear in `exclude` (order-insensitive). Used to lift
+// a negative constraint off pairs that carry the matching explicit clue — an
+// anti-X must not also forbid a pair that has an X dot forcing that very sum.
+export function excludePairs(
+  pairs: Array<[number, number]>,
+  exclude: Array<[number, number]>,
+): Array<[number, number]> {
+  if (exclude.length === 0) return pairs
+  const key = (a: number, b: number) => (a < b ? a * 1_000_000 + b : b * 1_000_000 + a)
+  const skip = new Set(exclude.map(([a, b]) => key(a, b)))
+  return pairs.filter(([a, b]) => !skip.has(key(a, b)))
+}
+
 // Unordered same-value-forbidding pairs for a move type (king/knight), each once.
 export function movePairs(size: number, move: 'king' | 'knight'): Array<[number, number]> {
   const fn = move === 'king' ? kingNeighbours : knightNeighbours

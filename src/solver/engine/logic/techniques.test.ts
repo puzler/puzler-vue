@@ -4,7 +4,7 @@ import { buildBoard } from '../buildBoard'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
 import { standardBoxes } from '../geometry'
-import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, fish, xyWing } from './techniques'
+import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, forcedTwinElimination, parityCounting, fish, xyWing } from './techniques'
 import { logicalSolve } from './logicalSolver'
 
 function vanillaRegions(): number[][] {
@@ -44,6 +44,25 @@ describe('standard sudoku techniques', () => {
     const result = nakedSubset(board, 2)
     expect(result).not.toBeNull()
     expect(candidates(board, 2)).toEqual([5])
+  })
+
+  it('naked subset eliminates from a cell seeing the whole set via weak links', () => {
+    // Triple {1,8,9} locked into r4c3, r4c4, r4c5 (row 4). r2c4 sees all three —
+    // knight's move to r4c3 and r4c5, shared column to r4c4 — yet shares no single
+    // house with the whole triple, so only the weak-link generalisation catches it.
+    const knight = { kind: 'chess', move: 'knight' }
+    const board = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints: [knight] }).board
+    for (const c of [39, 40, 41]) setCandidates(board, c, [1, 8, 9]) // r4c3, r4c4, r4c5
+    const result = nakedSubset(board, 3)
+    expect(result).not.toBeNull()
+    for (const v of [1, 8, 9]) expect(candidates(board, 22)).not.toContain(v) // r2c4 loses all three
+
+    // Control: without knight's move, r2c4 only shares a column with r4c4, so it
+    // is not a seer of the whole triple and keeps the values.
+    const plain = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints: [] }).board
+    for (const c of [39, 40, 41]) setCandidates(plain, c, [1, 8, 9])
+    nakedSubset(plain, 3)
+    expect(candidates(plain, 22)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
   })
 
   it('naked triple clears three values from the rest of the region', () => {
@@ -159,6 +178,41 @@ describe('standard sudoku techniques', () => {
     expect(weakLinkCellForcing(board)).not.toBeNull()
     expect(candidates(board, 0)).not.toContain(5)
     expect(candidates(board, 1)).not.toContain(5)
+  })
+
+  it('forced-twin removes a value that forces two box-mates to the same digit', () => {
+    // r0c0 has ratio dots (1:2) to both r0c1 and r1c0, which share box 0 (but not a
+    // row/column). If r0c0 were 1, both partners must be 2; 3→6, 6→3, 8→4 — each
+    // forces the two box-mates to one shared value, breaking the box. So r0c0 loses
+    // 1, 3, 6, 8 (5/7/9 have no ratio partner and go via weakLinkCellForcing).
+    const ratio = (a: number, b: number) => ({ kind: 'connector', relation: 'ratio', value: 2, a, b })
+    const puzzle: SolverPuzzle = { size: 9, regions: vanillaRegions(), givens: [], constraints: [ratio(0, 1), ratio(0, 9)] }
+    const board = buildBoard(puzzle).board
+    for (let i = 0; i < 9 && forcedTwinElimination(board); i += 1) { /* drain */ }
+    for (const v of [1, 3, 6, 8]) expect(candidates(board, 0)).not.toContain(v)
+    for (const v of [2, 4]) expect(candidates(board, 0)).toContain(v)
+  })
+
+  it('parity counting forces a cell parity from an arrow + parity marks', () => {
+    // Arrow bulb = s1 + s2 with the bulb ODD and s1 EVEN. Parity is additive:
+    // parity(bulb) = parity(s1) XOR parity(s2), i.e. 1 = 0 XOR parity(s2), so s2
+    // must be ODD. No other technique reasons about parity, so the solver misses it.
+    const oddMask = [1, 3, 5, 7, 9].reduce((m, v) => m | valueBit(v), 0)
+    const evenMask = [2, 4, 6, 8].reduce((m, v) => m | valueBit(v), 0)
+    const constraints = [
+      { kind: 'arrow', bulb: [0], shafts: [[1, 2]] }, // bulb r0c0 = r0c1 + r0c2
+      { kind: 'cell_mask', cell: 0, mask: oddMask }, // r0c0 odd
+      { kind: 'cell_mask', cell: 1, mask: evenMask }, // r0c1 even
+    ]
+    const board = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints }).board
+    expect(candidates(board, 2).some((v) => v % 2 === 0)).toBe(true) // r0c2 still has evens
+    const result = parityCounting(board)
+    expect(result).not.toBeNull()
+    expect(candidates(board, 2).every((v) => v % 2 === 1)).toBe(true) // r0c2 forced odd
+
+    // Control: with no parity structure (no arrow/cage, no marks), it does nothing.
+    const plain = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints: [] }).board
+    expect(parityCounting(plain)).toBeNull()
   })
 
   it('XY-Wing is gated behind the Advanced level', () => {

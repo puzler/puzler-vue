@@ -10,6 +10,8 @@ import {
   lockedCandidates,
   nakedPairLinks,
   weakLinkCellForcing,
+  forcedTwinElimination,
+  parityCounting,
   fish,
   xyWing,
 } from './techniques'
@@ -44,9 +46,12 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
     techniques.push(() => lockedCandidates(board))
     techniques.push(() => nakedPairLinks(board))
     techniques.push(() => weakLinkCellForcing(board))
+    techniques.push(() => forcedTwinElimination(board))
   }
   if (rank >= 2) {
-    // Tough: basic fish (X-Wing, Swordfish) over rows and columns.
+    // Tough: parity counting (house parity balance + arrow/cage parity), then
+    // basic fish (X-Wing, Swordfish) over rows and columns.
+    techniques.push(() => parityCounting(board))
     for (const n of [2, 3]) {
       techniques.push(() => fish(board, n, true))
       techniques.push(() => fish(board, n, false))

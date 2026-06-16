@@ -37,4 +37,12 @@ export abstract class Constraint {
   logicStep(_board: Board, _desc: string[]): ConstraintResult {
     return ConstraintResult.UNCHANGED
   }
+
+  // GF(2) parity relations this constraint implies, each as { cells, rhs } meaning
+  // the XOR of the cells' value-parities equals rhs (mod 2). Sound because parity
+  // is additive: a sum/arrow of value S over cells forces Σ parity(cell) = S mod 2.
+  // Consumed by the parity-counting technique. Empty by default.
+  parityClues(_board: Board): Array<{ cells: number[]; rhs: number }> {
+    return []
+  }
 }

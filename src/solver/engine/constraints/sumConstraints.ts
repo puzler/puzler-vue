@@ -55,6 +55,11 @@ export class SumConstraint extends Constraint {
     return sumInRange(board, this.cells, this.target)
   }
 
+  // The cells sum to a fixed target, so Σ parity(cell) = target mod 2.
+  parityClues() {
+    return [{ cells: this.cells, rhs: this.target % 2 }]
+  }
+
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const cleared: number[] = []
     if (sumRangePrune(board, this.cells, this.target, this.target, cleared)) {

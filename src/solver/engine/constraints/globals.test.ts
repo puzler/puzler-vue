@@ -1,9 +1,31 @@
 import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
+import type { AdapterContext } from '../../adapterContext'
 import { buildBoard } from '../buildBoard'
 import { findSolution } from '../algorithms'
 import { standardBoxes, mainDiagonalCells } from '../geometry'
 import { valueBit } from '../bitmask'
+import antiXv from './antiXv'
+import antiKropki from './antiKropki'
+
+// Minimal AdapterContext for exercising a constraint module's fromEditor.
+function adapterCtx(overrides: Partial<AdapterContext>): AdapterContext {
+  return {
+    size: 9,
+    rows: 9,
+    cols: 9,
+    keyToIndex: (k: string) => { const m = k.match(/^r(\d+)c(\d+)$/); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
+    regionOfCell: () => null,
+    variants: new Set(),
+    customGlobals: [],
+    singleCellMarks: {},
+    connectorDots: {},
+    outerClues: {},
+    constraintInstances: [],
+    ...overrides,
+  }
+}
+const exemptOf = (spec: SolverConstraintSpec) => (spec as unknown as { exempt: Array<[number, number]> }).exempt
 
 function allRegions(size: number): number[][] {
   const regions: number[][] = []
@@ -82,6 +104,52 @@ describe('global & single-cell constraints', () => {
   it('anti-V forbids adjacent digits summing to 5', () => {
     const antiV = { kind: 'anti_xv', sum: 5 }
     expect(valid(puzzle(9, [[0, 2], [1, 3]], [antiV]))).toBe(false)
+  })
+
+  // Negative constraints ("all clues are given") must exempt the pairs that carry
+  // the matching explicit clue, or the clue and the anti-rule contradict.
+  it('anti-X exempts pairs carrying an X clue (and only those)', () => {
+    const specs = antiXv.fromEditor(adapterCtx({
+      variants: new Set(['anti_x']),
+      connectorDots: { 'r0c0|r0c1': { type: 'xv', value: 'X' }, 'r0c2|r0c3': { type: 'xv', value: 'V' } },
+    }))
+    expect(specs).toHaveLength(1)
+    expect(exemptOf(specs[0])).toEqual([[0, 1]]) // the X pair, not the V pair
+  })
+
+  it('an X clue and anti-X coexist on the same pair', () => {
+    // What the adapter emits for an X dot under anti-X: a positive sum-10 connector
+    // plus an anti-X that exempts that pair. They must not contradict, yet the
+    // pair must still actually sum to 10.
+    const connector = { kind: 'connector', relation: 'sum', value: 10, a: 0, b: 1 }
+    const antiX = { kind: 'anti_xv', sum: 10, exempt: [[0, 1]] }
+    expect(solvable(puzzle(9, [], [connector, antiX]))).toBe(true)
+    expect(valid(puzzle(9, [[0, 4], [1, 6]], [connector, antiX]))).toBe(true) // 4+6=10 ok
+    expect(valid(puzzle(9, [[0, 4], [1, 5]], [connector, antiX]))).toBe(false) // 4+5≠10
+    expect(valid(puzzle(9, [[1, 4], [2, 6]], [antiX]))).toBe(false) // a non-exempt pair still can't sum to 10
+  })
+
+  it('nonconsecutive exempts pairs carrying a white (difference) dot', () => {
+    const specs = antiKropki.fromEditor(adapterCtx({
+      variants: new Set(['nonconsecutive']),
+      connectorDots: { 'r0c0|r0c1': { type: 'difference_dots', value: null } },
+    }))
+    expect(exemptOf(specs[0])).toEqual([[0, 1]])
+    // The exempt pair may be consecutive; a non-exempt pair may not.
+    const nc = { kind: 'anti_kropki', relation: 'diff', value: 1, exempt: [[0, 1]] }
+    expect(valid(puzzle(9, [[0, 1], [1, 2]], [nc]))).toBe(true)
+    expect(valid(puzzle(9, [[1, 1], [2, 2]], [nc]))).toBe(false)
+  })
+
+  it('anti-black-kropki exempts pairs carrying a black (ratio) dot', () => {
+    const specs = antiKropki.fromEditor(adapterCtx({
+      variants: new Set(['anti_black_kropki']),
+      connectorDots: { 'r0c0|r0c1': { type: 'ratio_dots', value: null } },
+    }))
+    expect(exemptOf(specs[0])).toEqual([[0, 1]])
+    const ratio = { kind: 'anti_kropki', relation: 'ratio', value: 2, exempt: [[0, 1]] }
+    expect(valid(puzzle(9, [[0, 2], [1, 4]], [ratio]))).toBe(true)
+    expect(valid(puzzle(9, [[1, 2], [2, 4]], [ratio]))).toBe(false)
   })
 
   it('disjoint sets forbid equal digits in the same box position', () => {

@@ -1,7 +1,8 @@
 import type { Board } from '../board'
 import { ConstraintResult } from '../constraint'
-import { popcount, valueBit, valuesList, minValue } from '../bitmask'
+import { popcount, valueBit, valuesList, minValue, isSingle } from '../bitmask'
 import { cellName, cellAt } from '../geometry'
+import { clearSeenByForcedGroup } from '../constraints/sumGroup'
 
 // A technique returns a human-readable description of the deduction it made, or
 // null if it didn't apply. `invalid` marks a contradiction (a cell was emptied).
@@ -105,7 +106,10 @@ export function constraintStep(board: Board): Elimination | null {
 // ── Naked subsets ────────────────────────────────────────────────────────────
 
 // N cells in a region whose candidates union to exactly N values → those values
-// are locked to those cells and removed from the rest of the region.
+// are locked to those cells. Because the cells are mutually all-different, each of
+// the N values must fall in one of them, so any cell weak-linked to all N on a
+// value can't hold it — clearing the rest of the region and, via other weak links
+// (knight's move, etc.), cells that no single house shares with the whole subset.
 export function nakedSubset(board: Board, n: number): Elimination | null {
   for (const region of board.regions) {
     if (region.length <= n) continue
@@ -121,21 +125,14 @@ export function nakedSubset(board: Board, n: number): Elimination | null {
       let union = 0
       for (const c of combo) union |= board.candidateMask(c)
       if (popcount(union) !== n) return false
-      const inCombo = new Set(combo)
       const cleared: number[] = []
-      for (const c of region) {
-        if (inCombo.has(c) || board.isGiven(c)) continue
-        if ((board.candidateMask(c) & union) === 0) continue
-        const res = board.keepMask(c, board.candidateMask(c) & ~union)
-        if (res === ConstraintResult.INVALID) {
-          result = { desc: `Naked ${SUBSET_NAME[n]} empties ${cellName(c, board.size)}`, invalid: true }
-          return true
-        }
-        if (res === ConstraintResult.CHANGED) cleared.push(c)
+      if (clearSeenByForcedGroup(board, combo, union, cleared)) {
+        result = { desc: `Naked ${SUBSET_NAME[n]} empties a cell`, invalid: true }
+        return true
       }
       if (cleared.length) {
         result = {
-          desc: `Naked ${SUBSET_NAME[n]} (${valuesList(union).join('')}) in ${regionName(board, region)} → clears ${cells(board, cleared)}`,
+          desc: `Naked ${SUBSET_NAME[n]} (${valuesList(union).join('')}) in ${regionName(board, region)} → clears ${cells(board, [...new Set(cleared)])}`,
         }
         return true
       }
@@ -328,6 +325,176 @@ export function weakLinkCellForcing(board: Board): Elimination | null {
           desc: `${cellName(cell, board.size)} = ${value} would empty ${cellName(otherCell, board.size)} → clears ${value} from ${cellName(cell, board.size)}`,
         }
       }
+    }
+  }
+  return null
+}
+
+// Whether any two of `cells` are weak-linked on `value` (can't both hold it).
+function anyWeakLinkedPair(board: Board, cells: number[], value: number): boolean {
+  for (let i = 0; i < cells.length; i += 1) {
+    for (let j = i + 1; j < cells.length; j += 1) {
+      if (board.weakLinks[board.candidateIndex(cells[i], value)].has(board.candidateIndex(cells[j], value))) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+// A candidate is impossible if asserting it would force two cells that exclude
+// each other to take the *same* value. For (cell, value), a peer N is "forced"
+// when (cell, value) is weak-linked to all of N's candidates but one survivor;
+// two forced peers sharing that survivor and weak-linked to each other can't both
+// hold it. Where weakLinkCellForcing fires when a candidate empties a peer, this
+// fires when it over-fills one value across two peers — e.g. the Kropki step
+// where a 3 on two ratio dots in a box would need both partners to be 6 (and the
+// 1/6/8 variants). Reads off the same weak-link graph, so it is constraint-
+// agnostic (ratios, differences, XV, indexing, …).
+export function forcedTwinElimination(board: Board): Elimination | null {
+  const linkedByCell = new Map<number, number>() // peer cell → values weak-linked to (cell, value)
+  const forced = new Map<number, number[]>() // survivor value → peers forced to it
+  for (let cell = 0; cell < board.numCells; cell += 1) {
+    if (board.isGiven(cell)) continue
+    for (const value of valuesList(board.candidateMask(cell))) {
+      linkedByCell.clear()
+      for (const other of board.weakLinks[board.candidateIndex(cell, value)]) {
+        const oc = board.cellFromCandidate(other)
+        if (oc === cell || board.isGiven(oc)) continue
+        linkedByCell.set(oc, (linkedByCell.get(oc) ?? 0) | valueBit(board.valueFromCandidate(other)))
+      }
+      forced.clear()
+      for (const [oc, linkedMask] of linkedByCell) {
+        const survivors = board.candidateMask(oc) & ~linkedMask
+        if (survivors === 0 || !isSingle(survivors)) continue // empty ⇒ weakLinkCellForcing
+        const w = minValue(survivors)
+        const group = forced.get(w)
+        if (group) group.push(oc)
+        else forced.set(w, [oc])
+      }
+      for (const [w, group] of forced) {
+        if (group.length < 2 || !anyWeakLinkedPair(board, group, w)) continue
+        const res = board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value))
+        if (res === ConstraintResult.INVALID) {
+          return { desc: `${cellName(cell, board.size)} = ${value} empties a cell`, invalid: true }
+        }
+        return {
+          desc: `${cellName(cell, board.size)} = ${value} forces ${cellName(group[0], board.size)} and ${cellName(group[1], board.size)} to both be ${w} → clears ${value} from ${cellName(cell, board.size)}`,
+        }
+      }
+    }
+  }
+  return null
+}
+
+// ── Parity counting (GF(2) house + arrow/sum parity system) ──────────────────
+
+const PARITY_CACHE = new Map<number, { odd: number; even: number }>()
+function paritiesFor(size: number): { odd: number; even: number } {
+  let m = PARITY_CACHE.get(size)
+  if (!m) {
+    let odd = 0
+    let even = 0
+    for (let v = 1; v <= size; v += 1) {
+      if (v % 2 === 1) odd |= valueBit(v)
+      else even |= valueBit(v)
+    }
+    m = { odd, even }
+    PARITY_CACHE.set(size, m)
+  }
+  return m
+}
+
+// "Each house has four odd and four even cells" (the puzzle's intended idea),
+// generalised and worked ONE house at a time so each step is easy to follow.
+// Within a single complete house the cell parities satisfy a small GF(2) system:
+// the house's own odd-count balance (XOR of its parities is fixed), plus the parity
+// of any arrow shaft or sum cage whose cells all lie inside the house (parity is
+// additive: bulb = Σ shaft, cage = target), plus the known parity of any cell
+// restricted to one parity (odd/even marks, givens). Solving that system pins cells
+// whose parity is forced; each drops its opposite-parity candidates. The first house
+// that yields an elimination is reported and returned, so a step never spans houses.
+// Sound: every relation is a necessary condition of any solution. Arrow/cage parity
+// comes from Constraint.parityClues.
+export function parityCounting(board: Board): Elimination | null {
+  const { odd: ODD, even: EVEN } = paritiesFor(board.size)
+  const size = board.size
+  const rhsBit = 1 << size // a house has ≤ size cells, so an equation fits in one int
+
+  const clues: Array<{ cells: number[]; rhs: number }> = []
+  for (const constraint of board.constraints) {
+    for (const clue of constraint.parityClues(board)) clues.push(clue)
+  }
+  const oddBalance = popcount(ODD) & 1 // parity of the odd-digit count per complete house
+
+  for (const region of board.regions) {
+    if (region.length !== size) continue
+    const localIndex = new Map<number, number>()
+    region.forEach((c, i) => localIndex.set(c, i))
+
+    // Each equation is an int: bit i = cell region[i], bit `size` = rhs.
+    const rows: number[] = []
+    let balance = oddBalance ? rhsBit : 0
+    for (let i = 0; i < size; i += 1) balance ^= 1 << i
+    rows.push(balance)
+
+    let structured = false // only act on houses with real parity structure
+    for (const clue of clues) {
+      if (!clue.cells.every((c) => localIndex.has(c))) continue
+      let row = clue.rhs & 1 ? rhsBit : 0
+      for (const c of clue.cells) row ^= 1 << (localIndex.get(c) as number)
+      rows.push(row)
+      structured = true
+    }
+    for (let i = 0; i < size; i += 1) {
+      const mask = board.candidateMask(region[i])
+      const hasOdd = (mask & ODD) !== 0
+      const hasEven = (mask & EVEN) !== 0
+      if (hasOdd && hasEven) continue
+      rows.push((1 << i) ^ (hasOdd ? rhsBit : 0))
+      if (!board.isGiven(region[i])) structured = true // an odd/even-marked (derived-parity) cell
+    }
+    if (!structured) continue
+
+    // Reduced row-echelon over GF(2); pivots[k] is the reduced row led by pivotCol[k].
+    const pivots: number[] = []
+    const pivotCol: number[] = []
+    let inconsistent = false
+    for (const original of rows) {
+      let row = original
+      for (let k = 0; k < pivots.length; k += 1) {
+        if (row & (1 << pivotCol[k])) row ^= pivots[k]
+      }
+      if ((row & ~rhsBit) === 0) {
+        if (row === rhsBit) { inconsistent = true; break } // 0 = 1
+        continue // 0 = 0, redundant
+      }
+      let col = 0
+      while (!(row & (1 << col))) col += 1
+      for (let k = 0; k < pivots.length; k += 1) {
+        if (pivots[k] & (1 << col)) pivots[k] ^= row
+      }
+      pivots.push(row)
+      pivotCol.push(col)
+    }
+    if (inconsistent) {
+      return { desc: `Parity counting: ${regionName(board, region)} has no consistent parity`, invalid: true }
+    }
+
+    const cleared: number[] = []
+    for (let k = 0; k < pivots.length; k += 1) {
+      if ((pivots[k] & ~rhsBit) !== 1 << pivotCol[k]) continue // forced only if its lone variable
+      const cell = region[pivotCol[k]]
+      if (board.isGiven(cell)) continue
+      const keep = board.candidateMask(cell) & (pivots[k] & rhsBit ? ODD : EVEN)
+      const res = board.keepMask(cell, keep)
+      if (res === ConstraintResult.INVALID) {
+        return { desc: `Parity counting empties ${cellName(cell, board.size)}`, invalid: true }
+      }
+      if (res === ConstraintResult.CHANGED) cleared.push(cell)
+    }
+    if (cleared.length) {
+      return { desc: `Parity counting in ${regionName(board, region)} → clears ${cells(board, cleared)}` }
     }
   }
   return null

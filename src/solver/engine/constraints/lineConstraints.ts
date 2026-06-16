@@ -358,8 +358,13 @@ export class QuadrupleConstraint extends Constraint {
     return deficit <= empties
   }
 
-  // When the still-needed digits exactly fill the free cells, those cells must
-  // hold only the needed digits.
+  // Each required digit must appear among the four cells. Three deductions:
+  //  • when the still-needed digits exactly fill the free cells, those cells hold
+  //    only needed digits;
+  //  • a digit with exactly as many possible homes as it still needs pins those
+  //    cells to it (hidden single in the quad);
+  //  • a digit is confined to the cells that can still hold it, so any cell seeing
+  //    all of them can't be it.
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const have = new Map<number, number>()
     const free: number[] = []
@@ -370,33 +375,64 @@ export class QuadrupleConstraint extends Constraint {
     }
     const need = new Map<number, number>()
     for (const d of this.required) need.set(d, (need.get(d) ?? 0) + 1)
-    const needed: number[] = []
+    // Each digit still needed, with how many more times it must appear.
+    const stillNeeded: Array<[number, number]> = []
+    let totalNeeded = 0
     for (const [d, count] of need) {
-      for (let k = have.get(d) ?? 0; k < count; k += 1) needed.push(d)
+      const k = count - (have.get(d) ?? 0)
+      if (k > 0) {
+        stillNeeded.push([d, k])
+        totalNeeded += k
+      }
     }
-    if (needed.length > free.length) {
+    if (totalNeeded > free.length) {
       desc.push('Quadruple cannot be satisfied')
       return ConstraintResult.INVALID
     }
-    for (const d of new Set(needed)) {
-      if (!free.some((c) => (board.candidateMask(c) & valueBit(d)) !== 0)) {
+
+    const cleared: number[] = []
+    const prune = (cell: number, keep: number): boolean => {
+      if ((board.candidateMask(cell) & ~keep) === 0) return false
+      if (board.keepMask(cell, keep) === ConstraintResult.INVALID) return true
+      cleared.push(cell)
+      return false
+    }
+
+    // The needed digits exactly fill the free cells → those cells hold only them.
+    if (totalNeeded > 0 && totalNeeded === free.length) {
+      let keep = 0
+      for (const [d] of stillNeeded) keep |= valueBit(d)
+      for (const c of free) {
+        if (prune(c, keep)) {
+          desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+          return ConstraintResult.INVALID
+        }
+      }
+    }
+
+    for (const [d, k] of stillNeeded) {
+      const vb = valueBit(d)
+      const homes = free.filter((c) => (board.candidateMask(c) & vb) !== 0)
+      if (homes.length < k) {
         desc.push(`Quadruple digit ${d} has no home`)
         return ConstraintResult.INVALID
       }
-    }
-    if (needed.length === 0 || needed.length !== free.length) return ConstraintResult.UNCHANGED
-
-    let keep = 0
-    for (const d of needed) keep |= valueBit(d)
-    const cleared: number[] = []
-    for (const c of free) {
-      if ((board.candidateMask(c) & ~keep) === 0) continue
-      if (board.keepMask(c, keep) === ConstraintResult.INVALID) {
-        desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+      // Exactly k homes for k copies → each of those cells is d.
+      if (homes.length === k) {
+        for (const c of homes) {
+          if (prune(c, vb)) {
+            desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+            return ConstraintResult.INVALID
+          }
+        }
+      }
+      // d is forced into `homes`, so any cell seeing all of them can't be d.
+      if (clearSeenByForcedGroup(board, homes, vb, cleared)) {
+        desc.push(`Quadruple forces ${d} with nowhere to go`)
         return ConstraintResult.INVALID
       }
-      cleared.push(c)
     }
+
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
     desc.push('Quadruple')
     return ConstraintResult.CHANGED

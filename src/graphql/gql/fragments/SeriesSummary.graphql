@@ -4,4 +4,7 @@ fragment SeriesSummary on Series {
   visibility
   entryCount
   subscriberCount
+  avgRating
+  solveCount
+  shareToken
 }

@@ -1,0 +1,8 @@
+fragment PageInfoFields on PageInfo {
+  page
+  perPage
+  totalCount
+  totalPages
+  hasNextPage
+  hasPreviousPage
+}

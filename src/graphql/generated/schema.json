@@ -557,12 +557,36 @@
             "deprecationReason": null
           },
           {
+            "name": "avgRating",
+            "description": "Average star rating across member puzzles (1-5 scale)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "description",
             "description": "Optional description",
             "args": [],
             "type": {
               "kind": "SCALAR",
               "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "folder",
+            "description": "Folder this collection is filed in; only visible to the author",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Folder",
               "ofType": null
             },
             "isDeprecated": false,
@@ -648,6 +672,22 @@
               "kind": "SCALAR",
               "name": "String",
               "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solveCount",
+            "description": "Total solves across member puzzles",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -775,6 +815,58 @@
           }
         ],
         "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "CollectionConnection",
+        "description": "A paginated page of collections",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "nodes",
+            "description": "Collections on this page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "Collection",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "pageInfo",
+            "description": "Pagination metadata",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PageInfo",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
         "enumValues": null,
         "possibleTypes": null
       },
@@ -1024,6 +1116,64 @@
             "type": {
               "kind": "OBJECT",
               "name": "DeleteFolderPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "moveCollectionToFolder",
+            "description": "File or unfile a collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for MoveCollectionToFolder",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "MoveCollectionToFolderInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "MoveCollectionToFolderPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "moveFolder",
+            "description": "Reparent a folder",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for MoveFolder",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "MoveFolderInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "MoveFolderPayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -1322,7 +1472,36 @@
           },
           {
             "name": "myCollections",
-            "description": "The current user's collections, newest first",
+            "description": "A page of the current user's collections, with search/filter/sort",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionConnection",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "myFolderTree",
+            "description": "The current user's top-level folders; nest via each folder's children",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -1334,7 +1513,7 @@
                   "name": null,
                   "kind": "NON_NULL",
                   "ofType": {
-                    "name": "Collection",
+                    "name": "Folder",
                     "kind": "OBJECT",
                     "ofType": null
                   }
@@ -1346,7 +1525,7 @@
           },
           {
             "name": "myFolders",
-            "description": "The current user's folders, in sort order",
+            "description": "The current user's folders, flat, in sort order (for move-target lists)",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -2346,6 +2525,18 @@
                 "kind": "SCALAR",
                 "ofType": null
               }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "parentId",
+            "description": "Parent folder to nest under, or null for top level",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
             },
             "defaultValue": null,
             "isDeprecated": false,
@@ -3658,9 +3849,49 @@
       {
         "kind": "OBJECT",
         "name": "Folder",
-        "description": "A private folder for organizing a setter's own puzzles",
+        "description": "A private folder for organizing a setter's own puzzles and collections",
         "isOneOf": null,
         "fields": [
+          {
+            "name": "children",
+            "description": "Nested sub-folders, in sort order",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "Folder",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionCount",
+            "description": "Number of collections filed in this folder",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
           {
             "name": "id",
             "description": "Unique folder ID",
@@ -3694,8 +3925,20 @@
             "deprecationReason": null
           },
           {
+            "name": "parentId",
+            "description": "Parent folder ID, or null when at the top level",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "position",
-            "description": "Sort position among the author's folders",
+            "description": "Sort position among sibling folders",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -3892,6 +4135,66 @@
         "possibleTypes": null
       },
       {
+        "kind": "OBJECT",
+        "name": "GridSize",
+        "description": "A grid dimension present in the archive and its puzzle count",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "cols",
+            "description": "Number of columns",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "count",
+            "description": "Published puzzles with this size",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "rows",
+            "description": "Number of rows",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
         "kind": "SCALAR",
         "name": "ID",
         "description": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID.",
@@ -3932,6 +4235,546 @@
         "fields": null,
         "inputFields": null,
         "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "ListingFilterInput",
+        "description": "Search, filter, sort, and pagination options for a listing",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "authorUsername",
+            "description": "Filter to puzzles by this setter's username",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "constraintTypes",
+            "description": "Filter to records using these constraint types (puzzles only)",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "String",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "difficulties",
+            "description": "Filter to puzzles whose effective difficulty rounds to any of these levels (1-5)",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "Int",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "featured",
+            "description": "Only featured puzzles",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "folderId",
+            "description": "Folder filter: 'all', 'unfiled', or a folder ID (puzzles and collections only)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "gridSizes",
+            "description": "Filter to puzzles of these grid sizes, each 'ROWSxCOLS' (e.g. '9x9')",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "String",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "matchMode",
+            "description": "Whether constraint filters match ANY or ALL of the selected types",
+            "type": {
+              "kind": "ENUM",
+              "name": "MatchModeEnum",
+              "ofType": null
+            },
+            "defaultValue": "ANY",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "minRating",
+            "description": "Only puzzles with at least this average star rating",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "myStatus",
+            "description": "Filter by the current viewer's relationship (solved/unsolved/favorited)",
+            "type": {
+              "kind": "ENUM",
+              "name": "MyStatusEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "page",
+            "description": "Page number (1-based)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "defaultValue": "1",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "perPage",
+            "description": "Results per page",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "defaultValue": "20",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "search",
+            "description": "Free-text search across title, description, and author",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setterTier",
+            "description": "Filter to puzzles by setters in this experience tier",
+            "type": {
+              "kind": "ENUM",
+              "name": "SetterTierEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "sort",
+            "description": "Sort order",
+            "type": {
+              "kind": "ENUM",
+              "name": "ListingSortEnum",
+              "ofType": null
+            },
+            "defaultValue": "RECENT",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "tags",
+            "description": "Filter to puzzles with any of these tag slugs",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "String",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "timeRange",
+            "description": "Filter by how recently the puzzle was published",
+            "type": {
+              "kind": "ENUM",
+              "name": "TimeRangeEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "visibilities",
+            "description": "Filter to any of these visibility buckets (e.g. PUBLIC, UNLISTED, or DRAFT for puzzles)",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "String",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "ListingSortEnum",
+        "description": "Sort order for a listing",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "ALPHABETICAL",
+            "description": "By title, A to Z",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "RATING",
+            "description": "Highest average rating first",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "RECENT",
+            "description": "Most recently created first",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "SOLVES",
+            "description": "Most solved first",
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "MatchModeEnum",
+        "description": "How to combine multiple constraint filters: ANY (at least one) or ALL (every one)",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "ALL",
+            "description": "Match records using every selected constraint",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "ANY",
+            "description": "Match records using at least one of the selected constraints",
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "MoveCollectionToFolderInput",
+        "description": "Autogenerated input type of MoveCollectionToFolder",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionId",
+            "description": "Collection to move",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "folderId",
+            "description": "Target folder, or null to unfile",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "MoveCollectionToFolderPayload",
+        "description": "Autogenerated return type of MoveCollectionToFolder.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The moved collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "MoveFolderInput",
+        "description": "Autogenerated input type of MoveFolder",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "Folder to move",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "parentId",
+            "description": "New parent folder, or null for top level",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "MoveFolderPayload",
+        "description": "Autogenerated return type of MoveFolder.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "folder",
+            "description": "The moved folder",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Folder",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
         "enumValues": null,
         "possibleTypes": null
       },
@@ -4628,6 +5471,64 @@
             "type": {
               "kind": "OBJECT",
               "name": "GrantPuzzleAccessPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "moveCollectionToFolder",
+            "description": "File or unfile a collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for MoveCollectionToFolder",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "MoveCollectionToFolderInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "MoveCollectionToFolderPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "moveFolder",
+            "description": "Reparent a folder",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for MoveFolder",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "MoveFolderInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "MoveFolderPayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -5580,6 +6481,36 @@
         "possibleTypes": null
       },
       {
+        "kind": "ENUM",
+        "name": "MyStatusEnum",
+        "description": "Filter by the current viewer's relationship to the puzzle",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "FAVORITED",
+            "description": "Puzzles the viewer has favorited",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "SOLVED",
+            "description": "Puzzles the viewer has solved",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "UNSOLVED",
+            "description": "Puzzles the viewer has not solved",
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
         "kind": "OBJECT",
         "name": "OauthIdentity",
         "description": "A linked OAuth provider account",
@@ -5610,6 +6541,114 @@
               "name": null,
               "ofType": {
                 "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PageInfo",
+        "description": "Pagination metadata for an offset-paginated listing",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "hasNextPage",
+            "description": "Whether a page follows this one",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "hasPreviousPage",
+            "description": "Whether a page precedes this one",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "page",
+            "description": "Current page number (1-based)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "perPage",
+            "description": "Results per page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "totalCount",
+            "description": "Total matching records across all pages",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "totalPages",
+            "description": "Total number of pages",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
                 "kind": "SCALAR",
                 "ofType": null
               }
@@ -6057,6 +7096,18 @@
             "deprecationReason": null
           },
           {
+            "name": "authorDifficulty",
+            "description": "Difficulty the setter chose, 1 (gentlest) to 5 (hardest); null if unset",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "authorName",
             "description": "Free-form author credit from the published puzzle's metadata; null when left blank, in which case attribution falls back to the author's display name",
             "args": [],
@@ -6070,7 +7121,7 @@
           },
           {
             "name": "avgDifficulty",
-            "description": "Average difficulty rating from players (1–4 scale)",
+            "description": "Community difficulty average from solver votes (1–5 scale)",
             "args": [],
             "type": {
               "kind": "SCALAR",
@@ -6231,6 +7282,18 @@
             "type": {
               "kind": "SCALAR",
               "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "effectiveDifficulty",
+            "description": "Difficulty shown in the archive: the community average once there are enough votes, otherwise the setter's value; null until either exists",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
               "ofType": null
             },
             "isDeprecated": false,
@@ -6574,6 +7637,58 @@
               "ofType": {
                 "name": "PuzzleVisibilityEnum",
                 "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PuzzleConnection",
+        "description": "A paginated page of puzzles",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "nodes",
+            "description": "Puzzles on this page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "Puzzle",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "pageInfo",
+            "description": "Pagination metadata",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PageInfo",
+                "kind": "OBJECT",
                 "ofType": null
               }
             },
@@ -7043,8 +8158,20 @@
         "fields": [
           {
             "name": "myPuzzles",
-            "description": "All puzzles belonging to the current user",
+            "description": "A page of puzzles belonging to the current user, with search/filter/sort",
             "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              },
               {
                 "name": "status",
                 "description": "Filter by status (draft or published)",
@@ -7062,17 +8189,9 @@
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Puzzle",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "PuzzleConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -7137,6 +8256,30 @@
             "deprecationReason": null
           },
           {
+            "name": "puzzleGridSizes",
+            "description": "Distinct grid sizes present in the published archive, with counts, for the size facet",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "GridSize",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "puzzleVersion",
             "description": "Fetch a single version's full content for editing or restore (author only)",
             "args": [
@@ -7167,115 +8310,15 @@
           },
           {
             "name": "puzzles",
-            "description": "Browse the published puzzle archive with optional filters",
+            "description": "Browse the published puzzle archive with search/filter/sort/pagination",
             "args": [
               {
-                "name": "authorUsername",
-                "description": "Filter by setter username",
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
                 "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
                   "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "constraintTypes",
-                "description": "Filter to puzzles using any of these constraint types",
-                "type": {
-                  "kind": "LIST",
-                  "name": null,
-                  "ofType": {
-                    "name": null,
-                    "kind": "NON_NULL",
-                    "ofType": {
-                      "name": "String",
-                      "kind": "SCALAR",
-                      "ofType": null
-                    }
-                  }
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "difficulty",
-                "description": "Filter by difficulty band: easy, medium, hard, or expert",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
-                  "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "page",
-                "description": "Page number (1-based)",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "Int",
-                  "ofType": null
-                },
-                "defaultValue": "1",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "perPage",
-                "description": "Results per page",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "Int",
-                  "ofType": null
-                },
-                "defaultValue": "20",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "sort",
-                "description": "Sort order: newest, rating, or popular",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
-                  "ofType": null
-                },
-                "defaultValue": "\"newest\"",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "status",
-                "description": "Filter by status",
-                "type": {
-                  "kind": "ENUM",
-                  "name": "PuzzleStatusEnum",
-                  "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "tags",
-                "description": "Filter by tag slugs (any match)",
-                "type": {
-                  "kind": "LIST",
-                  "name": null,
-                  "ofType": {
-                    "name": null,
-                    "kind": "NON_NULL",
-                    "ofType": {
-                      "name": "String",
-                      "kind": "SCALAR",
-                      "ofType": null
-                    }
-                  }
                 },
                 "defaultValue": null,
                 "isDeprecated": false,
@@ -7286,17 +8329,9 @@
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Puzzle",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "PuzzleConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -7749,7 +8784,36 @@
           },
           {
             "name": "myCollections",
-            "description": "The current user's collections, newest first",
+            "description": "A page of the current user's collections, with search/filter/sort",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionConnection",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "myFolderTree",
+            "description": "The current user's top-level folders; nest via each folder's children",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -7761,7 +8825,7 @@
                   "name": null,
                   "kind": "NON_NULL",
                   "ofType": {
-                    "name": "Collection",
+                    "name": "Folder",
                     "kind": "OBJECT",
                     "ofType": null
                   }
@@ -7773,7 +8837,7 @@
           },
           {
             "name": "myFolders",
-            "description": "The current user's folders, in sort order",
+            "description": "The current user's folders, flat, in sort order (for move-target lists)",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -7797,8 +8861,20 @@
           },
           {
             "name": "myPuzzles",
-            "description": "All puzzles belonging to the current user",
+            "description": "A page of puzzles belonging to the current user, with search/filter/sort",
             "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              },
               {
                 "name": "status",
                 "description": "Filter by status (draft or published)",
@@ -7816,17 +8892,9 @@
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Puzzle",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "PuzzleConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -7834,23 +8902,28 @@
           },
           {
             "name": "mySeries",
-            "description": "The current user's series, newest first",
-            "args": [],
+            "description": "A page of the current user's series, with search/filter/sort",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
             "type": {
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Series",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "SeriesConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -7939,6 +9012,30 @@
             "deprecationReason": null
           },
           {
+            "name": "puzzleGridSizes",
+            "description": "Distinct grid sizes present in the published archive, with counts, for the size facet",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "GridSize",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "puzzleVersion",
             "description": "Fetch a single version's full content for editing or restore (author only)",
             "args": [
@@ -7969,115 +9066,15 @@
           },
           {
             "name": "puzzles",
-            "description": "Browse the published puzzle archive with optional filters",
+            "description": "Browse the published puzzle archive with search/filter/sort/pagination",
             "args": [
               {
-                "name": "authorUsername",
-                "description": "Filter by setter username",
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
                 "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
                   "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "constraintTypes",
-                "description": "Filter to puzzles using any of these constraint types",
-                "type": {
-                  "kind": "LIST",
-                  "name": null,
-                  "ofType": {
-                    "name": null,
-                    "kind": "NON_NULL",
-                    "ofType": {
-                      "name": "String",
-                      "kind": "SCALAR",
-                      "ofType": null
-                    }
-                  }
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "difficulty",
-                "description": "Filter by difficulty band: easy, medium, hard, or expert",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
-                  "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "page",
-                "description": "Page number (1-based)",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "Int",
-                  "ofType": null
-                },
-                "defaultValue": "1",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "perPage",
-                "description": "Results per page",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "Int",
-                  "ofType": null
-                },
-                "defaultValue": "20",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "sort",
-                "description": "Sort order: newest, rating, or popular",
-                "type": {
-                  "kind": "SCALAR",
-                  "name": "String",
-                  "ofType": null
-                },
-                "defaultValue": "\"newest\"",
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "status",
-                "description": "Filter by status",
-                "type": {
-                  "kind": "ENUM",
-                  "name": "PuzzleStatusEnum",
-                  "ofType": null
-                },
-                "defaultValue": null,
-                "isDeprecated": false,
-                "deprecationReason": null
-              },
-              {
-                "name": "tags",
-                "description": "Filter by tag slugs (any match)",
-                "type": {
-                  "kind": "LIST",
-                  "name": null,
-                  "ofType": {
-                    "name": null,
-                    "kind": "NON_NULL",
-                    "ofType": {
-                      "name": "String",
-                      "kind": "SCALAR",
-                      "ofType": null
-                    }
-                  }
                 },
                 "defaultValue": null,
                 "isDeprecated": false,
@@ -8088,17 +9085,9 @@
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Puzzle",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "PuzzleConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -8292,10 +9281,10 @@
           },
           {
             "name": "difficultyVote",
-            "description": "Difficulty assessment (easy, medium, hard, or expert)",
+            "description": "Community difficulty assessment from 1 (gentlest) to 5 (hardest)",
             "type": {
-              "kind": "ENUM",
-              "name": "RatingDifficultyEnum",
+              "kind": "SCALAR",
+              "name": "Int",
               "ofType": null
             },
             "defaultValue": null,
@@ -8419,11 +9408,11 @@
           },
           {
             "name": "difficultyVote",
-            "description": "Difficulty assessment: easy, medium, hard, or expert",
+            "description": "Community difficulty assessment from 1 (gentlest) to 5 (hardest)",
             "args": [],
             "type": {
-              "kind": "ENUM",
-              "name": "RatingDifficultyEnum",
+              "kind": "SCALAR",
+              "name": "Int",
               "ofType": null
             },
             "isDeprecated": false,
@@ -8477,42 +9466,6 @@
         "inputFields": null,
         "interfaces": [],
         "enumValues": null,
-        "possibleTypes": null
-      },
-      {
-        "kind": "ENUM",
-        "name": "RatingDifficultyEnum",
-        "description": "A solver's difficulty vote: easy, medium, hard, or expert",
-        "isOneOf": null,
-        "fields": null,
-        "inputFields": null,
-        "interfaces": null,
-        "enumValues": [
-          {
-            "name": "EASY",
-            "description": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
-            "name": "EXPERT",
-            "description": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
-            "name": "HARD",
-            "description": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
-            "name": "MEDIUM",
-            "description": null,
-            "isDeprecated": false,
-            "deprecationReason": null
-          }
-        ],
         "possibleTypes": null
       },
       {
@@ -9934,6 +10887,18 @@
             "deprecationReason": null
           },
           {
+            "name": "avgRating",
+            "description": "Average star rating across member puzzles (1-5 scale)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "description",
             "description": "Optional description",
             "args": [],
@@ -10009,6 +10974,22 @@
               "kind": "SCALAR",
               "name": "String",
               "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "solveCount",
+            "description": "Total solves across member puzzles",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -10128,6 +11109,58 @@
           }
         ],
         "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "SeriesConnection",
+        "description": "A paginated page of series",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "nodes",
+            "description": "Series on this page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "Series",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "pageInfo",
+            "description": "Pagination metadata",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PageInfo",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
         "enumValues": null,
         "possibleTypes": null
       },
@@ -10529,23 +11562,28 @@
         "fields": [
           {
             "name": "mySeries",
-            "description": "The current user's series, newest first",
-            "args": [],
+            "description": "A page of the current user's series, with search/filter/sort",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
             "type": {
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "name": null,
-                "kind": "LIST",
-                "ofType": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "Series",
-                    "kind": "OBJECT",
-                    "ofType": null
-                  }
-                }
+                "name": "SeriesConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -10831,6 +11869,36 @@
         "inputFields": null,
         "interfaces": [],
         "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "SetterTierEnum",
+        "description": "Setter experience tier: new, rising, or experienced",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "EXPERIENCED",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "NEW",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "RISING",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
         "possibleTypes": null
       },
       {
@@ -11372,6 +12440,42 @@
             "ofType": null
           }
         ]
+      },
+      {
+        "kind": "ENUM",
+        "name": "TimeRangeEnum",
+        "description": "How recently a puzzle was published",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "ALL_TIME",
+            "description": "Any time",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "THIS_MONTH",
+            "description": "Published in the last month",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "THIS_WEEK",
+            "description": "Published in the last week",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "THIS_YEAR",
+            "description": "Published in the last year",
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
       },
       {
         "kind": "INPUT_OBJECT",
@@ -12028,6 +13132,18 @@
         "isOneOf": false,
         "fields": null,
         "inputFields": [
+          {
+            "name": "authorDifficulty",
+            "description": "Setter's chosen difficulty from 1 (gentlest) to 5 (hardest)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
           {
             "name": "boxLayout",
             "description": "Custom box region definitions; null means standard 3×3 boxes",
@@ -13048,6 +14164,38 @@
               "name": null,
               "ofType": {
                 "name": "UserRoleEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setterScore",
+            "description": "Raw setter score behind the tier (volume blended with recency-weighted rating)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Float",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setterTier",
+            "description": "Setter experience tier: new, rising, or experienced",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "SetterTierEnum",
                 "kind": "ENUM",
                 "ofType": null
               }

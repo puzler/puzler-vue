@@ -1,32 +1,56 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
+import FolderSidebar from './FolderSidebar.vue'
+import FolderSelect from './FolderSelect.vue'
+import ListToolbar from '@/components/listing/ListToolbar.vue'
+import ListPagination from '@/components/listing/ListPagination.vue'
+import RowMeta from './RowMeta.vue'
+import { useFilterableList } from '@/composables/useFilterableList'
+import type { FolderNode } from './folderTree'
+import { COLLECTION_VISIBILITY_OPTIONS } from '@/constants/visibility'
 import MyCollectionsDocument from '@/graphql/gql/collections/queries/MyCollections.graphql'
+import MyFolderTreeDocument from '@/graphql/gql/collections/queries/MyFolderTree.graphql'
+import MyFoldersDocument from '@/graphql/gql/collections/queries/MyFolders.graphql'
 import CreateCollectionDocument from '@/graphql/gql/collections/mutations/CreateCollection.graphql'
+import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
+import MoveCollectionToFolderDocument from '@/graphql/gql/collections/mutations/MoveCollectionToFolder.graphql'
 import type {
-  MyCollectionsQuery, MyCollectionsQueryVariables,
+  MyCollectionsQuery, MyFolderTreeQuery, MyFolderTreeQueryVariables, MyFoldersQuery, MyFoldersQueryVariables,
   CreateCollectionMutation, CreateCollectionMutationVariables,
+  UpdateCollectionMutation, UpdateCollectionMutationVariables,
+  MoveCollectionToFolderMutation, MoveCollectionToFolderMutationVariables,
 } from '@/graphql/generated/types'
 import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
 
-const collections = ref<MyCollectionsQuery['myCollections']>([])
-const loading = ref(true)
+type MyCollection = MyCollectionsQuery['myCollections']['nodes'][number]
+
 const router = useRouter()
 
-const VISIBILITY_LABEL: Record<string, string> = {
-  [CollectionVisibilityEnum.Private]: 'Private',
-  [CollectionVisibilityEnum.Unlisted]: 'Unlisted',
-  [CollectionVisibilityEnum.ContainersOnly]: 'In series',
-  [CollectionVisibilityEnum.Public]: 'Public',
-  [CollectionVisibilityEnum.PatronsOnly]: 'Patrons',
-  [CollectionVisibilityEnum.SubscribersOnly]: 'Subscribers',
+const list = useFilterableList<MyCollectionsQuery, MyCollection>({
+  query: MyCollectionsDocument,
+  select: (d) => d.myCollections,
+  supportsFolders: true,
+})
+
+const tree = ref<FolderNode[]>([])
+const flatFolders = ref<MyFoldersQuery['myFolders']>([])
+
+async function loadFolders() {
+  const [t, f] = await Promise.all([
+    apolloClient.query<MyFolderTreeQuery, MyFolderTreeQueryVariables>({ query: MyFolderTreeDocument, fetchPolicy: 'network-only' }),
+    apolloClient.query<MyFoldersQuery, MyFoldersQueryVariables>({ query: MyFoldersDocument, fetchPolicy: 'network-only' }),
+  ])
+  tree.value = (t.data?.myFolderTree ?? []) as unknown as FolderNode[]
+  flatFolders.value = f.data?.myFolders ?? []
 }
 
-async function load() {
-  const { data } = await apolloClient.query<MyCollectionsQuery, MyCollectionsQueryVariables>({ query: MyCollectionsDocument, fetchPolicy: 'network-only' })
-  collections.value = data?.myCollections ?? []
-  loading.value = false
+function subtext(c: MyCollection) {
+  const bits = [c.mode === CollectionModeEnum.Sequence ? 'In sequence' : 'Any order']
+  if (c.avgRating) bits.push(`★ ${c.avgRating.toFixed(1)}`)
+  if (c.solveCount) bits.push(`${c.solveCount} solve${c.solveCount === 1 ? '' : 's'}`)
+  return bits.join(' · ')
 }
 
 async function createCollection() {
@@ -37,53 +61,101 @@ async function createCollection() {
   if (created) router.push({ name: 'collection-detail', params: { id: created.id } })
 }
 
-onMounted(load)
+async function changeVisibility(collection: MyCollection, visibility: string) {
+  await apolloClient.mutate<UpdateCollectionMutation, UpdateCollectionMutationVariables>({
+    mutation: UpdateCollectionDocument, variables: { id: collection.id, visibility: visibility as CollectionVisibilityEnum },
+  })
+  await list.reload()
+}
+
+async function moveToFolder(collection: MyCollection, folderId: string | null) {
+  await apolloClient.mutate<MoveCollectionToFolderMutation, MoveCollectionToFolderMutationVariables>({
+    mutation: MoveCollectionToFolderDocument, variables: { collectionId: collection.id, folderId },
+  })
+  await Promise.all([list.reload(), loadFolders()])
+}
+
+onMounted(loadFolders)
 </script>
 
 <template>
-  <div>
-    <div class="flex justify-end mb-4">
-      <button
-        class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep"
-        @click="createCollection"
-      >
-        New collection
-      </button>
-    </div>
+  <div class="flex gap-6">
+    <FolderSidebar
+      :tree="tree"
+      :selected-id="list.folderId.value"
+      noun="collections"
+      count-key="collectionCount"
+      @select="list.folderId.value = $event"
+      @changed="loadFolders"
+    />
 
-    <p
-      v-if="loading"
-      class="text-soft"
-    >
-      Loading…
-    </p>
-    <p
-      v-else-if="!collections.length"
-      class="text-soft"
-    >
-      No collections yet. Group puzzles into a collection to present them as a set.
-    </p>
-    <ul
-      v-else
-      class="grid grid-cols-1 sm:grid-cols-2 gap-3"
-    >
-      <li
-        v-for="collection in collections"
-        :key="collection.id"
+    <div class="flex-1 min-w-0">
+      <ListToolbar
+        v-model:search="list.search.value"
+        v-model:sort="list.sort.value"
+        v-model:match-mode="list.matchMode.value"
+        v-model:visibilities="list.visibilities.value"
+        v-model:constraint-types="list.constraintTypes.value"
+        :visibility-options="COLLECTION_VISIBILITY_OPTIONS"
       >
-        <RouterLink
-          :to="{ name: 'collection-detail', params: { id: collection.id } }"
-          class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
+        <button
+          class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep shrink-0"
+          @click="createCollection"
         >
-          <div class="flex items-baseline justify-between gap-2">
+          New collection
+        </button>
+      </ListToolbar>
+
+      <p
+        v-if="list.loading.value"
+        class="text-soft"
+      >
+        Loading…
+      </p>
+      <p
+        v-else-if="!list.nodes.value.length"
+        class="text-soft"
+      >
+        No collections match. Group puzzles into a collection to present them as a set.
+      </p>
+      <ul
+        v-else
+        class="flex flex-col gap-2"
+      >
+        <li
+          v-for="collection in list.nodes.value"
+          :key="collection.id"
+          class="flex items-center gap-3 p-3 rounded-xl border border-line"
+        >
+          <RouterLink
+            :to="{ name: 'collection-detail', params: { id: collection.id } }"
+            class="flex flex-col min-w-0 flex-1 hover:text-action"
+          >
             <span class="font-medium text-ink-text truncate">{{ collection.title }}</span>
-            <span class="text-xs text-faint shrink-0">{{ collection.puzzleCount }} puzzle{{ collection.puzzleCount === 1 ? '' : 's' }}</span>
-          </div>
-          <span class="text-xs text-soft">
-            {{ VISIBILITY_LABEL[collection.visibility] }} · {{ collection.mode === CollectionModeEnum.Sequence ? 'In sequence' : 'Any order' }}
-          </span>
-        </RouterLink>
-      </li>
-    </ul>
+            <span class="text-xs text-faint">{{ collection.puzzleCount }} puzzle{{ collection.puzzleCount === 1 ? '' : 's' }} · {{ subtext(collection) }}</span>
+          </RouterLink>
+          <RowMeta
+            kind="collection"
+            :entity-id="collection.id"
+            :visibility="collection.visibility"
+            :share-token="collection.shareToken"
+            :visibility-options="COLLECTION_VISIBILITY_OPTIONS"
+            @update-visibility="changeVisibility(collection, $event)"
+          />
+          <FolderSelect
+            :folders="flatFolders"
+            :value="collection.folder?.id"
+            @change="moveToFolder(collection, $event)"
+          />
+        </li>
+      </ul>
+
+      <ListPagination
+        :page="list.page.value"
+        :total-pages="list.totalPages.value"
+        :total-count="list.totalCount.value"
+        @change="list.setPage"
+      />
+    </div>
   </div>
 </template>

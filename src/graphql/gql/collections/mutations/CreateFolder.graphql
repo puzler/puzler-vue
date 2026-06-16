@@ -1,9 +1,11 @@
-mutation CreateFolder($name: String!) {
-  createFolder(input: { name: $name }) {
+mutation CreateFolder($name: String!, $parentId: ID) {
+  createFolder(input: { name: $name, parentId: $parentId }) {
     folder {
       id
       name
+      parentId
       puzzleCount
+      collectionCount
     }
     errors
   }

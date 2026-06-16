@@ -6,6 +6,7 @@ import { useGridStore } from '@/stores/grid'
 import { serializePlayDefinition, deserializePuzzle, type SerializedPuzzle } from '@/utils/puzzleExport'
 import CreatePuzzleDocument from '@/graphql/gql/puzzles/mutations/CreatePuzzle.graphql'
 import SavePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/SavePuzzleVersion.graphql'
+import UpdatePuzzleDocument from '@/graphql/gql/puzzles/mutations/UpdatePuzzle.graphql'
 import DeletePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/DeletePuzzleVersion.graphql'
 import UpdatePuzzleVersionLabelDocument from '@/graphql/gql/puzzles/mutations/UpdatePuzzleVersionLabel.graphql'
 import PublishPuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/PublishPuzzleVersion.graphql'
@@ -22,6 +23,8 @@ import type {
   CreatePuzzleMutationVariables,
   SavePuzzleVersionMutation,
   SavePuzzleVersionMutationVariables,
+  UpdatePuzzleMutation,
+  UpdatePuzzleMutationVariables,
   DeletePuzzleVersionMutation,
   DeletePuzzleVersionMutationVariables,
   UpdatePuzzleVersionLabelMutation,
@@ -131,6 +134,12 @@ export const usePuzzleStore = defineStore('puzzle', () => {
       if (!result?.version) throw new Error(result?.errors?.[0] ?? 'Could not save version')
       versions.value = [...versions.value, result.version]
       currentVersionId.value = result.version.id
+      // Author difficulty lives on the puzzle (not the version), so persist it
+      // alongside the save.
+      await apolloClient.mutate<UpdatePuzzleMutation, UpdatePuzzleMutationVariables>({
+        mutation: UpdatePuzzleDocument,
+        variables: { id: puzzleId, attrs: { authorDifficulty: editor.authorDifficulty } },
+      })
       saveStatus.value = 'saved'
       return result.version
     } catch (error) {
@@ -158,6 +167,9 @@ export const usePuzzleStore = defineStore('puzzle', () => {
       useEditorStore().reset()
       currentVersionId.value = null
     }
+    // Author difficulty is a puzzle attr, so restore it after the version load
+    // (restoreVersion resets editor metadata).
+    useEditorStore().authorDifficulty = puzzle.authorDifficulty ?? null
   }
 
   // Copies a stored version into the working editor copy (non-destructive to

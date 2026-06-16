@@ -11,7 +11,7 @@ import type {
 const props = defineProps<{ collectionId: string; excludeIds: string[] }>()
 const emit = defineEmits<{ added: []; close: [] }>()
 
-const puzzles = ref<MyPuzzlesQuery['myPuzzles']>([])
+const puzzles = ref<MyPuzzlesQuery['myPuzzles']['nodes']>([])
 const added = ref(new Set<string>())
 const busy = ref<string | null>(null)
 
@@ -20,8 +20,13 @@ const available = computed(() =>
 )
 
 async function load() {
-  const { data } = await apolloClient.query<MyPuzzlesQuery, MyPuzzlesQueryVariables>({ query: MyPuzzlesDocument, fetchPolicy: 'network-only' })
-  puzzles.value = data?.myPuzzles ?? []
+  // The picker shows the whole library at once; request a large page so the
+  // paginated myPuzzles query returns everything (a search-driven picker would
+  // be the next step for authors with more than this many puzzles).
+  const { data } = await apolloClient.query<MyPuzzlesQuery, MyPuzzlesQueryVariables>({
+    query: MyPuzzlesDocument, variables: { filter: { perPage: 200 } }, fetchPolicy: 'network-only',
+  })
+  puzzles.value = data?.myPuzzles?.nodes ?? []
 }
 
 async function add(id: string) {

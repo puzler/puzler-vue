@@ -1,7 +1,13 @@
 #import "../../fragments/CollectionSummary.graphql"
+#import "../../fragments/PageInfoFields.graphql"
 
-query MyCollections {
-  myCollections {
-    ...CollectionSummary
+query MyCollections($filter: ListingFilterInput) {
+  myCollections(filter: $filter) {
+    nodes {
+      ...CollectionSummary
+    }
+    pageInfo {
+      ...PageInfoFields
+    }
   }
 }

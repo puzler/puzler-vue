@@ -14,8 +14,8 @@ const props = defineProps<{ seriesId: string; excludePuzzleIds: string[]; exclud
 const emit = defineEmits<{ added: []; close: [] }>()
 
 const tab = ref<'puzzles' | 'collections'>('puzzles')
-const puzzles = ref<MyPuzzlesQuery['myPuzzles']>([])
-const collections = ref<MyCollectionsQuery['myCollections']>([])
+const puzzles = ref<MyPuzzlesQuery['myPuzzles']['nodes']>([])
+const collections = ref<MyCollectionsQuery['myCollections']['nodes']>([])
 const added = ref(new Set<string>())
 const busy = ref<string | null>(null)
 
@@ -27,12 +27,14 @@ const availableCollections = computed(() =>
 )
 
 async function load() {
+  // Pickers show the whole library; request a large page so the paginated
+  // queries return everything (search-driven pickers would be the next step).
   const [p, c] = await Promise.all([
-    apolloClient.query<MyPuzzlesQuery, MyPuzzlesQueryVariables>({ query: MyPuzzlesDocument, fetchPolicy: 'network-only' }),
-    apolloClient.query<MyCollectionsQuery, MyCollectionsQueryVariables>({ query: MyCollectionsDocument, fetchPolicy: 'network-only' }),
+    apolloClient.query<MyPuzzlesQuery, MyPuzzlesQueryVariables>({ query: MyPuzzlesDocument, variables: { filter: { perPage: 200 } }, fetchPolicy: 'network-only' }),
+    apolloClient.query<MyCollectionsQuery, MyCollectionsQueryVariables>({ query: MyCollectionsDocument, variables: { filter: { perPage: 200 } }, fetchPolicy: 'network-only' }),
   ])
-  puzzles.value = p.data?.myPuzzles ?? []
-  collections.value = c.data?.myCollections ?? []
+  puzzles.value = p.data?.myPuzzles?.nodes ?? []
+  collections.value = c.data?.myCollections?.nodes ?? []
 }
 
 async function add(entryableType: 'Puzzle' | 'Collection', entryableId: string) {

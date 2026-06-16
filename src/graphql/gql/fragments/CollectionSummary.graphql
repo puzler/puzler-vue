@@ -4,4 +4,11 @@ fragment CollectionSummary on Collection {
   visibility
   mode
   puzzleCount
+  avgRating
+  solveCount
+  shareToken
+  folder {
+    id
+    name
+  }
 }

@@ -15,7 +15,10 @@ function tabClass(name: typeof tab.value) {
 
 <template>
   <ContentPage>
-    <div class="p-8 max-w-4xl mx-auto">
+    <!-- w-full keeps this block filling the grid cell (capped at max-w-4xl);
+         without it, mx-auto makes the grid item shrink-wrap its content, so the
+         layout width jumps whenever the result list collapses during a refetch. -->
+    <div class="p-8 w-full max-w-4xl mx-auto">
       <div class="flex items-center justify-between mb-6">
         <h1 class="font-display text-2xl font-bold">
           My Puzzles

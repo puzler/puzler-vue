@@ -34,6 +34,8 @@ export const useEditorStore = defineStore('editor', () => {
   const puzzleName = ref<string>('')
   const puzzleAuthor = ref<string>('')
   const puzzleRules = ref<string>('')
+  // Setter-chosen difficulty (1-5); null until the setter picks one.
+  const authorDifficulty = ref<number | null>(null)
   // The author's designated answer (may legitimately omit cells for variants),
   // and the custom message shown on solve (blank → default). Both are puzzle
   // data, kept entirely separate from the ephemeral solverCellStates scratch.
@@ -1209,6 +1211,7 @@ export const useEditorStore = defineStore('editor', () => {
     // placeholder, and public attribution falls back to it when blank.
     puzzleAuthor.value = ''
     puzzleRules.value = ''
+    authorDifficulty.value = null
     solution.value = null
     solveMessage.value = ''
     mode.value = 'setting'
@@ -1821,6 +1824,7 @@ export const useEditorStore = defineStore('editor', () => {
     puzzleName,
     puzzleAuthor,
     puzzleRules,
+    authorDifficulty,
     solution,
     solveMessage,
     mode,

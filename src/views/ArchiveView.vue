@@ -1,113 +1,89 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
 import ContentPage from '@/components/ContentPage.vue'
-import AuthorAttribution from '@/components/AuthorAttribution.vue'
-import { apolloClient } from '@/utils/apolloClient'
+import ListToolbar from '@/components/listing/ListToolbar.vue'
+import ListPagination from '@/components/listing/ListPagination.vue'
+import ArchiveFilterSidebar from '@/components/archive/ArchiveFilterSidebar.vue'
+import ArchivePuzzleCard from '@/components/archive/ArchivePuzzleCard.vue'
+import { useFilterableList } from '@/composables/useFilterableList'
+import { useAuthStore } from '@/stores/auth'
 import PuzzlesDocument from '@/graphql/gql/puzzles/queries/Puzzles.graphql'
-import type { PuzzlesQuery, PuzzlesQueryVariables } from '@/graphql/generated/types'
+import type { PuzzlesQuery } from '@/graphql/generated/types'
 
-type ArchivePuzzle = PuzzlesQuery['puzzles'][number]
+type ArchivePuzzle = PuzzlesQuery['puzzles']['nodes'][number]
 
-const puzzles = ref<ArchivePuzzle[]>([])
-const loading = ref(true)
-const sort = ref<'newest' | 'rating' | 'popular'>('newest')
+const auth = useAuthStore()
 
-const SORTS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'rating', label: 'Top rated' },
-  { value: 'popular', label: 'Popular' },
-] as const
+const list = useFilterableList<PuzzlesQuery, ArchivePuzzle>({
+  query: PuzzlesDocument,
+  select: (d) => d.puzzles,
+  supportsConstraints: true,
+})
 
-async function load() {
-  loading.value = true
-  const { data } = await apolloClient.query<PuzzlesQuery, PuzzlesQueryVariables>({
-    query: PuzzlesDocument,
-    variables: { page: 1, perPage: 30, sort: sort.value },
-    fetchPolicy: 'network-only',
-  })
-  puzzles.value = data?.puzzles ?? []
-  loading.value = false
-}
-
-function setSort(value: typeof sort.value) {
-  sort.value = value
-  load()
-}
-
-onMounted(load)
+const hasResults = computed(() => list.nodes.value.length > 0)
 </script>
 
 <template>
   <ContentPage>
-    <div class="p-8 max-w-4xl mx-auto">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="font-display text-2xl font-bold">
-          Puzzle Archive
-        </h1>
-        <div class="flex gap-1">
-          <button
-            v-for="option in SORTS"
-            :key="option.value"
-            class="px-3 py-1 text-sm rounded-lg border transition-colors"
-            :class="sort === option.value ? 'border-action text-action bg-action-tint' : 'border-line text-soft hover:border-action'"
-            @click="setSort(option.value)"
+    <div class="p-8 w-full max-w-5xl mx-auto">
+      <h1 class="font-display text-2xl font-bold mb-6">
+        Puzzle Archive
+      </h1>
+
+      <div class="flex gap-6">
+        <ArchiveFilterSidebar
+          v-model:time-range="list.timeRange.value"
+          v-model:setter-tier="list.setterTier.value"
+          v-model:difficulties="list.difficulties.value"
+          v-model:min-rating="list.minRating.value"
+          v-model:my-status="list.myStatus.value"
+          v-model:featured="list.featured.value"
+          v-model:tags="list.tags.value"
+          v-model:grid-sizes="list.gridSizes.value"
+          :show-my-status="auth.isAuthenticated"
+        />
+
+        <div class="flex-1 min-w-0">
+          <ListToolbar
+            v-model:search="list.search.value"
+            v-model:sort="list.sort.value"
+            v-model:match-mode="list.matchMode.value"
+            v-model:constraint-types="list.constraintTypes.value"
+            :supports-constraints="true"
+          />
+
+          <p
+            v-if="list.loading.value"
+            class="text-soft"
           >
-            {{ option.label }}
-          </button>
+            Loading…
+          </p>
+          <p
+            v-else-if="!hasResults"
+            class="text-soft"
+          >
+            No puzzles match these filters.
+          </p>
+          <ul
+            v-else
+            class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
+            <li
+              v-for="puzzle in list.nodes.value"
+              :key="puzzle.id"
+            >
+              <ArchivePuzzleCard :puzzle="puzzle" />
+            </li>
+          </ul>
+
+          <ListPagination
+            :page="list.page.value"
+            :total-pages="list.totalPages.value"
+            :total-count="list.totalCount.value"
+            @change="list.setPage"
+          />
         </div>
       </div>
-
-      <p
-        v-if="loading"
-        class="text-soft"
-      >
-        Loading…
-      </p>
-      <p
-        v-else-if="!puzzles.length"
-        class="text-soft"
-      >
-        No published puzzles yet — be the first to set one!
-      </p>
-
-      <ul
-        v-else
-        class="grid grid-cols-1 sm:grid-cols-2 gap-3"
-      >
-        <li
-          v-for="puzzle in puzzles"
-          :key="puzzle.id"
-        >
-          <RouterLink
-            :to="{ name: 'player', params: { id: puzzle.id } }"
-            class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
-          >
-            <div class="flex items-baseline justify-between gap-2">
-              <span class="font-medium text-ink-text truncate">{{ puzzle.title }}</span>
-              <span
-                v-if="puzzle.avgRating"
-                class="text-xs text-faint shrink-0"
-              >★ {{ puzzle.avgRating.toFixed(1) }}</span>
-            </div>
-            <span class="text-xs text-soft">by <AuthorAttribution
-              :author="puzzle.author"
-              :author-name="puzzle.authorName"
-              plain
-            /></span>
-            <div
-              v-if="puzzle.constraintTypes.length"
-              class="mt-2 flex flex-wrap gap-1"
-            >
-              <span
-                v-for="type in puzzle.constraintTypes.slice(0, 4)"
-                :key="type"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-line text-soft"
-              >{{ type.replace(/_/g, ' ') }}</span>
-            </div>
-          </RouterLink>
-        </li>
-      </ul>
     </div>
   </ContentPage>
 </template>

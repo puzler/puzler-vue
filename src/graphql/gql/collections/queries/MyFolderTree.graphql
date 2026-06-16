@@ -1,0 +1,29 @@
+# Folder tree for the sidebar. GraphQL can't express arbitrary recursion, so we
+# select a fixed depth (5 levels); deeper folders exist but render flattened at
+# the deepest selected level. Five is well beyond typical use.
+query MyFolderTree {
+  myFolderTree {
+    ...FolderNode
+    children {
+      ...FolderNode
+      children {
+        ...FolderNode
+        children {
+          ...FolderNode
+          children {
+            ...FolderNode
+          }
+        }
+      }
+    }
+  }
+}
+
+fragment FolderNode on Folder {
+  id
+  name
+  parentId
+  position
+  puzzleCount
+  collectionCount
+}

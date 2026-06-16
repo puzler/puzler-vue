@@ -3,6 +3,10 @@ query PuzzleByTokenForPlay($token: String!) {
     id
     title
     authorName
+    myRating {
+      stars
+      difficultyVote
+    }
     author {
       id
       username

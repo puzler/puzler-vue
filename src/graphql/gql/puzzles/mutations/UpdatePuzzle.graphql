@@ -1,0 +1,10 @@
+mutation UpdatePuzzle($id: ID!, $attrs: UpdatePuzzleAttrsInput!) {
+  updatePuzzle(input: { id: $id, attrs: $attrs }) {
+    puzzle {
+      id
+      authorDifficulty
+      effectiveDifficulty
+    }
+    errors
+  }
+}

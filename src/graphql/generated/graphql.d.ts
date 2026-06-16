@@ -125,6 +125,24 @@ declare module '*/DeleteFolder.graphql' {
 }
     
 
+declare module '*/MoveCollectionToFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MoveCollectionToFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MoveFolder.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MoveFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/MovePuzzleToFolder.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -224,6 +242,16 @@ declare module '*/MyCollections.graphql' {
 }
     
 
+declare module '*/MyFolderTree.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MyFolderTree: DocumentNode;
+export const FolderNode: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/MyFolders.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -246,6 +274,15 @@ declare module '*/CollectionSummary.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const CollectionSummary: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PageInfoFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PageInfoFields: DocumentNode;
 
   export default defaultDocument;
 }
@@ -404,6 +441,15 @@ declare module '*/UnpublishPuzzle.graphql' {
 }
     
 
+declare module '*/UpdatePuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdatePuzzleVersionLabel.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -444,6 +490,15 @@ declare module '*/PuzzleForPlay.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const PuzzleForPlay: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PuzzleGridSizes.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PuzzleGridSizes: DocumentNode;
 
   export default defaultDocument;
 }
@@ -588,6 +643,24 @@ declare module '*/SeriesPublic.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const SeriesPublic: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/RatePuzzle.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RatePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/Tags.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const Tags: DocumentNode;
 
   export default defaultDocument;
 }

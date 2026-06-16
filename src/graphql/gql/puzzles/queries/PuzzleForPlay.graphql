@@ -3,6 +3,10 @@ query PuzzleForPlay($id: ID!) {
     id
     title
     authorName
+    myRating {
+      stars
+      difficultyVote
+    }
     author {
       id
       username

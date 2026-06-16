@@ -1,0 +1,9 @@
+mutation MoveFolder($id: ID!, $parentId: ID) {
+  moveFolder(input: { id: $id, parentId: $parentId }) {
+    folder {
+      id
+      parentId
+    }
+    errors
+  }
+}

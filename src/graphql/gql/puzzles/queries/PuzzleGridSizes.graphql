@@ -1,0 +1,7 @@
+query PuzzleGridSizes {
+  puzzleGridSizes {
+    rows
+    cols
+    count
+  }
+}

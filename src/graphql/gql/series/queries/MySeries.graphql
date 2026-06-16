@@ -1,7 +1,13 @@
 #import "../../fragments/SeriesSummary.graphql"
+#import "../../fragments/PageInfoFields.graphql"
 
-query MySeries {
-  mySeries {
-    ...SeriesSummary
+query MySeries($filter: ListingFilterInput) {
+  mySeries(filter: $filter) {
+    nodes {
+      ...SeriesSummary
+    }
+    pageInfo {
+      ...PageInfoFields
+    }
   }
 }

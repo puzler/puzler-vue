@@ -1,0 +1,12 @@
+mutation MoveCollectionToFolder($collectionId: ID!, $folderId: ID) {
+  moveCollectionToFolder(input: { collectionId: $collectionId, folderId: $folderId }) {
+    collection {
+      id
+      folder {
+        id
+        name
+      }
+    }
+    errors
+  }
+}

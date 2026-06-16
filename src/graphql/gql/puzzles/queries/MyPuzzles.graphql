@@ -1,17 +1,26 @@
-query MyPuzzles($status: PuzzleStatusEnum) {
-  myPuzzles(status: $status) {
-    id
-    title
-    status
-    visibility
-    shareToken
-    folder {
+#import "../../fragments/PageInfoFields.graphql"
+
+query MyPuzzles($filter: ListingFilterInput, $status: PuzzleStatusEnum) {
+  myPuzzles(filter: $filter, status: $status) {
+    nodes {
       id
-      name
+      title
+      status
+      visibility
+      shareToken
+      avgRating
+      solveCount
+      folder {
+        id
+        name
+      }
+      publishedVersion {
+        id
+        displayName
+      }
     }
-    publishedVersion {
-      id
-      displayName
+    pageInfo {
+      ...PageInfoFields
     }
   }
 }

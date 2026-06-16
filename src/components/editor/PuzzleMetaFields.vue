@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useAuthStore } from '@/stores/auth'
 import RulesModal from './RulesModal.vue'
+import DifficultyPips from '@/components/DifficultyPips.vue'
 
 const editor = useEditorStore()
 const auth = useAuthStore()
@@ -40,6 +41,10 @@ const showRules = ref(false)
           class="text-faint"
         >Rules &amp; solve message…</span>
       </button>
+      <div class="flex items-center justify-between px-1 pt-0.5">
+        <span class="text-xs text-soft">Difficulty</span>
+        <DifficultyPips v-model="editor.authorDifficulty" />
+      </div>
     </div>
 
     <RulesModal

@@ -60,6 +60,14 @@ const title = ref('')
 const author = ref<{ username: string; displayName: string } | null>(null)
 const authorCredit = ref<string | null>(null)
 const puzzleId = ref<string | null>(null)
+const myRating = ref<{ stars: number | null; difficultyVote: number | null } | null>(null)
+// Bundled for SolvedModal's rating section (logged-in solvers only).
+const ratingContext = computed(() => ({
+  puzzleId: puzzleId.value,
+  canRate: auth.isAuthenticated,
+  stars: myRating.value?.stars ?? null,
+  difficulty: myRating.value?.difficultyVote ?? null,
+}))
 const solutionHash = ref<string | null>(null)
 const solved = ref(false)
 const solveMessage = ref<string | null>(null)
@@ -250,6 +258,7 @@ async function loadPuzzle() {
     author.value = puzzle.author
     authorCredit.value = puzzle.authorName ?? null
     puzzleId.value = puzzle.id
+    myRating.value = puzzle.myRating ?? null
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
     editor.setMode('solving')
@@ -377,6 +386,7 @@ onUnmounted(() => {
       :in-collection="!!collectionId"
       :has-next="!!nextId"
       :collection-title="collectionTitle"
+      :rating="ratingContext"
       @close="solved = false"
       @next="goToNext"
       @back="backToCollection"

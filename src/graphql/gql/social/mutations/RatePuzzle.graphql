@@ -1,0 +1,10 @@
+mutation RatePuzzle($puzzleId: ID!, $stars: Int, $difficultyVote: Int) {
+  ratePuzzle(input: { puzzleId: $puzzleId, stars: $stars, difficultyVote: $difficultyVote }) {
+    rating {
+      id
+      stars
+      difficultyVote
+    }
+    errors
+  }
+}

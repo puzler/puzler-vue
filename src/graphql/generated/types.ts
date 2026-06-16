@@ -82,14 +82,15 @@ export type CreateCollectionMutationVariables = Exact<{
 }>;
 
 
-export type CreateCollectionMutation = { createCollection: { errors: Array<string>, collection: { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number } | null } | null };
+export type CreateCollectionMutation = { createCollection: { errors: Array<string>, collection: { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null } | null } | null };
 
 export type CreateFolderMutationVariables = Exact<{
   name: string;
+  parentId?: string | number | null | undefined;
 }>;
 
 
-export type CreateFolderMutation = { createFolder: { errors: Array<string>, folder: { id: string, name: string, puzzleCount: number } | null } | null };
+export type CreateFolderMutation = { createFolder: { errors: Array<string>, folder: { id: string, name: string, parentId: string | null, puzzleCount: number, collectionCount: number } | null } | null };
 
 export type DeleteCollectionMutationVariables = Exact<{
   id: string | number;
@@ -104,6 +105,22 @@ export type DeleteFolderMutationVariables = Exact<{
 
 
 export type DeleteFolderMutation = { deleteFolder: { success: boolean, errors: Array<string> } | null };
+
+export type MoveCollectionToFolderMutationVariables = Exact<{
+  collectionId: string | number;
+  folderId?: string | number | null | undefined;
+}>;
+
+
+export type MoveCollectionToFolderMutation = { moveCollectionToFolder: { errors: Array<string>, collection: { id: string, folder: { id: string, name: string } | null } | null } | null };
+
+export type MoveFolderMutationVariables = Exact<{
+  id: string | number;
+  parentId?: string | number | null | undefined;
+}>;
+
+
+export type MoveFolderMutation = { moveFolder: { errors: Array<string>, folder: { id: string, parentId: string | null } | null } | null };
 
 export type MovePuzzleToFolderMutationVariables = Exact<{
   puzzleId: string | number;
@@ -186,10 +203,19 @@ export type CollectionPublicQueryVariables = Exact<{
 
 export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
-export type MyCollectionsQueryVariables = Exact<{ [key: string]: never; }>;
+export type MyCollectionsQueryVariables = Exact<{
+  filter?: Types.ListingFilterInput | null | undefined;
+}>;
 
 
-export type MyCollectionsQuery = { myCollections: Array<{ id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number }> };
+export type MyCollectionsQuery = { myCollections: { nodes: Array<{ id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
+
+export type MyFolderTreeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyFolderTreeQuery = { myFolderTree: Array<{ id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number, children: Array<{ id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number, children: Array<{ id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number, children: Array<{ id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number, children: Array<{ id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number }> }> }> }> }> };
+
+export type FolderNodeFragment = { id: string, name: string, parentId: string | null, position: number, puzzleCount: number, collectionCount: number };
 
 export type MyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -198,13 +224,15 @@ export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzz
 
 export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
 
-export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number };
+export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null };
+
+export type PageInfoFieldsFragment = { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean };
 
 export type PuzzleAdminFieldsFragment = { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> };
 
 export type SeriesEntryFieldsFragment = { id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, shareToken: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, avgRating: number | null } | null, collection: { id: string, title: string, shareToken: string | null, visibility: Types.CollectionVisibilityEnum, puzzleCount: number } | null };
 
-export type SeriesSummaryFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number };
+export type SeriesSummaryFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null };
 
 export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
 
@@ -304,6 +332,14 @@ export type UnpublishPuzzleMutationVariables = Exact<{
 
 export type UnpublishPuzzleMutation = { unpublishPuzzle: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
+export type UpdatePuzzleMutationVariables = Exact<{
+  id: string | number;
+  attrs: Types.UpdatePuzzleAttrsInput;
+}>;
+
+
+export type UpdatePuzzleMutation = { updatePuzzle: { errors: Array<string>, puzzle: { id: string, authorDifficulty: number | null, effectiveDifficulty: number | null } | null } | null };
+
 export type UpdatePuzzleVersionLabelMutationVariables = Exact<{
   id: string | number;
   label?: string | null | undefined;
@@ -313,32 +349,38 @@ export type UpdatePuzzleVersionLabelMutationVariables = Exact<{
 export type UpdatePuzzleVersionLabelMutation = { updatePuzzleVersionLabel: { errors: Array<string>, version: { id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string } | null } | null };
 
 export type MyPuzzlesQueryVariables = Exact<{
+  filter?: Types.ListingFilterInput | null | undefined;
   status?: Types.PuzzleStatusEnum | null | undefined;
 }>;
 
 
-export type MyPuzzlesQuery = { myPuzzles: Array<{ id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, folder: { id: string, name: string } | null, publishedVersion: { id: string, displayName: string } | null }> };
+export type MyPuzzlesQuery = { myPuzzles: { nodes: Array<{ id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, avgRating: number | null, solveCount: number, folder: { id: string, name: string } | null, publishedVersion: { id: string, displayName: string } | null }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
 
 export type PuzzleByTokenForPlayQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
 export type PuzzleForEditQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
+export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, authorDifficulty: number | null, id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
 
 export type PuzzleForPlayQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+
+export type PuzzleGridSizesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type PuzzleGridSizesQuery = { puzzleGridSizes: Array<{ rows: number, cols: number, count: number }> };
 
 export type PuzzleVersionQueryVariables = Exact<{
   id: string | number;
@@ -348,14 +390,11 @@ export type PuzzleVersionQueryVariables = Exact<{
 export type PuzzleVersionQuery = { puzzleVersion: { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string } | null };
 
 export type PuzzlesQueryVariables = Exact<{
-  page?: number | null | undefined;
-  perPage?: number | null | undefined;
-  sort?: string | null | undefined;
-  constraintTypes?: Array<string> | string | null | undefined;
+  filter?: Types.ListingFilterInput | null | undefined;
 }>;
 
 
-export type PuzzlesQuery = { puzzles: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, authorName: string | null, author: { id: string, username: string, displayName: string } }> };
+export type PuzzlesQuery = { puzzles: { nodes: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, effectiveDifficulty: number | null, solveCount: number, featured: boolean, authorName: string | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
 
 export type AddSeriesEntryMutationVariables = Exact<{
   seriesId: string | number;
@@ -371,7 +410,7 @@ export type CreateSeriesMutationVariables = Exact<{
 }>;
 
 
-export type CreateSeriesMutation = { createSeries: { errors: Array<string>, series: { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number } | null } | null };
+export type CreateSeriesMutation = { createSeries: { errors: Array<string>, series: { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null } | null } | null };
 
 export type DeleteSeriesMutationVariables = Exact<{
   id: string | number;
@@ -420,15 +459,17 @@ export type UpdateSeriesMutationVariables = Exact<{
 
 export type UpdateSeriesMutation = { updateSeries: { errors: Array<string>, series: { id: string, title: string, description: string | null, visibility: Types.SeriesVisibilityEnum } | null } | null };
 
-export type MySeriesQueryVariables = Exact<{ [key: string]: never; }>;
+export type MySeriesQueryVariables = Exact<{
+  filter?: Types.ListingFilterInput | null | undefined;
+}>;
 
 
-export type MySeriesQuery = { mySeries: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number }> };
+export type MySeriesQuery = { mySeries: { nodes: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
 
 export type MySubscriptionsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, author: { id: string, username: string, displayName: string } }> };
+export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, author: { id: string, username: string, displayName: string } }> };
 
 export type SeriesByTokenPublicQueryVariables = Exact<{
   token: string;
@@ -455,3 +496,17 @@ export type SeriesPublicQueryVariables = Exact<{
 
 
 export type SeriesPublicQuery = { series: { id: string, title: string, description: string | null, visibility: Types.SeriesVisibilityEnum, subscribed: boolean, subscriberCount: number, author: { id: string, username: string, displayName: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, shareToken: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, avgRating: number | null } | null, collection: { id: string, title: string, shareToken: string | null, visibility: Types.CollectionVisibilityEnum, puzzleCount: number } | null }> } | null };
+
+export type RatePuzzleMutationVariables = Exact<{
+  puzzleId: string | number;
+  stars?: number | null | undefined;
+  difficultyVote?: number | null | undefined;
+}>;
+
+
+export type RatePuzzleMutation = { ratePuzzle: { errors: Array<string>, rating: { id: string, stars: number | null, difficultyVote: number | null } | null } | null };
+
+export type TagsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TagsQuery = { tags: Array<{ id: string, name: string, slug: string }> };

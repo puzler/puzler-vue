@@ -29,7 +29,9 @@ export default defineModule<QuadrupleSpec>({
       ]
         .filter(([r, c]) => r >= 0 && c >= 0 && r < ctx.size && c < ctx.size)
         .map(([r, c]) => r * ctx.size + c)
-      const required = Array.isArray(dot.value) ? dot.value : []
+      // Copy into a plain array: dot.value is a reactive store proxy, which is not
+      // structured-cloneable and would make postMessage to the worker throw.
+      const required = Array.isArray(dot.value) ? [...dot.value] : []
       if (cells.length < 2 || required.length === 0) continue
       specs.push({ kind: 'quadruple', cells, required })
     }

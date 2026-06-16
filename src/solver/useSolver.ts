@@ -9,6 +9,9 @@ export interface SolverCallbacks {
   onStep?(desc: string, changed: boolean, values: number[], candidates: number[][]): void
   onLogicalSolve?(desc: string[], changed: boolean, values: number[], candidates: number[][]): void
   onCancelled?(): void
+  // The worker threw, or a command couldn't be sent. Reported so the read-out can
+  // surface it instead of the UI hanging on a command that never completes.
+  onError?(message: string): void
 }
 
 export interface SolverClient {
@@ -36,7 +39,24 @@ export function createSolverClient(callbacks: SolverCallbacks): SolverClient {
     if (worker) return worker
     worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
     worker.onmessage = ({ data }: MessageEvent<SolverResult>) => handleResult(data)
+    worker.onerror = (event) => {
+      event.preventDefault()
+      failGracefully(event.message || 'The solver worker crashed')
+    }
+    worker.onmessageerror = () => failGracefully('The solver returned a result that could not be read')
     return worker
+  }
+
+  // A worker-side failure: report it, stop waiting, and discard the worker so the
+  // next command starts from a clean one.
+  function failGracefully(message: string): void {
+    running = false
+    if (worker) {
+      worker.terminate()
+      worker = null
+    }
+    console.error('Solver worker error:', message)
+    callbacks.onError?.(message)
   }
 
   function handleResult(data: SolverResult): void {
@@ -77,7 +97,15 @@ export function createSolverClient(callbacks: SolverCallbacks): SolverClient {
     // stand, so we don't fire onCancelled here.
     if (running) supersede()
     running = true
-    getWorker().postMessage(command)
+    try {
+      getWorker().postMessage(command)
+    } catch (err) {
+      // A command that isn't structured-cloneable (e.g. a reactive proxy leaking
+      // into the puzzle) would otherwise leave us "running" forever, hanging the
+      // UI. Surface it and reset instead.
+      running = false
+      callbacks.onError?.(err instanceof Error ? err.message : 'The solver command could not be sent')
+    }
   }
 
   // Kill the worker without notifying — used to make way for a new command.

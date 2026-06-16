@@ -157,6 +157,10 @@ export const useSolverStore = defineStore('solver', () => {
       display.value = ['Cancelled']
       currentCommand.value = null
     },
+    onError: (message) => {
+      display.value = [`Solver error: ${message}`]
+      currentCommand.value = null
+    },
   })
 
   // Whether the previous run was a logical step, so consecutive steps append to

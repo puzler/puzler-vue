@@ -11,12 +11,19 @@ interface RegionSumSpec extends SolverConstraintSpec {
   segments: number[][]
 }
 
-// Split a single line path into consecutive same-region runs.
+// Split a single line path into consecutive same-region runs. Handles a closed
+// loop (drawn as a path whose first cell repeats at the end): the repeated cell is
+// one cell, not two, and the run wraps around it.
 function segmentByRegion(ctx: AdapterContext, cells: number[]): number[][] {
+  // A loop repeats its start at the end; drop the duplicate so it isn't summed
+  // twice (the source of the "full loop breaks the line" bug).
+  const loop = cells.length > 2 && cells[0] === cells[cells.length - 1]
+  const path = loop ? cells.slice(0, -1) : cells
+
   const segments: number[][] = []
   let current: number[] = []
   let region: string | null | undefined
-  for (const cell of cells) {
+  for (const cell of path) {
     const r = ctx.regionOfCell(cell)
     if (current.length === 0 || r === region) {
       current.push(cell)
@@ -27,7 +34,19 @@ function segmentByRegion(ctx: AdapterContext, cells: number[]): number[][] {
     region = r
   }
   if (current.length) segments.push(current)
-  return segments
+
+  // On a loop the run continues across the wrap from the last cell back to the
+  // first; if both ends sit in the same region those two segments are really one.
+  if (
+    loop &&
+    segments.length > 1 &&
+    ctx.regionOfCell(path[0]) === ctx.regionOfCell(path[path.length - 1])
+  ) {
+    const tail = segments.pop() as number[]
+    segments[0] = [...tail, ...segments[0]]
+  }
+  // Defensive: a cell visited twice within one run is still summed once.
+  return segments.map((seg) => (seg.length === new Set(seg).size ? seg : [...new Set(seg)]))
 }
 
 export default defineModule<RegionSumSpec>({

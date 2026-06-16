@@ -302,11 +302,16 @@ export class ArrowConstraint extends Constraint {
 export class RegionSumLineConstraint extends Constraint {
   private segments: number[][]
   private involved: Set<number>
+  private lineCells: number[]
+  // Complete houses that fully contain the line; for each, the house's other
+  // cells (line digits + these = the house total). Computed once, lazily.
+  private containerOthers: number[][] | null = null
 
   constructor(segments: number[][]) {
     super('Region Sum Line')
     this.segments = segments
-    this.involved = new Set(segments.flat())
+    this.lineCells = [...new Set(segments.flat())]
+    this.involved = new Set(this.lineCells)
   }
 
   enforce(board: Board, cell: number) {
@@ -325,6 +330,153 @@ export class RegionSumLineConstraint extends Constraint {
       hi = Math.min(hi, sum + empties * board.size)
     }
     return lo <= hi
+  }
+
+  private containers(board: Board): number[][] {
+    if (!this.containerOthers) {
+      this.containerOthers = board.regions
+        .filter((region) => region.length === board.size && this.lineCells.every((c) => region.includes(c)))
+        .map((region) => region.filter((c) => !this.involved.has(c)))
+    }
+    return this.containerOthers
+  }
+
+  // Tightest [min, max] sum for a group of mutually-constrained cells, honoring
+  // the weak-link graph (so cells sharing a house can't all take the same digit —
+  // three box cells can't sum to 3, a locked {3,5,9} run sums to exactly 17).
+  // Enumerates valid assignments for small groups; falls back to loose per-cell
+  // bounds for groups too large to enumerate. Returns null if no assignment fits.
+  private weakLinkSumRange(board: Board, cells: number[]): [number, number] | null {
+    if (cells.length === 0) return [0, 0]
+    if (cells.length > MAX_COMBINATION_CELLS) {
+      let lo = 0
+      let hi = 0
+      for (const c of cells) {
+        const mask = board.candidateMask(c)
+        lo += minValue(mask)
+        hi += maxValue(mask)
+      }
+      return [lo, hi]
+    }
+    const lists = cells.map((c) => valuesList(board.candidateMask(c)))
+    const chosen: number[] = []
+    let lo = Number.POSITIVE_INFINITY
+    let hi = Number.NEGATIVE_INFINITY
+    const recurse = (i: number, sum: number): void => {
+      if (i === cells.length) {
+        if (sum < lo) lo = sum
+        if (sum > hi) hi = sum
+        return
+      }
+      const cellI = cells[i]
+      for (const v of lists[i]) {
+        const cand = board.candidateIndex(cellI, v)
+        let blocked = false
+        for (let j = 0; j < i; j += 1) {
+          if (board.weakLinks[cand].has(board.candidateIndex(cells[j], chosen[j]))) { blocked = true; break }
+        }
+        if (blocked) continue
+        chosen[i] = v
+        recurse(i + 1, sum + v)
+      }
+    }
+    recurse(0, 0)
+    return Number.isFinite(lo) ? [lo, hi] : null
+  }
+
+  // The shared per-segment sum S lies in the intersection of every segment's
+  // feasible range; and if the whole line sits inside a complete house, the line's
+  // digits sum to (house total − the other cells), which splits evenly across the
+  // segments, often pinning S exactly. Each segment is then pruned to that S.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const size = board.size
+    let slo = 0
+    let shi = Number.POSITIVE_INFINITY
+    for (const seg of this.segments) {
+      const range = this.weakLinkSumRange(board, seg)
+      if (!range) {
+        desc.push('Region sum line segment cannot be filled')
+        return ConstraintResult.INVALID
+      }
+      slo = Math.max(slo, range[0])
+      shi = Math.min(shi, range[1])
+    }
+
+    const houseTotal = (size * (size + 1)) / 2
+    const k = this.segments.length
+    for (const others of this.containers(board)) {
+      const range = this.weakLinkSumRange(board, others)
+      if (!range) {
+        desc.push('Region sum line container cannot be filled')
+        return ConstraintResult.INVALID
+      }
+      slo = Math.max(slo, Math.ceil((houseTotal - range[1]) / k))
+      shi = Math.min(shi, Math.floor((houseTotal - range[0]) / k))
+    }
+
+    if (slo > shi) {
+      desc.push('Region sum line has no consistent segment sum')
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    for (const seg of this.segments) {
+      if (seg.length > MAX_COMBINATION_CELLS) {
+        // Too large to enumerate: fall back to loose range pruning (sound, looser).
+        if (sumRangePrune(board, seg, slo, shi, cleared)) {
+          desc.push('Region sum line segment cannot reach its sum')
+          return ConstraintResult.INVALID
+        }
+        continue
+      }
+      // Keep only values that take part in a weak-link-valid assignment summing
+      // into [slo, shi] — distinctness-aware, so a 3-cell segment summing ≤ 9 caps
+      // each cell at 6 (not the loose 7), and a locked combination is exact.
+      const allowed = this.allowedInRange(board, seg, slo, shi)
+      if (!allowed) {
+        desc.push('Region sum line segment cannot reach its sum')
+        return ConstraintResult.INVALID
+      }
+      for (let i = 0; i < seg.length; i += 1) {
+        if ((board.candidateMask(seg[i]) & ~allowed[i]) === 0) continue
+        if (board.keepMask(seg[i], allowed[i]) === ConstraintResult.INVALID) return ConstraintResult.INVALID
+        cleared.push(seg[i])
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Region Sum Line')
+    return ConstraintResult.CHANGED
+  }
+
+  // Per cell, the bitmask of values that survive in some weak-link-valid
+  // assignment of `cells` whose total lands in [lo, hi]. Returns null when no such
+  // assignment exists (a contradiction). Caller bounds `cells.length`.
+  private allowedInRange(board: Board, cells: number[], lo: number, hi: number): number[] | null {
+    const allowed = new Array<number>(cells.length).fill(0)
+    const chosen: number[] = []
+    let feasible = false
+    const recurse = (i: number, sum: number): void => {
+      if (sum > hi) return // values are ≥ 1, so the running sum only grows
+      if (i === cells.length) {
+        if (sum < lo) return
+        feasible = true
+        for (let j = 0; j < cells.length; j += 1) allowed[j] |= valueBit(chosen[j])
+        return
+      }
+      const cellI = cells[i]
+      for (const v of valuesList(board.candidateMask(cellI))) {
+        const cand = board.candidateIndex(cellI, v)
+        let blocked = false
+        for (let j = 0; j < i; j += 1) {
+          if (board.weakLinks[cand].has(board.candidateIndex(cells[j], chosen[j]))) { blocked = true; break }
+        }
+        if (blocked) continue
+        chosen[i] = v
+        recurse(i + 1, sum + v)
+      }
+    }
+    recurse(0, 0)
+    return feasible ? allowed : null
   }
 }
 

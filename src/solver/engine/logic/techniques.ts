@@ -539,70 +539,79 @@ export function fish(board: Board, n: number): Elimination | null {
   if (houses.length < 2 * n) return null
   const cellBit = Array.from({ length: board.numCells }, (_, c) => 1n << BigInt(c))
   const houseBits = houses.map((cells) => cells.reduce((m, c) => m | cellBit[c], 0n))
+  // Complete houses containing each cell (used by the cover search).
+  const cellHouses: number[][] = Array.from({ length: board.numCells }, () => [])
+  houses.forEach((cells, h) => { for (const c of cells) cellHouses[c].push(h) })
 
   for (let value = 1; value <= size; value += 1) {
     const vb = valueBit(value)
-    // Per-house bitset of cells still holding v, and the count.
     const vBits: bigint[] = new Array(houses.length)
-    const vCount: number[] = new Array(houses.length)
-    for (let i = 0; i < houses.length; i += 1) {
+    const baseCandidates: number[] = []
+    for (let h = 0; h < houses.length; h += 1) {
       let m = 0n
       let count = 0
-      for (const c of houses[i]) {
+      for (const c of houses[h]) {
         if (!board.isGiven(c) && (board.candidateMask(c) & vb) !== 0) { m |= cellBit[c]; count += 1 }
       }
-      vBits[i] = m
-      vCount[i] = count
+      vBits[h] = m
+      // A house where v fills every cell confines nothing — its v-cells can't be
+      // covered by fewer than `size` houses, so it never yields an n (< size) fish.
+      // Excluding it keeps an empty/under-constrained grid from exploding.
+      if (count >= 2 && count < size) baseCandidates.push(h)
     }
-    const baseCandidates: number[] = []
-    for (let i = 0; i < houses.length; i += 1) if (vCount[i] >= 2) baseCandidates.push(i)
     if (baseCandidates.length < n) continue
 
     let result: Elimination | null = null
     forEachCombination(baseCandidates, n, (baseCombo) => {
       let baseCellBits = 0n
       let baseV = 0n
-      for (const i of baseCombo) {
-        if ((baseCellBits & houseBits[i]) !== 0n) return false // base houses must be disjoint
-        baseCellBits |= houseBits[i]
-        baseV |= vBits[i]
+      for (const h of baseCombo) {
+        if ((baseCellBits & houseBits[h]) !== 0n) return false // base houses must be disjoint
+        baseCellBits |= houseBits[h]
+        baseV |= vBits[h]
       }
-      // Cover candidates: complete houses (not in the base) whose cells touch baseV.
       const baseSet = new Set(baseCombo)
-      const coverCandidates: number[] = []
-      for (let i = 0; i < houses.length; i += 1) {
-        if (!baseSet.has(i) && (houseBits[i] & baseV) !== 0n) coverCandidates.push(i)
-      }
-      if (coverCandidates.length < n) return false
+      const baseVCells: number[] = []
+      for (let c = 0; c < board.numCells; c += 1) if ((baseV & cellBit[c]) !== 0n) baseVCells.push(c)
 
-      forEachCombination(coverCandidates, n, (coverCombo) => {
-        let coverCellBits = 0n
-        for (const i of coverCombo) {
-          if ((coverCellBits & houseBits[i]) !== 0n) return false // cover houses must be disjoint
-          coverCellBits |= houseBits[i]
-        }
-        if ((baseV & ~coverCellBits) !== 0n) return false // base v-cells not fully covered
-        // Clear v from cover cells that no base house contains.
-        const cleared: number[] = []
-        for (const i of coverCombo) {
-          for (const c of houses[i]) {
-            if ((baseCellBits & cellBit[c]) !== 0n) continue // c sits in a base house
-            if (board.isGiven(c) || (board.candidateMask(c) & vb) === 0) continue
-            const res = board.keepMask(c, board.candidateMask(c) & ~vb)
-            if (res === ConstraintResult.INVALID) {
-              result = { desc: `${FISH_NAME[n]} empties ${cellName(c, size)}`, invalid: true }
-              return true
-            }
-            if (res === ConstraintResult.CHANGED) cleared.push(c)
-          }
-        }
-        if (cleared.length) {
-          result = { desc: `${FISH_NAME[n]} on ${value}` }
-          return true
+      // Find exactly n pairwise-disjoint cover houses (none a base house) whose cells
+      // contain every base v-cell. Branch on the houses covering the lowest still-
+      // uncovered cell — at most 3ⁿ leaves, so this stays cheap.
+      const cover: number[] = []
+      const search = (covered: bigint, used: bigint, slots: number): boolean => {
+        let target = -1
+        for (const c of baseVCells) if ((covered & cellBit[c]) === 0n) { target = c; break }
+        if (target === -1) return slots === 0 // covered iff exactly n houses were used
+        if (slots === 0) return false
+        for (const h of cellHouses[target]) {
+          if (baseSet.has(h) || (used & houseBits[h]) !== 0n) continue
+          cover.push(h)
+          if (search(covered | houseBits[h], used | houseBits[h], slots - 1)) return true
+          cover.pop()
         }
         return false
-      })
-      return result !== null
+      }
+      if (!search(0n, 0n, n)) return false
+
+      // Clear v from cover cells that no base house contains.
+      const cleared: number[] = []
+      for (const h of cover) {
+        for (const c of houses[h]) {
+          if ((baseCellBits & cellBit[c]) !== 0n) continue // c sits in a base house
+          if (board.isGiven(c) || (board.candidateMask(c) & vb) === 0) continue
+          const res = board.keepMask(c, board.candidateMask(c) & ~vb)
+          if (res === ConstraintResult.INVALID) {
+            result = { desc: `${FISH_NAME[n]} empties ${cellName(c, size)}`, invalid: true }
+            return true
+          }
+          if (res === ConstraintResult.CHANGED) cleared.push(c)
+        }
+      }
+      if (cleared.length) {
+        result = { desc: `${FISH_NAME[n]} on ${value}` }
+        return true
+      }
+      return false
     })
     if (result) return result
   }

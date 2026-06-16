@@ -110,6 +110,18 @@ describe('standard sudoku techniques', () => {
     expect(candidates(board, 9)).toContain(1) // r1c0 (box 0) keeps 1
   })
 
+  it('fish finds nothing on an empty grid and returns cheaply', () => {
+    // Every house holds every value in all its cells, so no fish exists. The
+    // base-house filter (skip houses where v fills all `size` cells) makes this
+    // return at once instead of enumerating base/cover combinations — the fix for
+    // the generalized fish hanging on under-constrained grids.
+    const board = emptyBoard()
+    const start = performance.now()
+    expect(fish(board, 2)).toBeNull()
+    expect(fish(board, 3)).toBeNull()
+    expect(performance.now() - start).toBeLessThan(100)
+  })
+
   it('X-Wing removes the value from the cover columns', () => {
     const board = emptyBoard()
     // Confine 5 in rows 0 and 1 to columns 2 and 5.

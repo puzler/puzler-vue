@@ -1,7 +1,6 @@
 import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
-import { cellName } from '../geometry'
 
 // An extra all-different group (diagonal, disjoint set, extra region): registered
 // as a region once so both weak links and hidden-single logic cover it.
@@ -78,8 +77,7 @@ export class ForbiddenPairsConstraint extends Constraint {
       return ConstraintResult.INVALID
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    const unique = [...new Set(cleared)]
-    desc.push(`${this.name} clears ${unique.map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push(this.name)
     return ConstraintResult.CHANGED
   }
 
@@ -177,8 +175,7 @@ export class IndexCellConstraint extends Constraint {
       }
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    const unique = [...new Set(cleared)]
-    desc.push(`${this.name} clears ${unique.map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push(this.name)
     return ConstraintResult.CHANGED
   }
 

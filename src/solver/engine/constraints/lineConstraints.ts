@@ -96,10 +96,7 @@ export class RenbanConstraint extends Constraint {
       return ConstraintResult.INVALID
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push(
-      `Renban: digits must lie in ${minValue(allowed)}–${maxValue(allowed)}, ` +
-        `clearing ${[...new Set(cleared)].map((c) => cellName(c, size)).join(', ')}`,
-    )
+    desc.push(`Renban: digits must lie in ${minValue(allowed)}–${maxValue(allowed)}`)
     return ConstraintResult.CHANGED
   }
 }
@@ -169,7 +166,7 @@ export class BetweenLineConstraint extends Constraint {
     }
 
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push(`Between line clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push('Between line')
     return ConstraintResult.CHANGED
   }
 
@@ -219,65 +216,68 @@ export class ArrowConstraint extends Constraint {
     return true
   }
 
-  // Candidate pruning for single-cell bulbs: the bulb equals each shaft's sum, so
-  // the bulb is bounded by the shaft's sum range and each shaft cell by the bulb.
+  // Candidate pruning for single-cell bulbs. Reported as two separate steps so the
+  // readout stays clear: first narrow the bulb from the shaft sums, then (once the
+  // bulb is settled) narrow the shaft cells back from the bulb. Both use the joint
+  // weak-link combination prune (linkedArrowCombos) on top of plain range bounds —
+  // it honours shared houses across a bulb's shafts (e.g. forcing the bulb ≥ 5 when
+  // two shafts share a region) and is stronger than treating cells independently.
   logicStep(board: Board, desc: string[]): ConstraintResult {
     if (this.bulb.length !== 1) return ConstraintResult.UNCHANGED
     const bulbCell = this.bulb[0]
-    const cleared: number[] = []
-    for (const shaft of this.shafts) {
-      if (shaft.length === 0) continue
+    const shafts = this.shafts.filter((s) => s.length > 0)
+    if (shafts.length === 0) return ConstraintResult.UNCHANGED
+
+    const totalCells = shafts.reduce((sum, s) => sum + s.length, 0)
+    const combo = totalCells <= MAX_COMBINATION_CELLS
+      ? linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
+      : null
+    if (combo && combo.sums === 0) {
+      desc.push('Arrow shaft cannot reach the bulb')
+      return ConstraintResult.INVALID
+    }
+
+    // Step 1: narrow the bulb to sums its shafts can actually make.
+    let keepBulb = board.candidateMask(bulbCell)
+    for (const shaft of shafts) {
       let sMin = 0
       let sMax = 0
       for (const c of shaft) {
         sMin += minValue(board.candidateMask(c))
         sMax += maxValue(board.candidateMask(c))
       }
-      const bulbMask = board.candidateMask(bulbCell)
-      let keepBulb = 0
-      for (const v of valuesList(bulbMask)) {
-        if (v >= sMin && v <= sMax) keepBulb |= valueBit(v)
+      let inRange = 0
+      for (const v of valuesList(keepBulb)) {
+        if (v >= sMin && v <= sMax) inRange |= valueBit(v)
       }
-      if (keepBulb !== bulbMask) {
-        if (board.keepMask(bulbCell, keepBulb) === ConstraintResult.INVALID) {
-          desc.push('Arrow bulb has no candidates')
-          return ConstraintResult.INVALID
-        }
-        cleared.push(bulbCell)
+      keepBulb &= inRange
+    }
+    if (combo) keepBulb &= combo.sums
+    if (keepBulb !== board.candidateMask(bulbCell)) {
+      if (board.keepMask(bulbCell, keepBulb) === ConstraintResult.INVALID) {
+        desc.push('Arrow bulb has no candidates')
+        return ConstraintResult.INVALID
       }
-      const bMin = minValue(board.candidateMask(bulbCell))
-      const bMax = maxValue(board.candidateMask(bulbCell))
+      desc.push('Arrow bulb')
+      return ConstraintResult.CHANGED
+    }
+
+    // Step 2: narrow the shaft cells (and any cell seeing a whole shaft) from the bulb.
+    const cleared: number[] = []
+    const bMin = minValue(board.candidateMask(bulbCell))
+    const bMax = maxValue(board.candidateMask(bulbCell))
+    for (const shaft of shafts) {
       if (sumRangePrune(board, shaft, bMin, bMax, cleared)) {
         desc.push('Arrow shaft cannot reach the bulb')
         return ConstraintResult.INVALID
       }
     }
-    // Range pruning treats the shaft cells as independent; a joint combination
-    // prune that honours the weak links between them (shared houses, even across
-    // different shafts of the same bulb) is stronger. It sees that cells sharing a
-    // house must differ, so the bulb may be forced higher and small values dropped
-    // from the shafts — e.g. two arrows off one bulb whose cells share a region
-    // force the bulb to ≥ 5 (3 or 4 would repeat a digit in that region).
-    const shafts = this.shafts.filter((s) => s.length > 0)
-    const totalCells = shafts.reduce((sum, s) => sum + s.length, 0)
-    if (shafts.length > 0 && totalCells <= MAX_COMBINATION_CELLS) {
-      const { allowed, sums, required } = linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
-      if (sums === 0) {
-        desc.push('Arrow shaft cannot reach the bulb')
-        return ConstraintResult.INVALID
-      }
-      if (board.candidateMask(bulbCell) !== sums) {
-        if (board.keepMask(bulbCell, sums) === ConstraintResult.INVALID) {
-          desc.push('Arrow bulb has no candidates')
-          return ConstraintResult.INVALID
-        }
-        cleared.push(bulbCell)
-      }
+    if (combo) {
       for (let s = 0; s < shafts.length; s += 1) {
         for (let i = 0; i < shafts[s].length; i += 1) {
           const cell = shafts[s][i]
-          if ((board.candidateMask(cell) & ~allowed[s][i]) === 0) continue
-          if (board.keepMask(cell, allowed[s][i]) === ConstraintResult.INVALID) {
+          if ((board.candidateMask(cell) & ~combo.allowed[s][i]) === 0) continue
+          if (board.keepMask(cell, combo.allowed[s][i]) === ConstraintResult.INVALID) {
             desc.push('Arrow shaft has no valid combination')
             return ConstraintResult.INVALID
           }
@@ -285,14 +285,14 @@ export class ArrowConstraint extends Constraint {
         }
         // A value forced to appear somewhere in this shaft can't go in any cell
         // that sees the whole shaft (is weak-linked to every shaft cell on it).
-        if (clearSeenByForcedGroup(board, shafts[s], required[s], cleared)) {
+        if (clearSeenByForcedGroup(board, shafts[s], combo.required[s], cleared)) {
           desc.push('Arrow forces a value with no room')
           return ConstraintResult.INVALID
         }
       }
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push(`Arrow clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push('Arrow shaft')
     return ConstraintResult.CHANGED
   }
 }
@@ -398,7 +398,7 @@ export class QuadrupleConstraint extends Constraint {
       cleared.push(c)
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push(`Quadruple clears ${cleared.map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push('Quadruple')
     return ConstraintResult.CHANGED
   }
 }

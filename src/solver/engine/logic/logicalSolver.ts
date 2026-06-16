@@ -14,6 +14,7 @@ import {
   parityCounting,
   fish,
   xyWing,
+  describeRemovals,
 } from './techniques'
 
 // Re-exported for callers that still import it from here.
@@ -65,16 +66,26 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
 }
 
 // Apply a single human-style deduction and describe it, using techniques up to
-// the requested level.
+// the requested level. The technique's desc states the *reason*; the exact
+// candidates removed are appended here from a before/after diff of the board, so
+// the readout always shows what each step cleared (e.g. "… → R1C3≠2,3"). Placement
+// steps (singles) commit a digit and read "= v", so they aren't annotated.
 export function logicalStep(board: Board, level: SolverTechniqueLevel = 'advanced'): StepResult {
+  const before = board.cells.slice()
+  const givensBefore = board.givenCount
   for (const technique of pipeline(board, level)) {
     const result = technique()
     if (result) {
+      let desc = result.desc
+      if (!result.invalid && board.givenCount === givensBefore) {
+        const removed = describeRemovals(board, before)
+        if (removed) desc = `${result.desc} → ${removed}`
+      }
       return {
         changed: !result.invalid,
         invalid: !!result.invalid,
         solved: board.isSolved(),
-        desc: result.desc,
+        desc,
       }
     }
   }

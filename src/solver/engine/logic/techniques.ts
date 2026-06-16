@@ -23,8 +23,25 @@ function regionName(board: Board, region: number[]): string {
   return 'a region'
 }
 
-function cells(board: Board, list: number[]): string {
-  return list.map((c) => cellName(c, board.size)).join(', ')
+// Candidates removed since the `before` snapshot of board.cells, grouped by the
+// set of values removed so shared eliminations read together, e.g.
+// "8 from R2C5, R3C5, R4C6; 1,2,3,4 from R4C5". Computed from the board itself, so
+// it's always an accurate account of what the step cleared.
+export function describeRemovals(board: Board, before: Int32Array): string {
+  const all = board.allValues
+  const groups = new Map<number, number[]>() // removed-value mask → cells, in scan order
+  for (let cell = 0; cell < board.numCells; cell += 1) {
+    const gone = before[cell] & all & ~board.candidateMask(cell)
+    if (gone === 0) continue
+    const group = groups.get(gone)
+    if (group) group.push(cell)
+    else groups.set(gone, [cell])
+  }
+  const parts: string[] = []
+  for (const [mask, cellList] of groups) {
+    parts.push(`${valuesList(mask).join(',')} from ${cellList.map((c) => cellName(c, board.size)).join(', ')}`)
+  }
+  return parts.join('; ')
 }
 
 // Invoke `fn` for every k-combination of `items` (indices), stopping early if it
@@ -132,7 +149,7 @@ export function nakedSubset(board: Board, n: number): Elimination | null {
       }
       if (cleared.length) {
         result = {
-          desc: `Naked ${SUBSET_NAME[n]} (${valuesList(union).join('')}) in ${regionName(board, region)} → clears ${cells(board, [...new Set(cleared)])}`,
+          desc: `Naked ${SUBSET_NAME[n]} (${valuesList(union).join('')}) in ${regionName(board, region)}`,
         }
         return true
       }
@@ -177,7 +194,7 @@ export function hiddenSubset(board: Board, n: number): Elimination | null {
       }
       if (cleared.length) {
         result = {
-          desc: `Hidden ${SUBSET_NAME[n]} (${combo.join('')}) in ${regionName(board, region)} → clears ${cells(board, cleared)}`,
+          desc: `Hidden ${SUBSET_NAME[n]} (${combo.join('')}) in ${regionName(board, region)}`,
         }
         return true
       }
@@ -228,7 +245,7 @@ export function lockedCandidates(board: Board): Elimination | null {
         }
         if (cleared.length) {
           return {
-            desc: `Locked candidate: ${value} in ${regionName(board, regionA)} confined to ${regionName(board, board.regions[bi])} → clears ${cells(board, cleared)}`,
+            desc: `Locked candidate: ${value} in ${regionName(board, regionA)} confined to ${regionName(board, board.regions[bi])}`,
           }
         }
       }
@@ -284,7 +301,7 @@ export function nakedPairLinks(board: Board): Elimination | null {
         }
         if (cleared.length) {
           return {
-            desc: `Linked pair (${x}${y}) at ${cellName(a, board.size)}, ${cellName(b, board.size)} → clears ${cells(board, [...new Set(cleared)])}`,
+            desc: `Linked pair (${x}${y}) at ${cellName(a, board.size)}, ${cellName(b, board.size)}`,
           }
         }
       }
@@ -322,7 +339,7 @@ export function weakLinkCellForcing(board: Board): Elimination | null {
           return { desc: `${cellName(cell, board.size)} = ${value} empties ${cellName(otherCell, board.size)}`, invalid: true }
         }
         return {
-          desc: `${cellName(cell, board.size)} = ${value} would empty ${cellName(otherCell, board.size)} → clears ${value} from ${cellName(cell, board.size)}`,
+          desc: `${cellName(cell, board.size)} = ${value} would empty ${cellName(otherCell, board.size)}`,
         }
       }
     }
@@ -379,7 +396,7 @@ export function forcedTwinElimination(board: Board): Elimination | null {
           return { desc: `${cellName(cell, board.size)} = ${value} empties a cell`, invalid: true }
         }
         return {
-          desc: `${cellName(cell, board.size)} = ${value} forces ${cellName(group[0], board.size)} and ${cellName(group[1], board.size)} to both be ${w} → clears ${value} from ${cellName(cell, board.size)}`,
+          desc: `${cellName(cell, board.size)} = ${value} forces ${cellName(group[0], board.size)} and ${cellName(group[1], board.size)} to both be ${w}`,
         }
       }
     }
@@ -494,7 +511,7 @@ export function parityCounting(board: Board): Elimination | null {
       if (res === ConstraintResult.CHANGED) cleared.push(cell)
     }
     if (cleared.length) {
-      return { desc: `Parity counting in ${regionName(board, region)} → clears ${cells(board, cleared)}` }
+      return { desc: `Parity counting in ${regionName(board, region)}` }
     }
   }
   return null
@@ -552,7 +569,7 @@ export function fish(board: Board, n: number, asRows: boolean): Elimination | nu
         }
       }
       if (cleared.length) {
-        result = { desc: `${FISH_NAME[n]} on ${value} → clears ${cells(board, cleared)}` }
+        result = { desc: `${FISH_NAME[n]} on ${value}` }
         return true
       }
       return false
@@ -615,7 +632,7 @@ export function xyWing(board: Board): Elimination | null {
         }
         if (cleared.length) {
           return {
-            desc: `XY-Wing (pivot ${cellName(pivot, board.size)}, ${a.z}) → clears ${cells(board, cleared)}`,
+            desc: `XY-Wing (pivot ${cellName(pivot, board.size)}, ${a.z})`,
           }
         }
       }

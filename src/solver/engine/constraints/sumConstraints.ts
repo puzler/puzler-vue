@@ -2,7 +2,6 @@ import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList, popcount } from '../bitmask'
 import { placed } from './lineConstraints'
-import { cellName } from '../geometry'
 import { sumRangePrune, sumCombinationPrune, requiredSumValues, clearSeenByForcedGroup, MAX_COMBINATION_CELLS } from './sumGroup'
 
 // Shared: keep `cell` to `keep`, recording a contradiction or a cleared cell.
@@ -14,9 +13,9 @@ function applyKeep(board: Board, cell: number, keep: number, cleared: number[]):
   return false
 }
 
-function reportClears(board: Board, name: string, cleared: number[], desc: string[]): ConstraintResult {
+function reportClears(_board: Board, name: string, cleared: number[], desc: string[]): ConstraintResult {
   if (cleared.length === 0) return ConstraintResult.UNCHANGED
-  desc.push(`${name} clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+  desc.push(name)
   return ConstraintResult.CHANGED
 }
 
@@ -90,7 +89,7 @@ export class SumConstraint extends Constraint {
       }
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push(`${this.name} clears ${[...new Set(cleared)].map((c) => cellName(c, board.size)).join(', ')}`)
+    desc.push(this.name)
     return ConstraintResult.CHANGED
   }
 }

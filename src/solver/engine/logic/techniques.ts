@@ -202,6 +202,12 @@ export function lockedCandidates(board: Board): Elimination | null {
 
   for (let ai = 0; ai < board.regions.length; ai += 1) {
     const regionA = board.regions[ai]
+    // The deduction relies on value v being forced *somewhere* in region A, so A
+    // must be a complete house (every value appears once). Short all-different
+    // regions like killer cages don't guarantee that — a sum-6 {r5c2,r5c3} cage
+    // need not contain a 1 — so using one as the source region is unsound. (B may
+    // still be any all-different region: v landing in A∩B excludes B's others.)
+    if (regionA.length !== board.size) continue
     for (let value = 1; value <= board.size; value += 1) {
       const vb = valueBit(value)
       const homes = regionA.filter((c) => !board.isGiven(c) && (board.candidateMask(c) & vb) !== 0)
@@ -283,6 +289,43 @@ export function nakedPairLinks(board: Board): Elimination | null {
           return {
             desc: `Linked pair (${x}${y}) at ${cellName(a, board.size)}, ${cellName(b, board.size)} → clears ${cells(board, [...new Set(cleared)])}`,
           }
+        }
+      }
+    }
+  }
+  return null
+}
+
+// ── Weak-link cell forcing ───────────────────────────────────────────────────
+
+// A candidate that is weak-linked to *every* remaining candidate of some other
+// cell cannot be true: committing it would eliminate all of that cell's options,
+// emptying it. So the candidate is removed. This is a depth-1 contradiction that
+// reads straight off the weak-link graph, so it covers any constraint that seeds
+// links — e.g. a 5 on an XV "X" clue (sum 10): the 5 forbids every value but 5 in
+// its partner (weak links), and the shared house forbids the matching 5, so the 5
+// would empty the partner. Generalises that to differences, ratios, indexing, etc.
+export function weakLinkCellForcing(board: Board): Elimination | null {
+  const seen = new Map<number, number>() // cell → mask of its values linked to the candidate
+  for (let cell = 0; cell < board.numCells; cell += 1) {
+    if (board.isGiven(cell)) continue
+    for (const value of valuesList(board.candidateMask(cell))) {
+      seen.clear()
+      for (const other of board.weakLinks[board.candidateIndex(cell, value)]) {
+        const otherCell = board.cellFromCandidate(other)
+        if (otherCell === cell || board.isGiven(otherCell)) continue
+        seen.set(otherCell, (seen.get(otherCell) ?? 0) | valueBit(board.valueFromCandidate(other)))
+      }
+      for (const [otherCell, linkedMask] of seen) {
+        const otherCandidates = board.candidateMask(otherCell)
+        // Every live candidate of otherCell is weak-linked to (cell, value).
+        if ((linkedMask & otherCandidates) !== otherCandidates) continue
+        const res = board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value))
+        if (res === ConstraintResult.INVALID) {
+          return { desc: `${cellName(cell, board.size)} = ${value} empties ${cellName(otherCell, board.size)}`, invalid: true }
+        }
+        return {
+          desc: `${cellName(cell, board.size)} = ${value} would empty ${cellName(otherCell, board.size)} → clears ${value} from ${cellName(cell, board.size)}`,
         }
       }
     }

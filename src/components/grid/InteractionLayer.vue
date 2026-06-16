@@ -310,14 +310,14 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
 }
 
 // Plain cell selection (shared by the setting-mode default tool and all of
-// solving mode). Ctrl/Cmd extends the selection; a bare click replaces it.
+// solving mode). Ctrl/Cmd/Shift extends the selection; a bare click replaces it.
 function beginSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
   if (!key) return
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
   isDragging.value = true
   // The multi-select toggle makes a plain click behave like ctrl-click.
-  const additive = event.ctrlKey || event.metaKey || editor.multiSelectMode
+  const additive = event.ctrlKey || event.metaKey || event.shiftKey || editor.multiSelectMode
   dragAdditive.value = additive
   if (additive) {
     const next = new Set(props.selection)

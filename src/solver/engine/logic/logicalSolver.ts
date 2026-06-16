@@ -9,6 +9,7 @@ import {
   hiddenSubset,
   lockedCandidates,
   nakedPairLinks,
+  weakLinkCellForcing,
   fish,
   xyWing,
 } from './techniques'
@@ -42,6 +43,7 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
     for (const n of [2, 3, 4]) techniques.push(() => hiddenSubset(board, n))
     techniques.push(() => lockedCandidates(board))
     techniques.push(() => nakedPairLinks(board))
+    techniques.push(() => weakLinkCellForcing(board))
   }
   if (rank >= 2) {
     // Tough: basic fish (X-Wing, Swordfish) over rows and columns.

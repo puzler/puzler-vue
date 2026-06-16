@@ -4,7 +4,7 @@ import { buildBoard } from '../buildBoard'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
 import { standardBoxes } from '../geometry'
-import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, fish, xyWing } from './techniques'
+import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, fish, xyWing } from './techniques'
 import { logicalSolve } from './logicalSolver'
 
 function vanillaRegions(): number[][] {
@@ -79,6 +79,18 @@ describe('standard sudoku techniques', () => {
     expect(candidates(board, 8)).not.toContain(5) // r0c8 lost 5
   })
 
+  it('does not use a short killer cage as a locked-candidate source region', () => {
+    // The cage {r0c0,r0c1} is a 2-cell all-different region. Its value-1 homes are
+    // its two cells, both in row 0 / box 0 — but a cage need not contain a 1, so it
+    // must NOT confine 1 to itself and strip it from the rest of row 0 / box 0.
+    const cage = { kind: 'killer_cage', cells: [0, 1], sum: 9 }
+    const puzzle: SolverPuzzle = { size: 9, regions: vanillaRegions(), givens: [], constraints: [cage] }
+    const board = buildBoard(puzzle).board
+    expect(lockedCandidates(board)).toBeNull()
+    expect(candidates(board, 2)).toContain(1) // r0c2 keeps 1
+    expect(candidates(board, 9)).toContain(1) // r1c0 (box 0) keeps 1
+  })
+
   it('X-Wing removes the value from the cover columns', () => {
     const board = emptyBoard()
     // Confine 5 in rows 0 and 1 to columns 2 and 5.
@@ -132,6 +144,21 @@ describe('standard sudoku techniques', () => {
     expect(result).not.toBeNull()
     expect(candidates(board, 12)).not.toContain(2) // r1c3 sees both → loses 2
     expect(candidates(board, 12)).not.toContain(3)
+  })
+
+  it('weak-link cell forcing removes a value that would empty a partner cell', () => {
+    // X connector (sum 10) between r0c0 and r0c1, two cells in the same row. The
+    // only partner for a 5 is another 5, which the shared row forbids — so 5 in
+    // either cell would empty the other. Both lose 5.
+    const xClue = { kind: 'connector', relation: 'sum', value: 10, a: 0, b: 1 }
+    const puzzle: SolverPuzzle = { size: 9, regions: vanillaRegions(), givens: [], constraints: [xClue] }
+    const board = buildBoard(puzzle).board
+    expect(candidates(board, 0)).toContain(5) // arc-consistency alone leaves the 5
+    // One deduction per call (like the other techniques), so each cell clears in turn.
+    expect(weakLinkCellForcing(board)).not.toBeNull()
+    expect(weakLinkCellForcing(board)).not.toBeNull()
+    expect(candidates(board, 0)).not.toContain(5)
+    expect(candidates(board, 1)).not.toContain(5)
   })
 
   it('XY-Wing is gated behind the Advanced level', () => {

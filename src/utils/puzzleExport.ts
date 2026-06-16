@@ -1,3 +1,4 @@
+import { toRaw } from 'vue'
 import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
@@ -112,8 +113,15 @@ export function serializePlayDefinition(editor: EditorStore, grid: GridStore): S
 // Inverse of serializePuzzle: hydrates the editor and grid stores from a stored
 // definition. reset() first gives a clean slate and clears undo history, so
 // loading a version is not itself an undoable step. Arrays become Sets again.
-export function deserializePuzzle(editor: EditorStore, grid: GridStore, data: SerializedPuzzle) {
+export function deserializePuzzle(editor: EditorStore, grid: GridStore, input: SerializedPuzzle) {
   editor.reset()
+
+  // The import modal holds the parsed JSON in a ref, so Vue hands us a reactive
+  // proxy. structuredClone() throws DataCloneError on a proxy, which would abort
+  // the restore partway (after the spread-based fields, before connectorDots /
+  // outerClues / cosmetics). Unwrap to the raw plain object first; toRaw is a
+  // no-op for the already-plain data the version/player paths pass.
+  const data = toRaw(input)
 
   // Empty containers are omitted from the export, so every section is read
   // defensively with a default.

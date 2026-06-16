@@ -2,7 +2,7 @@ import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList } from '../bitmask'
 import { cellName } from '../geometry'
-import { sumRangePrune } from './sumGroup'
+import { sumRangePrune, linkedArrowCombos, clearSeenByForcedGroup, MAX_COMBINATION_CELLS } from './sumGroup'
 
 // Value of a committed cell, or 0 if not yet placed.
 export function placed(board: Board, cell: number): number {
@@ -60,6 +60,7 @@ export class RenbanConstraint extends Constraint {
     for (const c of this.cells) union |= board.candidateMask(c)
 
     let allowed = 0
+    let requiredWindow = -1 // intersection of feasible windows = values on every run
     for (let lo = 1; lo + length - 1 <= size; lo += 1) {
       let window = 0
       for (let v = lo; v < lo + length; v += 1) window |= valueBit(v)
@@ -71,10 +72,13 @@ export class RenbanConstraint extends Constraint {
           break
         }
       }
-      if (reachable) allowed |= window
+      if (reachable) {
+        allowed |= window
+        requiredWindow &= window
+      }
     }
 
-    const removed: number[] = []
+    const cleared: number[] = []
     for (const c of this.cells) {
       if ((board.candidateMask(c) & ~allowed) === 0) continue
       const result = board.keepMask(c, allowed)
@@ -82,12 +86,19 @@ export class RenbanConstraint extends Constraint {
         desc.push(`Renban ${cellName(c, size)} has no valid candidates`)
         return ConstraintResult.INVALID
       }
-      removed.push(c)
+      cleared.push(c)
     }
-    if (removed.length === 0) return ConstraintResult.UNCHANGED
+    // A value in every feasible window must appear on the line (e.g. a length-4
+    // run holding 2 must include 3 and 4), so cells seeing the whole line can't be
+    // it. allowed === 0 means no window fits — keepMask above already flagged it.
+    if (allowed !== 0 && clearSeenByForcedGroup(board, this.cells, requiredWindow, cleared)) {
+      desc.push('Renban forces a value with no room')
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
     desc.push(
       `Renban: digits must lie in ${minValue(allowed)}–${maxValue(allowed)}, ` +
-        `clearing ${removed.map((c) => cellName(c, size)).join(', ')}`,
+        `clearing ${[...new Set(cleared)].map((c) => cellName(c, size)).join(', ')}`,
     )
     return ConstraintResult.CHANGED
   }
@@ -231,6 +242,45 @@ export class ArrowConstraint extends Constraint {
       if (sumRangePrune(board, shaft, bMin, bMax, cleared)) {
         desc.push('Arrow shaft cannot reach the bulb')
         return ConstraintResult.INVALID
+      }
+    }
+    // Range pruning treats the shaft cells as independent; a joint combination
+    // prune that honours the weak links between them (shared houses, even across
+    // different shafts of the same bulb) is stronger. It sees that cells sharing a
+    // house must differ, so the bulb may be forced higher and small values dropped
+    // from the shafts — e.g. two arrows off one bulb whose cells share a region
+    // force the bulb to ≥ 5 (3 or 4 would repeat a digit in that region).
+    const shafts = this.shafts.filter((s) => s.length > 0)
+    const totalCells = shafts.reduce((sum, s) => sum + s.length, 0)
+    if (shafts.length > 0 && totalCells <= MAX_COMBINATION_CELLS) {
+      const { allowed, sums, required } = linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
+      if (sums === 0) {
+        desc.push('Arrow shaft cannot reach the bulb')
+        return ConstraintResult.INVALID
+      }
+      if (board.candidateMask(bulbCell) !== sums) {
+        if (board.keepMask(bulbCell, sums) === ConstraintResult.INVALID) {
+          desc.push('Arrow bulb has no candidates')
+          return ConstraintResult.INVALID
+        }
+        cleared.push(bulbCell)
+      }
+      for (let s = 0; s < shafts.length; s += 1) {
+        for (let i = 0; i < shafts[s].length; i += 1) {
+          const cell = shafts[s][i]
+          if ((board.candidateMask(cell) & ~allowed[s][i]) === 0) continue
+          if (board.keepMask(cell, allowed[s][i]) === ConstraintResult.INVALID) {
+            desc.push('Arrow shaft has no valid combination')
+            return ConstraintResult.INVALID
+          }
+          cleared.push(cell)
+        }
+        // A value forced to appear somewhere in this shaft can't go in any cell
+        // that sees the whole shaft (is weak-linked to every shaft cell on it).
+        if (clearSeenByForcedGroup(board, shafts[s], required[s], cleared)) {
+          desc.push('Arrow forces a value with no room')
+          return ConstraintResult.INVALID
+        }
       }
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED

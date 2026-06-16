@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
@@ -157,6 +158,34 @@ describe('deserializePuzzle', () => {
     expect(editor2.solution).toEqual({ r0c0: 5, r1c1: 3 })
     expect(editor2.solveMessage).toBe('The keyword is CIPHER')
     expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+  })
+
+  it('restores structuredClone-d fields when handed a reactive proxy (import modal path)', () => {
+    // The import modal stores parsed JSON in a ref, so deserialize receives a
+    // reactive proxy. structuredClone() throws DataCloneError on a proxy, which
+    // used to abort the restore after the spread-based fields — dropping
+    // connectorDots, outerClues and cosmetics while keeping givens/constraints.
+    const data = parsePuzzleImport(JSON.stringify({
+      formatVersion: 3,
+      grid: { rows: 8, cols: 8 },
+      givenDigits: { r1c1: 7 },
+      activeConstraints: [{ id: 'x', type: 'xv', label: 'XV', category: 'connector' }],
+      constraints: {
+        connectorDots: { 'r0c0|r0c1': { type: 'xv', value: 'V' }, 'r7c0|r7c1': { type: 'xv', value: 'X' } },
+        outerClues: { 'o:r-1c3': { type: 'x_sums', value: 15 } },
+      },
+    }))
+    const reactiveData = ref(data) // mirrors the modal wrapping it in a ref
+
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, reactiveData.value)
+
+    expect(editor.givenDigits).toEqual({ r1c1: 7 })
+    expect(editor.activeConstraints).toHaveLength(1)
+    expect(Object.keys(editor.connectorDots)).toHaveLength(2)
+    expect(editor.connectorDots['r7c0|r7c1']).toEqual({ type: 'xv', value: 'X' })
+    expect(editor.outerClues['o:r-1c3']).toEqual({ type: 'x_sums', value: 15 })
   })
 
   it('handles a minimal pruned object (only version + grid + givens)', () => {

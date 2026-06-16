@@ -3,7 +3,7 @@ import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList, popcount } from '../bitmask'
 import { placed } from './lineConstraints'
 import { cellName } from '../geometry'
-import { sumRangePrune, sumCombinationPrune, MAX_COMBINATION_CELLS } from './sumGroup'
+import { sumRangePrune, sumCombinationPrune, requiredSumValues, clearSeenByForcedGroup, MAX_COMBINATION_CELLS } from './sumGroup'
 
 // Shared: keep `cell` to `keep`, recording a contradiction or a cleared cell.
 // Returns true on contradiction.
@@ -61,9 +61,26 @@ export class SumConstraint extends Constraint {
       desc.push(`${this.name} ${this.target} is unreachable`)
       return ConstraintResult.INVALID
     }
-    if (this.distinct && this.cells.length <= MAX_COMBINATION_CELLS) {
-      if (sumCombinationPrune(board, this.cells, this.target, cleared)) {
-        desc.push(`${this.name} ${this.target} has no valid combination`)
+    if (this.distinct) {
+      // Combination pruning (small cages) also narrows each cell and yields the
+      // exact forced-value set; larger cages skip the exponential enumeration but
+      // still get forced values cheaply from the distinct sum range.
+      let required = 0
+      if (this.cells.length <= MAX_COMBINATION_CELLS) {
+        const combo = sumCombinationPrune(board, this.cells, this.target, cleared)
+        if (combo.invalid) {
+          desc.push(`${this.name} ${this.target} has no valid combination`)
+          return ConstraintResult.INVALID
+        }
+        required = combo.required
+      } else {
+        required = requiredSumValues(board, this.cells, this.target)
+      }
+      // A value every solution must place in the cage can't sit in a cell that
+      // sees the whole cage — a 3-cell sum-8 cage always holds a 1, a 7-cell
+      // sum-40 cage always holds 5-9.
+      if (clearSeenByForcedGroup(board, this.cells, required, cleared)) {
+        desc.push(`${this.name} forces a value with nowhere to go`)
         return ConstraintResult.INVALID
       }
     }
@@ -128,7 +145,7 @@ export class XSumConstraint extends Constraint {
         desc.push('X-sum is unreachable')
         return ConstraintResult.INVALID
       }
-      if (window.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, window, this.target, cleared)) {
+      if (window.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, window, this.target, cleared).invalid) {
         desc.push('X-sum has no valid combination')
         return ConstraintResult.INVALID
       }
@@ -189,7 +206,7 @@ export class SandwichConstraint extends Constraint {
       desc.push('Sandwich is unreachable')
       return ConstraintResult.INVALID
     }
-    if (between.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, between, this.target, cleared)) {
+    if (between.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, between, this.target, cleared).invalid) {
       desc.push('Sandwich has no valid combination')
       return ConstraintResult.INVALID
     }

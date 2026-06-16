@@ -4,6 +4,7 @@ import { buildBoard } from '../buildBoard'
 import { findSolution } from '../algorithms'
 import { logicalStep } from '../logic/logicalSolver'
 import { standardBoxes } from '../geometry'
+import { valuesList } from '../bitmask'
 
 function allRegions(size: number): number[][] {
   const regions: number[][] = []
@@ -83,6 +84,79 @@ describe('connector & line constraints', () => {
     const arrow = { kind: 'arrow', bulb: [8], shafts: [[9, 10]] } // r0c8 = r1c0 + r1c1
     expect(valid(puzzle([[8, 9], [9, 3], [10, 4]], [arrow]))).toBe(false)
     expect(solvable(puzzle([[8, 7], [9, 3], [10, 4]], [arrow]))).toBe(true)
+  })
+
+  it('arrow shaft cells sharing houses force the bulb via weak-link combos', () => {
+    // 6x6 "Pointy": the long diagonal arrow r2c1=r3c2+r4c3+r5c4+r6c5 (0-indexed
+    // bulb 6, shaft 13,20,27,34). The shaft pairs up into two boxes — {r3c2,r4c3}
+    // and {r5c4,r6c5} each share a box, so each pair is distinct (≥ 1+2 = 3), the
+    // total is ≥ 6, and the ≤ 6 bulb is pinned to 6 with every shaft cell in {1,2}.
+    const cell = (r: number, c: number) => r * 6 + c
+    const arrow = { kind: 'arrow', bulb: [cell(1, 0)], shafts: [[cell(2, 1), cell(3, 2), cell(4, 3), cell(5, 4)]] }
+    const p: SolverPuzzle = { size: 6, regions: allRegions(6), givens: [], constraints: [arrow] }
+    const { board, valid: v } = buildBoard(p)
+    expect(v).toBe(true)
+    board.bruteForceLogic()
+    const cands = (c: number) => valuesList(board.candidateMask(c))
+    expect(cands(cell(1, 0))).toEqual([6]) // bulb forced to 6
+    for (const sc of [cell(2, 1), cell(3, 2), cell(4, 3), cell(5, 4)]) {
+      expect(cands(sc)).toEqual([1, 2]) // every shaft cell pinned to {1,2}
+    }
+  })
+
+  it('two arrows off one bulb force it higher via cross-shaft weak links', () => {
+    // 8x8 "Constrained Crossings": a bulb with two 2-cell shafts whose cells all
+    // share one irregular region. Each shaft sums to the bulb, and all four shaft
+    // cells must be distinct, so a bulb of 3 (both shafts {1,2}) or 4 (both {1,3})
+    // repeats a digit in the region — the bulb is forced to ≥ 5.
+    const cell = (r: number, c: number) => r * 8 + c
+    const bulb = cell(3, 4)
+    const shaftA = [cell(2, 4), cell(1, 4)]
+    const shaftB = [cell(3, 5), cell(3, 6)]
+    const region = [bulb, ...shaftA, ...shaftB]
+    const arrow = { kind: 'arrow', bulb: [bulb], shafts: [shaftA, shaftB] }
+    const p: SolverPuzzle = { size: 8, regions: [region], givens: [], constraints: [arrow] }
+    const { board, valid: v } = buildBoard(p)
+    expect(v).toBe(true)
+    board.bruteForceLogic()
+    expect(valuesList(board.candidateMask(bulb))).toEqual([5, 6, 7, 8]) // 3 and 4 ruled out
+  })
+
+  it('removes a value forced into an arrow shaft from cells seeing the whole shaft', () => {
+    // 8x8: a 3-cell shaft in column 0 sums to its bulb (≤ 8). Three distinct cells
+    // summing to ≤ 8 must include a 1 (2+3+4 = 9 overshoots), so 1 is forced into
+    // the shaft — and the rest of column 0 (which sees all three) can't be 1.
+    const cell = (r: number, c: number) => r * 8 + c
+    const regions: number[][] = []
+    for (let r = 0; r < 8; r += 1) {
+      const row: number[] = []
+      const col: number[] = []
+      for (let c = 0; c < 8; c += 1) { row.push(cell(r, c)); col.push(cell(c, r)) }
+      regions.push(row, col)
+    }
+    const shaft = [cell(1, 0), cell(2, 0), cell(3, 0)]
+    const arrow = { kind: 'arrow', bulb: [cell(0, 7)], shafts: [shaft] }
+    const p: SolverPuzzle = { size: 8, regions, givens: [], constraints: [arrow] }
+    const { board, valid: v } = buildBoard(p)
+    expect(v).toBe(true)
+    board.bruteForceLogic()
+    const cands = (c: number) => valuesList(board.candidateMask(c))
+    expect(cands(cell(0, 7))).toEqual([6, 7, 8]) // bulb: three distinct cells ⇒ ≥ 6
+    for (const sc of shaft) expect(cands(sc)).toContain(1) // shaft cells keep 1
+    for (const r of [0, 4, 5, 6, 7]) expect(cands(cell(r, 0))).not.toContain(1) // rest of col 0 loses 1
+  })
+
+  it('renban forces its interior digits out of cells seeing the whole line', () => {
+    // A length-4 renban containing a 2 must be {1,2,3,4} or {2,3,4,5}; either run
+    // holds 3 and 4, so a cell seeing every renban cell (rest of row 0) can't be
+    // 3 or 4 — even though the run's ends (1/5) stay open.
+    const renban = { kind: 'renban', cells: [0, 1, 2, 3] }
+    const { board } = buildBoard(puzzle([[0, 2]], [renban])) // r0c0 = 2
+    board.bruteForceLogic()
+    const cands = (c: number) => valuesList(board.candidateMask(c))
+    expect(cands(1)).toEqual(expect.arrayContaining([3, 4])) // renban cells keep 3/4
+    expect(cands(4)).not.toContain(3) // r0c4 sees the whole line → loses 3
+    expect(cands(4)).not.toContain(4)
   })
 
   it('between line keeps the middle strictly between the ends', () => {

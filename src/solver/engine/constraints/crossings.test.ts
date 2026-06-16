@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { buildBoard } from '../buildBoard'
 import { logicalSolve } from '../logic/logicalSolver'
+import { fish } from '../logic/techniques'
+import { valuesList, valueBit } from '../bitmask'
 
 const cell = (r: number, c: number) => r * 8 + c
 const LABELS = [
@@ -50,5 +52,30 @@ describe("'Constrained Crossings'", () => {
       '85124376' + '76213584' + '34865712' + '53478621' +
       '12687435' + '21756843' + '48531267' + '67342158'
     expect(board.solutionArray().join('')).toBe(SOL)
+  })
+
+  it('generalized fish: value 8 confined to two regions clears the region cells outside the base rows', () => {
+    // Base = row 0 and row 1; their only 8-candidates sit in region 1 (top-left)
+    // and region 4 (top-right). Cover = those two regions. The two base rows hold
+    // two 8s between them, both trapped in region1+region4, which can hold only one
+    // 8 each — so 8 clears from the region cells the base rows don't cover (r2c0,
+    // r2c6). No row/column X-Wing can see this; it needs the irregular regions.
+    const { board } = buildBoard({ size: 8, regions: regions(), givens: [], constraints: [] })
+    const keep8 = new Set([
+      cell(0, 0), cell(0, 1), cell(0, 2), // row 0 eights, all in region 1
+      cell(1, 5), cell(1, 6), cell(1, 7), // row 1 eights, all in region 4
+      cell(2, 0), cell(2, 6), // region cells outside the base rows
+    ])
+    const noEight = [1, 2, 3, 4, 5, 6, 7].reduce((m, v) => m | valueBit(v), 0)
+    for (let c = 0; c < 64; c += 1) if (!keep8.has(c)) board.keepMask(c, noEight)
+    const cands = (c: number) => valuesList(board.candidateMask(c))
+
+    expect(cands(cell(2, 0))).toContain(8)
+    expect(cands(cell(2, 6))).toContain(8)
+    expect(fish(board, 2)).not.toBeNull()
+    expect(cands(cell(2, 0))).not.toContain(8) // franken fish clears 8
+    expect(cands(cell(2, 6))).not.toContain(8)
+    expect(cands(cell(0, 0))).toContain(8) // base cells keep their 8
+    expect(cands(cell(1, 7))).toContain(8)
   })
 })

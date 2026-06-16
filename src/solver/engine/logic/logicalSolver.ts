@@ -51,12 +51,9 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
   }
   if (rank >= 2) {
     // Tough: parity counting (house parity balance + arrow/cage parity), then
-    // basic fish (X-Wing, Swordfish) over rows and columns.
+    // generalised fish (X-Wing, Swordfish) over rows, columns, and regions.
     techniques.push(() => parityCounting(board))
-    for (const n of [2, 3]) {
-      techniques.push(() => fish(board, n, true))
-      techniques.push(() => fish(board, n, false))
-    }
+    for (const n of [2, 3]) techniques.push(() => fish(board, n))
   }
   if (rank >= 3) {
     // Advanced: wings.

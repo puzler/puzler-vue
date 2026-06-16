@@ -1,7 +1,7 @@
 import type { Board } from '../board'
 import { ConstraintResult } from '../constraint'
 import { popcount, valueBit, valuesList, minValue, isSingle } from '../bitmask'
-import { cellName, cellAt } from '../geometry'
+import { cellName } from '../geometry'
 import { clearSeenByForcedGroup } from '../constraints/sumGroup'
 
 // A technique returns a human-readable description of the deduction it made, or
@@ -521,58 +521,88 @@ export function parityCounting(board: Board): Elimination | null {
 
 const FISH_NAME: Record<number, string> = { 2: 'X-Wing', 3: 'Swordfish' }
 
-// Cells of each row (asRows) or column, indexed by cross-position.
-function axisLines(size: number, asRows: boolean): number[][] {
-  return Array.from({ length: size }, (_, i) =>
-    Array.from({ length: size }, (_, j) => (asRows ? cellAt(i, j, size) : cellAt(j, i, size))),
-  )
-}
-
-// A value forms an n×n fish: n base lines whose candidate positions span exactly
-// n cross-lines → the value is removed from those cross-lines elsewhere.
-export function fish(board: Board, n: number, asRows: boolean): Elimination | null {
+// Generalised (franken / mutant) fish over ANY complete houses, not just rows and
+// columns. For a value v, pick n base houses whose cell sets are pairwise disjoint
+// and n cover houses whose cell sets are pairwise disjoint, such that every base
+// cell still holding v lies inside the cover cells. Each base house (a complete
+// house) places exactly one v, giving n distinct v's all inside the cover; the n
+// disjoint cover houses hold exactly n v's between them, so those n base v's
+// saturate the cover — v is therefore cleared from every cover cell that no base
+// house contains. Disjointness of the base sets and of the cover sets is what makes
+// this sound. Standard row↔column X-Wing / Swordfish are the special case where the
+// base houses are rows and the cover houses columns (or vice versa); using the
+// irregular regions as base or cover lines is the generalisation.
+export function fish(board: Board, n: number): Elimination | null {
   const size = board.size
-  const baseLines = axisLines(size, asRows)
+  // Complete houses only (a value must appear in each exactly once).
+  const houses = board.regions.filter((cells) => cells.length === size)
+  if (houses.length < 2 * n) return null
+  const cellBit = Array.from({ length: board.numCells }, (_, c) => 1n << BigInt(c))
+  const houseBits = houses.map((cells) => cells.reduce((m, c) => m | cellBit[c], 0n))
+
   for (let value = 1; value <= size; value += 1) {
     const vb = valueBit(value)
-    const candidates: Array<{ line: number; positions: number }> = []
-    baseLines.forEach((cellsInLine, line) => {
-      let positions = 0
-      for (let cross = 0; cross < size; cross += 1) {
-        const cell = cellsInLine[cross]
-        if (!board.isGiven(cell) && (board.candidateMask(cell) & vb) !== 0) positions |= 1 << cross
+    // Per-house bitset of cells still holding v, and the count.
+    const vBits: bigint[] = new Array(houses.length)
+    const vCount: number[] = new Array(houses.length)
+    for (let i = 0; i < houses.length; i += 1) {
+      let m = 0n
+      let count = 0
+      for (const c of houses[i]) {
+        if (!board.isGiven(c) && (board.candidateMask(c) & vb) !== 0) { m |= cellBit[c]; count += 1 }
       }
-      const count = popcount(positions)
-      if (count >= 2 && count <= n) candidates.push({ line, positions })
-    })
-    if (candidates.length < n) continue
+      vBits[i] = m
+      vCount[i] = count
+    }
+    const baseCandidates: number[] = []
+    for (let i = 0; i < houses.length; i += 1) if (vCount[i] >= 2) baseCandidates.push(i)
+    if (baseCandidates.length < n) continue
 
     let result: Elimination | null = null
-    forEachCombination(candidates, n, (combo) => {
-      let cover = 0
-      for (const x of combo) cover |= x.positions
-      if (popcount(cover) !== n) return false
-      const baseLineSet = new Set(combo.map((x) => x.line))
-      const cleared: number[] = []
-      for (let cross = 0; cross < size; cross += 1) {
-        if ((cover & (1 << cross)) === 0) continue
-        for (let line = 0; line < size; line += 1) {
-          if (baseLineSet.has(line)) continue
-          const cell = baseLines[line][cross]
-          if (board.isGiven(cell) || (board.candidateMask(cell) & vb) === 0) continue
-          const res = board.keepMask(cell, board.candidateMask(cell) & ~vb)
-          if (res === ConstraintResult.INVALID) {
-            result = { desc: `${FISH_NAME[n]} empties ${cellName(cell, size)}`, invalid: true }
-            return true
-          }
-          if (res === ConstraintResult.CHANGED) cleared.push(cell)
+    forEachCombination(baseCandidates, n, (baseCombo) => {
+      let baseCellBits = 0n
+      let baseV = 0n
+      for (const i of baseCombo) {
+        if ((baseCellBits & houseBits[i]) !== 0n) return false // base houses must be disjoint
+        baseCellBits |= houseBits[i]
+        baseV |= vBits[i]
+      }
+      // Cover candidates: complete houses (not in the base) whose cells touch baseV.
+      const baseSet = new Set(baseCombo)
+      const coverCandidates: number[] = []
+      for (let i = 0; i < houses.length; i += 1) {
+        if (!baseSet.has(i) && (houseBits[i] & baseV) !== 0n) coverCandidates.push(i)
+      }
+      if (coverCandidates.length < n) return false
+
+      forEachCombination(coverCandidates, n, (coverCombo) => {
+        let coverCellBits = 0n
+        for (const i of coverCombo) {
+          if ((coverCellBits & houseBits[i]) !== 0n) return false // cover houses must be disjoint
+          coverCellBits |= houseBits[i]
         }
-      }
-      if (cleared.length) {
-        result = { desc: `${FISH_NAME[n]} on ${value}` }
-        return true
-      }
-      return false
+        if ((baseV & ~coverCellBits) !== 0n) return false // base v-cells not fully covered
+        // Clear v from cover cells that no base house contains.
+        const cleared: number[] = []
+        for (const i of coverCombo) {
+          for (const c of houses[i]) {
+            if ((baseCellBits & cellBit[c]) !== 0n) continue // c sits in a base house
+            if (board.isGiven(c) || (board.candidateMask(c) & vb) === 0) continue
+            const res = board.keepMask(c, board.candidateMask(c) & ~vb)
+            if (res === ConstraintResult.INVALID) {
+              result = { desc: `${FISH_NAME[n]} empties ${cellName(c, size)}`, invalid: true }
+              return true
+            }
+            if (res === ConstraintResult.CHANGED) cleared.push(c)
+          }
+        }
+        if (cleared.length) {
+          result = { desc: `${FISH_NAME[n]} on ${value}` }
+          return true
+        }
+        return false
+      })
+      return result !== null
     })
     if (result) return result
   }

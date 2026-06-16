@@ -115,7 +115,7 @@ describe('standard sudoku techniques', () => {
     // Confine 5 in rows 0 and 1 to columns 2 and 5.
     for (const c of [0, 1, 3, 4, 6, 7, 8]) setCandidates(board, c, [1, 2, 3, 4, 6, 7, 8, 9]) // row 0
     for (const c of [9, 10, 12, 13, 15, 16, 17]) setCandidates(board, c, [1, 2, 3, 4, 6, 7, 8, 9]) // row 1
-    const result = fish(board, 2, true)
+    const result = fish(board, 2)
     expect(result).not.toBeNull()
     expect(candidates(board, 20)).not.toContain(5) // r2c2 (cover column) loses 5
     expect(candidates(board, 23)).not.toContain(5) // r2c5 loses 5

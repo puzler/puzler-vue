@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import { buildBoard } from '../buildBoard'
 import { findSolution } from '../algorithms'
-import { logicalStep } from '../logic/logicalSolver'
 import { standardBoxes } from '../geometry'
 import { valuesList } from '../bitmask'
 
@@ -63,15 +62,13 @@ describe('connector & line constraints', () => {
 
   it('renban logic narrows the window to the forced range', () => {
     // 4-cell renban with 1 and 4 placed ⇒ window is [1,4]; the two free cells
-    // (r0c1, r1c0) must be {2,3}.
+    // (r0c1, r1c0) must be {2,3}. The renban's pairwise links (distinct, and no pair
+    // differing by ≥ 4) force this from the full candidate set the moment the
+    // endpoints are committed.
     const renban = { kind: 'renban', cells: [0, 1, 9, 10] } // r0c0,r0c1,r1c0,r1c1
     const { board } = buildBoard(puzzle([[0, 1], [10, 4]], [renban]))
-    const before = board.candidatesPerCell()
-    const step = logicalStep(board)
-    expect(step.changed).toBe(true)
     expect(board.candidatesPerCell()[1]).toEqual([2, 3]) // r0c1
     expect(board.candidatesPerCell()[9]).toEqual([2, 3]) // r1c0
-    expect(before[1]).not.toEqual([2, 3]) // it really did narrow
   })
 
   it('thermometer strictly increases from the bulb', () => {

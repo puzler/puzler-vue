@@ -2,7 +2,14 @@ import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList, popcount } from '../bitmask'
 import { placed } from './lineConstraints'
-import { sumRangePrune, sumCombinationPrune, requiredSumValues, clearSeenByForcedGroup, MAX_COMBINATION_CELLS } from './sumGroup'
+import {
+  sumRangePrune,
+  sumCombinationDistinct,
+  sumCombinationPruneLinked,
+  sumCombinationPrune,
+  cellsCrossLinked,
+  clearSeenByForcedGroup,
+} from './sumGroup'
 
 // Shared: keep `cell` to `keep`, recording a contradiction or a cleared cell.
 // Returns true on contradiction.
@@ -40,6 +47,12 @@ export class SumConstraint extends Constraint {
   private target: number
   private distinct: boolean
   private involved: Set<number>
+  // Whether some other constraint links two of these cells on *different* values
+  // (a thermometer's ordering, an XV sum, a Kropki dot, …). Weak links are static
+  // after build, so this is computed once and cached. When present, combination
+  // pruning must reason about which cell holds which value; when absent, the
+  // scalable value-set DP suffices.
+  private hasCrossLinks: boolean | null = null
 
   constructor(cells: number[], target: number, distinct = false, name = 'Sum') {
     super(name)
@@ -47,6 +60,11 @@ export class SumConstraint extends Constraint {
     this.target = target
     this.distinct = distinct
     this.involved = new Set(cells)
+  }
+
+  private crossLinked(board: Board): boolean {
+    if (this.hasCrossLinks === null) this.hasCrossLinks = cellsCrossLinked(board, this.cells)
+    return this.hasCrossLinks
   }
 
   enforce(board: Board, cell: number) {
@@ -66,20 +84,13 @@ export class SumConstraint extends Constraint {
       return ConstraintResult.INVALID
     }
     if (this.distinct) {
-      // Combination pruning (small cages) also narrows each cell and yields the
-      // exact forced-value set; larger cages skip the exponential enumeration but
-      // still get forced values cheaply from the distinct sum range.
-      let required = 0
-      if (this.cells.length <= MAX_COMBINATION_CELLS) {
-        const combo = sumCombinationPrune(board, this.cells, this.target, cleared)
-        if (combo.invalid) {
-          desc.push(`${this.name} ${this.target} has no valid combination`)
-          return ConstraintResult.INVALID
-        }
-        required = combo.required
-      } else {
-        required = requiredSumValues(board, this.cells, this.target)
-      }
+      // Combination pruning narrows each cell to digits that take part in a valid
+      // distinct combination, and yields the forced-value set. The cheap value-set
+      // DP scales to any cage size; when other constraints link the cells on
+      // different values (a thermometer inside the cage, …) the weak-link-aware
+      // prune is stronger, falling back to the DP only if its effort budget is hit.
+      const required = this.combinationPrune(board, cleared, desc)
+      if (required < 0) return ConstraintResult.INVALID
       // A value every solution must place in the cage can't sit in a cell that
       // sees the whole cage — a 3-cell sum-8 cage always holds a 1, a 7-cell
       // sum-40 cage always holds 5-9.
@@ -91,6 +102,26 @@ export class SumConstraint extends Constraint {
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
     desc.push(this.name)
     return ConstraintResult.CHANGED
+  }
+
+  // Run the right combination prune and return the forced-value mask, or -1 on a
+  // contradiction (with the reason pushed to `desc`).
+  private combinationPrune(board: Board, cleared: number[], desc: string[]): number {
+    if (this.crossLinked(board)) {
+      const combo = sumCombinationPruneLinked(board, this.cells, this.target, cleared)
+      if (combo.invalid) {
+        desc.push(`${this.name} ${this.target} has no valid combination`)
+        return -1
+      }
+      if (combo.complete) return combo.required
+      // Budget hit: fall back to the scalable (looser) distinct-sum DP.
+    }
+    const dp = sumCombinationDistinct(board, this.cells, this.target, cleared)
+    if (dp.invalid) {
+      desc.push(`${this.name} ${this.target} has no valid combination`)
+      return -1
+    }
+    return dp.required
   }
 }
 
@@ -149,7 +180,7 @@ export class XSumConstraint extends Constraint {
         desc.push('X-sum is unreachable')
         return ConstraintResult.INVALID
       }
-      if (window.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, window, this.target, cleared).invalid) {
+      if (sumCombinationPrune(board, window, this.target, cleared).invalid) {
         desc.push('X-sum has no valid combination')
         return ConstraintResult.INVALID
       }
@@ -210,7 +241,7 @@ export class SandwichConstraint extends Constraint {
       desc.push('Sandwich is unreachable')
       return ConstraintResult.INVALID
     }
-    if (between.length <= MAX_COMBINATION_CELLS && sumCombinationPrune(board, between, this.target, cleared).invalid) {
+    if (sumCombinationPrune(board, between, this.target, cleared).invalid) {
       desc.push('Sandwich has no valid combination')
       return ConstraintResult.INVALID
     }

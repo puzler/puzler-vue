@@ -2,7 +2,7 @@ import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList } from '../bitmask'
 import { cellName } from '../geometry'
-import { sumRangePrune, linkedArrowCombos, clearSeenByForcedGroup, MAX_COMBINATION_CELLS } from './sumGroup'
+import { sumRangePrune, linkedArrowCombos, clearSeenByForcedGroup, realizableValues, COMBINATION_NODE_BUDGET } from './sumGroup'
 
 // Value of a committed cell, or 0 if not yet placed.
 export function placed(board: Board, cell: number): number {
@@ -23,13 +23,26 @@ export class RenbanConstraint extends Constraint {
     this.involved = new Set(cells)
   }
 
+  // The cells hold a run of L distinct consecutive digits, which is *entirely* a
+  // set of pairwise rules: any two cells differ (distinct) and lie in one L-wide
+  // window, so a pair can't differ by ≥ L. Seeding all of those as weak links puts
+  // the whole renban into the shared graph, so every weak-link-aware technique —
+  // and any constraint enumerating these same cells, e.g. an overlapping killer
+  // cage — reasons about the run for free. A 3-cell renban on a 15-cage then
+  // resolves to {4,5,6}: the cage's combination prune keeps only the triple summing
+  // to 15 whose digits all lie within a 3-wide window.
   init(board: Board) {
     if (this.linked) return ConstraintResult.UNCHANGED
     this.linked = true
-    for (let i = 0; i < this.cells.length; i += 1) {
-      for (let j = i + 1; j < this.cells.length; j += 1) {
-        for (let v = 1; v <= board.size; v += 1) {
-          board.addWeakLink(board.candidateIndex(this.cells[i], v), board.candidateIndex(this.cells[j], v))
+    const length = this.cells.length
+    for (let i = 0; i < length; i += 1) {
+      for (let j = i + 1; j < length; j += 1) {
+        for (let u = 1; u <= board.size; u += 1) {
+          for (let w = 1; w <= board.size; w += 1) {
+            if (u === w || Math.abs(u - w) >= length) {
+              board.addWeakLink(board.candidateIndex(this.cells[i], u), board.candidateIndex(this.cells[j], w))
+            }
+          }
         }
       }
     }
@@ -49,11 +62,64 @@ export class RenbanConstraint extends Constraint {
     return hi - lo <= this.cells.length - 1
   }
 
-  // Candidate pruning: the values form a length-L consecutive run, so they all
-  // lie within some window [lo, lo+L-1]. Keep only candidates that fall inside a
-  // window which (a) is fully covered by the line's candidates and (b) every
-  // cell can still reach. Only ever removes genuinely-impossible candidates.
+  // Candidate pruning: the cells hold a consecutive run of distinct digits, so the
+  // values span exactly length−1. Explore the run cell by cell, keeping each cell's
+  // running window within that span, and weak-link aware (so two renban cells that
+  // also see each other can't take the same digit, and any other constraint linking
+  // them is honoured). Each cell keeps only digits that take part in a real run, and
+  // a digit on every run is cleared from cells seeing the whole line. Falls back to
+  // the looser window-union prune if the search exceeds its effort budget.
   logicStep(board: Board, desc: string[]): ConstraintResult {
+    const size = board.size
+    const length = this.cells.length
+    const valuesAt = (_pos: number, assigned: number[]): number[] => {
+      let lo = 1
+      let hi = size
+      if (assigned.length > 0) {
+        let curMin = size
+        let curMax = 1
+        for (const a of assigned) {
+          if (a < curMin) curMin = a
+          if (a > curMax) curMax = a
+        }
+        lo = Math.max(1, curMax - (length - 1))
+        hi = Math.min(size, curMin + (length - 1))
+      }
+      const out: number[] = []
+      for (let v = lo; v <= hi; v += 1) out.push(v)
+      return out
+    }
+    const result = realizableValues(board, this.cells, valuesAt)
+    if (result.bailed) return this.windowFallback(board, desc)
+    if (!result.feasible) {
+      desc.push('Renban has no valid run')
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    for (let i = 0; i < this.cells.length; i += 1) {
+      const c = this.cells[i]
+      if ((board.candidateMask(c) & ~result.allowed[i]) === 0) continue
+      if (board.keepMask(c, result.allowed[i]) === ConstraintResult.INVALID) {
+        desc.push(`Renban ${cellName(c, size)} has no valid candidates`)
+        return ConstraintResult.INVALID
+      }
+      cleared.push(c)
+    }
+    // A value on every run must appear on the line, so cells seeing the whole line
+    // can't be it (e.g. a length-4 run holding 2 must include 3 and 4).
+    if (clearSeenByForcedGroup(board, this.cells, result.required, cleared)) {
+      desc.push('Renban forces a value with no room')
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Renban')
+    return ConstraintResult.CHANGED
+  }
+
+  // Looser distinctness-blind prune for a renban too wide to enumerate: keep each
+  // cell to values lying in some window the whole line can still cover.
+  private windowFallback(board: Board, desc: string[]): ConstraintResult {
     const size = board.size
     const length = this.cells.length
     let union = 0
@@ -88,9 +154,6 @@ export class RenbanConstraint extends Constraint {
       }
       cleared.push(c)
     }
-    // A value in every feasible window must appear on the line (e.g. a length-4
-    // run holding 2 must include 3 and 4), so cells seeing the whole line can't be
-    // it. allowed === 0 means no window fits — keepMask above already flagged it.
     if (allowed !== 0 && clearSeenByForcedGroup(board, this.cells, requiredWindow, cleared)) {
       desc.push('Renban forces a value with no room')
       return ConstraintResult.INVALID
@@ -132,10 +195,47 @@ export class BetweenLineConstraint extends Constraint {
     return true
   }
 
-  // Candidate pruning: each middle must be strictly between *some* feasible pair
-  // of endpoint values; with middles present, endpoints must differ by ≥2.
+  // Candidate pruning: assign the endpoints, then each middle strictly between the
+  // chosen endpoint values, exploring weak-link-valid assignments so distinctness
+  // (when the line's cells see each other) is respected jointly rather than per
+  // cell. Each cell keeps only values that take part in a complete valid line. This
+  // is full arc-consistency over the line; it falls back to per-cell bounds if the
+  // search is too wide to enumerate within the effort budget.
   logicStep(board: Board, desc: string[]): ConstraintResult {
     if (this.middles.length === 0) return ConstraintResult.UNCHANGED
+    const order = [this.a, this.b, ...this.middles]
+    const valuesAt = (pos: number, assigned: number[]): number[] => {
+      const out: number[] = []
+      if (pos <= 1) {
+        for (let v = 1; v <= board.size; v += 1) out.push(v)
+        return out
+      }
+      const lo = Math.min(assigned[0], assigned[1])
+      const hi = Math.max(assigned[0], assigned[1])
+      for (let v = lo + 1; v < hi; v += 1) out.push(v)
+      return out
+    }
+    const result = realizableValues(board, order, valuesAt)
+    if (result.bailed) return this.boundsFallback(board, desc)
+    if (!result.feasible) {
+      desc.push('Between line cannot be satisfied')
+      return ConstraintResult.INVALID
+    }
+    const cleared: number[] = []
+    for (let i = 0; i < order.length; i += 1) {
+      const c = order[i]
+      if ((board.candidateMask(c) & ~result.allowed[i]) === 0) continue
+      if (board.keepMask(c, result.allowed[i]) === ConstraintResult.INVALID) return this.invalid(board, c, desc)
+      cleared.push(c)
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Between line')
+    return ConstraintResult.CHANGED
+  }
+
+  // Per-cell bounds for a between line too wide to enumerate: each middle strictly
+  // between some feasible endpoint pair; with middles present, endpoints differ ≥2.
+  private boundsFallback(board: Board, desc: string[]): ConstraintResult {
     const aMask = board.candidateMask(this.a)
     const bMask = board.candidateMask(this.b)
     const aMin = minValue(aMask)
@@ -228,10 +328,9 @@ export class ArrowConstraint extends Constraint {
     const shafts = this.shafts.filter((s) => s.length > 0)
     if (shafts.length === 0) return ConstraintResult.UNCHANGED
 
-    const totalCells = shafts.reduce((sum, s) => sum + s.length, 0)
-    const combo = totalCells <= MAX_COMBINATION_CELLS
-      ? linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
-      : null
+    // Joint weak-link combination prune; null when its effort budget is exceeded
+    // (a very wide arrow), in which case the range bounds below still apply.
+    const combo = linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
     if (combo && combo.sums === 0) {
       desc.push('Arrow shaft cannot reach the bulb')
       return ConstraintResult.INVALID
@@ -344,25 +443,27 @@ export class RegionSumLineConstraint extends Constraint {
   // Tightest [min, max] sum for a group of mutually-constrained cells, honoring
   // the weak-link graph (so cells sharing a house can't all take the same digit —
   // three box cells can't sum to 3, a locked {3,5,9} run sums to exactly 17).
-  // Enumerates valid assignments for small groups; falls back to loose per-cell
-  // bounds for groups too large to enumerate. Returns null if no assignment fits.
+  // Enumerates valid assignments; if the search exceeds the effort budget (a wide
+  // group) it falls back to the loose per-cell sum, which is sound (only wider).
+  // Returns null if no assignment fits.
   private weakLinkSumRange(board: Board, cells: number[]): [number, number] | null {
     if (cells.length === 0) return [0, 0]
-    if (cells.length > MAX_COMBINATION_CELLS) {
-      let lo = 0
-      let hi = 0
-      for (const c of cells) {
-        const mask = board.candidateMask(c)
-        lo += minValue(mask)
-        hi += maxValue(mask)
-      }
-      return [lo, hi]
+    let looseLo = 0
+    let looseHi = 0
+    for (const c of cells) {
+      const mask = board.candidateMask(c)
+      looseLo += minValue(mask)
+      looseHi += maxValue(mask)
     }
     const lists = cells.map((c) => valuesList(board.candidateMask(c)))
     const chosen: number[] = []
     let lo = Number.POSITIVE_INFINITY
     let hi = Number.NEGATIVE_INFINITY
+    let nodes = 0
+    let bailed = false
     const recurse = (i: number, sum: number): void => {
+      if (bailed) return
+      if ((nodes += 1) > COMBINATION_NODE_BUDGET) { bailed = true; return }
       if (i === cells.length) {
         if (sum < lo) lo = sum
         if (sum > hi) hi = sum
@@ -381,6 +482,7 @@ export class RegionSumLineConstraint extends Constraint {
       }
     }
     recurse(0, 0)
+    if (bailed) return [looseLo, looseHi]
     return Number.isFinite(lo) ? [lo, hi] : null
   }
 
@@ -421,18 +523,19 @@ export class RegionSumLineConstraint extends Constraint {
 
     const cleared: number[] = []
     for (const seg of this.segments) {
-      if (seg.length > MAX_COMBINATION_CELLS) {
-        // Too large to enumerate: fall back to loose range pruning (sound, looser).
+      // Keep only values that take part in a weak-link-valid assignment summing
+      // into [slo, shi] — distinctness-aware, so a 3-cell segment summing ≤ 9 caps
+      // each cell at 6 (not the loose 7), and a locked combination is exact.
+      const allowed = this.allowedInRange(board, seg, slo, shi)
+      if (allowed === 'bailed') {
+        // Effort budget exceeded on a wide segment: fall back to loose range
+        // pruning (sound, looser).
         if (sumRangePrune(board, seg, slo, shi, cleared)) {
           desc.push('Region sum line segment cannot reach its sum')
           return ConstraintResult.INVALID
         }
         continue
       }
-      // Keep only values that take part in a weak-link-valid assignment summing
-      // into [slo, shi] — distinctness-aware, so a 3-cell segment summing ≤ 9 caps
-      // each cell at 6 (not the loose 7), and a locked combination is exact.
-      const allowed = this.allowedInRange(board, seg, slo, shi)
       if (!allowed) {
         desc.push('Region sum line segment cannot reach its sum')
         return ConstraintResult.INVALID
@@ -450,12 +553,17 @@ export class RegionSumLineConstraint extends Constraint {
 
   // Per cell, the bitmask of values that survive in some weak-link-valid
   // assignment of `cells` whose total lands in [lo, hi]. Returns null when no such
-  // assignment exists (a contradiction). Caller bounds `cells.length`.
-  private allowedInRange(board: Board, cells: number[], lo: number, hi: number): number[] | null {
+  // assignment exists (a contradiction), or 'bailed' when the search exceeds the
+  // effort budget (a wide segment) — the caller then prunes with loose bounds.
+  private allowedInRange(board: Board, cells: number[], lo: number, hi: number): number[] | null | 'bailed' {
     const allowed = new Array<number>(cells.length).fill(0)
     const chosen: number[] = []
     let feasible = false
+    let nodes = 0
+    let bailed = false
     const recurse = (i: number, sum: number): void => {
+      if (bailed) return
+      if ((nodes += 1) > COMBINATION_NODE_BUDGET) { bailed = true; return }
       if (sum > hi) return // values are ≥ 1, so the running sum only grows
       if (i === cells.length) {
         if (sum < lo) return
@@ -476,6 +584,7 @@ export class RegionSumLineConstraint extends Constraint {
       }
     }
     recurse(0, 0)
+    if (bailed) return 'bailed'
     return feasible ? allowed : null
   }
 }

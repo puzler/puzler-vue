@@ -719,25 +719,24 @@ export function xyWing(board: Board): Elimination | null {
 // sees (an arrow's minimum sum combined with a sandwich's 1/9 adjacency, the web of
 // a Miracle Sudoku, …) at the cost of a clone-and-propagate per candidate. It is
 // therefore gated behind an explicit toggle and only appended after every cheaper
-// technique is exhausted. Every candidate that fails against the current grid is
-// removed together, since "this candidate is impossible" is independent of the
-// others. Sound: it only ever removes a value that cannot be placed.
+// technique is exhausted. It removes just the *first* contradictory candidate it
+// finds and stops: this last-resort lookahead stays as light as possible, and the
+// whole pipeline re-runs after it, so genuine logical deductions unlocked by the
+// removal surface before another trial is spent. Sound: it only ever removes a
+// value that cannot be placed.
 export function contradictionForcing(board: Board): Elimination | null {
-  let removed = false
   for (let cell = 0; cell < board.numCells; cell += 1) {
     if (board.isGiven(cell)) continue
     if (popcount(board.candidateMask(cell)) < 2) continue
     for (const value of valuesList(board.candidateMask(cell))) {
-      // The cell's mask shrinks as this pass removes values; re-check before trying.
-      if ((board.candidateMask(cell) & valueBit(value)) === 0) continue
       const trial = board.clone()
       if (trial.setAsGiven(cell, value) && trial.bruteForceLogic() !== LogicResult.INVALID) continue
       // Placing `value` here forces a contradiction, so it can't go here.
       if (board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value)) === ConstraintResult.INVALID) {
         return { desc: `Contradiction check empties ${cellName(cell, board.size)}`, invalid: true }
       }
-      removed = true
+      return { desc: `Contradiction check: ${cellName(cell, board.size)} can't be ${value}` }
     }
   }
-  return removed ? { desc: 'Contradiction check' } : null
+  return null
 }

@@ -84,9 +84,9 @@ onMounted(() => {
 
     <div
       class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="editor.mode === 'solving' ? 'w-52' : 'w-0'"
+      :class="editor.mode === 'solving' ? 'w-64' : 'w-0'"
     >
-      <SolverNumpad class="w-52 flex-1 min-h-0 border-l border-line" />
+      <SolverNumpad class="w-64 flex-1 min-h-0 border-l border-line" />
     </div>
   </div>
 </template>

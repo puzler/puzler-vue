@@ -637,7 +637,7 @@ export const useEditorStore = defineStore('editor', () => {
     // Color mode (solving only): a numbered key toggles a palette color on the
     // selection. 0 maps to the first colour (index 0), NOT clear; the Delete key
     // (null) clears all colours. Handled before the generic 0→clear rule below.
-    if (mode.value === 'solving' && (modeOverride ?? inputMode.value) === 'color') {
+    if (mode.value === 'solving' && (modeOverride ?? effectiveInputMode.value) === 'color') {
       if (digit === null) clearCellColorsForSelection()
       else {
         const key = useColorPaletteStore().currentPageKeys[digit]
@@ -652,7 +652,7 @@ export const useEditorStore = defineStore('editor', () => {
     } else if (digit === null) {
       deleteSolverContentForSelection()
     } else {
-      const effective = modeOverride ?? inputMode.value
+      const effective = modeOverride ?? effectiveInputMode.value
       if (effective === 'digit') setSolverValueForSelection(digit)
       else if (effective === 'corner') toggleCornerMarkForSelection(digit)
       else if (effective === 'center') toggleCenterMarkForSelection(digit)

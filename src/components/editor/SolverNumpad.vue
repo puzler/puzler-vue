@@ -92,23 +92,23 @@ function swatchStyle(index: number): Record<string, string> {
         <span class="font-display text-4xl font-semibold leading-none">1</span>
       </button>
       <button
-        title="Center marks (X)"
-        aria-label="Center marks"
-        :class="[MODE_KEY, 'row-start-2', modeClass('center')]"
-        @click="editor.setInputMode('center')"
-      >
-        <span class="font-display text-[10px] font-semibold leading-none tracking-tight">123</span>
-      </button>
-      <button
-        title="Corner marks (C)"
+        title="Corner marks (X)"
         aria-label="Corner marks"
-        :class="[MODE_KEY, 'row-start-3', modeClass('corner')]"
+        :class="[MODE_KEY, 'row-start-2', modeClass('corner')]"
         @click="editor.setInputMode('corner')"
       >
         <span class="absolute top-1 left-1.5 font-display text-[10px] font-semibold leading-none">1</span>
         <span class="absolute top-1 right-1.5 font-display text-[10px] font-semibold leading-none">2</span>
         <span class="absolute bottom-1 left-1.5 font-display text-[10px] font-semibold leading-none">3</span>
         <span class="absolute bottom-1 right-1.5 font-display text-[10px] font-semibold leading-none">4</span>
+      </button>
+      <button
+        title="Center marks (C)"
+        aria-label="Center marks"
+        :class="[MODE_KEY, 'row-start-3', modeClass('center')]"
+        @click="editor.setInputMode('center')"
+      >
+        <span class="font-display text-[10px] font-semibold leading-none tracking-tight">123</span>
       </button>
       <button
         title="Colors (V)"

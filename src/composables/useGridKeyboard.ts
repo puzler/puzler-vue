@@ -43,7 +43,8 @@ export function useGridKeyboard() {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
 
     if (editor.mode === 'solving') {
-      if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
+      else if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
       else if (event.shiftKey) editor.setKeyboardModeOverride('corner')
     }
 
@@ -83,14 +84,14 @@ export function useGridKeyboard() {
 
     if (editor.mode === 'solving' && !event.ctrlKey && !event.metaKey) {
       if (event.key === 'z' || event.key === 'Z') { editor.setInputMode('digit'); return }
-      if (event.key === 'x' || event.key === 'X') { editor.setInputMode('center'); return }
-      if (event.key === 'c' || event.key === 'C') { editor.setInputMode('corner'); return }
+      if (event.key === 'x' || event.key === 'X') { editor.setInputMode('corner'); return }
+      if (event.key === 'c' || event.key === 'C') { editor.setInputMode('center'); return }
       if (event.key === 'v' || event.key === 'V') { editor.setInputMode('color'); return }
     }
 
     if (event.key === ' ' && editor.mode === 'solving') {
       event.preventDefault()
-      const cycle: SolverInputMode[] = ['digit', 'center', 'corner', 'color']
+      const cycle: SolverInputMode[] = ['digit', 'corner', 'center', 'color']
       const next = cycle[(cycle.indexOf(editor.inputMode) + 1) % cycle.length]
       editor.setInputMode(next)
       return
@@ -172,9 +173,10 @@ export function useGridKeyboard() {
 
     if (digit !== null && digit >= 1 && digit <= grid.cols) {
       event.preventDefault()
-      let modeOverride: 'digit' | 'center' | 'corner' | undefined
+      let modeOverride: SolverInputMode | undefined
       if (editor.mode === 'solving') {
-        if (event.ctrlKey || event.metaKey) modeOverride = 'center'
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey) modeOverride = 'color'
+        else if (event.ctrlKey || event.metaKey) modeOverride = 'center'
         else if (event.shiftKey) modeOverride = 'corner'
       }
       editor.placeDigitForSelection(digit, modeOverride)
@@ -184,7 +186,8 @@ export function useGridKeyboard() {
   function onKeyUp(event: KeyboardEvent) {
     if (event.key === 'Shift') editor.setShiftHeld(false)
     if (event.key !== 'Shift' && event.key !== 'Control' && event.key !== 'Meta') return
-    if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
+    else if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
     else if (event.shiftKey) editor.setKeyboardModeOverride('corner')
     else editor.setKeyboardModeOverride(null)
   }

@@ -19,7 +19,9 @@ interface CellInfo {
   row: number
   col: number
   color: string | null
-  fills: string[]
+  // One entry per applied color, in order. null = a fully-transparent color
+  // that still owns its wedge (painted as nothing) rather than being dropped.
+  fills: (string | null)[]
 }
 
 const cells = computed<CellInfo[]>(() => {
@@ -28,11 +30,13 @@ const cells = computed<CellInfo[]>(() => {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
       const state = props.cellStates?.[key]
-      // Player colors resolve through the palette (pastel rgba); white/unknown
-      // keys resolve to null and are dropped, so they paint nothing.
+      // Each applied color keeps its own slot (and thus its own wedge). Real
+      // colors resolve to pastel rgba; fully-transparent ones resolve to null
+      // and paint nothing while still reserving their slice. Only stale/unknown
+      // keys (not in the palette) are dropped entirely.
       const fills = !state?.colors?.length
         ? []
-        : state.colors.map((k) => palette.fillForKey(k)).filter((f): f is string => f !== null)
+        : state.colors.filter((k) => palette.hasColor(k)).map((k) => palette.fillForKey(k))
       out.push({
         key,
         row: r,

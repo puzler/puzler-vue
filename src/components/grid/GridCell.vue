@@ -8,7 +8,9 @@ const props = defineProps<{
   // Legacy single cosmetic color (author-set).
   color?: string | null
   // Resolved player colors (rgba). One = full fill; several = pie-slice wedges.
-  fills?: string[]
+  // A null entry is a fully-transparent color: it keeps its slice but paints
+  // nothing, so colors beneath it don't bleed into that wedge.
+  fills?: (string | null)[]
 }>()
 
 const x = computed(() => PADDING + props.col * CELL_SIZE)
@@ -34,7 +36,7 @@ const wedges = computed<string[]>(() => {
     return `L${x0} ${y0 + s - (val - 3 * s)}`
   }
   const portion = (4 * s) / fills.length
-  return fills.map((_, i) => {
+  return fills.map((_, i): string => {
     const start = i * portion
     const end = start + portion
     const data = [`M${cx} ${cy}`]
@@ -50,22 +52,23 @@ const wedges = computed<string[]>(() => {
 </script>
 
 <template>
-  <!-- Single player color: simple full-cell fill -->
+  <!-- Single player color: simple full-cell fill (skip if fully transparent) -->
   <rect
-    v-if="fills && fills.length === 1"
+    v-if="fills && fills.length === 1 && fills[0]"
     :x="x"
     :y="y"
     :width="CELL_SIZE"
     :height="CELL_SIZE"
     :fill="fills[0]"
   />
-  <!-- Multiple player colors: pie-slice wedges -->
+  <!-- Multiple player colors: pie-slice wedges. A null fill paints nothing but
+       still owns its wedge, so other colors don't spill into its slice. -->
   <template v-else-if="wedges.length">
     <path
       v-for="(d, i) in wedges"
       :key="i"
       :d="d"
-      :fill="(fills as string[])[i]"
+      :fill="(fills as (string | null)[])[i] ?? 'transparent'"
       stroke="none"
     />
   </template>

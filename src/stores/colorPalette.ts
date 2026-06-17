@@ -25,6 +25,12 @@ export const useColorPaletteStore = defineStore('colorPalette', () => {
   function fillForKey(key: string): string | null {
     return transparentFill(palette.colors[key])
   }
+  // Whether the key names a real palette color (even a fully-transparent one).
+  // Lets a cell reserve a wedge for a transparent color while still dropping
+  // stale/unknown keys.
+  function hasColor(key: string): boolean {
+    return palette.colors[key] !== undefined
+  }
   // The raw swatch color for palette UI / buttons (may carry alpha).
   function swatchForKey(key: string): string {
     return palette.colors[key] ?? palette.defaultColor
@@ -94,6 +100,7 @@ export const useColorPaletteStore = defineStore('colorPalette', () => {
     pageCount,
     currentPageKeys,
     fillForKey,
+    hasColor,
     swatchForKey,
     swatchBackground,
     setPageIndex,

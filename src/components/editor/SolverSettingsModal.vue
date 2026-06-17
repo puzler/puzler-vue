@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { useSolverStore, type SolverTechniqueLevel } from '@/stores/solver'
+import { useSolverStore, type TechniqueToggles } from '@/stores/solver'
 
 const solver = useSolverStore()
 defineEmits<{ close: [] }>()
 
-const LEVELS: Array<{ value: SolverTechniqueLevel; label: string }> = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'tough', label: 'Tough' },
-  { value: 'advanced', label: 'Advanced' },
+const TECHNIQUES: Array<{ key: keyof TechniqueToggles; label: string; hint: string }> = [
+  { key: 'subsets', label: 'Naked & hidden subsets', hint: 'Pairs, triples and quads locked to a set of cells.' },
+  { key: 'lockedCandidates', label: 'Locked candidates', hint: 'Pointing and claiming, including knight/king sight-lines.' },
+  { key: 'weakLinkForcing', label: 'Weak-link forcing', hint: 'Linked pairs and single-cell forcing across the weak-link graph.' },
+  { key: 'parity', label: 'Parity counting', hint: 'Odd/even balance from houses, arrows and cages.' },
+  { key: 'fish', label: 'Fish', hint: 'X-Wing and Swordfish over rows, columns and regions.' },
+  { key: 'wings', label: 'Wings', hint: 'XY-Wing.' },
+  {
+    key: 'contradictionCheck',
+    label: 'Contradiction check',
+    hint: 'Last-resort lookahead: trial each candidate and rule out any that force a contradiction. Catches interactions no other technique sees, but is slower.',
+  },
 ]
 
 const CHECK = 'flex items-start gap-2.5 text-sm text-ink-text select-none cursor-pointer'
@@ -20,7 +28,7 @@ const HINT = 'text-[11px] text-faint leading-snug pl-6'
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
       @click.self="$emit('close')"
     >
-      <div class="bg-surface rounded-xl shadow-xl w-80 p-5">
+      <div class="bg-surface rounded-xl shadow-xl w-80 p-5 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-display font-semibold text-ink-text text-sm">
             Solver Settings
@@ -61,30 +69,31 @@ const HINT = 'text-[11px] text-faint leading-snug pl-6'
               Show logical candidates
             </label>
             <p :class="HINT">
-              Show candidates the chosen technique level can't eliminate. Ones that actually break the
+              Show candidates the enabled techniques can't eliminate. Ones that actually break the
               puzzle are shown in red.
             </p>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <span class="text-sm text-ink-text">Technique level</span>
-            <div class="grid grid-cols-3 gap-1">
-              <button
-                v-for="lvl in LEVELS"
-                :key="lvl.value"
-                class="h-8 rounded-md border text-xs font-medium transition-colors"
-                :class="solver.techniqueLevel === lvl.value
-                  ? 'bg-action border-action text-white'
-                  : 'bg-surface border-line text-soft hover:border-action hover:text-action'"
-                @click="solver.setTechniqueLevel(lvl.value)"
-              >
-                {{ lvl.label }}
-              </button>
+          <div class="flex flex-col gap-2.5">
+            <span class="text-sm text-ink-text">Techniques</span>
+            <div
+              v-for="t in TECHNIQUES"
+              :key="t.key"
+              class="flex flex-col gap-1"
+            >
+              <label :class="CHECK">
+                <input
+                  type="checkbox"
+                  class="accent-action mt-0.5"
+                  :checked="solver.techniques[t.key]"
+                  @change="solver.setTechnique(t.key, ($event.target as HTMLInputElement).checked)"
+                >
+                {{ t.label }}
+              </label>
+              <p :class="HINT">
+                {{ t.hint }}
+              </p>
             </div>
-            <p :class="HINT">
-              How far the logical solver's standard techniques go (subsets &amp; locked candidates →
-              fish → wings).
-            </p>
           </div>
         </div>
       </div>

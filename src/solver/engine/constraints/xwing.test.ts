@@ -47,7 +47,7 @@ describe("'The X-Wing' puzzle", () => {
 
   it('is not wrongly marked invalid, and keeps the real solution admissible', () => {
     const { board } = buildBoard(puzzle())
-    const result = logicalSolve(board, 'advanced')
+    const result = logicalSolve(board)
     expect(result.invalid).toBe(false)
     for (const [k, v] of Object.entries(SOL)) {
       const m = k.match(/r(\d)c(\d)/)!

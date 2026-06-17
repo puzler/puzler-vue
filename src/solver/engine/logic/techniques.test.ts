@@ -227,7 +227,7 @@ describe('standard sudoku techniques', () => {
     expect(parityCounting(plain)).toBeNull()
   })
 
-  it('XY-Wing is gated behind the Advanced level', () => {
+  it('XY-Wing is gated behind the wings toggle', () => {
     // Pivot {1,2} with pincers {1,3} and {2,3} that don't share a region (so no
     // naked-triple shortcut); only the XY-Wing clears 3 from r4c4.
     const make = () => {
@@ -237,11 +237,11 @@ describe('standard sudoku techniques', () => {
       setCandidates(board, 36, [2, 3]) // pincer r4c0 (sees pivot via column 0)
       return board
     }
-    const tough = make()
-    const advanced = make()
-    logicalSolve(tough, 'tough')
-    logicalSolve(advanced, 'advanced')
-    expect(candidates(tough, 40)).toContain(3) // r4c4 not reachable at Tough
-    expect(candidates(advanced, 40)).not.toContain(3) // cleared at Advanced
+    const withoutWings = make()
+    const withWings = make()
+    logicalSolve(withoutWings, { wings: false })
+    logicalSolve(withWings, { wings: true })
+    expect(candidates(withoutWings, 40)).toContain(3) // no other technique clears it
+    expect(candidates(withWings, 40)).not.toContain(3) // XY-Wing clears it
   })
 })

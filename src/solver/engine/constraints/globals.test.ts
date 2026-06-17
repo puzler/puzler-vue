@@ -3,6 +3,7 @@ import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import type { AdapterContext } from '../../adapterContext'
 import { buildBoard } from '../buildBoard'
 import { findSolution } from '../algorithms'
+import { logicalSolve } from '../logic/logicalSolver'
 import { standardBoxes, mainDiagonalCells } from '../geometry'
 import { valueBit } from '../bitmask'
 import antiXv from './antiXv'
@@ -74,6 +75,22 @@ describe('global & single-cell constraints', () => {
     // r0c2 (2) and r1c4 (13) are a knight's move apart, in different boxes.
     expect(valid(puzzle(9, [[2, 5], [13, 5]], [knight]))).toBe(false)
     expect(valid(puzzle(9, [[2, 5], [13, 5]], []))).toBe(true)
+  })
+
+  it("knight's move clears a confined value from cells that see all its homes", () => {
+    // Confine 3 in the bottom-left box to r7c1 (64) and r8c1 (73) by removing it
+    // from that box's other seven cells. The Miracle-Sudoku deduction: r7c3 (66)
+    // sees r7c1 along its row and r8c1 a knight's move away — and r8c3 (75) sees
+    // both symmetrically — so neither can be a 3.
+    const knight = { kind: 'chess', move: 'knight' }
+    const { board } = buildBoard(puzzle(9, [], [knight]))
+    for (const cell of [54, 55, 56, 63, 65, 72, 74]) {
+      board.keepMask(cell, board.candidateMask(cell) & ~valueBit(3))
+    }
+    logicalSolve(board)
+    expect(board.candidateMask(66) & valueBit(3)).toBe(0) // r7c3 loses 3
+    expect(board.candidateMask(75) & valueBit(3)).toBe(0) // r8c3 loses 3
+    expect(board.candidateMask(64) & valueBit(3)).not.toBe(0) // a home keeps 3
   })
 
   it("king's move forbids equal digits a king apart", () => {

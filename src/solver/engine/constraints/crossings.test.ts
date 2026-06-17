@@ -46,7 +46,7 @@ describe("'Constrained Crossings'", () => {
     ]
     const { board, valid } = buildBoard({ size: 8, regions: regions(), givens: [], constraints })
     expect(valid).toBe(true)
-    const solve = logicalSolve(board, 'advanced')
+    const solve = logicalSolve(board)
     expect({ solved: solve.solved, invalid: solve.invalid }).toEqual({ solved: true, invalid: false })
     const SOL =
       '85124376' + '76213584' + '34865712' + '53478621' +

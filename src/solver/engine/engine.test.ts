@@ -110,7 +110,7 @@ describe('solver engine', () => {
 
   it('logical candidates resolve a singles puzzle with no false reds', () => {
     const { board } = buildBoard(vanilla(EASY))
-    const result = logicalCandidates(board, 'standard', 1)
+    const result = logicalCandidates(board, 1)
     expect(result.valid).toBe(true)
     expect(result.counts).toBeDefined()
     // EASY solves on singles → every cell resolves to one feasible candidate

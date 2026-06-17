@@ -1,4 +1,4 @@
-import type { Board } from '../board'
+import { type Board, LogicResult } from '../board'
 import { ConstraintResult } from '../constraint'
 import { popcount, valueBit, valuesList, minValue, isSingle } from '../bitmask'
 import { cellName } from '../geometry'
@@ -248,6 +248,36 @@ export function lockedCandidates(board: Board): Elimination | null {
             desc: `Locked candidate: ${value} in ${regionName(board, regionA)} confined to ${regionName(board, board.regions[bi])}`,
           }
         }
+      }
+    }
+  }
+  return null
+}
+
+// ── Confined-value forcing (locked candidates via weak links) ─────────────────
+
+// In a complete house a value appears exactly once, so it is "forced" into the set
+// of that house's cells that can still hold it. Any cell weak-linked to ALL of those
+// cells on that value therefore can't be it. Over plain region links this is just
+// pointing/claiming (already covered by lockedCandidates); the payoff is the *extra*
+// same-value links from knight's-move, king's-move and the like — a value pinned to
+// two cells of a box routinely "sees" an outside cell that is a knight's move from
+// one of them and a house-peer of the other, so the value drops out of it.
+export function confinedValueForcing(board: Board): Elimination | null {
+  for (const region of board.regions) {
+    if (region.length !== board.size) continue
+    for (let value = 1; value <= board.size; value += 1) {
+      const vb = valueBit(value)
+      const homes = region.filter((c) => (board.candidateMask(c) & vb) !== 0)
+      // One home is an ordinary hidden single (handled earlier); a value spread
+      // across the whole house confines nothing.
+      if (homes.length < 2) continue
+      const cleared: number[] = []
+      if (clearSeenByForcedGroup(board, homes, vb, cleared)) {
+        return { desc: `${value} confined to ${regionName(board, region)} empties a cell`, invalid: true }
+      }
+      if (cleared.length) {
+        return { desc: `${value} confined to ${regionName(board, region)}` }
       }
     }
   }
@@ -678,4 +708,36 @@ export function xyWing(board: Board): Elimination | null {
     }
   }
   return null
+}
+
+// ── Contradiction check (depth-1 forcing) — opt-in ───────────────────────────
+
+// If committing a candidate and running the cheap propagation (singles + every
+// constraint's logicStep) to a fixpoint yields a contradiction, that candidate is
+// impossible. This is mild, bounded lookahead — one hypothetical placement, no
+// recursion — so it catches multi-constraint interactions no structural technique
+// sees (an arrow's minimum sum combined with a sandwich's 1/9 adjacency, the web of
+// a Miracle Sudoku, …) at the cost of a clone-and-propagate per candidate. It is
+// therefore gated behind an explicit toggle and only appended after every cheaper
+// technique is exhausted. Every candidate that fails against the current grid is
+// removed together, since "this candidate is impossible" is independent of the
+// others. Sound: it only ever removes a value that cannot be placed.
+export function contradictionForcing(board: Board): Elimination | null {
+  let removed = false
+  for (let cell = 0; cell < board.numCells; cell += 1) {
+    if (board.isGiven(cell)) continue
+    if (popcount(board.candidateMask(cell)) < 2) continue
+    for (const value of valuesList(board.candidateMask(cell))) {
+      // The cell's mask shrinks as this pass removes values; re-check before trying.
+      if ((board.candidateMask(cell) & valueBit(value)) === 0) continue
+      const trial = board.clone()
+      if (trial.setAsGiven(cell, value) && trial.bruteForceLogic() !== LogicResult.INVALID) continue
+      // Placing `value` here forces a contradiction, so it can't go here.
+      if (board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value)) === ConstraintResult.INVALID) {
+        return { desc: `Contradiction check empties ${cellName(cell, board.size)}`, invalid: true }
+      }
+      removed = true
+    }
+  }
+  return removed ? { desc: 'Contradiction check' } : null
 }

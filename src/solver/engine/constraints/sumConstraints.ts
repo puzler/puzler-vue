@@ -189,18 +189,65 @@ export class XSumConstraint extends Constraint {
   }
 }
 
-// Sandwich: the cells strictly between the 1 and the size in the line sum to the
-// target. Determinable once both crusts (1 and size) are placed.
+// Sandwich: the cells strictly between the 1 and the size (the "crusts") in the
+// line sum to the target. The clue pins not just the sum but how *many* cells lie
+// between the crusts — the sum must be made from some number of distinct digits
+// drawn from {2..size-1}, which fixes the set of distances the 1 and size may sit
+// apart. That distance set drives the strong deductions: weak links forbidding the
+// crusts at an impossible distance, and ruling each crust out of cells with no
+// partner at a feasible distance (a full sum of 35 forces 1 and 9 to the ends; a 0
+// clue forces them adjacent; a large minimum length clears 1/9 from central cells).
 export class SandwichConstraint extends Constraint {
   private line: number[]
   private target: number
   private involved: Set<number>
+  private feasibleDistances: Set<number> | null = null
+  private seeded = false
 
   constructor(line: number[], target: number) {
     super('Sandwich')
     this.line = line
     this.target = target
     this.involved = new Set(line)
+  }
+
+  // Distances |p − q| the 1 and the size may sit apart. Between them lie
+  // g = |p − q| − 1 cells holding distinct digits from {2..size-1}, so a distance is
+  // feasible iff some g-subset of those digits sums to the target.
+  private distances(board: Board): Set<number> {
+    if (this.feasibleDistances) return this.feasibleDistances
+    const digits: number[] = []
+    for (let d = 2; d <= board.size - 1; d += 1) digits.push(d)
+    // dp[g] = the sums reachable using exactly g of the digits.
+    const dp: Set<number>[] = Array.from({ length: digits.length + 1 }, () => new Set<number>())
+    dp[0].add(0)
+    for (const d of digits) {
+      for (let g = digits.length; g >= 1; g -= 1) {
+        for (const s of dp[g - 1]) dp[g].add(s + d)
+      }
+    }
+    const distances = new Set<number>()
+    for (let g = 0; g < dp.length; g += 1) {
+      if (dp[g].has(this.target)) distances.add(g + 1)
+    }
+    this.feasibleDistances = distances
+    return distances
+  }
+
+  // Seed weak links: the 1 and the size cannot sit a non-feasible distance apart.
+  init(board: Board): ConstraintResult {
+    if (this.seeded) return ConstraintResult.UNCHANGED
+    this.seeded = true
+    const feasible = this.distances(board)
+    const high = board.size
+    for (let i = 0; i < this.line.length; i += 1) {
+      for (let j = i + 1; j < this.line.length; j += 1) {
+        if (feasible.has(j - i)) continue
+        board.addWeakLink(board.candidateIndex(this.line[i], 1), board.candidateIndex(this.line[j], high))
+        board.addWeakLink(board.candidateIndex(this.line[j], 1), board.candidateIndex(this.line[i], high))
+      }
+    }
+    return ConstraintResult.UNCHANGED
   }
 
   enforce(board: Board, cell: number) {
@@ -218,34 +265,70 @@ export class SandwichConstraint extends Constraint {
     return sumInRange(board, this.line.slice(lo + 1, hi), this.target)
   }
 
-  // Once 1 and the size are each confined to a single cell, the cells between
-  // them sum to the target (distinct, since the line is a row/column).
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const size = board.size
+    const cleared: number[] = []
+    // Crust arc-consistency: a 1 (or the size) can sit only where its partner crust
+    // can sit a feasible distance away. This is where the cell-count deductions live.
+    if (this.pruneCrusts(board, cleared)) {
+      desc.push('Sandwich crusts have no valid placement')
+      return ConstraintResult.INVALID
+    }
+    // Once both crusts are pinned, the cells between them sum to the target
+    // (distinct, since the line is a row/column).
     const oneHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(1)) !== 0)
     const sizeHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(size)) !== 0)
-    if (oneHomes.length !== 1 || sizeHomes.length !== 1) return ConstraintResult.UNCHANGED
-
-    const i = this.line.indexOf(oneHomes[0])
-    const j = this.line.indexOf(sizeHomes[0])
-    const between = this.line.slice(Math.min(i, j) + 1, Math.max(i, j))
-    if (between.length === 0) {
-      if (this.target !== 0) {
-        desc.push('Sandwich target is unreachable')
-        return ConstraintResult.INVALID
+    if (oneHomes.length === 1 && sizeHomes.length === 1) {
+      const i = this.line.indexOf(oneHomes[0])
+      const j = this.line.indexOf(sizeHomes[0])
+      const between = this.line.slice(Math.min(i, j) + 1, Math.max(i, j))
+      if (between.length === 0) {
+        if (this.target !== 0) {
+          desc.push('Sandwich target is unreachable')
+          return ConstraintResult.INVALID
+        }
+      } else {
+        if (sumRangePrune(board, between, this.target, this.target, cleared)) {
+          desc.push('Sandwich is unreachable')
+          return ConstraintResult.INVALID
+        }
+        if (sumCombinationPrune(board, between, this.target, cleared).invalid) {
+          desc.push('Sandwich has no valid combination')
+          return ConstraintResult.INVALID
+        }
       }
-      return ConstraintResult.UNCHANGED
-    }
-    const cleared: number[] = []
-    if (sumRangePrune(board, between, this.target, this.target, cleared)) {
-      desc.push('Sandwich is unreachable')
-      return ConstraintResult.INVALID
-    }
-    if (sumCombinationPrune(board, between, this.target, cleared).invalid) {
-      desc.push('Sandwich has no valid combination')
-      return ConstraintResult.INVALID
     }
     return reportClears(board, 'Sandwich', cleared, desc)
+  }
+
+  // Drop the 1 (or the size) from any cell that has no partner cell, a feasible
+  // distance away, still able to hold the other crust. Iterates to a fixpoint, so
+  // clearing one crust position can cascade into the other. Returns true on a
+  // contradiction (a crust ends up with nowhere to go).
+  private pruneCrusts(board: Board, cleared: number[]): boolean {
+    const feasible = this.distances(board)
+    const oneBit = valueBit(1)
+    const highBit = valueBit(board.size)
+    const crusts: Array<[number, number]> = [[oneBit, highBit], [highBit, oneBit]]
+    const canHold = (idx: number, bit: number) => (board.candidateMask(this.line[idx]) & bit) !== 0
+    let changed = true
+    while (changed) {
+      changed = false
+      for (let i = 0; i < this.line.length; i += 1) {
+        for (const [selfBit, otherBit] of crusts) {
+          if (!canHold(i, selfBit)) continue
+          let ok = false
+          for (let j = 0; j < this.line.length; j += 1) {
+            if (j !== i && feasible.has(Math.abs(i - j)) && canHold(j, otherBit)) { ok = true; break }
+          }
+          if (ok) continue
+          const r = board.keepMask(this.line[i], board.candidateMask(this.line[i]) & ~selfBit)
+          if (r === ConstraintResult.INVALID) return true
+          if (r === ConstraintResult.CHANGED) { cleared.push(this.line[i]); changed = true }
+        }
+      }
+    }
+    return false
   }
 }
 

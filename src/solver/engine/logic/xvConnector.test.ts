@@ -70,7 +70,7 @@ describe("XV puzzle: 5 on an X clue", () => {
   it('removes 5 from both cells of the R8C1/R8C2 X clue', () => {
     const { board, valid } = buildBoard(puzzle())
     expect(valid).toBe(true)
-    logicalSolve(board, 'advanced')
+    logicalSolve(board)
     // R8C1 = idx(7,0), R8C2 = idx(7,1): neither can be 5 (both would have to be 5
     // for the X clue's sum of 10, breaking the row).
     expect(valuesList(board.candidateMask(idx(7, 0)))).not.toContain(5)

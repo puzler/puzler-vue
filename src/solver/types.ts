@@ -25,8 +25,18 @@ export interface SolverPuzzle {
   constraints: SolverConstraintSpec[]
 }
 
-// How far the logical solver's standard (non-constraint) techniques go.
-export type TechniqueLevel = 'standard' | 'tough' | 'advanced'
+// Which optional logical techniques to run, beyond the always-on core (singles +
+// constraint propagation). Each is toggled independently. An omitted structural
+// flag defaults to ON; contradictionCheck (lookahead) defaults to OFF.
+export interface TechniqueOptions {
+  subsets?: boolean // naked & hidden pairs/triples/quads
+  lockedCandidates?: boolean // pointing/claiming, incl. knight/king sight-lines
+  weakLinkForcing?: boolean // linked pairs + single-cell forcing on the weak-link graph
+  parity?: boolean // GF(2) parity counting
+  fish?: boolean // X-Wing, Swordfish
+  wings?: boolean // XY-Wing
+  contradictionCheck?: boolean // depth-1 trial elimination (opt-in)
+}
 
 export type SolverCommand =
   | { cmd: 'solve'; puzzle: SolverPuzzle; options?: { random?: boolean } }
@@ -34,13 +44,17 @@ export type SolverCommand =
   | {
       cmd: 'truecandidates'
       puzzle: SolverPuzzle
-      // logical: return the logical-candidate set (at techniqueLevel) instead of
+      // logical: return the logical-candidate set (using `techniques`) instead of
       // brute-force true candidates; candidates with count 0 are "logically
       // irreducible but impossible".
-      options?: { maxSolutionsPerCandidate?: number; logical?: boolean; techniqueLevel?: TechniqueLevel }
+      options?: {
+        maxSolutionsPerCandidate?: number
+        logical?: boolean
+        techniques?: TechniqueOptions
+      }
     }
-  | { cmd: 'step'; puzzle: SolverPuzzle; options?: { techniqueLevel?: TechniqueLevel } }
-  | { cmd: 'logicalsolve'; puzzle: SolverPuzzle; options?: { techniqueLevel?: TechniqueLevel } }
+  | { cmd: 'step'; puzzle: SolverPuzzle; options?: { techniques?: TechniqueOptions } }
+  | { cmd: 'logicalsolve'; puzzle: SolverPuzzle; options?: { techniques?: TechniqueOptions } }
 
 // `candidates` is, per cell (row-major), the list of still-possible values.
 export type SolverResult =

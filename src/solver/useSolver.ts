@@ -1,4 +1,4 @@
-import type { SolverCommand, SolverPuzzle, SolverResult, TechniqueLevel } from './types'
+import type { SolverCommand, SolverPuzzle, SolverResult, TechniqueOptions } from './types'
 
 export interface SolverCallbacks {
   onSolution?(solution: number[]): void
@@ -19,10 +19,10 @@ export interface SolverClient {
   count(puzzle: SolverPuzzle, options?: { maxSolutions?: number }): void
   trueCandidates(
     puzzle: SolverPuzzle,
-    options?: { maxSolutionsPerCandidate?: number; logical?: boolean; techniqueLevel?: TechniqueLevel },
+    options?: { maxSolutionsPerCandidate?: number; logical?: boolean; techniques?: TechniqueOptions },
   ): void
-  step(puzzle: SolverPuzzle, options?: { techniqueLevel?: TechniqueLevel }): void
-  logicalSolve(puzzle: SolverPuzzle, options?: { techniqueLevel?: TechniqueLevel }): void
+  step(puzzle: SolverPuzzle, options?: { techniques?: TechniqueOptions }): void
+  logicalSolve(puzzle: SolverPuzzle, options?: { techniques?: TechniqueOptions }): void
   cancel(): void
   dispose(): void
   isBusy(): boolean

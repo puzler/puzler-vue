@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { cellKey } from '@/composables/useGrid'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
@@ -8,10 +8,10 @@ import { createSolverClient } from '@/solver/useSolver'
 import {
   loadSolverSettings,
   saveSolverSettings,
-  type SolverTechniqueLevel,
+  type TechniqueToggles,
 } from '@/utils/solverSettings'
 
-export type { SolverTechniqueLevel }
+export type { TechniqueToggles }
 
 // Which solver command is currently running (also drives each button's
 // Cancel/spinner state), or null when idle.
@@ -39,15 +39,17 @@ export const useSolverStore = defineStore('solver', () => {
   // Show candidates the chosen technique level can't logically eliminate; the
   // ones that actually break the puzzle (0 solutions) render red.
   const showLogicalCandidates = ref(persisted.showLogicalCandidates)
-  // How far the logical solver's standard techniques go.
-  const techniqueLevel = ref<SolverTechniqueLevel>(persisted.techniqueLevel)
-  watch([showCandidateCounts, showLogicalCandidates, techniqueLevel], () => {
-    saveSolverSettings({
+  // Individually toggleable logical techniques (replaces the old difficulty tiers).
+  const techniques = reactive<TechniqueToggles>({ ...persisted.techniques })
+  watch(
+    () => ({
       showCandidateCounts: showCandidateCounts.value,
       showLogicalCandidates: showLogicalCandidates.value,
-      techniqueLevel: techniqueLevel.value,
-    })
-  })
+      techniques: { ...techniques },
+    }),
+    (settings) => saveSolverSettings(settings),
+    { deep: true },
+  )
   // Panel chrome: the section can be collapsed (header only) and, when open,
   // expanded to fill the whole left toolbar for an easier read of the output.
   // Collapsed by default so it stays out of the way until opened.
@@ -187,7 +189,7 @@ export const useSolverStore = defineStore('solver', () => {
   }
   function runLogicalSolve() {
     start('logical-solve', 'Logical solving…', (puzzle) =>
-      client.logicalSolve(puzzle, { techniqueLevel: techniqueLevel.value }),
+      client.logicalSolve(puzzle, { techniques: { ...techniques } }),
     )
   }
   function runCount() {
@@ -203,7 +205,7 @@ export const useSolverStore = defineStore('solver', () => {
     if (!lastWasStep) display.value = []
     lastWasStep = true
     currentCommand.value = 'logical-step'
-    client.step(puzzle, { techniqueLevel: techniqueLevel.value })
+    client.step(puzzle, { techniques: { ...techniques } })
   }
   function runTrueCandidates(auto = false) {
     // Count up to 11 per candidate so the UI can distinguish the 5–10 bucket
@@ -214,7 +216,7 @@ export const useSolverStore = defineStore('solver', () => {
       client.trueCandidates(puzzle, {
         maxSolutionsPerCandidate: showCandidateCounts.value ? 11 : 1,
         logical: showLogicalCandidates.value,
-        techniqueLevel: techniqueLevel.value,
+        techniques: { ...techniques },
       }),
     )
   }
@@ -293,8 +295,8 @@ export const useSolverStore = defineStore('solver', () => {
     if (autoTrueCandidates.value) runTrueCandidates(true)
   }
 
-  function setTechniqueLevel(value: SolverTechniqueLevel) {
-    techniqueLevel.value = value
+  function setTechnique(key: keyof TechniqueToggles, value: boolean) {
+    techniques[key] = value
     if (autoTrueCandidates.value) runTrueCandidates(true)
   }
 
@@ -328,9 +330,9 @@ export const useSolverStore = defineStore('solver', () => {
     toggleAutoTrueCandidates,
     redCandidates,
     showLogicalCandidates,
-    techniqueLevel,
+    techniques,
     setShowCandidateCounts,
     setShowLogicalCandidates,
-    setTechniqueLevel,
+    setTechnique,
   }
 })

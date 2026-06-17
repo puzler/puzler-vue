@@ -57,7 +57,7 @@ describe('quadruple deductions', () => {
       '+r8c1': [2], '+r8c4': [2, 4, 6, 8], '+r8c5': [2, 4, 5, 7], '+r7c7': [3, 4, 5, 6], '+r8c8': [8],
     }
     const board = build(Object.entries(dots).map(([k, v]) => quad(k, v)))
-    const result = logicalSolve(board, 'advanced')
+    const result = logicalSolve(board)
     expect(result.invalid).toBe(false)
     expect(result.solved).toBe(true)
   })

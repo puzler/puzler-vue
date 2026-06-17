@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import { buildBoard } from '../buildBoard'
 import { findSolution } from '../algorithms'
+import { contradictionForcing } from '../logic/techniques'
 import { standardBoxes } from '../geometry'
 
 function allRegions(size: number): number[][] {
@@ -73,6 +74,61 @@ describe('cage, region & outer-clue constraints', () => {
     // 1 at r0c0, 9 at r0c2, middle r0c1 = 5.
     expect(valid(puzzle([[0, 1], [2, 9], [1, 6]], [sandwich]))).toBe(false) // middle 6 ≠ 5
     expect(valid(puzzle([[0, 1], [2, 9], [1, 5]], [sandwich]))).toBe(true)
+  })
+
+  it('sandwich sum 35 forces 1 and 9 to the line ends', () => {
+    // The only way to sum 35 is the whole set {2..8} (7 cells), so the crusts must
+    // be 8 apart — i.e. at the two ends. Every central cell loses 1 and 9.
+    const sandwich = { kind: 'sandwich', line: ROW0, target: 35 }
+    const { board } = buildBoard(puzzle([], [sandwich]))
+    board.bruteForceLogic()
+    const cands = board.candidatesPerCell()
+    for (const cell of [1, 2, 3, 4, 5, 6, 7]) {
+      expect(cands[cell]).not.toContain(1)
+      expect(cands[cell]).not.toContain(9)
+    }
+    expect(cands[0]).toEqual(expect.arrayContaining([1, 9])) // ends keep both crusts
+    expect(cands[8]).toEqual(expect.arrayContaining([1, 9]))
+    // A 1/9 placed off the ends contradicts the clue.
+    expect(valid(puzzle([[0, 1], [7, 9]], [sandwich]))).toBe(false) // distance 7 ≠ 8
+    expect(valid(puzzle([[0, 1], [8, 9]], [sandwich]))).toBe(true) // distance 8
+  })
+
+  it('sandwich sum 0 forces 1 and 9 adjacent (weak links)', () => {
+    const sandwich = { kind: 'sandwich', line: ROW0, target: 0 }
+    const { board } = buildBoard(puzzle([[0, 1]], [sandwich])) // 1 at r0c0
+    board.bruteForceLogic()
+    const cands = board.candidatesPerCell()
+    expect(cands[1]).toContain(9) // the 9 must be the neighbour
+    for (const cell of [2, 3, 4, 5, 6, 7, 8]) expect(cands[cell]).not.toContain(9)
+  })
+
+  it('sandwich rules its crusts out of cells too central for the length', () => {
+    // Sum 30 needs 5 or 6 of the digits {2..8}, so the crusts sit 6 or 7 apart —
+    // impossible for the three central cells, which lose 1 and 9.
+    const sandwich = { kind: 'sandwich', line: ROW0, target: 30 }
+    const { board } = buildBoard(puzzle([], [sandwich]))
+    board.bruteForceLogic()
+    const cands = board.candidatesPerCell()
+    for (const cell of [3, 4, 5]) {
+      expect(cands[cell]).not.toContain(1)
+      expect(cands[cell]).not.toContain(9)
+    }
+    expect(cands[0]).toEqual(expect.arrayContaining([1, 9]))
+  })
+
+  it('contradiction check refutes a candidate that depth-1 forcing rules out', () => {
+    // Row 0: sandwich 0 (1 and 9 adjacent) plus an arrow whose 3-cell shaft
+    // (r0c3..r0c5) sums to its bulb r0c2, so the bulb is >= 6. A 1 at r0c0 forces 9
+    // to r0c1 (sandwich) AND the shaft to omit the 1, so the bulb is 9 at r0c2 — two
+    // 9s in the row. No structural technique sees that chain; trialling the 1 does.
+    const sandwich = { kind: 'sandwich', line: ROW0, target: 0 }
+    const arrow = { kind: 'arrow', bulb: [2], shafts: [[3, 4, 5]] }
+    const { board } = buildBoard(puzzle([], [sandwich, arrow]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toContain(1) // propagation alone leaves it
+    expect(contradictionForcing(board)).not.toBeNull()
+    expect(board.candidatesPerCell()[0]).not.toContain(1) // forcing refutes it
   })
 
   it('skyscrapers count visible buildings from the edge', () => {

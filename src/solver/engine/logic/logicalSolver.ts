@@ -1,5 +1,5 @@
 import type { Board } from '../board'
-import type { SolverTechniqueLevel } from '../../../utils/solverSettings'
+import type { TechniqueOptions } from '../../types'
 import {
   type Elimination,
   nakedSingle,
@@ -8,12 +8,14 @@ import {
   nakedSubset,
   hiddenSubset,
   lockedCandidates,
+  confinedValueForcing,
   nakedPairLinks,
   weakLinkCellForcing,
   forcedTwinElimination,
   parityCounting,
   fish,
   xyWing,
+  contradictionForcing,
   describeRemovals,
 } from './techniques'
 
@@ -29,37 +31,37 @@ export interface StepResult {
 
 const STUCK: StepResult = { changed: false, invalid: false, solved: false, desc: 'No logical steps' }
 
-const LEVEL_RANK: Record<SolverTechniqueLevel, number> = { standard: 1, tough: 2, advanced: 3 }
-
-// The ordered technique pipeline for a given level (easy → hard). Singles and
-// constraint propagation always run; the standard human techniques are gated by
-// the chosen level (fish at Tough, wings/colouring at Advanced — added later).
-function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimination | null> {
-  const rank = LEVEL_RANK[level]
-  const techniques: Array<() => Elimination | null> = [
+// The ordered technique pipeline (easy → hard). Singles and constraint propagation
+// always run; every other technique is toggled independently via `techniques`. A
+// structural flag left undefined defaults to ON (so a bare call runs everything);
+// contradictionCheck — bounded lookahead — runs only when explicitly enabled and
+// comes last, after every structural technique is exhausted.
+function pipeline(board: Board, techniques: TechniqueOptions = {}): Array<() => Elimination | null> {
+  const on = (flag: boolean | undefined) => flag !== false // structural: default ON
+  const steps: Array<() => Elimination | null> = [
     () => nakedSingle(board),
     () => hiddenSingle(board),
     () => constraintStep(board),
   ]
-  if (rank >= 1) {
-    for (const n of [2, 3, 4]) techniques.push(() => nakedSubset(board, n))
-    for (const n of [2, 3, 4]) techniques.push(() => hiddenSubset(board, n))
-    techniques.push(() => lockedCandidates(board))
-    techniques.push(() => nakedPairLinks(board))
-    techniques.push(() => weakLinkCellForcing(board))
-    techniques.push(() => forcedTwinElimination(board))
+  if (on(techniques.subsets)) {
+    for (const n of [2, 3, 4]) steps.push(() => nakedSubset(board, n))
+    for (const n of [2, 3, 4]) steps.push(() => hiddenSubset(board, n))
   }
-  if (rank >= 2) {
-    // Tough: parity counting (house parity balance + arrow/cage parity), then
-    // generalised fish (X-Wing, Swordfish) over rows, columns, and regions.
-    techniques.push(() => parityCounting(board))
-    for (const n of [2, 3]) techniques.push(() => fish(board, n))
+  if (on(techniques.lockedCandidates)) {
+    steps.push(() => lockedCandidates(board))
+    steps.push(() => confinedValueForcing(board))
   }
-  if (rank >= 3) {
-    // Advanced: wings.
-    techniques.push(() => xyWing(board))
+  if (on(techniques.weakLinkForcing)) {
+    steps.push(() => nakedPairLinks(board))
+    steps.push(() => weakLinkCellForcing(board))
+    steps.push(() => forcedTwinElimination(board))
   }
-  return techniques
+  if (on(techniques.parity)) steps.push(() => parityCounting(board))
+  if (on(techniques.fish)) for (const n of [2, 3]) steps.push(() => fish(board, n))
+  if (on(techniques.wings)) steps.push(() => xyWing(board))
+  // Opt-in (defaults OFF). Last resort: bounded lookahead once everything else is done.
+  if (techniques.contradictionCheck) steps.push(() => contradictionForcing(board))
+  return steps
 }
 
 // Apply a single human-style deduction and describe it, using techniques up to
@@ -67,10 +69,10 @@ function pipeline(board: Board, level: SolverTechniqueLevel): Array<() => Elimin
 // candidates removed are appended here from a before/after diff of the board, so
 // the readout always shows what each step cleared (e.g. "… → R1C3≠2,3"). Placement
 // steps (singles) commit a digit and read "= v", so they aren't annotated.
-export function logicalStep(board: Board, level: SolverTechniqueLevel = 'advanced'): StepResult {
+export function logicalStep(board: Board, techniques: TechniqueOptions = {}): StepResult {
   const before = board.cells.slice()
   const givensBefore = board.givenCount
-  for (const technique of pipeline(board, level)) {
+  for (const technique of pipeline(board, techniques)) {
     const result = technique()
     if (result) {
       let desc = result.desc
@@ -98,11 +100,11 @@ export interface SolveResult {
 
 // Apply logical steps until solved, stuck, or contradicted, collecting the
 // description of every step taken.
-export function logicalSolve(board: Board, level: SolverTechniqueLevel = 'advanced'): SolveResult {
+export function logicalSolve(board: Board, techniques: TechniqueOptions = {}): SolveResult {
   const desc: string[] = []
   let changed = false
   for (;;) {
-    const step = logicalStep(board, level)
+    const step = logicalStep(board, techniques)
     if (step.invalid) {
       desc.push('Board is invalid')
       return { desc, changed, invalid: true, solved: false }

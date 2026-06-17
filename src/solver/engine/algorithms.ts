@@ -1,7 +1,7 @@
 import { Board, LogicResult } from './board'
 import { minValue, valuesList, valueBit } from './bitmask'
 import { logicalSolve } from './logic/logicalSolver'
-import type { TechniqueLevel } from '../types'
+import type { TechniqueOptions } from '../types'
 
 function randomValue(mask: number): number {
   const values = valuesList(mask)
@@ -147,17 +147,17 @@ export function trueCandidates(
 }
 
 // Logical candidates: the candidate set left after running the logical solver
-// (up to `level`) to a fixpoint — a superset of the true candidates. Each is
-// then tested for a real solution; `counts` is 0 for candidates that survive the
-// logic but actually break the puzzle (the red diagnostic), otherwise the true
+// (with the chosen `techniques`) to a fixpoint — a superset of the true candidates.
+// Each is then tested for a real solution; `counts` is 0 for candidates that survive
+// the logic but actually break the puzzle (the red diagnostic), otherwise the true
 // solution count (capped by maxSolutionsPerCandidate). Always returns counts.
 export function logicalCandidates(
   start: Board,
-  level: TechniqueLevel,
   maxSolutionsPerCandidate: number,
+  techniques: TechniqueOptions = {},
 ): TrueCandidatesResult {
   const base = start.clone()
-  if (logicalSolve(base, level).invalid) return { valid: false, candidates: [] }
+  if (logicalSolve(base, techniques).invalid) return { valid: false, candidates: [] }
 
   const size = base.size
   const numCells = base.numCells

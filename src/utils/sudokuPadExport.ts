@@ -122,7 +122,7 @@ function diagonalCells(kind: 'positive' | 'negative', size: number): string[] {
 }
 
 // f-puzzles names German Whispers "whispers"; the rest line up by name. Dutch
-// whispers and lockout have no f-puzzles equivalent — handled as warnings.
+// whispers/lockout have no f-puzzles equivalent — handled as warnings.
 const CONSTRAINT_LINE_FIELD: Record<string, string> = {
   renban: 'renban',
   german_whispers: 'whispers',
@@ -131,6 +131,23 @@ const CONSTRAINT_LINE_FIELD: Record<string, string> = {
   between_lines: 'betweenline',
 }
 
+// SudokuPad's f-puzzles importer renders some line constraints natively
+// (palindrome, between lines) but has no parser for others — it silently drops
+// renban, whispers, and region-sum lines. f-puzzles' own SudokuPad export works
+// around this by also emitting a cosmetic line in the constraint's canonical
+// colour, so we do the same. SudokuPad checks the solve against the embedded
+// solution rather than by enforcing constraints, so the line plus the solution
+// gives a fully playable, checkable puzzle. Colours/widths match f-puzzles.
+const UNRENDERED_LINE_COSMETIC: Record<string, { outlineC: string; width: number }> = {
+  renban: { outlineC: '#F067F0', width: 0.4 },
+  german_whispers: { outlineC: '#67F067', width: 0.3 },
+  region_sum: { outlineC: '#2ECBFF', width: 0.25 },
+}
+
+// Likewise SudokuPad's importer has no parser for X-Sums or Skyscrapers, so we
+// render those outer clues as a text overlay in the outer cell.
+const OUTER_UNRENDERED = new Set(['x_sums', 'skyscrapers'])
+
 export interface SudokuPadExport {
   url: string
   // Human-readable notes about anything that couldn't be represented in
@@ -138,11 +155,19 @@ export interface SudokuPadExport {
   warnings: string[]
 }
 
+export interface SudokuPadExportOptions {
+  // Used as the author when the puzzle's author field is left blank — the
+  // editor shows the signed-in user's display name as the placeholder, so the
+  // export honours that same default.
+  fallbackAuthor?: string
+}
+
 // Builds the f-puzzles object (and any warnings) for the current puzzle. Kept
 // separate from URL building so it can be unit-tested directly.
 export function puzzleToFpuzzles(
   editor: EditorStore,
   grid: GridStore,
+  options: SudokuPadExportOptions = {},
 ): { data: Record<string, unknown>; warnings: string[] } {
   const warnings: string[] = []
   const { rows, cols } = grid
@@ -159,7 +184,8 @@ export function puzzleToFpuzzles(
 
   const fp: Record<string, unknown> = { size }
   if (editor.puzzleName) fp.title = editor.puzzleName
-  if (editor.puzzleAuthor) fp.author = editor.puzzleAuthor
+  const author = editor.puzzleAuthor || options.fallbackAuthor
+  if (author) fp.author = author
   if (editor.puzzleRules) fp.ruleset = editor.puzzleRules
 
   // ── Grid: givens, regions, highlight colours ────────────────────────────────
@@ -223,14 +249,14 @@ export function puzzleToFpuzzles(
   if (variants.has('anti_black_kropki')) negative.add('ratio')
   if (variants.has('anti_x') || variants.has('anti_v')) negative.add('xv')
   // SudokuPad has no anti-diagonal constraint, so draw the diagonal as a
-  // cosmetic line. It shows where the rule applies but isn't enforced.
+  // cosmetic line marking where the rule applies. The solution check validates
+  // the actual digits.
   for (const kind of ['positive', 'negative'] as const) {
     if (!variants.has(`anti_${kind}_diagonal`)) continue
     push(fp, 'line', {
       lines: [diagonalCells(kind, size).map(fpCell)],
-      outlineC: '#f06292', width: 0.05,
+      outlineC: '#f06292', width: 0.05, isNewConstraint: true,
     })
-    warnings.push('Anti-diagonal is not a SudokuPad constraint; exported as a cosmetic line only (not enforced).')
   }
 
   // Custom anti-constraints map to f-puzzles "negative" only at the default
@@ -297,6 +323,11 @@ export function puzzleToFpuzzles(
       else warnings.push('A little killer with no direction was dropped.')
     } else if (OUTER_FIELD[clue.type]) {
       push(fp, OUTER_FIELD[clue.type], { cell, value })
+      // X-Sums and Skyscrapers aren't parsed by SudokuPad's importer, so also
+      // place the clue as text in the outer cell.
+      if (OUTER_UNRENDERED.has(clue.type) && value) {
+        push(fp, 'text', { cells: [cell], value, fontC: '#000000', size: 0.7 })
+      }
     }
   }
 
@@ -334,10 +365,10 @@ export function puzzleToFpuzzles(
         break
       }
       case 'dutch_whispers':
-        warnings.push('Dutch Whispers lines have no SudokuPad equivalent; exported as plain lines instead.')
+        // No f-puzzles constraint exists; render the canonical orange line.
         push(fp, 'line', {
           lines: [(inst.data as ConstraintLineData).cells.map(fpCell)],
-          outlineC: '#10b981', width: 0.1,
+          outlineC: '#FF9A00', width: 0.3, isNewConstraint: true,
         })
         break
       case 'cosmetic_line': {
@@ -394,7 +425,14 @@ export function puzzleToFpuzzles(
       default: {
         // Constraint lines that map directly by name.
         const field = CONSTRAINT_LINE_FIELD[inst.type]
-        if (field) push(fp, field, { lines: [(inst.data as ConstraintLineData).cells.map(fpCell)] })
+        if (field) {
+          const lineCells = (inst.data as ConstraintLineData).cells.map(fpCell)
+          push(fp, field, { lines: [lineCells] })
+          // For the ones SudokuPad's importer drops, add a cosmetic line so the
+          // constraint still shows (see UNRENDERED_LINE_COSMETIC).
+          const cosmetic = UNRENDERED_LINE_COSMETIC[inst.type]
+          if (cosmetic) push(fp, 'line', { lines: [lineCells], ...cosmetic, isNewConstraint: true })
+        }
       }
     }
   }
@@ -404,8 +442,12 @@ export function puzzleToFpuzzles(
 
 // Compresses the f-puzzles JSON the way SudokuPad expects and returns a loadable
 // URL plus any fidelity warnings.
-export function exportToSudokuPad(editor: EditorStore, grid: GridStore): SudokuPadExport {
-  const { data, warnings } = puzzleToFpuzzles(editor, grid)
+export function exportToSudokuPad(
+  editor: EditorStore,
+  grid: GridStore,
+  options: SudokuPadExportOptions = {},
+): SudokuPadExport {
+  const { data, warnings } = puzzleToFpuzzles(editor, grid, options)
   const compressed = compressToBase64(JSON.stringify(data))
   const url = `${SUDOKUPAD_BASE}?puzzleid=fpuzzles${encodeURIComponent(compressed)}`
   return { url, warnings }

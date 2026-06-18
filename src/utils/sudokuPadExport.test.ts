@@ -42,6 +42,27 @@ describe('puzzleToFpuzzles', () => {
     expect(sol[1]).toBe('')
   })
 
+  it('falls back to the supplied author when the puzzle author is blank', () => {
+    const { editor, grid } = stores()
+    editor.puzzleAuthor = ''
+    const { data } = puzzleToFpuzzles(editor, grid, { fallbackAuthor: 'DisplayName' })
+    expect(data.author).toBe('DisplayName')
+  })
+
+  it('prefers the explicit author over the fallback', () => {
+    const { editor, grid } = stores()
+    editor.puzzleAuthor = 'Set Author'
+    const { data } = puzzleToFpuzzles(editor, grid, { fallbackAuthor: 'DisplayName' })
+    expect(data.author).toBe('Set Author')
+  })
+
+  it('omits author when both are blank', () => {
+    const { editor, grid } = stores()
+    editor.puzzleAuthor = ''
+    const { data } = puzzleToFpuzzles(editor, grid, {})
+    expect('author' in data).toBe(false)
+  })
+
   it('rejects non-square grids', () => {
     const { editor, grid } = stores()
     grid.setDimensions(6, 9)
@@ -72,16 +93,15 @@ describe('puzzleToFpuzzles', () => {
     expect(data.negative).toEqual(expect.arrayContaining(['ratio', 'xv']))
   })
 
-  it('exports an anti-diagonal as a cosmetic line and warns it is not enforced', () => {
+  it('exports an anti-diagonal as a cosmetic line', () => {
     const { editor, grid } = stores()
     editor.activeGlobalVariants = new Set(['anti_positive_diagonal'])
-    const { data, warnings } = puzzleToFpuzzles(editor, grid)
+    const { data } = puzzleToFpuzzles(editor, grid)
     const lines = data.line as { lines: string[][] }[]
     expect(lines).toHaveLength(1)
     // positive diagonal: bottom-left (R9C1) to top-right (R1C9)
     expect(lines[0].lines[0][0]).toBe('R9C1')
     expect(lines[0].lines[0].at(-1)).toBe('R1C9')
-    expect(warnings.join(' ')).toMatch(/not enforced/i)
   })
 
   it('maps connector dots, XV and quadruples', () => {
@@ -111,6 +131,23 @@ describe('puzzleToFpuzzles', () => {
     expect(data.xsum).toEqual([{ cell: 'R0C4', value: '15' }])
     expect(data.sandwichsum).toEqual([{ cell: 'R5C0', value: '10' }])
     expect(data.littlekillersum).toEqual([{ cell: 'R0C0', direction: 'DR', value: '30' }])
+  })
+
+  it('adds a text overlay for x-sums / skyscrapers (SudokuPad drops the clue)', () => {
+    const { editor, grid } = stores()
+    editor.outerClues = {
+      'o:r-1c3': { type: 'x_sums', value: 15 },
+      'o:r2c-1': { type: 'skyscrapers', value: 3 },
+      'o:r4c-1': { type: 'sandwich_sums', value: 10 },
+    }
+    const { data } = puzzleToFpuzzles(editor, grid)
+    const text = data.text as { cells: string[]; value: string }[]
+    // x-sum at R0C4 and skyscraper at R3C0 get text; sandwich (native) does not
+    expect(text).toHaveLength(2)
+    expect(text).toEqual(expect.arrayContaining([
+      { cells: ['R0C4'], value: '15', fontC: '#000000', size: 0.7 },
+      { cells: ['R3C0'], value: '3', fontC: '#000000', size: 0.7 },
+    ]))
   })
 
   it('flattens a branching thermometer tree into root-to-leaf lines', () => {
@@ -146,7 +183,7 @@ describe('puzzleToFpuzzles', () => {
     expect(data.clone).toEqual([{ cells: ['R1C1'], cloneCells: ['R3C4'] }])
   })
 
-  it('maps named constraint lines and warns on dutch whispers', () => {
+  it('maps named constraint lines, adding cosmetic lines for the ones SudokuPad drops', () => {
     const { editor, grid } = stores()
     editor.cosmeticInstances = [
       inst('renban', { cells: ['r0c0', 'r0c1'] }),
@@ -155,12 +192,22 @@ describe('puzzleToFpuzzles', () => {
       inst('between_lines', { cells: ['r3c0', 'r3c1'] }),
       inst('dutch_whispers', { cells: ['r4c0', 'r4c1'] }),
     ]
-    const { data, warnings } = puzzleToFpuzzles(editor, grid)
+    const { data } = puzzleToFpuzzles(editor, grid)
+    // Logical fields still emitted (round-trips to f-puzzles)
     expect(data.renban).toEqual([{ lines: [['R1C1', 'R1C2']] }])
     expect(data.whispers).toEqual([{ lines: [['R2C1', 'R2C2']] }])
     expect(data.regionsumline).toEqual([{ lines: [['R3C1', 'R3C2']] }])
     expect(data.betweenline).toEqual([{ lines: [['R4C1', 'R4C2']] }])
-    expect(warnings.join(' ')).toMatch(/dutch whispers/i)
+    // Cosmetic lines so SudokuPad actually renders renban / whispers / region
+    // sum / dutch whispers (its importer drops the logical versions).
+    const lines = data.line as { lines: string[][]; outlineC: string }[]
+    const byColor = Object.fromEntries(lines.map((l) => [l.outlineC, l.lines[0]]))
+    expect(byColor['#F067F0']).toEqual(['R1C1', 'R1C2'])  // renban
+    expect(byColor['#67F067']).toEqual(['R2C1', 'R2C2'])  // german whispers
+    expect(byColor['#2ECBFF']).toEqual(['R3C1', 'R3C2'])  // region sum
+    expect(byColor['#FF9A00']).toEqual(['R5C1', 'R5C2'])  // dutch whispers
+    // Palindrome / between lines render natively, so they get no cosmetic line
+    expect(lines).toHaveLength(4)
   })
 
   it('exports a diamond cosmetic as a 45-degree rotated square', () => {

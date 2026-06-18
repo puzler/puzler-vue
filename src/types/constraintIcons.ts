@@ -22,6 +22,7 @@ import {
   mdiArrowBottomRightThick,
   mdiSquareOffOutline,
   mdiChessKing,
+  mdiChessKnight,
   mdiCircleOffOutline,
   mdiCloseOutline,
   mdiPalette,
@@ -74,6 +75,10 @@ export const CONSTRAINT_ICONS: Record<string, ConstraintIcon> = {
   // Global Constraints
   diagonals:       { path: mdiSquareOffOutline },
   chess:           { path: mdiChessKing },
+  // King's/Knight's move are filtered individually (separate from the chess
+  // category) on the listing pages, so they each carry their own icon.
+  kings_move:      { path: mdiChessKing },
+  knights_move:    { path: mdiChessKnight },
   anti_kropki:     { path: mdiCircleOffOutline },
   anti_xv:         { path: mdiCloseOutline },
   disjoint_sets:   { path: mdiDotsSquare },

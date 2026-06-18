@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import MdiIcon from '@/components/MdiIcon.vue'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { ref, computed } from 'vue'
+import ConstraintTile from '@/components/editor/ConstraintTile.vue'
+import ConstraintCategoryNav from '@/components/editor/ConstraintCategoryNav.vue'
+import ConstraintPickerToolbar from '@/components/editor/ConstraintPickerToolbar.vue'
 
 interface ConstraintOption {
   type: string
@@ -72,6 +73,23 @@ const GROUPS: ConstraintGroup[] = [
   },
 ]
 
+interface FlatConstraint {
+  type: string
+  label: string
+  categoryKey: string
+  categoryLabel: string
+}
+
+// Flatten GROUPS once for searching/sorting; GROUPS stays the source of truth.
+const FLAT: FlatConstraint[] = GROUPS.flatMap((g) =>
+  g.options.map((o) => ({
+    type: o.type,
+    label: o.label,
+    categoryKey: g.key,
+    categoryLabel: g.label,
+  })),
+)
+
 const props = defineProps<{
   disabledTypes?: string[]
 }>()
@@ -81,59 +99,57 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const expandedGroup = ref<string>(GROUPS[0].key)
+type SortMode = 'alphabetical' | 'category'
 
-function selectGroup(key: string) {
-  expandedGroup.value = key
+const selectedCategory = ref<string | null>(null)
+const search = ref('')
+const sortMode = ref<SortMode>('alphabetical')
+
+const filtered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return FLAT.filter((c) => {
+    if (selectedCategory.value && c.categoryKey !== selectedCategory.value) return false
+    if (q && !c.label.toLowerCase().includes(q)) return false
+    return true
+  })
+})
+
+// Alphabetical view: one flat A-Z list.
+const alphabetical = computed(() =>
+  [...filtered.value].sort((a, b) => a.label.localeCompare(b.label)),
+)
+
+// By-category view: groups in GROUPS order, items A-Z within, empty groups omitted.
+const byCategory = computed(() => {
+  return GROUPS.map((g) => ({
+    categoryKey: g.key,
+    categoryLabel: g.label,
+    items: filtered.value
+      .filter((c) => c.categoryKey === g.key)
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  })).filter((group) => group.items.length > 0)
+})
+
+function isDisabled(type: string) {
+  return props.disabledTypes?.includes(type) ?? false
 }
 
 function pick(type: string, label: string) {
-  if (props.disabledTypes?.includes(type)) return
+  if (isDisabled(type)) return
+  // Intentionally does not close: lets the user add several constraints in one
+  // session. The just-added tile greys out as the parent's disabledTypes updates.
   emit('pick', type, label)
-  emit('close')
-}
-
-function onEnter(el: Element) {
-  const div = el as HTMLElement
-  div.style.overflow = 'hidden'
-  div.style.height = '0'
-  div.style.transition = 'height 0.2s ease-out'
-  void div.offsetHeight
-  div.style.height = div.scrollHeight + 'px'
-}
-
-function onAfterEnter(el: Element) {
-  const div = el as HTMLElement
-  div.style.height = ''
-  div.style.overflow = ''
-  div.style.transition = ''
-}
-
-function onLeave(el: Element) {
-  const div = el as HTMLElement
-  div.style.overflow = 'hidden'
-  div.style.height = div.scrollHeight + 'px'
-  div.style.transition = 'height 0.2s ease-in'
-  void div.offsetHeight
-  div.style.height = '0'
-}
-
-function onAfterLeave(el: Element) {
-  const div = el as HTMLElement
-  div.style.height = ''
-  div.style.overflow = ''
-  div.style.transition = ''
 }
 </script>
 
 <template>
   <Teleport to="body">
     <div
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       @click.self="emit('close')"
     >
-      <div class="bg-surface rounded-xl shadow-xl w-80 max-h-[80vh] flex flex-col">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-line">
+      <div class="bg-surface rounded-xl shadow-xl w-full max-w-3xl h-[600px] max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-line shrink-0">
           <h3 class="font-display font-semibold text-ink-text text-sm">
             Add Local Constraint
           </h3>
@@ -145,54 +161,64 @@ function onAfterLeave(el: Element) {
           </button>
         </div>
 
-        <div class="overflow-y-auto flex-1 py-2">
-          <div
-            v-for="group in GROUPS"
-            :key="group.key"
-          >
-            <button
-              class="w-full flex items-center justify-between px-5 py-2 text-left hover:bg-line/40 transition-colors"
-              @click="selectGroup(group.key)"
-            >
-              <span class="text-[10px] font-semibold uppercase tracking-widest text-faint">
-                {{ group.label }}
-              </span>
-              <span class="text-faint text-xs leading-none">
-                {{ expandedGroup === group.key ? '−' : '+' }}
-              </span>
-            </button>
+        <div class="flex-1 min-h-0 flex flex-col md:flex-row md:gap-4">
+          <ConstraintCategoryNav
+            v-model="selectedCategory"
+            :groups="GROUPS"
+          />
 
-            <Transition
-              @enter="onEnter"
-              @after-enter="onAfterEnter"
-              @leave="onLeave"
-              @after-leave="onAfterLeave"
-            >
-              <div
-                v-if="expandedGroup === group.key"
-                class="flex flex-col gap-0.5 px-3 pb-1"
+          <!-- Right: search + sort toolbar, then scrollable grid -->
+          <div class="flex-1 min-w-0 flex flex-col min-h-0">
+            <ConstraintPickerToolbar
+              v-model:search="search"
+              v-model:sort="sortMode"
+            />
+
+            <div class="flex-1 overflow-y-auto px-4 pb-4">
+              <p
+                v-if="filtered.length === 0"
+                class="text-center text-sm text-faint py-10"
               >
-                <button
-                  v-for="opt in group.options"
+                No constraints match your search.
+              </p>
+
+              <!-- Alphabetical: one flat grid -->
+              <div
+                v-else-if="sortMode === 'alphabetical'"
+                class="grid grid-cols-3 md:grid-cols-4 gap-2"
+              >
+                <ConstraintTile
+                  v-for="opt in alphabetical"
                   :key="opt.type"
-                  :disabled="disabledTypes?.includes(opt.type)"
-                  class="flex items-center gap-2.5 text-left px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  :class="disabledTypes?.includes(opt.type)
-                    ? 'text-faint cursor-not-allowed'
-                    : 'text-ink-text hover:bg-action-tint hover:text-action'"
-                  @click="pick(opt.type, opt.label)"
-                >
-                  <MdiIcon
-                    v-if="CONSTRAINT_ICONS[opt.type]"
-                    :path="CONSTRAINT_ICONS[opt.type].path"
-                    :color="disabledTypes?.includes(opt.type) ? 'rgb(209 213 219)' : CONSTRAINT_ICONS[opt.type].color"
-                    :rotate="CONSTRAINT_ICONS[opt.type].rotate"
-                    :size="16"
-                  />
-                  {{ opt.label }}
-                </button>
+                  :type="opt.type"
+                  :label="opt.label"
+                  :disabled="isDisabled(opt.type)"
+                  @pick="pick"
+                />
               </div>
-            </Transition>
+
+              <!-- By Category: section header + sub-grid per category -->
+              <template v-else>
+                <section
+                  v-for="group in byCategory"
+                  :key="group.categoryKey"
+                >
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-faint px-1 mb-1.5 mt-3 first:mt-0">
+                    {{ group.categoryLabel }}
+                  </p>
+                  <div class="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    <ConstraintTile
+                      v-for="opt in group.items"
+                      :key="opt.type"
+                      :type="opt.type"
+                      :label="opt.label"
+                      :disabled="isDisabled(opt.type)"
+                      @pick="pick"
+                    />
+                  </div>
+                </section>
+              </template>
+            </div>
           </div>
         </div>
       </div>

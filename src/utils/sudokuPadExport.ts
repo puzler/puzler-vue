@@ -45,6 +45,20 @@ function fpColor(color: string): string {
   return color === 'none' ? TRANSPARENT : color
 }
 
+// SudokuPad's importer has no indexer constraint, so index cells are shown as a
+// background highlight (cell `c`) instead — the same way Puzler renders them.
+// These are Puzler's CELL_BACKGROUND_COLORS flattened onto white (the tints are
+// drawn at 0.7 opacity in the editor); the solution check enforces the logic.
+const INDEX_CELL_COLOR = {
+  row: '#FFD9D9',  // light red
+  col: '#CBF1D5',  // light green
+  both: '#FFF8C4', // light yellow (a cell that indexes both)
+}
+const INDEXER_FIELD: Record<string, string> = {
+  row_index_cells: 'rowindexer',
+  col_index_cells: 'columnindexer',
+}
+
 // Puzler cell key (r{row}c{col}, 0-indexed) → f-puzzles label (R{n}C{n}, 1-indexed).
 function fpCell(key: string): string {
   const { row, col } = keyToRowCol(key)
@@ -201,6 +215,9 @@ export function puzzleToFpuzzles(
     labelToRegion = new Map([...labels].sort().map((label, i) => [label, i]))
   }
 
+  const rowIndexCells = new Set(editor.singleCellMarks['row_index_cells'] ?? [])
+  const colIndexCells = new Set(editor.singleCellMarks['col_index_cells'] ?? [])
+
   const gridCells: Record<string, unknown>[][] = []
   let hasNullRegion = false
   for (let r = 0; r < size; r++) {
@@ -218,8 +235,17 @@ export function puzzleToFpuzzles(
         if (label !== null && labelToRegion.has(label)) cell.region = labelToRegion.get(label)
         else hasNullRegion = true
       }
+      // An author-applied cosmetic colour wins; otherwise tint index cells.
       const colorId = editor.cosmeticCellColors[key]
-      if (colorId && colorById.has(colorId)) cell.c = colorById.get(colorId)
+      if (colorId && colorById.has(colorId)) {
+        cell.c = colorById.get(colorId)
+      } else {
+        const isRow = rowIndexCells.has(key)
+        const isCol = colIndexCells.has(key)
+        if (isRow && isCol) cell.c = INDEX_CELL_COLOR.both
+        else if (isRow) cell.c = INDEX_CELL_COLOR.row
+        else if (isCol) cell.c = INDEX_CELL_COLOR.col
+      }
       rowCells.push(cell)
     }
     gridCells.push(rowCells)
@@ -279,6 +305,14 @@ export function puzzleToFpuzzles(
     const cells = editor.singleCellMarks[type]
     if (!cells) continue
     for (const key of cells) push(fp, field, { cell: fpCell(key) })
+  }
+
+  // Index cells render as the background tint set on the grid above; also emit
+  // the logical indexer field so the puzzle round-trips back to f-puzzles
+  // (SudokuPad's importer ignores it).
+  for (const [type, field] of Object.entries(INDEXER_FIELD)) {
+    const cells = editor.singleCellMarks[type]
+    if (cells && cells.size > 0) push(fp, field, { cells: [...cells].map(fpCell) })
   }
 
   // ── Connector dots (difference / ratio / XV / quadruples) ───────────────────

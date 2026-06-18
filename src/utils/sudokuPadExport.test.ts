@@ -77,6 +77,32 @@ describe('puzzleToFpuzzles', () => {
     expect(data.even).toEqual([{ cell: 'R9C5' }])
   })
 
+  it('tints index cells as background highlights and emits the logical indexer', () => {
+    const { editor, grid } = stores()
+    editor.singleCellMarks = {
+      row_index_cells: new Set(['r0c0', 'r1c1']),
+      col_index_cells: new Set(['r1c1', 'r2c2']),  // r1c1 is both
+    }
+    const { data } = puzzleToFpuzzles(editor, grid)
+    const cells = data.grid as Record<string, unknown>[][]
+    expect(cells[0][0].c).toBe('#FFD9D9')  // row only → light red
+    expect(cells[2][2].c).toBe('#CBF1D5')  // col only → light green
+    expect(cells[1][1].c).toBe('#FFF8C4')  // both → light yellow
+    // logical indexer fields for f-puzzles round-trip
+    expect(data.rowindexer).toEqual([{ cells: ['R1C1', 'R2C2'] }])
+    expect(data.columnindexer).toEqual([{ cells: ['R2C2', 'R3C3'] }])
+  })
+
+  it('lets an author cosmetic colour win over an index-cell tint', () => {
+    const { editor, grid } = stores()
+    editor.cellColorPresets = [{ id: 'p1', label: 'P', color: '#abcdef' }]
+    editor.cosmeticCellColors = { r0c0: 'p1' }
+    editor.singleCellMarks = { row_index_cells: new Set(['r0c0']) }
+    const { data } = puzzleToFpuzzles(editor, grid)
+    const cells = data.grid as Record<string, unknown>[][]
+    expect(cells[0][0].c).toBe('#abcdef')
+  })
+
   it('maps globals and negative constraints', () => {
     const { editor, grid } = stores()
     editor.activeGlobalVariants = new Set([
@@ -233,6 +259,110 @@ describe('puzzleToFpuzzles', () => {
     expect(typeof gridCells[0][0].region).toBe('number')
     expect(typeof gridCells[0][1].region).toBe('number')
     expect(gridCells[0][0].region).not.toBe(gridCells[0][1].region)
+  })
+
+  // Coverage guard: every constraint type Puzler supports must produce some
+  // representation in the export (native field, cosmetic, or grid tint). If a
+  // new constraint is added without an export mapping, this test should fail.
+  it('sends a representation for every supported constraint type', () => {
+    const { editor, grid } = stores()
+
+    editor.activeGlobalVariants = new Set([
+      'positive_diagonal', 'negative_diagonal', 'kings_move', 'knights_move',
+      'nonconsecutive', 'anti_black_kropki', 'anti_x', 'anti_v', 'disjoint_sets',
+    ])
+    editor.customGlobalConstraints = [{ id: 'cg', type: 'anti_diff', value: 1 }]
+    editor.singleCellMarks = {
+      odd_cells: new Set(['r0c7']),
+      even_cells: new Set(['r1c7']),
+      minimums: new Set(['r2c7']),
+      maximums: new Set(['r3c7']),
+      row_index_cells: new Set(['r4c7']),
+      col_index_cells: new Set(['r5c7']),
+    }
+    editor.connectorDots = {
+      'r0c8|r1c8': { type: 'difference_dots', value: 1 },
+      'r2c8|r3c8': { type: 'ratio_dots', value: 2 },
+      'r4c8|r5c8': { type: 'xv', value: 'X' },
+      '+r6c6': { type: 'quadruples', value: [1, 2] },
+    }
+    editor.outerClues = {
+      'o:r-1c1': { type: 'x_sums', value: 7 },
+      'o:r-1c2': { type: 'sandwich_sums', value: 8 },
+      'o:r-1c3': { type: 'skyscrapers', value: 3 },
+      'o:r-1c-1': { type: 'little_killers', value: 9, direction: 'down-right' },
+    }
+    editor.linePresets = [{ id: 'lp', label: 'L', style: { color: '#111', strokeWidth: 8, opacity: 1 } }]
+    editor.cagePresets = [{ id: 'cp', label: 'C', style: { cageColor: '#222', textColor: '#333' } }]
+    editor.shapePresets = [{ id: 'sp', label: 'S', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5 } }]
+    editor.textPresets = [{ id: 'tp', label: 'T', content: '!', style: { color: '#333', fontSize: 20, bold: false } }]
+    editor.cellColorPresets = [{ id: 'col', label: 'X', color: '#abcdef' }]
+    editor.cosmeticCellColors = { r8c8: 'col' }
+    editor.cosmeticInstances = [
+      inst('thermometer', { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }] }),
+      inst('arrow', { bulbCells: ['r2c0'], arrows: [{ cells: ['r2c0', 'r2c1'] }] }),
+      inst('killer_cage', { cells: ['r4c0', 'r4c1'], sum: 5 }),
+      inst('extra_regions', { cells: ['r6c0', 'r6c1'] }),
+      inst('clone', { cells: ['r8c0'], copies: [{ dRow: 0, dCol: 2 }] }),
+      inst('renban', { cells: ['r0c3', 'r0c4'] }),
+      inst('german_whispers', { cells: ['r1c3', 'r1c4'] }),
+      inst('dutch_whispers', { cells: ['r2c3', 'r2c4'] }),
+      inst('palindrome', { cells: ['r3c3', 'r3c4'] }),
+      inst('region_sum', { cells: ['r4c3', 'r4c4'] }),
+      inst('between_lines', { cells: ['r5c3', 'r5c4'] }),
+      inst('cosmetic_line', { cells: ['r6c3', 'r6c4'], presetId: 'lp' }),
+      inst('cosmetic_cage', { cells: ['r7c3', 'r7c4'], sum: null, presetId: 'cp' }),
+      inst('shape', { cell: 'r8c3', anchor: 'center', presetId: 'sp' }),
+      inst('text', { cell: 'r0c6', presetId: 'tp' }),
+    ]
+
+    const { data } = puzzleToFpuzzles(editor, grid)
+    const has = (field: string, n = 1) => Array.isArray(data[field]) && (data[field] as unknown[]).length >= n
+    const cells = data.grid as Record<string, unknown>[][]
+
+    // Globals
+    expect(data['diagonal+']).toBe(true)
+    expect(data['diagonal-']).toBe(true)
+    expect(data.antiking).toBe(true)
+    expect(data.antiknight).toBe(true)
+    expect(data.nonconsecutive).toBe(true)
+    expect(data.disjointgroups).toBe(true)
+    expect(data.negative).toEqual(expect.arrayContaining(['ratio', 'xv', 'difference']))
+    // Single-cell marks (odd/even/min/max native; index cells via grid tint)
+    expect(has('odd')).toBe(true)
+    expect(has('even')).toBe(true)
+    expect(has('minimum')).toBe(true)
+    expect(has('maximum')).toBe(true)
+    expect(cells[4][7].c).toBe('#FFD9D9')  // row index tint
+    expect(cells[5][7].c).toBe('#CBF1D5')  // col index tint
+    // Connectors
+    expect(has('difference')).toBe(true)
+    expect(has('ratio')).toBe(true)
+    expect(has('xv')).toBe(true)
+    expect(has('quadruple')).toBe(true)
+    // Outer clues (x-sum/skyscraper also get text overlays)
+    expect(has('xsum')).toBe(true)
+    expect(has('sandwichsum')).toBe(true)
+    expect(has('skyscraper')).toBe(true)
+    expect(has('littlekillersum')).toBe(true)
+    expect(has('text', 3)).toBe(true)  // 1 cosmetic text + x-sum + skyscraper
+    // Lines / regions / shapes
+    expect(has('thermometer')).toBe(true)
+    expect(has('arrow')).toBe(true)
+    expect(has('killercage')).toBe(true)
+    expect(has('extraregion')).toBe(true)
+    expect(has('clone')).toBe(true)
+    expect(has('renban')).toBe(true)
+    expect(has('whispers')).toBe(true)
+    expect(has('palindrome')).toBe(true)
+    expect(has('regionsumline')).toBe(true)
+    expect(has('betweenline')).toBe(true)
+    expect(has('cage')).toBe(true)  // cosmetic cage
+    expect(has('circle')).toBe(true)  // shape
+    // Cosmetic lines: renban + german + region sum + dutch + cosmetic_line = 5
+    expect(has('line', 5)).toBe(true)
+    // Author cosmetic colour
+    expect(cells[8][8].c).toBe('#abcdef')
   })
 })
 

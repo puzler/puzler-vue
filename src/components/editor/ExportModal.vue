@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { serializePuzzle } from '@/utils/puzzleExport'
+import SudokuPadExportButton from './SudokuPadExportButton.vue'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -84,6 +85,8 @@ async function copy(option: (typeof options)[number]) {
             <span class="text-sm font-medium">{{ copiedKey === option.key ? 'Copied!' : option.label }}</span>
           </button>
         </div>
+
+        <SudokuPadExportButton />
       </div>
     </div>
   </Teleport>

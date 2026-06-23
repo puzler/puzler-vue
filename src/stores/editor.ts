@@ -4,6 +4,7 @@ import { useUndoRedo } from '@/composables/useUndoRedo'
 import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
+import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import type { CellState, SolverInputMode } from '@/types/grid'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
@@ -194,31 +195,83 @@ export const useEditorStore = defineStore('editor', () => {
     return result
   })
 
-  // Every cell that the current selection can "see" (shares a row, column or
-  // region with a selected cell), excluding the selected cells themselves.
-  // Drives the optional "highlight seen cells" solving aid.
+  // Every cell that the current selection can "see", excluding the selected cells
+  // themselves. A cell is "seen" when it shares a row, column or region with a
+  // selected cell, or is constrained by an active variant rule (Knight's/King's
+  // move, Disjoint Sets, or the X-sudoku Positive/Negative diagonals). When more
+  // than one cell is selected, only cells seen by ALL of them are highlighted
+  // (intersection). Drives the optional "highlight seen cells" solving aid.
   const cellsSeenBySelection = computed<Set<string>>(() => {
     const gridStore = useGridStore()
     const result = new Set<string>()
     if (selection.value.size === 0) return result
-    const rows = new Set<number>()
-    const cols = new Set<number>()
-    const regions = new Set<string | number>()
-    for (const key of selection.value) {
-      const { row, col } = keyToRowCol(key)
-      rows.add(row)
-      cols.add(col)
-      const region = gridStore.cellRegionLabelMap.get(key)
-      if (region !== null && region !== undefined) regions.add(region)
+
+    // Variant rules are derived from board size / standard boxing in the solver,
+    // so they only make sense on a square grid. Off-square grids fall back to the
+    // plain row/column/region notion of "seen".
+    const square = gridStore.rows === gridStore.cols
+    const size = gridStore.rows
+    const variants = activeGlobalVariants.value
+    const knight = square && variants.has('knights_move')
+    const king = square && variants.has('kings_move')
+    const mainDiag = square && variants.has('positive_diagonal')
+    const antiDiag = square && variants.has('negative_diagonal')
+
+    // Disjoint sets: two cells see each other when they occupy the same position
+    // within their respective standard boxes. standardBoxes returns null for sizes
+    // without a standard boxing, in which case the rule contributes nothing.
+    let boxPosition: Map<string, number> | null = null
+    if (square && variants.has('disjoint_sets')) {
+      const boxes = standardBoxes(size)
+      if (boxes) {
+        boxPosition = new Map<string, number>()
+        for (const box of boxes) {
+          box.forEach((cell, position) => {
+            boxPosition!.set(cellKey(rowOf(cell, size), colOf(cell, size)), position)
+          })
+        }
+      }
     }
+
+    // Knight's/King's neighbour key sets, keyed by selected cell, reuse the same
+    // offset definitions as the solver to stay a single source of truth.
+    const moveNeighbours = (sRow: number, sCol: number): Set<string> | null => {
+      if (!knight && !king) return null
+      const cell = cellAt(sRow, sCol, size)
+      const keys = new Set<string>()
+      if (knight) for (const n of knightNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
+      if (king) for (const n of kingNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
+      return keys
+    }
+
+    const sels = Array.from(selection.value).map((key) => {
+      const { row, col } = keyToRowCol(key)
+      return { key, row, col, neighbours: moveNeighbours(row, col) }
+    })
+
+    const sees = (
+      sel: { key: string; row: number; col: number; neighbours: Set<string> | null },
+      cRow: number,
+      cCol: number,
+      cKey: string,
+    ): boolean => {
+      if (sel.row === cRow || sel.col === cCol) return true
+      if (gridStore.areSameRegion(sel.key, cKey)) return true
+      if (sel.neighbours?.has(cKey)) return true
+      if (mainDiag && sel.row === sel.col && cRow === cCol) return true
+      if (antiDiag && sel.row + sel.col === size - 1 && cRow + cCol === size - 1) return true
+      if (boxPosition) {
+        const a = boxPosition.get(sel.key)
+        if (a !== undefined && a === boxPosition.get(cKey)) return true
+      }
+      return false
+    }
+
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
         if (selection.value.has(key)) continue
-        const region = gridStore.cellRegionLabelMap.get(key)
-        if (rows.has(r) || cols.has(c) || (region !== null && region !== undefined && regions.has(region))) {
-          result.add(key)
-        }
+        if (sels.every((sel) => sees(sel, r, c, key))) result.add(key)
       }
     }
     return result

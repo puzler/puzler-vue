@@ -1471,6 +1471,35 @@
             "deprecationReason": null
           },
           {
+            "name": "collections",
+            "description": "Browse the public collection archive with search/filter/sort/pagination",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionConnection",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "myCollections",
             "description": "A page of the current user's collections, with search/filter/sort",
             "args": [
@@ -8771,6 +8800,35 @@
             "deprecationReason": null
           },
           {
+            "name": "collections",
+            "description": "Browse the public collection archive with search/filter/sort/pagination",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionConnection",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "me",
             "description": "The currently authenticated user, or null if unauthenticated",
             "args": [],
@@ -8948,6 +9006,35 @@
                     "ofType": null
                   }
                 }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "publicSeries",
+            "description": "Browse the public series archive with search/filter/sort/pagination",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "SeriesConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,
@@ -11608,6 +11695,35 @@
                     "ofType": null
                   }
                 }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "publicSeries",
+            "description": "Browse the public series archive with search/filter/sort/pagination",
+            "args": [
+              {
+                "name": "filter",
+                "description": "Search, filter, sort, and pagination options",
+                "type": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ListingFilterInput",
+                  "ofType": null
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "SeriesConnection",
+                "kind": "OBJECT",
+                "ofType": null
               }
             },
             "isDeprecated": false,

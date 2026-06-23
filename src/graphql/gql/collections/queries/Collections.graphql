@@ -1,0 +1,24 @@
+#import "../../fragments/PageInfoFields.graphql"
+
+query Collections($filter: ListingFilterInput) {
+  collections(filter: $filter) {
+    nodes {
+      id
+      title
+      visibility
+      mode
+      puzzleCount
+      avgRating
+      solveCount
+      author {
+        id
+        username
+        displayName
+        setterTier
+      }
+    }
+    pageInfo {
+      ...PageInfoFields
+    }
+  }
+}

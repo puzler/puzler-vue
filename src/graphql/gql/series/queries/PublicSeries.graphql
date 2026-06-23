@@ -1,0 +1,24 @@
+#import "../../fragments/PageInfoFields.graphql"
+
+query PublicSeries($filter: ListingFilterInput) {
+  publicSeries(filter: $filter) {
+    nodes {
+      id
+      title
+      visibility
+      entryCount
+      subscriberCount
+      avgRating
+      solveCount
+      author {
+        id
+        username
+        displayName
+        setterTier
+      }
+    }
+    pageInfo {
+      ...PageInfoFields
+    }
+  }
+}

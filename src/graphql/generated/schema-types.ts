@@ -301,6 +301,8 @@ export type CollectionQueries = {
   collectionByToken?: Maybe<Collection>;
   /** Ranked solver times for a timed collection (solvers who completed every puzzle) */
   collectionLeaderboard: Array<CollectionLeaderboardEntry>;
+  /** Browse the public collection archive with search/filter/sort/pagination */
+  collections: CollectionConnection;
   /** A page of the current user's collections, with search/filter/sort */
   myCollections: CollectionConnection;
   /** The current user's top-level folders; nest via each folder's children */
@@ -325,6 +327,12 @@ export type CollectionQueriesCollectionByTokenArgs = {
 /** Folder and collection queries */
 export type CollectionQueriesCollectionLeaderboardArgs = {
   collectionId: Scalars['ID']['input'];
+};
+
+
+/** Folder and collection queries */
+export type CollectionQueriesCollectionsArgs = {
+  filter?: InputMaybe<ListingFilterInput>;
 };
 
 
@@ -1812,6 +1820,8 @@ export type Query = CollectionQueries & PuzzleQueries & SeriesQueries & TagQueri
   collectionByToken?: Maybe<Collection>;
   /** Ranked solver times for a timed collection (solvers who completed every puzzle) */
   collectionLeaderboard: Array<CollectionLeaderboardEntry>;
+  /** Browse the public collection archive with search/filter/sort/pagination */
+  collections: CollectionConnection;
   /** The currently authenticated user, or null if unauthenticated */
   me?: Maybe<User>;
   /** A page of the current user's collections, with search/filter/sort */
@@ -1826,6 +1836,8 @@ export type Query = CollectionQueries & PuzzleQueries & SeriesQueries & TagQueri
   mySeries: SeriesConnection;
   /** Series the current user is subscribed to, newest subscription first */
   mySubscriptions: Array<Series>;
+  /** Browse the public series archive with search/filter/sort/pagination */
+  publicSeries: SeriesConnection;
   /** Find a puzzle by ID, if the current user is allowed to see it */
   puzzle?: Maybe<Puzzle>;
   /** Find a puzzle by its share token (used for unlisted/solve links) */
@@ -1868,6 +1880,12 @@ export type QueryCollectionLeaderboardArgs = {
 
 
 /** Root query type — all queries are composed from domain-specific schema modules */
+export type QueryCollectionsArgs = {
+  filter?: InputMaybe<ListingFilterInput>;
+};
+
+
+/** Root query type — all queries are composed from domain-specific schema modules */
 export type QueryMyCollectionsArgs = {
   filter?: InputMaybe<ListingFilterInput>;
 };
@@ -1882,6 +1900,12 @@ export type QueryMyPuzzlesArgs = {
 
 /** Root query type — all queries are composed from domain-specific schema modules */
 export type QueryMySeriesArgs = {
+  filter?: InputMaybe<ListingFilterInput>;
+};
+
+
+/** Root query type — all queries are composed from domain-specific schema modules */
+export type QueryPublicSeriesArgs = {
   filter?: InputMaybe<ListingFilterInput>;
 };
 
@@ -2362,6 +2386,8 @@ export type SeriesQueries = {
   mySeries: SeriesConnection;
   /** Series the current user is subscribed to, newest subscription first */
   mySubscriptions: Array<Series>;
+  /** Browse the public series archive with search/filter/sort/pagination */
+  publicSeries: SeriesConnection;
   /** Find a series by ID, if the current user is allowed to see it */
   series?: Maybe<Series>;
   /** Find a series by its share token (for unlisted links) */
@@ -2373,6 +2399,12 @@ export type SeriesQueries = {
 
 /** Series queries */
 export type SeriesQueriesMySeriesArgs = {
+  filter?: InputMaybe<ListingFilterInput>;
+};
+
+
+/** Series queries */
+export type SeriesQueriesPublicSeriesArgs = {
   filter?: InputMaybe<ListingFilterInput>;
 };
 

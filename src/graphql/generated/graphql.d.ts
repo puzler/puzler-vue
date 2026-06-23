@@ -233,6 +233,15 @@ declare module '*/CollectionPublic.graphql' {
 }
     
 
+declare module '*/Collections.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const Collections: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/MyCollections.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -607,6 +616,15 @@ declare module '*/MySubscriptions.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const MySubscriptions: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PublicSeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PublicSeries: DocumentNode;
 
   export default defaultDocument;
 }

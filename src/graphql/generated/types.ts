@@ -203,6 +203,13 @@ export type CollectionPublicQueryVariables = Exact<{
 
 export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
 
+export type CollectionsQueryVariables = Exact<{
+  filter?: Types.ListingFilterInput | null | undefined;
+}>;
+
+
+export type CollectionsQuery = { collections: { nodes: Array<{ id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
+
 export type MyCollectionsQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
 }>;
@@ -470,6 +477,13 @@ export type MySubscriptionsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, author: { id: string, username: string, displayName: string } }> };
+
+export type PublicSeriesQueryVariables = Exact<{
+  filter?: Types.ListingFilterInput | null | undefined;
+}>;
+
+
+export type PublicSeriesQuery = { publicSeries: { nodes: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
 
 export type SeriesByTokenPublicQueryVariables = Exact<{
   token: string;

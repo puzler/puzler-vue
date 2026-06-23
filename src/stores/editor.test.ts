@@ -85,3 +85,68 @@ describe('cellsSeenBySelection', () => {
     expect(seen().has('r3c3')).toBe(true)
   })
 })
+
+// Conflict checking (errorCells) and pencil-mark checking (seenDigitsByCell) share
+// the same variant-aware visibility predicate as the highlight.
+describe('errorCells', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('flags equal digits sharing a row even without variants', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5, r0c1: 5 }
+    const errors = editor.errorCells
+    expect(errors.has('r0c0')).toBe(true)
+    expect(errors.has('r0c1')).toBe(true)
+  })
+
+  it("flags a repeated digit a knight's move apart only when knights_move is active", () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r4c4: 5, r2c3: 5 } // a knight's move apart, no shared row/col/box
+    expect(editor.errorCells.has('r4c4')).toBe(false)
+    editor.activeGlobalVariants = new Set(['knights_move'])
+    expect(editor.errorCells.has('r4c4')).toBe(true)
+    expect(editor.errorCells.has('r2c3')).toBe(true)
+  })
+
+  it('flags a repeated digit on the positive diagonal, but not across anti-diagonal segments', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5, r4c4: 5 } // both on the main diagonal, different box/row/col
+    expect(editor.errorCells.has('r0c0')).toBe(false)
+    editor.activeGlobalVariants = new Set(['positive_diagonal'])
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+    // Anti-diagonals let digits repeat across box segments, so this is NOT a conflict.
+    editor.activeGlobalVariants = new Set(['anti_positive_diagonal'])
+    expect(editor.errorCells.has('r0c0')).toBe(false)
+  })
+
+  it('flags a repeated digit in the same disjoint-set position when active', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5, r3c3: 5 } // same box position, different box/row/col
+    expect(editor.errorCells.has('r0c0')).toBe(false)
+    editor.activeGlobalVariants = new Set(['disjoint_sets'])
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+  })
+})
+
+describe('seenDigitsByCell', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('reports a digit visible by row/column/box', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r4c4: 7 }
+    expect(editor.seenDigitsByCell.get('r4c0')?.has(7)).toBe(true) // same row
+    expect(editor.seenDigitsByCell.get('r8c8')?.has(7) ?? false).toBe(false) // unrelated
+  })
+
+  it("reports a digit visible by knight's move only when the rule is active", () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r4c4: 7 }
+    expect(editor.seenDigitsByCell.get('r2c3')?.has(7) ?? false).toBe(false)
+    editor.activeGlobalVariants = new Set(['knights_move'])
+    expect(editor.seenDigitsByCell.get('r2c3')?.has(7)).toBe(true)
+  })
+})

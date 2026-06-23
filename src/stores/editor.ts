@@ -156,59 +156,18 @@ export const useEditorStore = defineStore('editor', () => {
 
   const hasSelection = computed(() => selection.value.size > 0)
 
-  // For each cell: the set of full digits visible to it (same row, col, or region)
-  const seenDigitsByCell = computed<Map<string, Set<number>>>(() => {
+  // The single source of truth for "do these two cells constrain each other".
+  // Two cells see each other when they share a row, column or region, or are linked
+  // by an active variant rule: Knight's/King's move, Disjoint Sets, or the X-sudoku
+  // Positive/Negative diagonals. Anti-diagonals are intentionally excluded: their
+  // equal-set rule lets digits repeat across box segments, and the within-segment
+  // case is already covered by the box. Variant rules are derived from board size /
+  // standard boxing (as in the solver), so they only apply on square grids.
+  //
+  // Rebuilt when the grid or active variants change; the returned `seesRC` is shared
+  // by the seen-cells highlight, conflict checking, and pencil-mark checking.
+  const cellVisibility = computed(() => {
     const gridStore = useGridStore()
-    const byRow = new Map<number, Set<number>>()
-    const byCol = new Map<number, Set<number>>()
-    const byRegion = new Map<string, Set<number>>()
-
-    for (let r = 0; r < gridStore.rows; r++) {
-      for (let c = 0; c < gridStore.cols; c++) {
-        const key = cellKey(r, c)
-        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
-        if (digit === null) continue
-        if (!byRow.has(r)) byRow.set(r, new Set())
-        byRow.get(r)!.add(digit)
-        if (!byCol.has(c)) byCol.set(c, new Set())
-        byCol.get(c)!.add(digit)
-        const region = gridStore.cellRegionLabelMap.get(key)
-        if (region !== null && region !== undefined) {
-          if (!byRegion.has(region)) byRegion.set(region, new Set())
-          byRegion.get(region)!.add(digit)
-        }
-      }
-    }
-
-    const result = new Map<string, Set<number>>()
-    for (let r = 0; r < gridStore.rows; r++) {
-      for (let c = 0; c < gridStore.cols; c++) {
-        const key = cellKey(r, c)
-        const seen = new Set<number>()
-        byRow.get(r)?.forEach(d => seen.add(d))
-        byCol.get(c)?.forEach(d => seen.add(d))
-        const region = gridStore.cellRegionLabelMap.get(key)
-        if (region) byRegion.get(region)?.forEach(d => seen.add(d))
-        if (seen.size > 0) result.set(key, seen)
-      }
-    }
-    return result
-  })
-
-  // Every cell that the current selection can "see", excluding the selected cells
-  // themselves. A cell is "seen" when it shares a row, column or region with a
-  // selected cell, or is constrained by an active variant rule (Knight's/King's
-  // move, Disjoint Sets, or the X-sudoku Positive/Negative diagonals). When more
-  // than one cell is selected, only cells seen by ALL of them are highlighted
-  // (intersection). Drives the optional "highlight seen cells" solving aid.
-  const cellsSeenBySelection = computed<Set<string>>(() => {
-    const gridStore = useGridStore()
-    const result = new Set<string>()
-    if (selection.value.size === 0) return result
-
-    // Variant rules are derived from board size / standard boxing in the solver,
-    // so they only make sense on a square grid. Off-square grids fall back to the
-    // plain row/column/region notion of "seen".
     const square = gridStore.rows === gridStore.cols
     const size = gridStore.rows
     const variants = activeGlobalVariants.value
@@ -233,77 +192,114 @@ export const useEditorStore = defineStore('editor', () => {
       }
     }
 
-    // Knight's/King's neighbour key sets, keyed by selected cell, reuse the same
+    // Knight's/King's neighbour key sets, memoised per source cell, reusing the same
     // offset definitions as the solver to stay a single source of truth.
-    const moveNeighbours = (sRow: number, sCol: number): Set<string> | null => {
+    const neighbourCache = new Map<string, Set<string>>()
+    const moveNeighbours = (key: string, row: number, col: number): Set<string> | null => {
       if (!knight && !king) return null
-      const cell = cellAt(sRow, sCol, size)
+      const cached = neighbourCache.get(key)
+      if (cached) return cached
+      const cell = cellAt(row, col, size)
       const keys = new Set<string>()
       if (knight) for (const n of knightNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
       if (king) for (const n of kingNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
+      neighbourCache.set(key, keys)
       return keys
     }
 
-    const sels = Array.from(selection.value).map((key) => {
-      const { row, col } = keyToRowCol(key)
-      return { key, row, col, neighbours: moveNeighbours(row, col) }
-    })
-
-    const sees = (
-      sel: { key: string; row: number; col: number; neighbours: Set<string> | null },
-      cRow: number,
-      cCol: number,
-      cKey: string,
+    // Symmetric "A sees B" predicate. Callers pass parsed coordinates they already
+    // hold (the hot path runs over every cell pair).
+    const seesRC = (
+      keyA: string, rowA: number, colA: number,
+      keyB: string, rowB: number, colB: number,
     ): boolean => {
-      if (sel.row === cRow || sel.col === cCol) return true
-      if (gridStore.areSameRegion(sel.key, cKey)) return true
-      if (sel.neighbours?.has(cKey)) return true
-      if (mainDiag && sel.row === sel.col && cRow === cCol) return true
-      if (antiDiag && sel.row + sel.col === size - 1 && cRow + cCol === size - 1) return true
+      if (rowA === rowB || colA === colB) return true
+      if (gridStore.areSameRegion(keyA, keyB)) return true
+      if (moveNeighbours(keyA, rowA, colA)?.has(keyB)) return true
+      if (mainDiag && rowA === colA && rowB === colB) return true
+      if (antiDiag && rowA + colA === size - 1 && rowB + colB === size - 1) return true
       if (boxPosition) {
-        const a = boxPosition.get(sel.key)
-        if (a !== undefined && a === boxPosition.get(cKey)) return true
+        const a = boxPosition.get(keyA)
+        if (a !== undefined && a === boxPosition.get(keyB)) return true
       }
       return false
     }
 
+    return { seesRC }
+  })
+
+  // Filled cells (givens or committed solver values) with their coordinates. Shared
+  // by conflict checking and pencil-mark checking.
+  const filledDigitCells = computed<Array<{ key: string; row: number; col: number; digit: number }>>(() => {
+    const gridStore = useGridStore()
+    const out: Array<{ key: string; row: number; col: number; digit: number }> = []
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
-        if (selection.value.has(key)) continue
-        if (sels.every((sel) => sees(sel, r, c, key))) result.add(key)
+        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
+        if (digit !== null) out.push({ key, row: r, col: c, digit })
+      }
+    }
+    return out
+  })
+
+  // For each cell: the set of full digits it can see (variant-aware), used by the
+  // optional "highlight conflicting pencil marks" aid.
+  const seenDigitsByCell = computed<Map<string, Set<number>>>(() => {
+    const gridStore = useGridStore()
+    const { seesRC } = cellVisibility.value
+    const filled = filledDigitCells.value
+    const result = new Map<string, Set<number>>()
+    for (let r = 0; r < gridStore.rows; r++) {
+      for (let c = 0; c < gridStore.cols; c++) {
+        const key = cellKey(r, c)
+        const seen = new Set<number>()
+        for (const f of filled) {
+          if (f.key === key) continue
+          if (seesRC(key, r, c, f.key, f.row, f.col)) seen.add(f.digit)
+        }
+        if (seen.size > 0) result.set(key, seen)
       }
     }
     return result
   })
 
-  const errorCells = computed<Set<string>>(() => {
+  // Every cell that the current selection can "see", excluding the selected cells
+  // themselves. When more than one cell is selected, only cells seen by ALL of them
+  // are highlighted (intersection). Drives the optional "highlight seen cells" aid.
+  const cellsSeenBySelection = computed<Set<string>>(() => {
     const gridStore = useGridStore()
-    const filled = new Map<string, number>()
+    const result = new Set<string>()
+    if (selection.value.size === 0) return result
+    const { seesRC } = cellVisibility.value
+    const sels = Array.from(selection.value).map((key) => {
+      const { row, col } = keyToRowCol(key)
+      return { key, row, col }
+    })
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
-        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
-        if (digit !== null) filled.set(key, digit)
+        if (selection.value.has(key)) continue
+        if (sels.every((s) => seesRC(s.key, s.row, s.col, key, r, c))) result.add(key)
       }
     }
+    return result
+  })
 
+  // Cells holding a digit that conflicts with another visible (variant-aware) cell.
+  const errorCells = computed<Set<string>>(() => {
+    const { seesRC } = cellVisibility.value
+    const filled = filledDigitCells.value
     const errors = new Set<string>()
-    const entries = Array.from(filled.entries())
-    for (let i = 0; i < entries.length; i++) {
-      const [keyA, digitA] = entries[i]
-      const mA = keyA.match(/r(\d+)c(\d+)/)!
-      const rowA = Number(mA[1]), colA = Number(mA[2])
-      const regionA = gridStore.cellRegionLabelMap.get(keyA)
-      for (let j = i + 1; j < entries.length; j++) {
-        const [keyB, digitB] = entries[j]
-        if (digitA !== digitB) continue
-        const mB = keyB.match(/r(\d+)c(\d+)/)!
-        const rowB = Number(mB[1]), colB = Number(mB[2])
-        const regionB = gridStore.cellRegionLabelMap.get(keyB)
-        const sees = rowA === rowB || colA === colB
-          || (regionA !== null && regionA === regionB)
-        if (sees) { errors.add(keyA); errors.add(keyB) }
+    for (let i = 0; i < filled.length; i++) {
+      const a = filled[i]
+      for (let j = i + 1; j < filled.length; j++) {
+        const b = filled[j]
+        if (a.digit !== b.digit) continue
+        if (seesRC(a.key, a.row, a.col, b.key, b.row, b.col)) {
+          errors.add(a.key)
+          errors.add(b.key)
+        }
       }
     }
     return errors

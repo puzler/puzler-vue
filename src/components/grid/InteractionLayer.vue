@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { computeSelectAllSame } from '@/composables/useSelectAllSame'
 import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
@@ -50,7 +51,7 @@ const cursor = computed(() => {
   return 'default'
 })
 
-function hitCell(event: PointerEvent): string | null {
+function hitCell(event: MouseEvent): string | null {
   if (!props.svgRef) return null
   const pos = pointerToCell(event, props.svgRef, grid.rows, grid.cols)
   if (!pos) return null
@@ -333,6 +334,30 @@ function extendSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
   if (!key || props.selection.has(key)) return
   emit('update:selection', new Set([...props.selection, key]))
+}
+
+// Double-click a cell to "select all same": every cell matching the clicked
+// one by content (current input mode, falling through Placed→Center→Corner→
+// Color) or, for empty cells, by constraint membership (odd/even, clone,
+// palindrome, thermo). Ctrl/Cmd/Shift (or multi-select) unions into the
+// current selection instead of replacing it.
+function onDoubleClick(event: MouseEvent) {
+  if (event.button === 2) return
+  const key = hitCell(event)
+  if (!key) return
+  const match = computeSelectAllSame(key, {
+    rows: grid.rows,
+    cols: grid.cols,
+    mode: editor.mode,
+    inputMode: editor.effectiveInputMode,
+    givenDigits: editor.givenDigits,
+    solverCellStates: editor.solverCellStates,
+    singleCellMarks: editor.singleCellMarks,
+    cosmeticInstances: editor.cosmeticInstances,
+  })
+  if (match.size === 0) return
+  const additive = event.ctrlKey || event.metaKey || event.shiftKey || editor.multiSelectMode
+  emit('update:selection', additive ? new Set([...props.selection, ...match]) : match)
 }
 
 function onPointerDown(event: PointerEvent) {
@@ -681,5 +706,6 @@ function onPointerUp(event: PointerEvent) {
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
+    @dblclick="onDoubleClick"
   />
 </template>

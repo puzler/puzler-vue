@@ -71,7 +71,7 @@ export function computeStandardBoxes(rows: number, cols: number): BoxRegion[] | 
 }
 
 export function pointerToSvgPoint(
-  event: PointerEvent,
+  event: MouseEvent,
   svgEl: SVGSVGElement,
 ): { x: number; y: number } | null {
   const pt = svgEl.createSVGPoint()
@@ -84,7 +84,7 @@ export function pointerToSvgPoint(
 }
 
 export function pointerToCell(
-  event: PointerEvent,
+  event: MouseEvent,
   svgEl: SVGSVGElement,
   rows: number,
   cols: number,

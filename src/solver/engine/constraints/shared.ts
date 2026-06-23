@@ -21,6 +21,104 @@ export class AllDifferentConstraint extends Constraint {
   }
 }
 
+// Matching sets: every segment must hold the same SET of digits (membership
+// equality, regardless of order). Used by the "anti-diagonal" variants, where the
+// diagonal is split into per-box runs that each repeat the same set of digits.
+// Within-segment distinctness comes from the box each segment sits inside, so this
+// only governs cross-segment membership: a value is in every segment or in none.
+export class MatchingSetsConstraint extends Constraint {
+  private segments: number[][]
+  private involved: Set<number>
+
+  constructor(name: string, segments: number[][]) {
+    super(name)
+    this.segments = segments
+    this.involved = new Set(segments.flat())
+  }
+
+  // For value `v` in `seg`: is it committed somewhere (present), and can it still
+  // appear at all (present, or some empty cell still admits it)?
+  private membership(board: Board, seg: number[], v: number): { present: boolean; possible: boolean } {
+    const bit = valueBit(v)
+    let present = false
+    let possible = false
+    for (const c of seg) {
+      const mask = board.candidateMask(c)
+      if ((mask & bit) === 0) continue
+      possible = true
+      if (board.isGiven(c) && mask === bit) present = true
+    }
+    return { present, possible }
+  }
+
+  // A committed cell can make a value present in one segment while another segment
+  // can no longer hold it — the sets can then never match.
+  enforce(board: Board, cell: number): boolean {
+    if (!this.involved.has(cell)) return true
+    for (let v = 1; v <= board.size; v += 1) {
+      let anyPresent = false
+      let anyImpossible = false
+      for (const seg of this.segments) {
+        const m = this.membership(board, seg, v)
+        if (m.present) anyPresent = true
+        if (!m.possible) anyImpossible = true
+      }
+      if (anyPresent && anyImpossible) return false
+    }
+    return true
+  }
+
+  // Two sound deductions per value:
+  //  • if a value cannot go in some segment, it can be on no segment — clear it
+  //    from the whole diagonal (and it's a contradiction if already placed);
+  //  • if a value is present in some segment it must appear in every segment, so a
+  //    segment with a single remaining home for it is pinned to that value.
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const cleared: number[] = []
+    for (let v = 1; v <= board.size; v += 1) {
+      const bit = valueBit(v)
+      const info = this.segments.map((seg) => this.membership(board, seg, v))
+      const anyPresent = info.some((m) => m.present)
+      const anyImpossible = info.some((m) => !m.possible)
+
+      if (anyImpossible) {
+        if (anyPresent) {
+          desc.push(`${this.name}: ${v} cannot appear in every segment`)
+          return ConstraintResult.INVALID
+        }
+        for (const seg of this.segments) {
+          for (const c of seg) {
+            if (board.isGiven(c) || (board.candidateMask(c) & bit) === 0) continue
+            if (board.keepMask(c, board.candidateMask(c) & ~bit) === ConstraintResult.INVALID) {
+              desc.push(`${this.name} empties a cell`)
+              return ConstraintResult.INVALID
+            }
+            cleared.push(c)
+          }
+        }
+        continue
+      }
+
+      if (anyPresent) {
+        for (let i = 0; i < this.segments.length; i += 1) {
+          if (info[i].present) continue
+          const homes = this.segments[i].filter((c) => !board.isGiven(c) && (board.candidateMask(c) & bit) !== 0)
+          if (homes.length === 1) {
+            if (board.keepMask(homes[0], bit) === ConstraintResult.INVALID) {
+              desc.push(`${this.name}: ${v} has no home in a segment`)
+              return ConstraintResult.INVALID
+            }
+            cleared.push(homes[0])
+          }
+        }
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(this.name)
+    return ConstraintResult.CHANGED
+  }
+}
+
 // Generic pairwise constraint: for each (cellA, cellB) pair, forbid value
 // combinations via weak links. `forbidden(a, b)` is evaluated with a = cellA's
 // value and b = cellB's value, so ordered pairs express directional rules

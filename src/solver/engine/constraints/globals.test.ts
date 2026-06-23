@@ -8,6 +8,10 @@ import { standardBoxes, mainDiagonalCells } from '../geometry'
 import { valueBit } from '../bitmask'
 import antiXv from './antiXv'
 import antiKropki from './antiKropki'
+import diagonal from './diagonal'
+
+const diagonalSpecMeta = (spec: SolverConstraintSpec) =>
+  spec as unknown as { mode?: string; segments?: number[][] }
 
 // Minimal AdapterContext for exercising a constraint module's fromEditor.
 function adapterCtx(overrides: Partial<AdapterContext>): AdapterContext {
@@ -68,6 +72,44 @@ describe('global & single-cell constraints', () => {
     // r0c0 (0) and r3c3 (30): both on the main diagonal, different row/col/box.
     expect(valid(puzzle(9, [[0, 5], [30, 5]], [diag]))).toBe(false)
     expect(valid(puzzle(9, [[0, 5], [30, 5]], []))).toBe(true) // control: legal without it
+  })
+
+  it('plain positive diagonal builds an all-different diagonal', () => {
+    const specs = diagonal.fromEditor(adapterCtx({ variants: new Set(['positive_diagonal']) }))
+    expect(specs).toHaveLength(1)
+    expect(diagonalSpecMeta(specs[0]).mode).toBe('all_different')
+  })
+
+  it('anti-positive diagonal splits the diagonal into equal per-box segments', () => {
+    const specs = diagonal.fromEditor(adapterCtx({ variants: new Set(['anti_positive_diagonal']) }))
+    expect(specs).toHaveLength(1)
+    expect(diagonalSpecMeta(specs[0]).mode).toBe('matching_sets')
+    expect(diagonalSpecMeta(specs[0]).segments).toEqual([[0, 10, 20], [30, 40, 50], [60, 70, 80]])
+  })
+
+  it('anti-diagonal allows a repeat across segments that all-different forbids', () => {
+    const segments = [[0, 10, 20], [30, 40, 50], [60, 70, 80]]
+    const anti = { kind: 'diagonal', cells: mainDiagonalCells(9), mode: 'matching_sets', segments }
+    // r0c0 (seg 0) and r3c3 (seg 1) both 5: the sets still can match, so it's legal.
+    expect(valid(puzzle(9, [[0, 5], [30, 5]], [anti]))).toBe(true)
+  })
+
+  it('anti-diagonal: segments must hold the same set of digits', () => {
+    const segments = [[0, 10, 20], [30, 40, 50], [60, 70, 80]]
+    const anti = { kind: 'diagonal', cells: mainDiagonalCells(9), mode: 'matching_sets', segments }
+    // Segment 1 is fixed to {2,3,4}; segment 0 holds a 1 it can never match -> invalid.
+    expect(valid(puzzle(9, [[0, 1], [30, 2], [40, 3], [50, 4]], [anti]))).toBe(false)
+    // Swap the 1 for a 2 (which segment 1 has) and the sets can match again.
+    expect(valid(puzzle(9, [[0, 2], [30, 2], [40, 3], [50, 4]], [anti]))).toBe(true)
+  })
+
+  it('anti-diagonal: a value impossible in one segment is removed from the whole diagonal', () => {
+    const segments = [[0, 10, 20], [30, 40, 50], [60, 70, 80]]
+    const anti = { kind: 'diagonal', cells: mainDiagonalCells(9), mode: 'matching_sets', segments }
+    const { board } = buildBoard(puzzle(9, [], [anti]))
+    for (const c of [30, 40, 50]) board.keepMask(c, board.candidateMask(c) & ~valueBit(1)) // 1 can't sit in segment 1
+    logicalSolve(board)
+    for (const c of [0, 10, 20, 60, 70, 80]) expect(board.candidateMask(c) & valueBit(1)).toBe(0)
   })
 
   it("knight's move forbids equal digits a knight apart", () => {

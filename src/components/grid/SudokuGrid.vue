@@ -5,6 +5,7 @@ import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { svgWidth, svgHeight, LABEL_GUTTER } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import GridBackground from './GridBackground.vue'
+import GridBorders from './GridBorders.vue'
 import GridLabelsLayer from './GridLabelsLayer.vue'
 import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
@@ -61,6 +62,9 @@ const viewBox = computed(() => {
     <GridBackground />
     <GridLabelsLayer v-if="showLabels" />
     <CellLayer :cell-states="cellStates" />
+    <!-- Borders render above all cell-background fills (author + player colors)
+         so a fully-opaque color can't cover up the grid lines -->
+    <GridBorders />
     <CosmeticLayer />
     <ConstraintLayer />
     <SelectionLayer :selection="selection" />

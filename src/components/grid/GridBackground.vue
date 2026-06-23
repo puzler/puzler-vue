@@ -6,7 +6,6 @@ import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
-import GridBorders from './GridBorders.vue'
 import ConstraintBackgrounds from './ConstraintBackgrounds.vue'
 
 const grid = useGridStore()
@@ -182,6 +181,5 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :fill="cr.color"
     />
     <ConstraintBackgrounds />
-    <GridBorders />
   </g>
 </template>

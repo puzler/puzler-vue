@@ -8,6 +8,7 @@ import {
   borderKeyCells,
   cornerKeyToRowCol,
   parseOuterKey,
+  cosmeticPos,
 } from '@/types/constraints'
 import type {
   ThermometerData,
@@ -18,8 +19,8 @@ import type {
   ConstraintLineData,
   CosmeticLineData,
   CosmeticCageData,
+  CosmeticPos,
   ShapeData,
-  ShapeAnchor,
   TextData,
   ConnectorDot,
   OuterClue,
@@ -70,23 +71,11 @@ function fpCell(key: string): string {
 }
 
 // f-puzzles places cosmetics on a continuous grid where a cell centre is an
-// integer coordinate and edges/corners fall on half-integers. Anchors offset
-// the centre by half a cell.
-const ANCHOR_OFFSET: Record<ShapeAnchor, { dr: number; dc: number }> = {
-  'center': { dr: 0, dc: 0 },
-  'top': { dr: -0.5, dc: 0 },
-  'bottom': { dr: 0.5, dc: 0 },
-  'left': { dr: 0, dc: -0.5 },
-  'right': { dr: 0, dc: 0.5 },
-  'top-left': { dr: -0.5, dc: -0.5 },
-  'top-right': { dr: -0.5, dc: 0.5 },
-  'bottom-left': { dr: 0.5, dc: -0.5 },
-  'bottom-right': { dr: 0.5, dc: 0.5 },
-}
-function fpAnchoredCell(key: string, anchor: ShapeAnchor): string {
-  const { row, col } = keyToRowCol(key)
-  const { dr, dc } = ANCHOR_OFFSET[anchor]
-  return `R${row + 1 + dr}C${col + 1 + dc}`
+// integer coordinate and edges/corners fall on half-integers. Our `pos` is in
+// cell units (centre = row+0.5/col+0.5), so the f-puzzles label is pos+0.5;
+// values outside [0.5, size+0.5] address the space outside the grid.
+function fpPos(pos: CosmeticPos): string {
+  return `R${pos.y + 0.5}C${pos.x + 0.5}`
 }
 
 // An outer-clue ring position → f-puzzles label. The ring uses row/col -1 (top
@@ -439,25 +428,30 @@ export function puzzleToFpuzzles(
         const field = style?.shapeType === 'circle' ? 'circle' : 'rectangle'
         const diameter = style?.size ?? 0.5
         const entry: Record<string, unknown> = {
-          cells: [fpAnchoredCell(data.cell, data.anchor)],
+          cells: [fpPos(cosmeticPos(data))],
           baseC: fpColor(style?.fillColor ?? 'none'),
           outlineC: style?.strokeColor ?? '#333333',
-          fontC: '#000000',
-          width: diameter, height: diameter, value: '',
+          fontC: style?.textColor ?? '#000000',
+          width: diameter, height: diameter,
+          value: data.content ?? '',
         }
-        if (isDiamond) entry.angle = 45
+        // A diamond is a square rotated 45°, on top of any per-object rotation.
+        const shapeAngle = (((isDiamond ? 45 : 0) + (data.rotation ?? 0)) % 360 + 360) % 360
+        if (shapeAngle) entry.angle = shapeAngle
         push(fp, field, entry)
         break
       }
       case 'text': {
         const data = inst.data as TextData
         const preset = (editor.textPresets as TextPreset[]).find((p) => p.id === data.presetId)
-        push(fp, 'text', {
-          cells: [fpCell(data.cell)],
-          value: preset?.content ?? '',
+        const entry: Record<string, unknown> = {
+          cells: [fpPos(cosmeticPos(data))],
+          value: data.content ?? '',
           fontC: preset?.style.color ?? '#333333',
           size: (preset?.style.fontSize ?? 20) / 50,
-        })
+        }
+        if (data.rotation) entry.angle = ((data.rotation % 360) + 360) % 360
+        push(fp, 'text', entry)
         break
       }
       default: {

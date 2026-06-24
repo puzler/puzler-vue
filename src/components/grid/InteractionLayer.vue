@@ -4,9 +4,9 @@ import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
-import type { CosmeticLineData, ConstraintLineData, ThermometerData, ShapeAnchor, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -47,6 +47,7 @@ const cursor = computed(() => {
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
+  if (editor.activeTool === 'shape') return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
 })
@@ -174,34 +175,48 @@ function findConstraintLineAtCell(key: string): string | null {
   return null
 }
 
-const ANCHOR_THRESHOLD = 0.3
-
-function computeShapeAnchor(event: PointerEvent, cell: string): ShapeAnchor {
-  if (!props.svgRef) return 'center'
+// Snap a pointer to the nearest half-cell point (cell centres, edges and
+// corners) for placing a text/shape. Off-grid points are allowed only when
+// "show external space" is on, and only one ring out from the grid.
+function snapPos(event: PointerEvent): CosmeticPos | null {
+  if (!props.svgRef) return null
   const pt = pointerToSvgPoint(event, props.svgRef)
-  if (!pt) return 'center'
+  if (!pt) return null
+  const x = Math.round(((pt.x - PADDING) / CELL_SIZE) * 2) / 2
+  const y = Math.round(((pt.y - PADDING) / CELL_SIZE) * 2) / 2
+  const minX = editor.showExternalSpace ? -1 : 0
+  const maxX = grid.cols + (editor.showExternalSpace ? 1 : 0)
+  const minY = editor.showExternalSpace ? -1 : 0
+  const maxY = grid.rows + (editor.showExternalSpace ? 1 : 0)
+  if (x < minX || x > maxX || y < minY || y > maxY) return null
+  return { x, y }
+}
 
-  const m = cell.match(/r(\d+)c(\d+)/)!
-  const cellX = PADDING + parseInt(m[2]) * CELL_SIZE
-  const cellY = PADDING + parseInt(m[1]) * CELL_SIZE
-
-  const fx = (pt.x - cellX) / CELL_SIZE
-  const fy = (pt.y - cellY) / CELL_SIZE
-
-  const nearLeft = fx < ANCHOR_THRESHOLD
-  const nearRight = fx > 1 - ANCHOR_THRESHOLD
-  const nearTop = fy < ANCHOR_THRESHOLD
-  const nearBottom = fy > 1 - ANCHOR_THRESHOLD
-
-  if (nearTop && nearLeft) return 'top-left'
-  if (nearTop && nearRight) return 'top-right'
-  if (nearBottom && nearLeft) return 'bottom-left'
-  if (nearBottom && nearRight) return 'bottom-right'
-  if (nearTop) return 'top'
-  if (nearBottom) return 'bottom'
-  if (nearLeft) return 'left'
-  if (nearRight) return 'right'
-  return 'center'
+// Topmost text/shape under the pointer (back-to-front), for Select mode.
+function findCosmeticAt(event: PointerEvent, type: 'text' | 'shape'): string | null {
+  if (!props.svgRef) return null
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return null
+  const insts = editor.cosmeticInstances.filter(i => i.type === type)
+  for (let i = insts.length - 1; i >= 0; i--) {
+    const inst = insts[i]
+    const data = inst.data as ShapeData & TextData
+    const p = cosmeticPos(data)
+    const cx = PADDING + p.x * CELL_SIZE
+    const cy = PADDING + p.y * CELL_SIZE
+    let hx: number, hy: number
+    if (type === 'shape') {
+      const style = editor.shapePresets.find(s => s.id === data.presetId)?.style
+      const r = (CELL_SIZE / 2) * (style?.size ?? 0.5)
+      hx = hy = Math.max(r, CELL_SIZE * 0.18)
+    } else {
+      const fs = editor.textPresets.find(t => t.id === data.presetId)?.style.fontSize ?? 20
+      hx = Math.max(fs, (data.content?.length || 1) * fs * 0.35)
+      hy = fs * 0.7
+    }
+    if (Math.abs(pt.x - cx) <= hx && Math.abs(pt.y - cy) <= hy) return inst.id
+  }
+  return null
 }
 
 function hasCellColor(key: string): boolean {
@@ -385,6 +400,23 @@ function onPointerDown(event: PointerEvent) {
     return
   }
 
+  // Text / shape: placed at a snapped point (centres/edges/corners, optionally
+  // outside the grid), or selected for content editing + nudging.
+  if (editor.activeTool === 'text' || editor.activeTool === 'shape') {
+    const type = editor.activeTool as 'text' | 'shape'
+    const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
+    if (mode === 'select') {
+      editor.selectCosmetic(findCosmeticAt(event, type))
+      return
+    }
+    const pos = snapPos(event)
+    if (pos) {
+      if (type === 'text') editor.toggleTextAt(pos)
+      else editor.toggleShapeAt(pos)
+    }
+    return
+  }
+
   if (editor.activeTool === 'clone') {
     const cloneKey = hitCell(event)
     if (!cloneKey) return
@@ -545,16 +577,32 @@ function onPointerDown(event: PointerEvent) {
     if (brushMode.value === 'paint') editor.setPendingBrushCells([key])
   } else if (isSingleCellTool.value) {
     editor.toggleSingleCellMark(editor.activeTool, key)
-  } else if (editor.activeTool === 'text') {
-    editor.toggleTextAt(key)
-  } else if (editor.activeTool === 'shape') {
-    editor.toggleShapeAt(key, computeShapeAnchor(event, key))
   } else {
     beginSelectionDrag(event)
   }
 }
 
+// Live placement ghost: a translucent preview of the object that would be
+// placed at the snapped pointer, shown for the text/shape tools in place mode.
+// Hidden over an existing object (a click there removes it) and in select mode.
+function updateGhost(event: PointerEvent) {
+  if (editor.mode !== 'setting' || (editor.activeTool !== 'text' && editor.activeTool !== 'shape')) {
+    if (editor.ghostPos) editor.setGhostPos(null)
+    return
+  }
+  const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
+  let next: CosmeticPos | null = null
+  if (mode === 'place') {
+    const pos = snapPos(event)
+    if (pos && findCosmeticAt(event, editor.activeTool as 'text' | 'shape') === null) next = pos
+  }
+  const cur = editor.ghostPos
+  if (cur?.x === next?.x && cur?.y === next?.y) return
+  editor.setGhostPos(next)
+}
+
 function onPointerMove(event: PointerEvent) {
+  updateGhost(event)
   if (!isDragging.value) return
 
   if (editor.mode === 'solving') {
@@ -615,6 +663,7 @@ function onPointerMove(event: PointerEvent) {
 // A pointercancel (system gesture, second finger, etc.) aborts the gesture
 // without a pointerup — reset transient state so we don't get stuck mid-drag.
 function onPointerCancel() {
+  editor.setGhostPos(null)
   if (!isDragging.value) return
   isDragging.value = false
   brushCells.value = new Set()
@@ -623,6 +672,11 @@ function onPointerCancel() {
   editor.setPendingCloneDrag(null)
   editor.setPendingBrushCells([])
   editor.cancelPendingLine()
+}
+
+// Clear the placement ghost when the pointer leaves the grid.
+function onPointerLeave() {
+  if (editor.ghostPos) editor.setGhostPos(null)
 }
 
 function onPointerUp(event: PointerEvent) {
@@ -706,6 +760,7 @@ function onPointerUp(event: PointerEvent) {
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
+    @pointerleave="onPointerLeave"
     @dblclick="onDoubleClick"
   />
 </template>

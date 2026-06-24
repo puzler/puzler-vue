@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { serializePuzzle, serializePlayDefinition, deserializePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
+import type { TextData, ShapeData } from '@/types/constraints'
 
 describe('serializePuzzle', () => {
   beforeEach(() => {
@@ -215,6 +216,35 @@ describe('deserializePuzzle', () => {
     expect(grid2.customCellRegions).toEqual({ r0c0: 'A', r0c1: 'A' })
     expect(editor2.singleCellMarks.even_cells).toBeInstanceOf(Set)
     expect([...editor2.singleCellMarks.even_cells]).toEqual(['r0c0'])
+  })
+
+  it('migrates legacy text/shape cosmetics to per-instance pos + content', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    // Legacy shape: presets carried the shared text; instances pinned to a
+    // cell (+ anchor for shapes).
+    deserializePuzzle(editor, grid, {
+      formatVersion: 3,
+      grid: { rows: 9, cols: 9 },
+      cosmetics: {
+        instances: [
+          { id: 't1', type: 'text', data: { cell: 'r0c1', presetId: 'tp' } },
+          { id: 's1', type: 'shape', data: { cell: 'r2c3', anchor: 'top-left', presetId: 'sp' } },
+        ],
+        textPresets: [{ id: 'tp', label: 'T', content: 'X', style: { color: '#333', fontSize: 20, bold: false } }],
+        shapePresets: [{ id: 'sp', label: 'S', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5, textColor: '#333', textSize: 20 } }],
+      },
+    } as never)
+
+    const text = editor.cosmeticInstances.find(i => i.id === 't1')!.data as TextData
+    expect(text.pos).toEqual({ x: 1.5, y: 0.5 })  // centre of r0c1
+    expect(text.content).toBe('X')                 // seeded from the old preset content
+    expect(text.cell).toBeUndefined()
+
+    const shape = editor.cosmeticInstances.find(i => i.id === 's1')!.data as ShapeData
+    expect(shape.pos).toEqual({ x: 3, y: 2 })       // top-left corner of r2c3
+    expect(shape.content).toBe('')
+    expect(shape.anchor).toBeUndefined()
   })
 })
 

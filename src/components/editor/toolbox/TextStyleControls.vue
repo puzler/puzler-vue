@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import CosmeticPlacementControls from './CosmeticPlacementControls.vue'
 
 const editor = useEditorStore()
-
-function onContentInput(event: Event) {
-  editor.updateActiveTextPresetContent((event.target as HTMLInputElement).value)
-}
 
 function onColorInput(event: Event) {
   editor.updateActiveTextPresetStyle({ color: (event.target as HTMLInputElement).value })
@@ -22,19 +19,11 @@ function onFontSizeChange(event: Event) {
     v-if="editor.activeTextPreset"
     class="flex flex-col gap-3 px-3 py-3"
   >
-    <div class="flex flex-col gap-1.5">
-      <label class="text-xs text-soft">Content</label>
-      <input
-        :value="editor.activeTextPreset.content"
-        maxlength="3"
-        placeholder="?"
-        class="w-full text-sm px-2 py-1.5 rounded border border-line focus:outline-none focus:border-action text-center font-mono"
-        @input="onContentInput"
-      >
-      <p class="text-[11px] text-faint">
-        Click a cell to place · click again to remove
-      </p>
-    </div>
+    <CosmeticPlacementControls />
+
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
+      Style
+    </p>
 
     <div class="flex flex-col gap-1">
       <label class="text-xs text-soft">Color</label>

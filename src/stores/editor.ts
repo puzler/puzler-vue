@@ -6,11 +6,11 @@ import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import type { CellState, SolverInputMode } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
-  CellColorPreset,
-  ShapePreset, ShapeStyle, ShapeData, ShapeAnchor,
+  CellColorPreset, CosmeticPos,
+  ShapePreset, ShapeStyle, ShapeData,
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
   ConnectorDot, BorderConnectorType, XvValue,
@@ -89,6 +89,16 @@ export const useEditorStore = defineStore('editor', () => {
   const selectedDotKey = ref<string | null>(null)
   const selectedCageId = ref<string | null>(null)
   const pendingCageCells = ref<string[]>([])
+  // The selected movable cosmetic (text or shape); drives content editing and
+  // the nudge d-pad.
+  const selectedCosmeticId = ref<string | null>(null)
+  // Setter-only view toggle: when on, the grid shows a ring of external space
+  // so shapes/text can be placed (and then nudged) outside the grid. Ephemeral
+  // UI state, never persisted.
+  const showExternalSpace = ref(false)
+  // Snapped pointer position for the placement ghost preview (text/shape tools,
+  // place mode). Ephemeral hover state, never persisted.
+  const ghostPos = ref<CosmeticPos | null>(null)
   const outerClues = ref<Record<string, OuterClue>>({})  // outer key → clue
   const selectedOuterClueKey = ref<string | null>(null)
   // Brush preview for extra regions and clone painting (the cell-color brush
@@ -132,7 +142,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Text ──────────────────────────────────────────────────────────────────
   function makeTextPreset(label: string): TextPreset {
-    return { id: crypto.randomUUID(), label, content: '?', style: { ...DEFAULT_TEXT_STYLE } }
+    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_TEXT_STYLE } }
   }
   const _initialText = makeTextPreset('Text 1')
   const textPresets = ref<TextPreset[]>([_initialText])
@@ -354,7 +364,9 @@ export const useEditorStore = defineStore('editor', () => {
     activeTool.value = tool
     selectedDotKey.value = null
     selectedCageId.value = null
+    selectedCosmeticId.value = null
     selectedOuterClueKey.value = null
+    ghostPos.value = null
   }
 
   function setArrowDrawMode(mode: 'bulb' | 'arrow') {
@@ -371,6 +383,14 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setConnectorMode(mode: 'place' | 'select') {
     connectorMode.value = mode
+  }
+
+  function setShowExternalSpace(v: boolean) {
+    showExternalSpace.value = v
+  }
+
+  function setGhostPos(pos: CosmeticPos | null) {
+    ghostPos.value = pos
   }
 
   function setCloneMode(mode: 'paint' | 'clone') {
@@ -393,7 +413,9 @@ export const useEditorStore = defineStore('editor', () => {
     mode.value = m
     selectedDotKey.value = null
     selectedCageId.value = null
+    selectedCosmeticId.value = null
     selectedOuterClueKey.value = null
+    ghostPos.value = null
     if (m === 'setting') {
       keyboardModeOverride.value = null
       if (!SELECTION_TOOLS.has(activeTool.value)) selection.value = new Set()
@@ -845,9 +867,13 @@ export const useEditorStore = defineStore('editor', () => {
     )
   }
 
-  function toggleShapeAt(cell: string, anchor: ShapeAnchor) {
+  function posEq(a: CosmeticPos, b: CosmeticPos) {
+    return a.x === b.x && a.y === b.y
+  }
+
+  function toggleShapeAt(pos: CosmeticPos) {
     const existingIdx = cosmeticInstances.value.findIndex(
-      i => i.type === 'shape' && (i.data as ShapeData).cell === cell && (i.data as ShapeData).anchor === anchor,
+      i => i.type === 'shape' && posEq(cosmeticPos(i.data as ShapeData), pos),
     )
     if (existingIdx !== -1) {
       const existing = cosmeticInstances.value[existingIdx]
@@ -859,7 +885,7 @@ export const useEditorStore = defineStore('editor', () => {
       const instance: CosmeticInstance = {
         id: crypto.randomUUID(),
         type: 'shape',
-        data: { cell, anchor, presetId: activeShapePresetId.value } satisfies ShapeData,
+        data: { pos, content: '', presetId: activeShapePresetId.value } satisfies ShapeData,
       }
       execute({
         execute: () => { cosmeticInstances.value.push(instance) },
@@ -880,21 +906,15 @@ export const useEditorStore = defineStore('editor', () => {
     if (textPresets.value.some(p => p.id === id)) activeTextPresetId.value = id
   }
 
-  function updateActiveTextPresetContent(content: string) {
-    textPresets.value = textPresets.value.map(p =>
-      p.id === activeTextPresetId.value ? { ...p, content } : p,
-    )
-  }
-
   function updateActiveTextPresetStyle(patch: Partial<TextStyle>) {
     textPresets.value = textPresets.value.map(p =>
       p.id === activeTextPresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
     )
   }
 
-  function toggleTextAt(key: string) {
+  function toggleTextAt(pos: CosmeticPos) {
     const existingIdx = cosmeticInstances.value.findIndex(
-      i => i.type === 'text' && (i.data as TextData).cell === key,
+      i => i.type === 'text' && posEq(cosmeticPos(i.data as TextData), pos),
     )
     if (existingIdx !== -1) {
       const existing = cosmeticInstances.value[existingIdx]
@@ -906,13 +926,100 @@ export const useEditorStore = defineStore('editor', () => {
       const instance: CosmeticInstance = {
         id: crypto.randomUUID(),
         type: 'text',
-        data: { cell: key, presetId: activeTextPresetId.value } satisfies TextData,
+        data: { pos, content: '?', presetId: activeTextPresetId.value } satisfies TextData,
       }
       execute({
         execute: () => { cosmeticInstances.value.push(instance) },
         undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
       })
     }
+  }
+
+  // ── Movable cosmetic selection / editing (text + shape) ─────────────────────
+
+  function selectCosmetic(id: string | null) {
+    selectedCosmeticId.value = id
+    if (id !== null) {
+      selectedDotKey.value = null
+      selectedCageId.value = null
+      selectedOuterClueKey.value = null
+    }
+  }
+
+  const selectedCosmetic = computed(() =>
+    cosmeticInstances.value.find(i => i.id === selectedCosmeticId.value) ?? null,
+  )
+
+  function updateCosmeticContent(id: string, content: string) {
+    const idx = cosmeticInstances.value.findIndex(i => i.id === id)
+    if (idx === -1) return
+    const inst = cosmeticInstances.value[idx]
+    if (inst.type !== 'text' && inst.type !== 'shape') return
+    const data = inst.data as TextData | ShapeData
+    const next = content.slice(0, MAX_COSMETIC_TEXT_LEN)
+    const prev = data.content ?? ''
+    if (next === prev) return
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), content: next } } : i,
+        )
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), content: prev } } : i,
+        )
+      },
+    })
+  }
+
+  // Move the selected text/shape by a half-cell step (centres/edges/corners),
+  // with no bounds so it can travel arbitrarily far outside the grid.
+  function nudgeSelectedCosmetic(dx: number, dy: number) {
+    const id = selectedCosmeticId.value
+    if (!id) return
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst || (inst.type !== 'text' && inst.type !== 'shape')) return
+    const data = inst.data as TextData | ShapeData
+    const prev = cosmeticPos(data)
+    const next: CosmeticPos = { x: prev.x + dx, y: prev.y + dy }
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), pos: next } } : i,
+        )
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), pos: prev } } : i,
+        )
+      },
+    })
+  }
+
+  // Rotate the selected text/shape by `delta` degrees (clockwise positive),
+  // normalised to [0, 360). Per-object, not the preset.
+  function rotateSelectedCosmetic(delta: number) {
+    const id = selectedCosmeticId.value
+    if (!id) return
+    const inst = cosmeticInstances.value.find(i => i.id === id)
+    if (!inst || (inst.type !== 'text' && inst.type !== 'shape')) return
+    const data = inst.data as TextData | ShapeData
+    const prev = data.rotation ?? 0
+    const next = (((prev + delta) % 360) + 360) % 360
+    if (next === prev) return
+    execute({
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), rotation: next } } : i,
+        )
+      },
+      undo: () => {
+        cosmeticInstances.value = cosmeticInstances.value.map(i =>
+          i.id === id ? { ...i, data: { ...(i.data as object), rotation: prev } } : i,
+        )
+      },
+    })
   }
 
   function removeCosmeticType(constraintId: string, type: string) {
@@ -1179,9 +1286,16 @@ export const useEditorStore = defineStore('editor', () => {
     const idx = cosmeticInstances.value.findIndex(i => i.id === id)
     if (idx === -1) return
     const instance = cosmeticInstances.value[idx]
+    const prevSelected = selectedCosmeticId.value
     execute({
-      execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== id) },
-      undo: () => { cosmeticInstances.value.splice(idx, 0, instance) },
+      execute: () => {
+        cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== id)
+        if (selectedCosmeticId.value === id) selectedCosmeticId.value = null
+      },
+      undo: () => {
+        cosmeticInstances.value.splice(idx, 0, instance)
+        selectedCosmeticId.value = prevSelected
+      },
     })
   }
 
@@ -1271,6 +1385,9 @@ export const useEditorStore = defineStore('editor', () => {
     connectorDots.value = {}
     selectedDotKey.value = null
     selectedCageId.value = null
+    selectedCosmeticId.value = null
+    showExternalSpace.value = false
+    ghostPos.value = null
     pendingCageCells.value = []
     pendingRegionBrushCells.value = []
     outerClues.value = {}
@@ -1401,6 +1518,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (border !== null) {
       selectedCageId.value = null
       selectedOuterClueKey.value = null
+      selectedCosmeticId.value = null
     }
   }
 
@@ -1531,6 +1649,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (id !== null) {
       selectedDotKey.value = null
       selectedOuterClueKey.value = null
+      selectedCosmeticId.value = null
     }
   }
 
@@ -1739,6 +1858,7 @@ export const useEditorStore = defineStore('editor', () => {
         selectedOuterClueKey.value = key
         selectedDotKey.value = null
         selectedCageId.value = null
+        selectedCosmeticId.value = null
       },
       undo: () => {
         const next = { ...outerClues.value }
@@ -1756,6 +1876,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (key !== null) {
       selectedDotKey.value = null
       selectedCageId.value = null
+      selectedCosmeticId.value = null
     }
   }
 
@@ -1950,9 +2071,18 @@ export const useEditorStore = defineStore('editor', () => {
     activeTextPreset,
     addTextPreset,
     setActiveTextPreset,
-    updateActiveTextPresetContent,
     updateActiveTextPresetStyle,
     toggleTextAt,
+    selectedCosmeticId,
+    selectedCosmetic,
+    selectCosmetic,
+    updateCosmeticContent,
+    nudgeSelectedCosmetic,
+    rotateSelectedCosmetic,
+    showExternalSpace,
+    setShowExternalSpace,
+    ghostPos,
+    setGhostPos,
     hasSelection,
     seenDigitsByCell,
     errorCells,

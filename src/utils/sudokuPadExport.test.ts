@@ -240,14 +240,57 @@ describe('puzzleToFpuzzles', () => {
     const { editor, grid } = stores()
     editor.shapePresets = [{
       id: 'd1', label: 'D',
-      style: { shapeType: 'diamond', fillColor: 'none', strokeColor: '#333333', strokeWidth: 2, size: 0.5 },
+      style: { shapeType: 'diamond', fillColor: 'none', strokeColor: '#333333', strokeWidth: 2, size: 0.5, textColor: '#333333', textSize: 20 },
     }]
-    editor.cosmeticInstances = [inst('shape', { cell: 'r0c0', anchor: 'center', presetId: 'd1' })]
+    editor.cosmeticInstances = [inst('shape', { pos: { x: 0.5, y: 0.5 }, content: '', presetId: 'd1' })]
     const { data } = puzzleToFpuzzles(editor, grid)
     const rects = data.rectangle as Record<string, unknown>[]
     expect(rects).toHaveLength(1)
     expect(rects[0].cells).toEqual(['R1C1'])
     expect(rects[0].angle).toBe(45)
+  })
+
+  it('exports per-instance text content at its free position', () => {
+    const { editor, grid } = stores()
+    editor.textPresets = [{ id: 't1', label: 'T', style: { color: '#ff0000', fontSize: 30, bold: false } }]
+    editor.cosmeticInstances = [inst('text', { pos: { x: 2.5, y: 0.5 }, content: 'AB', presetId: 't1' })]
+    const { data } = puzzleToFpuzzles(editor, grid)
+    expect(data.text).toEqual([{ cells: ['R1C3'], value: 'AB', fontC: '#ff0000', size: 0.6 }])
+  })
+
+  it('exports a shape with inner text placed outside the grid', () => {
+    const { editor, grid } = stores()
+    editor.shapePresets = [{
+      id: 's1', label: 'S',
+      style: { shapeType: 'circle', fillColor: '#ffffff', strokeColor: '#000000', strokeWidth: 2, size: 0.5, textColor: '#0000ff', textSize: 24 },
+    }]
+    // Nudged into the ring left of the grid (x = -0.5).
+    editor.cosmeticInstances = [inst('shape', { pos: { x: -0.5, y: 0.5 }, content: '9', presetId: 's1' })]
+    const { data } = puzzleToFpuzzles(editor, grid)
+    const circles = data.circle as Record<string, unknown>[]
+    expect(circles).toHaveLength(1)
+    expect(circles[0].cells).toEqual(['R1C0'])  // column 0 is outside the left edge
+    expect(circles[0].value).toBe('9')
+    expect(circles[0].fontC).toBe('#0000ff')
+  })
+
+  it('exports per-object rotation as the f-puzzles angle (adding to a diamond)', () => {
+    const { editor, grid } = stores()
+    editor.textPresets = [{ id: 't1', label: 'T', style: { color: '#333', fontSize: 20, bold: false } }]
+    editor.shapePresets = [
+      { id: 'c1', label: 'C', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5, textColor: '#333', textSize: 20 } },
+      { id: 'd1', label: 'D', style: { shapeType: 'diamond', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5, textColor: '#333', textSize: 20 } },
+    ]
+    editor.cosmeticInstances = [
+      inst('text', { pos: { x: 0.5, y: 0.5 }, content: 'A', rotation: 90, presetId: 't1' }),
+      inst('shape', { pos: { x: 1.5, y: 0.5 }, content: '', rotation: 30, presetId: 'c1' }),
+      inst('shape', { pos: { x: 2.5, y: 0.5 }, content: '', rotation: 45, presetId: 'd1' }),
+    ]
+    const { data } = puzzleToFpuzzles(editor, grid)
+    expect((data.text as Record<string, unknown>[])[0].angle).toBe(90)
+    expect((data.circle as Record<string, unknown>[])[0].angle).toBe(30)
+    // diamond's inherent 45° plus the object's 45° rotation
+    expect((data.rectangle as Record<string, unknown>[])[0].angle).toBe(90)
   })
 
   it('maps custom regions to per-cell region indices', () => {
@@ -294,8 +337,8 @@ describe('puzzleToFpuzzles', () => {
     }
     editor.linePresets = [{ id: 'lp', label: 'L', style: { color: '#111', strokeWidth: 8, opacity: 1 } }]
     editor.cagePresets = [{ id: 'cp', label: 'C', style: { cageColor: '#222', textColor: '#333' } }]
-    editor.shapePresets = [{ id: 'sp', label: 'S', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5 } }]
-    editor.textPresets = [{ id: 'tp', label: 'T', content: '!', style: { color: '#333', fontSize: 20, bold: false } }]
+    editor.shapePresets = [{ id: 'sp', label: 'S', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5, textColor: '#333', textSize: 20 } }]
+    editor.textPresets = [{ id: 'tp', label: 'T', style: { color: '#333', fontSize: 20, bold: false } }]
     editor.cellColorPresets = [{ id: 'col', label: 'X', color: '#abcdef' }]
     editor.cosmeticCellColors = { r8c8: 'col' }
     editor.cosmeticInstances = [

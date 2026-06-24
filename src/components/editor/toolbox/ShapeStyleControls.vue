@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
 import type { ShapeType } from '@/types/constraints'
+import CosmeticPlacementControls from './CosmeticPlacementControls.vue'
+import ShapeTextControls from './ShapeTextControls.vue'
 
 const editor = useEditorStore()
 
@@ -32,6 +34,12 @@ function onSizeChange(event: Event) {
     v-if="editor.activeShapePreset"
     class="flex flex-col gap-3 px-3 py-3"
   >
+    <CosmeticPlacementControls />
+
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
+      Style
+    </p>
+
     <div class="flex flex-col gap-1.5">
       <label class="text-xs text-soft">Shape</label>
       <div class="flex gap-1.5">
@@ -112,8 +120,7 @@ function onSizeChange(event: Event) {
         <span class="text-xs text-faint">%</span>
       </div>
     </div>
-    <p class="text-[11px] text-faint leading-snug">
-      Click a cell to place at the nearest anchor · click again to remove
-    </p>
+
+    <ShapeTextControls />
   </div>
 </template>

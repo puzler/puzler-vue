@@ -36,7 +36,7 @@ const editor = useEditorStore()
               fontWeight: preset.style.bold ? 'bold' : 'normal',
               fontSize: `${Math.min(preset.style.fontSize, 16)}px`,
             }"
-          >{{ preset.content || '?' }}</span>
+          >A</span>
           <span
             class="text-sm truncate"
             :class="preset.id === editor.activeTextPresetId ? 'text-action font-medium' : ''"

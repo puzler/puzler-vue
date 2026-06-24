@@ -1,4 +1,5 @@
 import { LINE_STYLES, SHAPE_STYLES, colorToCss } from '@/types/constraintStyles'
+import { keyToRowCol } from '@/composables/useGrid'
 
 export interface LineStyle {
   color: string
@@ -28,6 +29,19 @@ export interface CosmeticInstance {
   type: string
   data: unknown
 }
+
+// A free position for a movable cosmetic, in cell units: the SVG point is
+// `PADDING + x*CELL_SIZE` / `PADDING + y*CELL_SIZE`. A cell centre at row r,
+// col c is { x: c + 0.5, y: r + 0.5 }; half-integer steps hit centres, edges
+// and corners; negatives / over-size values land outside the grid.
+export interface CosmeticPos {
+  x: number
+  y: number
+}
+
+// Editable cosmetic text is capped so a label stays readable within a cell or
+// two of space.
+export const MAX_COSMETIC_TEXT_LEN = 12
 
 // ── Constraint lines ─────────────────────────────────────────────────────────
 
@@ -282,6 +296,8 @@ export interface ShapeStyle {
   strokeColor: string
   strokeWidth: number
   size: number        // fraction of CELL_SIZE radius, 0.1–0.9
+  textColor: string   // colour of the optional text rendered inside the shape
+  textSize: number    // font size (SVG units) of the inner text
 }
 
 export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
@@ -290,6 +306,8 @@ export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
   strokeColor: '#333333',
   strokeWidth: 2,
   size: 0.5,
+  textColor: '#333333',
+  textSize: 20,
 }
 
 export type ShapeAnchor =
@@ -304,9 +322,39 @@ export interface ShapePreset {
 }
 
 export interface ShapeData {
-  cell: string
-  anchor: ShapeAnchor
+  pos?: CosmeticPos
+  content?: string
+  rotation?: number  // degrees, clockwise; per-object (not the preset)
   presetId: string
+  // Legacy fields, read on import and migrated to `pos` (see cosmeticPos).
+  cell?: string
+  anchor?: ShapeAnchor
+}
+
+// Anchor → offset (in cells) from a cell centre. Kept for migrating legacy
+// shape data (cell + anchor) to a free `pos`.
+export const SHAPE_ANCHOR_OFFSET: Record<ShapeAnchor, { dr: number; dc: number }> = {
+  'center': { dr: 0, dc: 0 },
+  'top': { dr: -0.5, dc: 0 },
+  'bottom': { dr: 0.5, dc: 0 },
+  'left': { dr: 0, dc: -0.5 },
+  'right': { dr: 0, dc: 0.5 },
+  'top-left': { dr: -0.5, dc: -0.5 },
+  'top-right': { dr: -0.5, dc: 0.5 },
+  'bottom-left': { dr: 0.5, dc: -0.5 },
+  'bottom-right': { dr: 0.5, dc: 0.5 },
+}
+
+// Resolve a text/shape instance's free position, falling back to its legacy
+// cell (+ anchor) for puzzles saved before per-instance positioning.
+export function cosmeticPos(data: { pos?: CosmeticPos; cell?: string; anchor?: ShapeAnchor }): CosmeticPos {
+  if (data.pos) return data.pos
+  if (data.cell) {
+    const { row, col } = keyToRowCol(data.cell)
+    const off = data.anchor ? SHAPE_ANCHOR_OFFSET[data.anchor] : { dr: 0, dc: 0 }
+    return { x: col + 0.5 + off.dc, y: row + 0.5 + off.dr }
+  }
+  return { x: 0.5, y: 0.5 }
 }
 
 // ── Cosmetic cages ────────────────────────────────────────────────────────────
@@ -350,11 +398,17 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
 export interface TextPreset {
   id: string
   label: string
-  content: string
+  // Deprecated: presets now define style only. Still read on import so legacy
+  // puzzles can seed each placed instance's own content.
+  content?: string
   style: TextStyle
 }
 
 export interface TextData {
-  cell: string
+  pos?: CosmeticPos
+  content: string
+  rotation?: number  // degrees, clockwise; per-object (not the preset)
   presetId: string
+  // Legacy field, read on import and migrated to `pos` (see cosmeticPos).
+  cell?: string
 }

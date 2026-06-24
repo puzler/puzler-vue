@@ -2,6 +2,8 @@ import { toRaw } from 'vue'
 import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
+import { cosmeticPos } from '@/types/constraints'
+import type { TextData, ShapeData } from '@/types/constraints'
 
 // The export *format* version — the schema of this JSON, not a puzzle's save
 // version (v1/v2). Exported as `formatVersion`; bumped when the shape changes.
@@ -163,6 +165,24 @@ export function deserializePuzzle(editor: EditorStore, grid: GridStore, input: S
   if (cosmetics.textPresets) editor.textPresets = structuredClone(cosmetics.textPresets)
   if (cosmetics.cellColorPresets) editor.cellColorPresets = structuredClone(cosmetics.cellColorPresets)
   if (cosmetics.cagePresets) editor.cagePresets = structuredClone(cosmetics.cagePresets)
+
+  // Migrate legacy text/shape cosmetics: presets used to carry the shared text
+  // and instances were pinned to a cell (+ anchor). Give each instance its own
+  // `pos` and `content` (seeded from the old preset content for text) so the
+  // rest of the app only deals with the new free-position model.
+  editor.cosmeticInstances = editor.cosmeticInstances.map((inst) => {
+    if (inst.type !== 'text' && inst.type !== 'shape') return inst
+    const data = inst.data as TextData & ShapeData
+    const pos = cosmeticPos(data)
+    const content = data.content
+      ?? (inst.type === 'text'
+        ? (editor.textPresets.find((p) => p.id === data.presetId)?.content ?? '?')
+        : '')
+    return {
+      ...inst,
+      data: { presetId: data.presetId, pos, content, ...(data.rotation ? { rotation: data.rotation } : {}) },
+    }
+  })
 
   // Point the active-preset selectors at the restored presets (reset() left
   // them on freshly-generated default ids).

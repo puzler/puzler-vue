@@ -1,28 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { CELL_SIZE, PADDING } from '@/composables/useGrid'
-import type { ShapeStyle, ShapeAnchor } from '@/types/constraints'
+import { GLOW_COLOR } from '@/components/grid/constraints/connectorLayerShared'
+import type { CosmeticPos, ShapeStyle } from '@/types/constraints'
 
 const props = defineProps<{
-  cell: string
-  anchor?: ShapeAnchor
+  pos: CosmeticPos
   shapeStyle: ShapeStyle
+  content?: string
+  selected?: boolean
+  rotation?: number
   opacity?: number
 }>()
 
-const center = computed(() => {
-  const m = props.cell.match(/r(\d+)c(\d+)/)!
-  const cellX = PADDING + parseInt(m[2]) * CELL_SIZE
-  const cellY = PADDING + parseInt(m[1]) * CELL_SIZE
-  const midX = cellX + CELL_SIZE / 2
-  const midY = cellY + CELL_SIZE / 2
+const center = computed(() => ({
+  cx: PADDING + props.pos.x * CELL_SIZE,
+  cy: PADDING + props.pos.y * CELL_SIZE,
+}))
 
-  const a = props.anchor ?? 'center'
-  return {
-    cx: a.includes('left') ? cellX : a.includes('right') ? cellX + CELL_SIZE : midX,
-    cy: a.includes('top') ? cellY : a.includes('bottom') ? cellY + CELL_SIZE : midY,
-  }
-})
+const transform = computed(() =>
+  props.rotation ? `rotate(${props.rotation} ${center.value.cx} ${center.value.cy})` : undefined,
+)
 
 const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
 </script>
@@ -30,8 +28,19 @@ const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
 <template>
   <g
     :opacity="opacity ?? 1"
+    :transform="transform"
     pointer-events="none"
   >
+    <circle
+      v-if="selected"
+      :cx="center.cx"
+      :cy="center.cy"
+      :r="r + 3"
+      fill="none"
+      :style="{ stroke: GLOW_COLOR }"
+      stroke-width="3"
+      stroke-opacity="0.5"
+    />
     <circle
       v-if="shapeStyle.shapeType === 'circle'"
       :cx="center.cx"
@@ -58,5 +67,16 @@ const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
       :stroke="shapeStyle.strokeColor"
       :stroke-width="shapeStyle.strokeWidth"
     />
+    <text
+      v-if="content"
+      :x="center.cx"
+      :y="center.cy"
+      text-anchor="middle"
+      dominant-baseline="central"
+      :fill="shapeStyle.textColor"
+      :font-size="shapeStyle.textSize"
+    >
+      {{ content }}
+    </text>
   </g>
 </template>

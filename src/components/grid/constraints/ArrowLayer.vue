@@ -5,8 +5,14 @@ import { cellCenter, cellsToPath } from '@/utils/linePath'
 import { CELL_SIZE } from '@/composables/useGrid'
 import { ARROW_STYLE } from '@/types/constraints'
 import type { ArrowData } from '@/types/constraints'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
+
+// Only the color is themeable in v1 (default ⊕ override, gated); the bulb/line geometry below
+// stays at the ARROW_STYLE defaults.
+const arrowColor = computed(() => cs.arrowStyle().color)
 
 const BULB_OUTER = ARROW_STYLE.bulbRadius * 2
 const BULB_INNER = BULB_OUTER - ARROW_STYLE.outlineWidth * 2
@@ -104,7 +110,7 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :key="`line-${i}`"
         :d="line"
         fill="none"
-        :stroke="ARROW_STYLE.color"
+        :stroke="arrowColor"
         :stroke-width="ARROW_STYLE.lineWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -114,7 +120,7 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :key="`head-${i}`"
         :d="head"
         fill="none"
-        :stroke="ARROW_STYLE.color"
+        :stroke="arrowColor"
         :stroke-width="ARROW_STYLE.lineWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -127,15 +133,15 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :cx="inst.bulbCircle.x"
         :cy="inst.bulbCircle.y"
         :r="ARROW_STYLE.bulbRadius"
-        fill="white"
-        :stroke="ARROW_STYLE.color"
+        :style="{ fill: 'var(--color-grid-cell)' }"
+        :stroke="arrowColor"
         :stroke-width="ARROW_STYLE.outlineWidth"
       />
       <template v-if="inst.bulbPath">
         <path
           :d="inst.bulbPath"
           fill="none"
-          :stroke="ARROW_STYLE.color"
+          :stroke="arrowColor"
           :stroke-width="BULB_OUTER"
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -143,7 +149,7 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         <path
           :d="inst.bulbPath"
           fill="none"
-          stroke="white"
+          :style="{ stroke: 'var(--color-grid-cell)' }"
           :stroke-width="BULB_INNER"
           stroke-linecap="round"
           stroke-linejoin="round"

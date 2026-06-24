@@ -88,6 +88,7 @@ export interface ConstraintStyleOverride {
 // The family decides which fields are meaningful and how the resolver merges + clamps them.
 export type ConstraintStyleFamily =
   | 'line' | 'diagonal' | 'shape' | 'text' | 'cellBg' | 'cage' | 'minmax' | 'betweenLine'
+  | 'thermo' | 'arrow'
 
 // Editor grouping (mirrors the constraint categories in constants/constraints.ts).
 export type ConstraintStyleCategory =
@@ -110,6 +111,8 @@ export const CONSTRAINT_STYLE_REGISTRY = {
   palindrome:      { family: 'line', category: 'lines', label: 'Palindrome' },
   region_sum:      { family: 'line', category: 'lines', label: 'Region sum line' },
   between_lines:   { family: 'betweenLine', category: 'lines', label: 'Between line' },
+  thermometer:     { family: 'thermo', category: 'lines', label: 'Thermometer' },
+  arrow:           { family: 'arrow', category: 'lines', label: 'Arrow' },
   // Connectors
   difference_dots: { family: 'shape', category: 'connectors', label: 'Difference dot' },
   ratio_dots:      { family: 'shape', category: 'connectors', label: 'Ratio dot' },
@@ -148,8 +151,8 @@ export function constraintFamily(key: ConstraintStyleKey): ConstraintStyleFamily
 
 // ── Theme + collection ──────────────────────────────────────────────────────────
 
-export type BuiltInThemeId = 'classic' | 'light' | 'dark'
-export const BUILTIN_THEME_IDS: BuiltInThemeId[] = ['classic', 'light', 'dark']
+export type BuiltInThemeId = 'classic' | 'light' | 'dark' | 'high_contrast'
+export const BUILTIN_THEME_IDS: BuiltInThemeId[] = ['classic', 'light', 'dark', 'high_contrast']
 const BUILTIN_ID_SET = new Set<string>(BUILTIN_THEME_IDS)
 
 export function isBuiltInThemeId(id: string): id is BuiltInThemeId {

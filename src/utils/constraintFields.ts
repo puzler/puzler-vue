@@ -53,4 +53,10 @@ export const FAMILY_FIELDS: Record<ConstraintStyleFamily, FieldSpec[]> = {
     { field: 'outlineColor', label: 'Edge', kind: 'color' },
     { field: 'strokeWidth', label: 'Width', ...WIDTH },
   ],
+  thermo: [
+    { field: 'color', label: 'Color', kind: 'color' },
+  ],
+  arrow: [
+    { field: 'color', label: 'Color', kind: 'color' },
+  ],
 }

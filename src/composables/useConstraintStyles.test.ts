@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   resolveLineStyle, resolveShapeStyle, resolveTextStyle,
   resolveCellBgColor, resolveCageStyle, resolveBetweenLineStyle, resolveMinMaxStyle,
+  resolveThermoStyle, resolveArrowStyle,
 } from './useConstraintStyles'
-import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE } from '@/types/constraints'
+import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE } from '@/types/constraints'
 import {
   SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, colorToCss,
 } from '@/types/constraintStyles'
@@ -106,5 +107,18 @@ describe('useConstraintStyles — override merge + clamp', () => {
     expect(dark.halo).toBe('#ffffff') // light halo over a dark fill
     const light = resolveMinMaxStyle('maximums', { backgroundColor: '#f5f5f5' }, true)
     expect(light.halo).toBe('#1a1a1a') // dark halo over a light fill
+  })
+})
+
+describe('useConstraintStyles — thermometer + arrow', () => {
+  it('default to THERMO_STYLE / ARROW_STYLE', () => {
+    expect(resolveThermoStyle()).toEqual(THERMO_STYLE)
+    expect(resolveArrowStyle()).toEqual(ARROW_STYLE)
+  })
+
+  it('apply a color override when enabled, ignore it when gated off', () => {
+    expect(resolveThermoStyle({ color: '#ff0000' }, true)).toEqual({ ...THERMO_STYLE, color: '#ff0000' })
+    expect(resolveThermoStyle({ color: '#ff0000' }, false)).toEqual(THERMO_STYLE)
+    expect(resolveArrowStyle({ color: '#00ff00' }, true).color).toBe('#00ff00')
   })
 })

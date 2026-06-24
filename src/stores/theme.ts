@@ -130,6 +130,18 @@ export const useThemeStore = defineStore('theme', () => {
     return uid
   }
 
+  // Add a theme parsed from a shared code (already normalized) as a new editable user theme,
+  // with a fresh per-user id, then activate it. Returns the new id.
+  function importTheme(source: Theme): string {
+    const uid = newThemeId()
+    const theme = cloneTheme(source, uid, source.name)
+    collection.userThemes.push(theme)
+    collection.activeThemeId = uid
+    pushNewTheme(theme)
+    void pushPrefs()
+    return uid
+  }
+
   function renameTheme(uid: string, name: string) {
     const theme = findUserTheme(uid)
     if (!theme) return
@@ -245,6 +257,7 @@ export const useThemeStore = defineStore('theme', () => {
     setEnableCustomStyles,
     createThemeFrom,
     duplicateTheme,
+    importTheme,
     renameTheme,
     deleteTheme,
     updateChromeToken,

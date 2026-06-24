@@ -3,10 +3,14 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellCenter } from '@/utils/linePath'
 import { CELL_SIZE } from '@/composables/useGrid'
-import { THERMO_STYLE } from '@/types/constraints'
 import type { ThermometerData } from '@/types/constraints'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
+
+// Color is themeable (default ⊕ override, gated); bulb radius + line width stay at the default.
+const ts = computed(() => cs.thermoStyle())
 
 // How far from the tip cell center the line stops (leaves a visible gap)
 const TIP_INSET = CELL_SIZE * 0.3
@@ -73,8 +77,8 @@ const pendingThermoBulb = computed(() => {
       <circle
         :cx="thermo.bulb.x"
         :cy="thermo.bulb.y"
-        :r="THERMO_STYLE.bulbRadius"
-        :fill="THERMO_STYLE.color"
+        :r="ts.bulbRadius"
+        :fill="ts.color"
         pointer-events="none"
       />
       <path
@@ -82,8 +86,8 @@ const pendingThermoBulb = computed(() => {
         :key="idx"
         :d="edgePath"
         fill="none"
-        :stroke="THERMO_STYLE.color"
-        :stroke-width="THERMO_STYLE.strokeWidth"
+        :stroke="ts.color"
+        :stroke-width="ts.strokeWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
         pointer-events="none"
@@ -96,8 +100,8 @@ const pendingThermoBulb = computed(() => {
         v-if="pendingThermoBulb"
         :cx="pendingThermoBulb.x"
         :cy="pendingThermoBulb.y"
-        :r="THERMO_STYLE.bulbRadius"
-        :fill="THERMO_STYLE.color"
+        :r="ts.bulbRadius"
+        :fill="ts.color"
         :fill-opacity="0.55"
         pointer-events="none"
       />
@@ -105,8 +109,8 @@ const pendingThermoBulb = computed(() => {
         v-if="pendingThermoPath"
         :d="pendingThermoPath"
         fill="none"
-        :stroke="THERMO_STYLE.color"
-        :stroke-width="THERMO_STYLE.strokeWidth"
+        :stroke="ts.color"
+        :stroke-width="ts.strokeWidth"
         :stroke-opacity="0.55"
         stroke-linecap="round"
         stroke-linejoin="round"

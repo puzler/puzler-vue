@@ -8,6 +8,7 @@ import ThemeEditorSelector from './ThemeEditorSelector.vue'
 import ThemePreview from './ThemePreview.vue'
 import ThemeTokenGroup from './ThemeTokenGroup.vue'
 import ConstraintControls from './ConstraintControls.vue'
+import ThemeShareControls from './ThemeShareControls.vue'
 import ThemeManageBar from './ThemeManageBar.vue'
 
 const emit = defineEmits<{ close: [] }>()
@@ -122,6 +123,7 @@ function onRename(e: Event) {
           </div>
         </div>
 
+        <ThemeShareControls />
         <ThemeManageBar @close="emit('close')" />
       </div>
     </div>

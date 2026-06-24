@@ -9,6 +9,7 @@ import { GRID_DEFAULTS, CHROME_DEFAULTS } from '@/utils/appearanceTokens'
 import {
   resolveLineStyle, resolveShapeStyle, resolveTextStyle, resolveCellBgColor,
   resolveCageStyle, resolveBetweenLineStyle, resolveMinMaxStyle,
+  resolveThermoStyle, resolveArrowStyle,
   type LineKey, type ShapeKey, type TextKey, type CellBgKey, type MinMaxKey,
 } from '@/composables/useConstraintStyles'
 import { cellCenter, cellsToPath } from '@/utils/linePath'
@@ -127,6 +128,26 @@ function constraintPrims(key: ConstraintStyleKey): Prim[] {
     return [
       ...paths.map((d): Prim => ({ kind: 'path', d, stroke: cg.color, strokeWidth: 1.25, fill: 'none', dash: '5 3' })),
       { kind: 'text', x: cr.x + 5, y: cr.y + 5, text: '10', fill: cg.textColor, size: 13, weight: 600, anchor: 'start', baseline: 'hanging' },
+    ]
+  }
+  if (fam === 'thermo') {
+    const t = resolveThermoStyle(ov(key), true)
+    const bulb = cellCenter('r0c0')
+    return [
+      { kind: 'path', d: cellsToPath(['r0c0', 'r0c1', 'r0c2']), stroke: t.color, strokeWidth: t.strokeWidth },
+      { kind: 'circle', cx: bulb.x, cy: bulb.y, r: t.bulbRadius, fill: t.color },
+    ]
+  }
+  if (fam === 'arrow') {
+    const a = resolveArrowStyle(ov(key), true)
+    const bulb = cellCenter('r0c0')
+    const tip = cellCenter('r0c2')
+    const wing = a.headLength * a.headSpread
+    const head = `M ${tip.x - a.headLength} ${tip.y - wing} L ${tip.x} ${tip.y} L ${tip.x - a.headLength} ${tip.y + wing}`
+    return [
+      { kind: 'path', d: cellsToPath(['r0c0', 'r0c1', 'r0c2']), stroke: a.color, strokeWidth: a.lineWidth },
+      { kind: 'path', d: head, stroke: a.color, strokeWidth: a.lineWidth },
+      { kind: 'circle', cx: bulb.x, cy: bulb.y, r: a.bulbRadius, fill: grid('grid-cell'), stroke: a.color, strokeWidth: a.outlineWidth },
     ]
   }
   // minmax

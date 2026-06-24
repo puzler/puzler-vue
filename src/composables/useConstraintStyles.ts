@@ -13,7 +13,7 @@
 // inline in components (diagonals, min/max chevron). With no override (Classic), every
 // resolver returns byte-identical values to what the components render today.
 
-import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE } from '@/types/constraints'
+import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE } from '@/types/constraints'
 import {
   SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, colorToCss,
 } from '@/types/constraintStyles'
@@ -218,6 +218,23 @@ export function resolveMinMaxStyle(
   }
 }
 
+// Thermometer + arrow expose only their color in v1 (the rest of their geometry stays at the
+// built-in defaults). Returned in the component's existing shape.
+export interface ResolvedThermo { color: string; strokeWidth: number; bulbRadius: number }
+export interface ResolvedArrow {
+  color: string; bulbRadius: number; outlineWidth: number; lineWidth: number; headLength: number; headSpread: number
+}
+
+export function resolveThermoStyle(override?: ConstraintStyleOverride, enabled = true): ResolvedThermo {
+  if (!enabled || !override) return { ...THERMO_STYLE }
+  return { ...THERMO_STYLE, color: override.color ?? THERMO_STYLE.color }
+}
+
+export function resolveArrowStyle(override?: ConstraintStyleOverride, enabled = true): ResolvedArrow {
+  if (!enabled || !override) return { ...ARROW_STYLE }
+  return { ...ARROW_STYLE, color: override.color ?? ARROW_STYLE.color }
+}
+
 // ── Editor support: the DEFAULT value of each editable field ────────────────────
 //
 // The override-field names the per-constraint editor edits, and the built-in default value of
@@ -258,6 +275,10 @@ export function defaultConstraintFields(key: ConstraintStyleKey): Partial<Record
       const s = resolveBetweenLineStyle()
       return { color: s.lineColor, fillColor: s.circleFill, outlineColor: s.circleStrokeColor, strokeWidth: s.lineStrokeWidth }
     }
+    case 'thermo':
+      return { color: THERMO_STYLE.color }
+    case 'arrow':
+      return { color: ARROW_STYLE.color }
   }
 }
 
@@ -278,6 +299,8 @@ export function useConstraintStyles() {
     cageStyle: () => resolveCageStyle(ov('killer_cage'), theme.enableCustomStyles),
     betweenLineStyle: () => resolveBetweenLineStyle(ov('between_lines'), theme.enableCustomStyles),
     minMaxStyle: (key: MinMaxKey) => resolveMinMaxStyle(key, ov(key), theme.enableCustomStyles),
+    thermoStyle: () => resolveThermoStyle(ov('thermometer'), theme.enableCustomStyles),
+    arrowStyle: () => resolveArrowStyle(ov('arrow'), theme.enableCustomStyles),
     // Tool-selector icon color: line constraints follow the theme (and the gate); others static.
     iconColor: (type: string): string | undefined =>
       LINE_ICON_TYPES.has(type)

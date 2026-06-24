@@ -3,17 +3,16 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellCenter } from '@/utils/linePath'
 import { CELL_SIZE } from '@/composables/useGrid'
-import { SHAPE_STYLES, colorToCss } from '@/types/constraintStyles'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
+
+// Resolved through the theme (default ⊕ active-theme override, gated by Enable Custom Styles).
+const oddStyle = computed(() => cs.shapeStyle('odd_cells'))
+const evenStyle = computed(() => cs.shapeStyle('even_cells'))
 
 interface CellPoint { key: string; x: number; y: number }
-
-const ODD_RADIUS = SHAPE_STYLES.odd_cells.width * CELL_SIZE / 2
-const ODD_COLOR  = colorToCss(SHAPE_STYLES.odd_cells.fillColor)
-
-const EVEN_SIDE  = SHAPE_STYLES.even_cells.width * CELL_SIZE
-const EVEN_COLOR = colorToCss(SHAPE_STYLES.even_cells.fillColor)
 
 const oddCellPoints = computed<CellPoint[]>(() => {
   const marks = editor.singleCellMarks['odd_cells']
@@ -35,19 +34,19 @@ const evenCellPoints = computed<CellPoint[]>(() => {
       :key="cell.key"
       :cx="cell.x"
       :cy="cell.y"
-      :r="ODD_RADIUS"
-      :fill="ODD_COLOR"
+      :r="oddStyle.width * CELL_SIZE / 2"
+      :fill="oddStyle.fillColor"
       pointer-events="none"
     />
 
     <rect
       v-for="cell in evenCellPoints"
       :key="cell.key"
-      :x="cell.x - EVEN_SIDE / 2"
-      :y="cell.y - EVEN_SIDE / 2"
-      :width="EVEN_SIDE"
-      :height="EVEN_SIDE"
-      :fill="EVEN_COLOR"
+      :x="cell.x - evenStyle.width * CELL_SIZE / 2"
+      :y="cell.y - evenStyle.width * CELL_SIZE / 2"
+      :width="evenStyle.width * CELL_SIZE"
+      :height="evenStyle.width * CELL_SIZE"
+      :fill="evenStyle.fillColor"
       pointer-events="none"
     />
   </g>

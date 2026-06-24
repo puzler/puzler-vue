@@ -32,8 +32,8 @@ function seenMarkFill(cell: string, digit: number): string {
 // solving, so it stands out, while many-solution candidates recede to grey:
 //   1 → green, 2–4 → bright blue, 5–10 → faded blue, >10 → grey.
 // Otherwise the normal indigo / seen-red pencil-mark colours apply.
-const MARK_NORMAL = '#4F46E5'
-const MARK_SEEN = '#dc2626'
+const MARK_NORMAL = 'var(--color-grid-pencil)'
+const MARK_SEEN = 'var(--color-grid-pencil-seen)'
 const COUNT_1 = '#15c24f'    // vivid green: unique completing digit (also bolded)
 const COUNT_2_4 = '#2563eb'  // bright blue
 const COUNT_5_10 = '#60a5fa' // faded blue
@@ -182,7 +182,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       dominant-baseline="central"
       :font-size="CELL_SIZE * 0.6"
       font-family="'Space Grotesk', sans-serif"
-      :fill="d.isGiven ? '#232B3D' : '#4F46E5'"
+      :class="d.isGiven ? 'digit-given' : 'digit-input'"
       :font-weight="d.isGiven ? '700' : '400'"
     >
       {{ d.digit }}
@@ -198,7 +198,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
       font-family="'Space Grotesk', sans-serif"
-      :fill="seenMarkFill(m.cell, m.digit)"
+      :style="{ fill: seenMarkFill(m.cell, m.digit) }"
     >
       {{ m.digit }}
     </text>
@@ -217,7 +217,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       <tspan
         v-for="d in m.marks"
         :key="d"
-        :fill="centerMarkFill(m.cell, d)"
+        :style="{ fill: centerMarkFill(m.cell, d) }"
         :font-weight="centerMarkWeight(m.cell, d)"
       >
         {{ d }}
@@ -225,3 +225,10 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
     </text>
   </g>
 </template>
+
+<style scoped>
+/* Given vs entered digit colors from theme tokens (default = today's ink / indigo). Pencil-mark
+   colors flow through MARK_NORMAL / MARK_SEEN (also tokens). Gated by Enable Custom Styles. */
+.digit-given { fill: var(--color-grid-digit-given); }
+.digit-input { fill: var(--color-grid-digit-input); }
+</style>

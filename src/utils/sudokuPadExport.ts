@@ -1,3 +1,7 @@
+// EXPORT IS THEME-AGNOSTIC. User themes are a view-only preference and must NEVER leak into an
+// export: do not import useConstraintStyles / the theme store / appearance tokens here. Export
+// styling comes only from the f-puzzles color maps below and the editor's cosmetic presets
+// (author data). Keeping this boundary means a shared puzzle looks the same for every solver.
 import { compressToBase64 } from 'lz-string'
 import { keyToRowCol } from '@/composables/useGrid'
 import {

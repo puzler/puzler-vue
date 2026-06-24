@@ -3,12 +3,13 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { CELL_SIZE, PADDING } from '@/composables/useGrid'
-import { TEXT_STYLES, colorToCss } from '@/types/constraintStyles'
 import { OUTER_CLUE_TYPES, parseOuterKey, littleKillerStep } from '@/types/constraints'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 import { GLOW_COLOR } from './connectorLayerShared'
 
 const editor = useEditorStore()
 const grid = useGridStore()
+const cs = useConstraintStyles()
 
 const SEPARATOR_COLOR = '#b8b3a8'
 const SEPARATOR_INSET = 8
@@ -56,8 +57,7 @@ const clues = computed<RenderedClue[]>(() =>
   Object.entries(editor.outerClues).flatMap(([key, clue]) => {
     const pos = parseOuterKey(key)
     if (!pos) return []
-    const style = TEXT_STYLES[clue.type]
-    if (!style) return []
+    const st = cs.textStyle(clue.type)
     const center = outerCellCenter(pos.row, pos.col)
     const arrow = clue.type === 'little_killers' && clue.direction
       ? littleKillerArrow(pos, clue.direction)
@@ -67,8 +67,8 @@ const clues = computed<RenderedClue[]>(() =>
       x: center.x + (arrow?.offset.dx ?? 0),
       y: center.y + (arrow?.offset.dy ?? 0),
       text: clue.value === null ? '_' : String(clue.value),
-      fontSize: style.size * CELL_SIZE,
-      color: colorToCss(style.fontColor),
+      fontSize: st.size * CELL_SIZE,
+      color: st.fontColor,
       selected: editor.selectedOuterClueKey === key,
       arrowPath: arrow?.path ?? null,
     }]
@@ -120,7 +120,7 @@ const separators = computed<Array<{ x1: number; y1: number; x2: number; y2: numb
         :cy="clue.y"
         :r="clue.fontSize * 0.62"
         fill="none"
-        :stroke="GLOW_COLOR"
+        :style="{ stroke: GLOW_COLOR }"
         stroke-width="1.75"
         stroke-opacity="0.55"
       />

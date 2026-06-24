@@ -59,7 +59,7 @@ const puzzleEdge = computed<Segment[]>(() => {
 
 <template>
   <g
-    stroke="#6E6A5E"
+    class="grid-line-thin"
     :stroke-width="THIN_STROKE"
     stroke-linecap="square"
   >
@@ -81,7 +81,7 @@ const puzzleEdge = computed<Segment[]>(() => {
     />
   </g>
   <g
-    stroke="#232B3D"
+    class="grid-line-box"
     :stroke-width="BOX_STROKE"
     stroke-linecap="square"
   >
@@ -103,7 +103,7 @@ const puzzleEdge = computed<Segment[]>(() => {
     />
   </g>
   <g
-    stroke="#232B3D"
+    class="grid-line-box"
     :stroke-width="OUTER_STROKE"
     stroke-linecap="square"
   >
@@ -133,3 +133,11 @@ const puzzleEdge = computed<Segment[]>(() => {
     />
   </g>
 </template>
+
+<style scoped>
+/* Grid line colors come from theme tokens (default = today's hex). `stroke` is an inherited
+   SVG property, so setting it on the group cascades to the child lines. Gated by Enable
+   Custom Styles via the applier. */
+.grid-line-thin { stroke: var(--color-grid-line-thin); }
+.grid-line-box { stroke: var(--color-grid-line-box); }
+</style>

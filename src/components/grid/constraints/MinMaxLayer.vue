@@ -2,8 +2,16 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
+
+// Chevron stroke + legibility halo per type, resolved through the theme (default chevron
+// #333333 over a white halo; once themed, the halo flips to stay legible). The cell-fill tint
+// is drawn by GridBackground, not here.
+const minStyle = computed(() => cs.minMaxStyle('minimums'))
+const maxStyle = computed(() => cs.minMaxStyle('maximums'))
 
 const MM_REACH  = CELL_SIZE * 0.44   // ~28
 const MM_DEPTH  = CELL_SIZE * 0.05   // ~3
@@ -63,7 +71,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="`${ind.key}-bg`"
       :d="ind.path"
       fill="none"
-      stroke="white"
+      :stroke="minStyle.halo"
       stroke-width="6"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -74,7 +82,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="`${ind.key}-bg`"
       :d="ind.path"
       fill="none"
-      stroke="white"
+      :stroke="maxStyle.halo"
       stroke-width="6"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -86,7 +94,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="ind.key"
       :d="ind.path"
       fill="none"
-      stroke="#333333"
+      :stroke="minStyle.chevronColor"
       stroke-width="4"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -97,7 +105,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="ind.key"
       :d="ind.path"
       fill="none"
-      stroke="#333333"
+      :stroke="maxStyle.chevronColor"
       stroke-width="4"
       stroke-linecap="round"
       stroke-linejoin="round"

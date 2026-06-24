@@ -1,0 +1,10 @@
+#import "../../fragments/UserThemeFields.graphql"
+
+mutation CreateUserTheme($uid: String!, $attrs: UserThemeAttrsInput!) {
+  createUserTheme(input: { uid: $uid, attrs: $attrs }) {
+    userTheme {
+      ...UserThemeFields
+    }
+    errors
+  }
+}

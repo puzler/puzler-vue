@@ -4,18 +4,19 @@ import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
 import { computeInsetOutlinePaths } from '@/utils/insetOutline'
-import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 import type { ExtraRegionData, CloneData } from '@/types/constraints'
 
-// Cell background fills for instance-based region constraints (extra regions,
-// clones). Rendered under the grid lines, alongside the single-cell mark
-// backgrounds in GridBackground.
+// Cell background fills for instance-based region constraints (extra regions, clones). Rendered
+// under the grid lines, alongside the single-cell mark backgrounds in GridBackground.
 
 const editor = useEditorStore()
 const grid = useGridStore()
+const cs = useConstraintStyles()
 
-const EXTRA_REGION_COLOR = colorToCss(CELL_BACKGROUND_COLORS.extra_regions)
-const CLONE_COLOR = colorToCss(CELL_BACKGROUND_COLORS.clone)
+// Region background fills resolved through the theme (default ⊕ override, gated).
+const extraRegionColor = computed(() => cs.cellBgColor('extra_regions'))
+const cloneColor = computed(() => cs.cellBgColor('clone'))
 
 interface ColorRect { x: number; y: number; color: string; opacity?: number }
 
@@ -58,8 +59,8 @@ const cloneRects = computed<ColorRect[]>(() =>
     .flatMap(i => {
       const data = i.data as CloneData
       return [
-        ...data.cells.map(c => cellRect(c, CLONE_COLOR)),
-        ...data.copies.flatMap(off => translatedRects(data.cells, off.dRow, off.dCol, CLONE_COLOR)),
+        ...data.cells.map(c => cellRect(c, cloneColor.value)),
+        ...data.copies.flatMap(off => translatedRects(data.cells, off.dRow, off.dCol, cloneColor.value)),
       ]
     }),
 )
@@ -67,10 +68,10 @@ const cloneRects = computed<ColorRect[]>(() =>
 // Brush preview while painting an extra region or clone group
 const pendingBrushRects = computed<ColorRect[]>(() => {
   if (editor.activeTool === 'extra_regions') {
-    return editor.pendingRegionBrushCells.map(c => cellRect(c, EXTRA_REGION_COLOR, 0.55))
+    return editor.pendingRegionBrushCells.map(c => cellRect(c, extraRegionColor.value, 0.55))
   }
   if (editor.activeTool === 'clone') {
-    return editor.pendingRegionBrushCells.map(c => cellRect(c, CLONE_COLOR, 0.55))
+    return editor.pendingRegionBrushCells.map(c => cellRect(c, cloneColor.value, 0.55))
   }
   return []
 })
@@ -82,7 +83,7 @@ const cloneDragRects = computed<ColorRect[]>(() => {
   const inst = editor.cosmeticInstances.find(i => i.id === drag.instanceId)
   if (!inst) return []
   const data = inst.data as CloneData
-  return translatedRects(data.cells, drag.dRow, drag.dCol, CLONE_COLOR, 0.5)
+  return translatedRects(data.cells, drag.dRow, drag.dCol, cloneColor.value, 0.5)
 })
 </script>
 
@@ -102,7 +103,7 @@ const cloneDragRects = computed<ColorRect[]>(() => {
       v-for="(d, i) in extraRegionPaths"
       :key="`er-${i}`"
       :d="d"
-      :fill="EXTRA_REGION_COLOR"
+      :fill="extraRegionColor"
       fill-rule="evenodd"
     />
   </g>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import MdiIcon from '@/components/MdiIcon.vue'
 import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
+
+const cs = useConstraintStyles()
 
 // A single constraint in the picker grid: icon above label. Disabled tiles
 // (already added to the puzzle) render greyed and are not clickable.
@@ -27,7 +30,7 @@ const emit = defineEmits<{
     <MdiIcon
       v-if="CONSTRAINT_ICONS[props.type]"
       :path="CONSTRAINT_ICONS[props.type].path"
-      :color="props.disabled ? 'rgb(209 213 219)' : CONSTRAINT_ICONS[props.type].color"
+      :color="props.disabled ? 'rgb(209 213 219)' : cs.iconColor(props.type)"
       :rotate="CONSTRAINT_ICONS[props.type].rotate"
       :size="22"
     />

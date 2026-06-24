@@ -8,10 +8,28 @@ declare module '*/ChangePassword.graphql' {
 }
     
 
+declare module '*/CreateUserTheme.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreateUserTheme: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/DeleteAccount.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const DeleteAccount: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/DeleteUserTheme.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeleteUserTheme: DocumentNode;
 
   export default defaultDocument;
 }
@@ -57,6 +75,24 @@ declare module '*/UpdateProfile.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UpdateProfile: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateThemePreferences.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateThemePreferences: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateUserTheme.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateUserTheme: DocumentNode;
 
   export default defaultDocument;
 }
@@ -328,6 +364,15 @@ declare module '*/UserFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UserFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UserThemeFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UserThemeFields: DocumentNode;
 
   export default defaultDocument;
 }

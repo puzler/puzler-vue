@@ -2,8 +2,13 @@
 import { RouterView, useRoute } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
 import AppFooter from '@/components/AppFooter.vue'
+import { useThemeApplier } from '@/composables/useThemeApplier'
 
 const route = useRoute()
+
+// Apply the active theme's CSS variables to <html> for the whole app, reacting to theme
+// switches/edits and the Enable Custom Styles gate.
+useThemeApplier()
 </script>
 
 <template>

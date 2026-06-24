@@ -5,13 +5,15 @@ import { useEditorStore } from '@/stores/editor'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
-import { CELL_BACKGROUND_COLORS, colorToCss } from '@/types/constraintStyles'
+import { CELL_BACKGROUND_COLORS } from '@/types/constraintStyles'
+import { useConstraintStyles, type CellBgKey } from '@/composables/useConstraintStyles'
 import ConstraintBackgrounds from './ConstraintBackgrounds.vue'
 
 const grid = useGridStore()
 const editor = useEditorStore()
 const player = usePlayerSettingsStore()
 const margins = useOuterMargins()
+const cs = useConstraintStyles()
 
 // Conflict highlighting is a player setting on the solver page; in the setter
 // it always shows (it's an authoring aid). `seen` highlighting is opt-in only.
@@ -98,7 +100,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
   for (const [type, marks] of Object.entries(editor.singleCellMarks)) {
     const bg = CELL_BACKGROUND_COLORS[type]
     if (!bg || !marks?.size) continue
-    const color = colorToCss(bg)
+    const color = cs.cellBgColor(type as CellBgKey)
     const isIndexType = type === 'row_index_cells' || type === 'col_index_cells'
     for (const key of marks) {
       if (isIndexType && rowColOverlap.has(key)) continue
@@ -107,7 +109,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
   }
   const overlapColor = CELL_BACKGROUND_COLORS['row_col_index_cells']
   if (overlapColor) {
-    for (const key of rowColOverlap) pushRect(key, colorToCss(overlapColor))
+    for (const key of rowColOverlap) pushRect(key, cs.cellBgColor('row_col_index_cells'))
   }
   return result
 })
@@ -120,7 +122,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :y="-margins.top"
       :width="totalW + margins.left + margins.right"
       :height="totalH + margins.top + margins.bottom"
-      fill="#EAE7E0"
+      class="grid-canvas"
     />
     <rect
       v-for="(cell, i) in activeCellRects"
@@ -129,7 +131,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :y="cell.y"
       :width="CELL_SIZE"
       :height="CELL_SIZE"
-      fill="white"
+      class="grid-cell"
     />
     <rect
       v-for="(cr, i) in cellColorRects"
@@ -157,7 +159,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :y="sr.y"
       :width="CELL_SIZE"
       :height="CELL_SIZE"
-      fill="#334155"
+      class="grid-seen"
       opacity="0.08"
     />
     <rect
@@ -167,7 +169,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :y="er.y"
       :width="CELL_SIZE"
       :height="CELL_SIZE"
-      fill="#ef4444"
+      class="grid-error"
       opacity="0.2"
     />
     <!-- Single-cell constraint backgrounds (under grid lines) -->
@@ -183,3 +185,13 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
     <ConstraintBackgrounds />
   </g>
 </template>
+
+<style scoped>
+/* Grid surface colors from theme tokens (default = today's hex). Cosmetic cell colors and
+   constraint backgrounds keep their own fills; these are only the chrome surfaces. Gated by
+   Enable Custom Styles via the applier. */
+.grid-canvas { fill: var(--color-grid-canvas); }
+.grid-cell { fill: var(--color-grid-cell); }
+.grid-seen { fill: var(--color-grid-seen); }
+.grid-error { fill: var(--color-grid-error); }
+</style>

@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UpdateThemePreferences($activeThemeId: String, $enableCustomStyles: Boolean) {
+  updateThemePreferences(input: { activeThemeId: $activeThemeId, enableCustomStyles: $enableCustomStyles }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

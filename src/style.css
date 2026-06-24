@@ -27,6 +27,23 @@
   --color-action-tint: #EEF0FE;
   --color-spark: #F0A93B;
   --color-spark-tint: #FBEED3;
+
+  /* Grid SVG tokens — default values are the colors the grid components hardcode today, so
+     nothing changes until a theme overrides them. Unlike the chrome tokens above, these are
+     GATED by "Enable Custom Styles": the theme applier only writes them when custom styles are
+     on, so turning it off reverts the whole grid to these defaults (see utils/theme.ts). */
+  --color-grid-canvas: #EAE7E0;     /* backdrop behind the cells */
+  --color-grid-cell: #FFFFFF;       /* cell fill */
+  --color-grid-line-thin: #6E6A5E;  /* cell-to-cell lines */
+  --color-grid-line-box: #232B3D;   /* region borders + outer edge */
+  --color-grid-digit-given: #232B3D;
+  --color-grid-digit-input: #4F46E5;
+  --color-grid-pencil: #4F46E5;     /* normal pencil marks */
+  --color-grid-pencil-seen: #dc2626;/* pencil marks conflicting with a seen digit */
+  --color-grid-selection: #F0A93B;
+  --color-grid-error: #ef4444;
+  --color-grid-seen: #334155;
+
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

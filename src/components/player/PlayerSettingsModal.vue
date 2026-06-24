@@ -1,41 +1,65 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { useThemeStore } from '@/stores/theme'
 import type { PlayerSettings } from '@/utils/playerSettings'
+import ThemeEditorModal from '@/components/settings/ThemeEditorModal.vue'
 
 const player = usePlayerSettingsStore()
+const theme = useThemeStore()
 const emit = defineEmits<{ close: [] }>()
+const showThemeEditor = ref(false)
 
-type Item = { key: keyof PlayerSettings; label: string; hint?: string }
+// An item reads its on/off via `on()` and flips via `toggle()`, so a row can be backed by the
+// player-settings store OR the theme store (the Enable custom styles gate) uniformly.
+type Item = { label: string; hint?: string; on: () => boolean; toggle: () => void }
+
+function ps(key: keyof PlayerSettings, label: string, hint?: string): Item {
+  return {
+    label,
+    hint,
+    on: () => player.settings[key],
+    toggle: () => { player.settings[key] = !player.settings[key] },
+  }
+}
+
 const groups: { title: string; items: Item[] }[] = [
+  {
+    title: 'Appearance',
+    items: [
+      {
+        label: 'Enable custom styles',
+        hint: 'Apply your theme to the grid; turn off to see a puzzle’s intended colours',
+        on: () => theme.enableCustomStyles,
+        toggle: () => theme.setEnableCustomStyles(!theme.enableCustomStyles),
+      },
+    ],
+  },
   {
     title: 'Visual',
     items: [
-      { key: 'showRowColLabels', label: 'Row & column labels', hint: 'Number the grid edges' },
-      { key: 'hideTimer', label: 'Hide timer' },
-      { key: 'hideColors', label: 'Hide cell colours', hint: 'Hide the puzzle’s built-in cell colours' },
+      ps('showRowColLabels', 'Row & column labels', 'Number the grid edges'),
+      ps('hideTimer', 'Hide timer'),
+      ps('hideColors', 'Hide cell colours', 'Hide the puzzle’s built-in cell colours'),
     ],
   },
   {
     title: 'Gameplay',
     items: [
-      { key: 'showRulesOnStart', label: 'Show rules on start' },
-      { key: 'highlightSeen', label: 'Highlight seen cells', hint: 'Shade cells the selection can see' },
+      ps('showRulesOnStart', 'Show rules on start'),
+      ps('highlightSeen', 'Highlight seen cells', 'Shade cells the selection can see'),
     ],
   },
   {
     title: 'Checking',
     items: [
-      { key: 'checkOnFinish', label: 'Check on finish', hint: 'Detect a solve automatically' },
-      { key: 'revealPartialProgress', label: 'Reveal partial progress', hint: 'Let “Check” say if you’re correct so far' },
-      { key: 'highlightConflicts', label: 'Highlight conflicts', hint: 'Flag repeated digits' },
-      { key: 'highlightConflictingPencilmarks', label: 'Highlight conflicting pencil marks' },
+      ps('checkOnFinish', 'Check on finish', 'Detect a solve automatically'),
+      ps('revealPartialProgress', 'Reveal partial progress', 'Let “Check” say if you’re correct so far'),
+      ps('highlightConflicts', 'Highlight conflicts', 'Flag repeated digits'),
+      ps('highlightConflictingPencilmarks', 'Highlight conflicting pencil marks'),
     ],
   },
 ]
-
-function toggle(key: keyof PlayerSettings) {
-  player.settings[key] = !player.settings[key]
-}
 </script>
 
 <template>
@@ -69,13 +93,13 @@ function toggle(key: keyof PlayerSettings) {
             </p>
             <button
               v-for="item in group.items"
-              :key="item.key"
+              :key="item.label"
               type="button"
               role="switch"
-              :aria-checked="player.settings[item.key]"
+              :aria-checked="item.on()"
               :aria-label="item.label"
               class="flex items-center gap-3 py-1.5 text-left group"
-              @click="toggle(item.key)"
+              @click="item.toggle()"
             >
               <span class="flex-1 min-w-0">
                 <span class="block text-sm text-ink-text">{{ item.label }}</span>
@@ -86,13 +110,21 @@ function toggle(key: keyof PlayerSettings) {
               </span>
               <span
                 class="shrink-0 w-9 h-5 rounded-full p-0.5 flex transition-colors"
-                :class="player.settings[item.key] ? 'bg-action' : 'bg-line'"
+                :class="item.on() ? 'bg-action' : 'bg-line'"
               >
                 <span
                   class="w-4 h-4 rounded-full bg-white shadow-sm transition-transform"
-                  :class="player.settings[item.key] ? 'translate-x-4' : 'translate-x-0'"
+                  :class="item.on() ? 'translate-x-4' : 'translate-x-0'"
                 />
               </span>
+            </button>
+            <button
+              v-if="group.title === 'Appearance'"
+              type="button"
+              class="mt-1 self-start text-sm font-medium text-action hover:text-action-deep transition-colors"
+              @click="showThemeEditor = true"
+            >
+              Edit theme styles
             </button>
           </section>
         </div>
@@ -108,4 +140,8 @@ function toggle(key: keyof PlayerSettings) {
       </div>
     </div>
   </Teleport>
+  <ThemeEditorModal
+    v-if="showThemeEditor"
+    @close="showThemeEditor = false"
+  />
 </template>

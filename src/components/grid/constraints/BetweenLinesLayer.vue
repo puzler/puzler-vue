@@ -2,10 +2,14 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellsToPath, cellCenter } from '@/utils/linePath'
-import { BETWEEN_LINE_STYLE } from '@/types/constraints'
 import type { ConstraintLineData } from '@/types/constraints'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
+
+// Line + bulb style resolved through the theme (default ⊕ override, gated by Enable Custom Styles).
+const blStyle = computed(() => cs.betweenLineStyle())
 
 interface RenderedBetweenLine {
   id: string
@@ -50,8 +54,8 @@ const pendingBetweenLine = computed(() => {
       <path
         :d="bl.path"
         fill="none"
-        :stroke="BETWEEN_LINE_STYLE.lineColor"
-        :stroke-width="BETWEEN_LINE_STYLE.lineStrokeWidth"
+        :stroke="blStyle.lineColor"
+        :stroke-width="blStyle.lineStrokeWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
         pointer-events="none"
@@ -59,19 +63,19 @@ const pendingBetweenLine = computed(() => {
       <circle
         :cx="bl.start.x"
         :cy="bl.start.y"
-        :r="BETWEEN_LINE_STYLE.circleRadius"
-        :fill="BETWEEN_LINE_STYLE.circleFill"
-        :stroke="BETWEEN_LINE_STYLE.circleStrokeColor"
-        :stroke-width="BETWEEN_LINE_STYLE.circleStrokeWidth"
+        :r="blStyle.circleRadius"
+        :fill="blStyle.circleFill"
+        :stroke="blStyle.circleStrokeColor"
+        :stroke-width="blStyle.circleStrokeWidth"
         pointer-events="none"
       />
       <circle
         :cx="bl.end.x"
         :cy="bl.end.y"
-        :r="BETWEEN_LINE_STYLE.circleRadius"
-        :fill="BETWEEN_LINE_STYLE.circleFill"
-        :stroke="BETWEEN_LINE_STYLE.circleStrokeColor"
-        :stroke-width="BETWEEN_LINE_STYLE.circleStrokeWidth"
+        :r="blStyle.circleRadius"
+        :fill="blStyle.circleFill"
+        :stroke="blStyle.circleStrokeColor"
+        :stroke-width="blStyle.circleStrokeWidth"
         pointer-events="none"
       />
     </g>
@@ -82,8 +86,8 @@ const pendingBetweenLine = computed(() => {
         v-if="pendingBetweenLine.path"
         :d="pendingBetweenLine.path"
         fill="none"
-        :stroke="BETWEEN_LINE_STYLE.lineColor"
-        :stroke-width="BETWEEN_LINE_STYLE.lineStrokeWidth"
+        :stroke="blStyle.lineColor"
+        :stroke-width="blStyle.lineStrokeWidth"
         stroke-opacity="0.55"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -92,10 +96,10 @@ const pendingBetweenLine = computed(() => {
       <circle
         :cx="pendingBetweenLine.start.x"
         :cy="pendingBetweenLine.start.y"
-        :r="BETWEEN_LINE_STYLE.circleRadius"
-        :fill="BETWEEN_LINE_STYLE.circleFill"
-        :stroke="BETWEEN_LINE_STYLE.circleStrokeColor"
-        :stroke-width="BETWEEN_LINE_STYLE.circleStrokeWidth"
+        :r="blStyle.circleRadius"
+        :fill="blStyle.circleFill"
+        :stroke="blStyle.circleStrokeColor"
+        :stroke-width="blStyle.circleStrokeWidth"
         fill-opacity="0.55"
         stroke-opacity="0.55"
         pointer-events="none"
@@ -104,10 +108,10 @@ const pendingBetweenLine = computed(() => {
         v-if="pendingBetweenLine.end"
         :cx="pendingBetweenLine.end.x"
         :cy="pendingBetweenLine.end.y"
-        :r="BETWEEN_LINE_STYLE.circleRadius"
-        :fill="BETWEEN_LINE_STYLE.circleFill"
-        :stroke="BETWEEN_LINE_STYLE.circleStrokeColor"
-        :stroke-width="BETWEEN_LINE_STYLE.circleStrokeWidth"
+        :r="blStyle.circleRadius"
+        :fill="blStyle.circleFill"
+        :stroke="blStyle.circleStrokeColor"
+        :stroke-width="blStyle.circleStrokeWidth"
         fill-opacity="0.55"
         stroke-opacity="0.55"
         pointer-events="none"

@@ -2,6 +2,7 @@
 import { useEditorStore } from '@/stores/editor'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 interface ConstraintOption {
   type: string
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 }>()
 
 const editor = useEditorStore()
+const cs = useConstraintStyles()
 
 function isClickable(type: string): boolean {
   if (props.toolTypes !== undefined) return props.toolTypes.has(type)
@@ -71,7 +73,7 @@ function isClickable(type: string): boolean {
         <MdiIcon
           v-if="CONSTRAINT_ICONS[constraint.type]"
           :path="CONSTRAINT_ICONS[constraint.type].path"
-          :color="CONSTRAINT_ICONS[constraint.type].color ?? (editor.activeTool === constraint.type ? 'rgb(79 70 229)' : undefined)"
+          :color="cs.iconColor(constraint.type) ?? (editor.activeTool === constraint.type ? 'rgb(79 70 229)' : undefined)"
           :rotate="CONSTRAINT_ICONS[constraint.type].rotate"
           :size="15"
           class="shrink-0"
@@ -85,7 +87,7 @@ function isClickable(type: string): boolean {
         <MdiIcon
           v-if="CONSTRAINT_ICONS[constraint.type]"
           :path="CONSTRAINT_ICONS[constraint.type].path"
-          :color="CONSTRAINT_ICONS[constraint.type].color"
+          :color="cs.iconColor(constraint.type)"
           :rotate="CONSTRAINT_ICONS[constraint.type].rotate"
           :size="15"
           class="shrink-0"

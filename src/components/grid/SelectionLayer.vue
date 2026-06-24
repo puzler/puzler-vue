@@ -45,10 +45,14 @@ const selectionPaths = computed<string[]>(() =>
       :key="i"
       :d="pathData"
       fill="none"
-      stroke="#F0A93B"
+      class="grid-selection"
       :stroke-width="SEL_STROKE"
       stroke-opacity="0.85"
       stroke-linejoin="round"
     />
   </g>
 </template>
+
+<style scoped>
+.grid-selection { stroke: var(--color-grid-selection); }
+</style>

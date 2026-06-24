@@ -1,0 +1,6 @@
+mutation DeleteUserTheme($uid: String!) {
+  deleteUserTheme(input: { uid: $uid }) {
+    deletedId
+    errors
+  }
+}

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
 import { computeInsetOutlinePaths } from '@/utils/insetOutline'
-import { CAGE_STYLE, colorToCss } from '@/types/constraintStyles'
+import { useConstraintStyles } from '@/composables/useConstraintStyles'
 import { GLOW_COLOR } from './connectorLayerShared'
 import type { KillerCageData, CosmeticCageData } from '@/types/constraints'
 
@@ -12,15 +12,18 @@ const editor = useEditorStore()
 // Just a hair of space between the cell borders and the dashed cage
 // outline (box borders are 2.5 wide, so this clears them by ~2)
 const CAGE_INSET = 3.5
-const CAGE_COLOR = colorToCss(CAGE_STYLE.cageColor)
-const TEXT_COLOR = colorToCss(CAGE_STYLE.textColor)
 const SUM_FONT_SIZE = 13
+
+const cs = useConstraintStyles()
+// Constraint-cage outline + sum text color, resolved through the theme (default ⊕ override,
+// gated). Cosmetic cages keep their own preset colors (author data), untouched.
+const cageStyle = computed(() => cs.cageStyle())
 
 // Constraint cages use the fixed CAGE_STYLE; cosmetic cages take their
 // colors from the preset they were drawn with
 function cosmeticCageColors(presetId: string): { cage: string; text: string } {
   const style = editor.cagePresets.find(p => p.id === presetId)?.style
-  return { cage: style?.cageColor ?? CAGE_COLOR, text: style?.textColor ?? TEXT_COLOR }
+  return { cage: style?.cageColor ?? cageStyle.value.color, text: style?.textColor ?? cageStyle.value.textColor }
 }
 
 function outlinePaths(cells: string[]): string[] {
@@ -55,7 +58,7 @@ const cages = computed<RenderedCage[]>(() =>
       const data = i.data as KillerCageData
       const colors = i.type === 'cosmetic_cage'
         ? cosmeticCageColors((i.data as CosmeticCageData).presetId)
-        : { cage: CAGE_COLOR, text: TEXT_COLOR }
+        : { cage: cageStyle.value.color, text: cageStyle.value.textColor }
       return {
         id: i.id,
         paths: outlinePaths(data.cells),
@@ -70,8 +73,8 @@ const cages = computed<RenderedCage[]>(() =>
 
 const pendingColor = computed(() =>
   editor.activeTool === 'cosmetic_cage'
-    ? editor.activeCagePreset?.style.cageColor ?? CAGE_COLOR
-    : CAGE_COLOR,
+    ? editor.activeCagePreset?.style.cageColor ?? cageStyle.value.color
+    : cageStyle.value.color,
 )
 
 const pendingPaths = computed<string[]>(() =>
@@ -93,7 +96,7 @@ const pendingPaths = computed<string[]>(() =>
           :key="`glow-${i}`"
           :d="p"
           fill="none"
-          :stroke="GLOW_COLOR"
+          :style="{ stroke: GLOW_COLOR }"
           stroke-width="4"
           stroke-opacity="0.45"
           stroke-linejoin="round"

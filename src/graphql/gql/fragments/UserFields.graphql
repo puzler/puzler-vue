@@ -1,3 +1,5 @@
+#import "./UserThemeFields.graphql"
+
 fragment UserFields on User {
   id
   email
@@ -9,6 +11,11 @@ fragment UserFields on User {
   passwordSet
   playerSettings
   colorPalette
+  activeThemeId
+  enableCustomStyles
+  userThemes {
+    ...UserThemeFields
+  }
   oauthConnections {
     provider
     createdAt

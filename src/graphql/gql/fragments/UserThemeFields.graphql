@@ -1,0 +1,9 @@
+fragment UserThemeFields on UserTheme {
+  id
+  name
+  basePresetId
+  schemaVersion
+  appearance
+  constraints
+  position
+}

@@ -12,6 +12,10 @@ import PrepareOauthConnectDocument from '@/graphql/gql/auth/mutations/PrepareOau
 import DeleteAccountDocument from '@/graphql/gql/auth/mutations/DeleteAccount.graphql'
 import UploadAvatarDocument from '@/graphql/gql/auth/mutations/UploadAvatar.graphql'
 import RemoveAvatarDocument from '@/graphql/gql/auth/mutations/RemoveAvatar.graphql'
+import CreateUserThemeDocument from '@/graphql/gql/auth/mutations/CreateUserTheme.graphql'
+import UpdateUserThemeDocument from '@/graphql/gql/auth/mutations/UpdateUserTheme.graphql'
+import DeleteUserThemeDocument from '@/graphql/gql/auth/mutations/DeleteUserTheme.graphql'
+import UpdateThemePreferencesDocument from '@/graphql/gql/auth/mutations/UpdateThemePreferences.graphql'
 import type {
   MeQuery,
   UserFieldsFragment,
@@ -31,7 +35,19 @@ import type {
   UploadAvatarMutationVariables,
   RemoveAvatarMutation,
   RemoveAvatarMutationVariables,
+  CreateUserThemeMutation,
+  CreateUserThemeMutationVariables,
+  UpdateUserThemeMutation,
+  UpdateUserThemeMutationVariables,
+  DeleteUserThemeMutation,
+  DeleteUserThemeMutationVariables,
+  UpdateThemePreferencesMutation,
+  UpdateThemePreferencesMutationVariables,
+  UserThemeFieldsFragment,
+  UserThemeAttrsInput,
 } from '@/graphql/generated/types'
+
+export type UserTheme = UserThemeFieldsFragment
 
 export type User = UserFieldsFragment
 export type OauthProvider = 'google' | 'patreon'
@@ -215,6 +231,57 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
+  // --- Themes (the store owns `user`, so user-mutating actions live here) ---
+  // The theme store keeps the local copy and calls these to sync for logged-in users.
+  // create/update/delete return the affected row; updateThemePreferences refreshes `user`.
+
+  async function createUserTheme(uid: string, attrs: UserThemeAttrsInput): Promise<UserTheme | null> {
+    const { data } = await apolloClient.mutate<CreateUserThemeMutation, CreateUserThemeMutationVariables>({
+      mutation: CreateUserThemeDocument,
+      variables: { uid, attrs },
+    })
+    const result = data?.createUserTheme
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    return result.userTheme
+  }
+
+  async function updateUserTheme(uid: string, attrs: UserThemeAttrsInput): Promise<UserTheme | null> {
+    const { data } = await apolloClient.mutate<UpdateUserThemeMutation, UpdateUserThemeMutationVariables>({
+      mutation: UpdateUserThemeDocument,
+      variables: { uid, attrs },
+    })
+    const result = data?.updateUserTheme
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    return result.userTheme
+  }
+
+  async function deleteUserTheme(uid: string): Promise<void> {
+    const { data } = await apolloClient.mutate<DeleteUserThemeMutation, DeleteUserThemeMutationVariables>({
+      mutation: DeleteUserThemeDocument,
+      variables: { uid },
+    })
+    const result = data?.deleteUserTheme
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+  }
+
+  async function updateThemePreferences(attrs: { activeThemeId?: string; enableCustomStyles?: boolean }): Promise<void> {
+    const { data } = await apolloClient.mutate<UpdateThemePreferencesMutation, UpdateThemePreferencesMutationVariables>({
+      mutation: UpdateThemePreferencesDocument,
+      variables: attrs,
+    })
+    const result = data?.updateThemePreferences
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
   async function uploadAvatar(file: Blob, filename = 'avatar') {
     // apollo-upload-client turns a File/Blob variable into a GraphQL multipart
     // request. Wrap a Blob in a File so it carries a filename.
@@ -287,6 +354,10 @@ export const useAuthStore = defineStore('auth', () => {
     disconnectProvider,
     updateProfile,
     updatePlayerPrefs,
+    createUserTheme,
+    updateUserTheme,
+    deleteUserTheme,
+    updateThemePreferences,
     uploadAvatar,
     removeAvatar,
     downloadData,

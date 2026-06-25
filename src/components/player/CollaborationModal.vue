@@ -3,23 +3,20 @@
 // server for the play's active share token (owner only); the raw token can be
 // hidden (for screen-sharing) via the "Hide share token" setting.
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import { useSolveSessionStore } from '@/stores/solveSession'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import CopyField from '@/components/player/CopyField.vue'
+import JoinSessionForm from '@/components/player/JoinSessionForm.vue'
 import GeneratePlayShareTokenDocument from '@/graphql/gql/puzzles/mutations/GeneratePlayShareToken.graphql'
 import RevokePlaySessionDocument from '@/graphql/gql/puzzles/mutations/RevokePlaySession.graphql'
-import JoinPlaySessionDocument from '@/graphql/gql/puzzles/mutations/JoinPlaySession.graphql'
 import type {
   GeneratePlayShareTokenMutation, GeneratePlayShareTokenMutationVariables,
   RevokePlaySessionMutation, RevokePlaySessionMutationVariables,
-  JoinPlaySessionMutation, JoinPlaySessionMutationVariables,
 } from '@/graphql/generated/types'
 
 const props = defineProps<{ puzzleId: string | null }>()
 const emit = defineEmits<{ close: [] }>()
-const router = useRouter()
 const session = useSolveSessionStore()
 const player = usePlayerSettingsStore()
 
@@ -28,8 +25,6 @@ const singleUse = ref(false)
 const canShare = ref(true) // false once we learn the current user isn't the owner
 const error = ref<string | null>(null)
 const busy = ref(false)
-const joinInput = ref('')
-const joinError = ref<string | null>(null)
 
 const shareLink = computed(() =>
   token.value && props.puzzleId ? `${location.origin}/puzzles/${props.puzzleId}?join=${token.value}` : '')
@@ -71,30 +66,7 @@ async function revoke() {
   }
 }
 
-async function join() {
-  const t = joinInput.value.trim()
-  if (!t) return
-  busy.value = true
-  joinError.value = null
-  try {
-    const { data } = await apolloClient.mutate<JoinPlaySessionMutation, JoinPlaySessionMutationVariables>({
-      mutation: JoinPlaySessionDocument, variables: { token: t },
-    })
-    const play = data?.joinPlaySession?.puzzlePlay
-    if (!play) { joinError.value = data?.joinPlaySession?.errors?.[0] ?? 'Could not join'; return }
-    emit('close')
-    router.push({ name: 'player', params: { id: play.puzzle.id }, query: { join: t } })
-  } catch (e) {
-    joinError.value = graphqlMessage(e) ?? 'Could not join'
-  } finally {
-    busy.value = false
-  }
-}
-
 onMounted(() => generate())
-
-const INPUT = 'flex-1 min-w-0 font-mono text-sm bg-canvas border border-line rounded-lg px-2.5 py-1.5 text-ink-text'
-const COPY_BTN = 'shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-action text-white hover:bg-action-deep transition-colors'
 </script>
 
 <template>
@@ -134,16 +106,19 @@ const COPY_BTN = 'shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-actio
             </p>
 
             <template v-if="token">
-              <CopyField
-                label="Share link"
-                :value="shareLink"
-              />
-              <CopyField
-                v-if="!player.settings.hideShareToken"
-                label="Token"
-                :value="token"
-                mono
-              />
+              <div :class="player.settings.hideShareToken ? 'flex items-center gap-2' : 'flex flex-col gap-3'">
+                <CopyField
+                  label="Share link"
+                  :value="shareLink"
+                  :hide-value="player.settings.hideShareToken"
+                />
+                <CopyField
+                  label="Token"
+                  :value="token"
+                  mono
+                  :hide-value="player.settings.hideShareToken"
+                />
+              </div>
 
               <label class="flex items-center gap-2 text-sm text-ink-text">
                 <input
@@ -166,32 +141,7 @@ const COPY_BTN = 'shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-actio
           </section>
 
           <!-- Join section (anyone) -->
-          <section class="flex flex-col gap-2 border-t border-line pt-4">
-            <p class="text-[11px] font-semibold uppercase tracking-widest text-soft">
-              Join a play session
-            </p>
-            <div class="flex items-center gap-2">
-              <input
-                v-model="joinInput"
-                placeholder="Paste a token"
-                :class="INPUT"
-                @keyup.enter="join"
-              >
-              <button
-                :class="COPY_BTN"
-                :disabled="busy || !joinInput.trim()"
-                @click="join"
-              >
-                Join
-              </button>
-            </div>
-            <p
-              v-if="joinError"
-              class="text-xs text-red-500"
-            >
-              {{ joinError }}
-            </p>
-          </section>
+          <JoinSessionForm @joined="emit('close')" />
         </div>
       </div>
     </div>

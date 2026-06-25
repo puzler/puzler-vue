@@ -35,11 +35,18 @@ const solverCellStates = computed(() => editor.solverCellStates)
 useGridKeyboard()
 
 onMounted(() => {
-  // Editing an existing puzzle (/editor/:id): load it and its latest version.
-  // A bare /editor that isn't the puzzle we already have loaded starts fresh.
+  // Editing an existing puzzle (/editor/:id): always reload its latest saved
+  // version. The Pinia stores persist across navigations, so without this a
+  // re-entry would show stale in-memory state from a puzzle opened earlier.
+  // Safe: the first-save editor-new → editor-edit router.replace reuses this
+  // same component instance (RouterView has no :key), so onMounted does not
+  // refire and cannot clobber the just-built puzzle.
   const id = route.params.id
   if (typeof id === 'string' && id) {
-    if (puzzle.serverPuzzleId !== id) puzzle.loadForEdit(id)
+    puzzle.loadForEdit(id).catch(() => {
+      editor.reset()
+      puzzle.resetPuzzle()
+    })
   } else if (puzzle.serverPuzzleId) {
     editor.reset()
     puzzle.resetPuzzle()

@@ -20,6 +20,7 @@ const showRules = ref(false)
       <input
         v-model="editor.puzzleName"
         placeholder="Puzzle name"
+        maxlength="100"
         class="w-full text-sm px-2 py-1 rounded border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
       >
       <input

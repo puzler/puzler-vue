@@ -134,11 +134,19 @@ export const usePuzzleStore = defineStore('puzzle', () => {
       if (!result?.version) throw new Error(result?.errors?.[0] ?? 'Could not save version')
       versions.value = [...versions.value, result.version]
       currentVersionId.value = result.version.id
-      // Author difficulty lives on the puzzle (not the version), so persist it
-      // alongside the save.
+      // Name, rules, and author difficulty live on the puzzle row (not the
+      // version), so persist the current values alongside every save — the
+      // "My Puzzles" listing and archive read the row's title, not the version.
       await apolloClient.mutate<UpdatePuzzleMutation, UpdatePuzzleMutationVariables>({
         mutation: UpdatePuzzleDocument,
-        variables: { id: puzzleId, attrs: { authorDifficulty: editor.authorDifficulty } },
+        variables: {
+          id: puzzleId,
+          attrs: {
+            title: editor.puzzleName.trim() || 'Untitled puzzle',
+            description: editor.puzzleRules,
+            authorDifficulty: editor.authorDifficulty,
+          },
+        },
       })
       saveStatus.value = 'saved'
       return result.version
@@ -160,7 +168,12 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     if (!puzzle) throw new Error('Puzzle not found')
     versions.value = [...puzzle.versions]
     applyAdminFields(puzzle)
-    const latest = puzzle.versions.at(-1)
+    // Pick the highest version number explicitly rather than trusting array
+    // order, so the editor always opens the most recent save.
+    const latest = puzzle.versions.reduce<(typeof puzzle.versions)[number] | null>(
+      (max, v) => (!max || v.versionNumber > max.versionNumber ? v : max),
+      null,
+    )
     if (latest) {
       await restoreVersion(latest.id)
     } else {

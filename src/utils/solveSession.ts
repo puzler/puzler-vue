@@ -148,6 +148,73 @@ export function isEmptySnapshot(snap: SolveSnapshot): boolean {
   )
 }
 
+// ── Live updates: per-device, per-puzzle opt-out ─────────────────────────────
+// A user may not want one device mirroring another mid-solve. Stored per device
+// (localStorage) keyed by puzzle; default on (absent key === enabled).
+const LIVE_PREFIX = 'puzler:solve-live:'
+
+export function isLiveUpdatesEnabled(puzzleId: string): boolean {
+  try {
+    return localStorage.getItem(LIVE_PREFIX + puzzleId) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setLiveUpdatesEnabledFor(puzzleId: string, enabled: boolean): void {
+  try {
+    if (enabled) localStorage.removeItem(LIVE_PREFIX + puzzleId)
+    else localStorage.setItem(LIVE_PREFIX + puzzleId, '0')
+  } catch {
+    /* ignore (unavailable storage) */
+  }
+}
+
+// ── Cell-level merge of an incoming remote update ────────────────────────────
+function arraysEqual(a: readonly (number | string)[], b: readonly (number | string)[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i])
+}
+
+export function cellsEqual(a: CellState | undefined, b: CellState | undefined): boolean {
+  if (!a || !b) return a === b
+  return (
+    a.value === b.value &&
+    a.color === b.color &&
+    arraysEqual(a.cornerMarks, b.cornerMarks) &&
+    arraysEqual(a.centerMarks, b.centerMarks) &&
+    arraysEqual(a.colors, b.colors)
+  )
+}
+
+// True when the local board diverges from the last-known server baseline — i.e.
+// the user has unsynced edits worth pushing. Gates the live server push so an
+// applied remote update doesn't echo back into an endless save loop.
+export function hasLocalChanges(
+  current: Record<string, CellState>,
+  baseline: Record<string, CellState>,
+): boolean {
+  const keys = new Set([...Object.keys(current), ...Object.keys(baseline)])
+  for (const k of keys) if (!cellsEqual(current[k], baseline[k])) return true
+  return false
+}
+
+// Merge an incoming server cell map into the local board, preserving cells the
+// local user has edited since the last sync (those that diverge from `baseline`).
+// Adopts every other incoming change and drops local cells the server no longer
+// has (unless locally dirty). Same-cell conflicts keep the local edit until the
+// local save pushes it (then last-write-wins server-side).
+export function mergeRemoteCells(
+  current: Record<string, CellState>,
+  baseline: Record<string, CellState>,
+  incoming: Record<string, CellState>,
+): Record<string, CellState> {
+  const dirty = (k: string) => !cellsEqual(current[k], baseline[k])
+  const next: Record<string, CellState> = {}
+  for (const k of Object.keys(current)) if (dirty(k)) next[k] = current[k]
+  for (const k of Object.keys(incoming)) if (!dirty(k)) next[k] = incoming[k]
+  return next
+}
+
 // ── Normalization (tolerant of garbage / shape drift) ────────────────────────
 
 function isObject(v: unknown): v is Record<string, unknown> {

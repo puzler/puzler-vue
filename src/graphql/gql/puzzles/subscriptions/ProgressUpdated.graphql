@@ -1,0 +1,11 @@
+subscription ProgressUpdated($puzzlePlayId: ID!) {
+  progressUpdated(puzzlePlayId: $puzzlePlayId) {
+    puzzlePlay {
+      id
+      cellState
+      progressState
+      timeElapsedSeconds
+      isSolved
+    }
+  }
+}

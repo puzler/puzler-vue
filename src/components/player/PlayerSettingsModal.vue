@@ -12,7 +12,7 @@ const showThemeEditor = ref(false)
 
 // An item reads its on/off via `on()` and flips via `toggle()`, so a row can be backed by the
 // player-settings store OR the theme store (the Enable custom styles gate) uniformly.
-type Item = { label: string; hint?: string; on: () => boolean; toggle: () => void }
+type Item = { label: string; hint?: string; on: () => boolean; toggle: () => void; disabled?: () => boolean }
 
 function ps(key: keyof PlayerSettings, label: string, hint?: string): Item {
   return {
@@ -59,6 +59,19 @@ const groups: { title: string; items: Item[] }[] = [
       ps('highlightConflictingPencilmarks', 'Highlight conflicting pencil marks'),
     ],
   },
+  {
+    title: 'Collaboration',
+    items: [
+      ps('enableCollaborationMode', 'Enable collaboration mode', 'Share an in-progress puzzle and solve together in real time'),
+      {
+        label: 'Hide share token',
+        hint: 'Keep the raw token hidden (handy when screen-sharing)',
+        on: () => player.settings.hideShareToken,
+        toggle: () => { player.settings.hideShareToken = !player.settings.hideShareToken },
+        disabled: () => !player.settings.enableCollaborationMode,
+      },
+    ],
+  },
 ]
 </script>
 
@@ -98,7 +111,9 @@ const groups: { title: string; items: Item[] }[] = [
               role="switch"
               :aria-checked="item.on()"
               :aria-label="item.label"
+              :disabled="item.disabled?.()"
               class="flex items-center gap-3 py-1.5 text-left group"
+              :class="item.disabled?.() ? 'opacity-40 cursor-not-allowed' : ''"
               @click="item.toggle()"
             >
               <span class="flex-1 min-w-0">

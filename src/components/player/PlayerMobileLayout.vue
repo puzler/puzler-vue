@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline } from '@mdi/js'
+import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import PausedOverlay from '@/components/player/PausedOverlay.vue'
+import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
@@ -16,9 +17,10 @@ defineProps<{
   showTimer: boolean
   elapsedLabel: string
   paused: boolean
+  collaborationEnabled: boolean
 }>()
 
-const emit = defineEmits<{ 'toggle-pause': []; 'reset': []; 'show-rules': []; 'check': []; 'settings': [] }>()
+const emit = defineEmits<{ 'toggle-pause': []; 'reset': []; 'show-rules': []; 'check': []; 'settings': []; 'collaborate': [] }>()
 
 // The grid stays on top, full-bleed; the numpad fills the fixed bottom panel,
 // with a thin action rail down the side (rules opens the modal, reset, …).
@@ -49,6 +51,7 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
           :author-name="authorName"
         /></span>
       </div>
+      <LiveSyncBadge />
       <div
         v-if="showTimer"
         class="ml-auto shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
@@ -96,6 +99,18 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
         >
           <MdiIcon
             :path="b.icon"
+            :size="20"
+          />
+        </button>
+        <button
+          v-if="collaborationEnabled"
+          :class="BTN"
+          title="Collaborate"
+          aria-label="Collaborate"
+          @click="$emit('collaborate')"
+        >
+          <MdiIcon
+            :path="mdiAccountMultiple"
             :size="20"
           />
         </button>

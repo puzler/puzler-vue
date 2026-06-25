@@ -1,0 +1,15 @@
+mutation JoinPlaySession($token: String!) {
+  joinPlaySession(input: { token: $token }) {
+    puzzlePlay {
+      id
+      cellState
+      progressState
+      timeElapsedSeconds
+      isSolved
+      puzzle {
+        id
+      }
+    }
+    errors
+  }
+}

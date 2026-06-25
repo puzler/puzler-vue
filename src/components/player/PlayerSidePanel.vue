@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { mdiRestart, mdiBookOpenVariant, mdiCheckCircleOutline, mdiCogOutline } from '@mdi/js'
+import { mdiRestart, mdiBookOpenVariant, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
+import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 
 defineProps<{
   title: string
@@ -12,9 +13,10 @@ defineProps<{
   showTimer: boolean
   elapsedLabel: string
   paused: boolean
+  collaborationEnabled: boolean
 }>()
 
-const emit = defineEmits<{ 'toggle-pause': []; 'show-rules': []; 'reset': []; 'settings': []; 'check': [] }>()
+const emit = defineEmits<{ 'toggle-pause': []; 'show-rules': []; 'reset': []; 'settings': []; 'check': []; 'collaborate': [] }>()
 
 const ICON_BTN = 'w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-action-tint hover:text-action active:bg-action-tint transition-colors'
 
@@ -64,6 +66,7 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
             :author-name="authorName"
           />
         </p>
+        <LiveSyncBadge />
       </div>
 
       <section class="flex-1 min-h-0 flex flex-col gap-1.5">
@@ -89,6 +92,18 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
 
     <!-- Action controls sit just above the numpad. -->
     <div class="shrink-0 border-t border-line px-3 py-2 flex items-center gap-1">
+      <button
+        v-if="collaborationEnabled"
+        :class="ICON_BTN"
+        title="Collaborate"
+        aria-label="Collaborate"
+        @click="$emit('collaborate')"
+      >
+        <MdiIcon
+          :path="mdiAccountMultiple"
+          :size="20"
+        />
+      </button>
       <button
         v-for="c in CONTROLS"
         :key="c.event"

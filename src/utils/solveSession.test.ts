@@ -9,6 +9,11 @@ import {
   readLocalSnapshot,
   writeLocalSnapshot,
   isEmptySnapshot,
+  cellsEqual,
+  hasLocalChanges,
+  mergeRemoteCells,
+  isLiveUpdatesEnabled,
+  setLiveUpdatesEnabledFor,
   SOLVE_SCHEMA_VERSION,
   type SolveSnapshot,
 } from './solveSession'
@@ -174,5 +179,56 @@ describe('localStorage LRU', () => {
     fake.failOn = null
     expect(readLocalSnapshot('fresh')).not.toBeNull() // stored on retry
     expect(readLocalSnapshot('old')).toBeNull() // evicted to make room
+  })
+})
+
+describe('cell merge (live sync)', () => {
+  const c = (value: number | null, cornerMarks: number[] = [], colors: string[] = []): CellState =>
+    ({ value, cornerMarks, centerMarks: [], color: null, colors })
+
+  it('cellsEqual compares by value, marks and colors', () => {
+    expect(cellsEqual(c(5), c(5))).toBe(true)
+    expect(cellsEqual(c(5), c(6))).toBe(false)
+    expect(cellsEqual(c(5, [1, 2]), c(5, [1, 2]))).toBe(true)
+    expect(cellsEqual(c(5, [1, 2]), c(5, [2, 1]))).toBe(false)
+    expect(cellsEqual(undefined, undefined)).toBe(true)
+    expect(cellsEqual(c(5), undefined)).toBe(false)
+  })
+
+  it('hasLocalChanges detects divergence from the baseline', () => {
+    const base = { r0c0: c(5) }
+    expect(hasLocalChanges({ r0c0: c(5) }, base)).toBe(false)
+    expect(hasLocalChanges({ r0c0: c(6) }, base)).toBe(true) // changed
+    expect(hasLocalChanges({}, base)).toBe(true) // removed locally
+    expect(hasLocalChanges({ r0c0: c(5), r0c1: c(3) }, base)).toBe(true) // added locally
+  })
+
+  it('adopts incoming changes but preserves locally-dirty cells', () => {
+    const baseline = { r0c0: c(1), r0c1: c(2) }
+    const current = { r0c0: c(1), r0c1: c(9) } // r0c1 edited locally (dirty)
+    const incoming = { r0c0: c(5), r0c1: c(2), r0c2: c(7) } // remote changed r0c0, added r0c2
+    const merged = mergeRemoteCells(current, baseline, incoming)
+    expect(merged.r0c0.value).toBe(5) // not dirty -> adopt remote
+    expect(merged.r0c1.value).toBe(9) // dirty -> keep local edit
+    expect(merged.r0c2.value).toBe(7) // new remote cell -> adopt
+  })
+
+  it('drops a non-dirty cell the server cleared, but keeps a locally-removed one removed', () => {
+    expect(mergeRemoteCells({ r0c0: c(1) }, { r0c0: c(1) }, {}).r0c0).toBeUndefined() // server cleared, not dirty
+    // local deleted r0c0 (dirty) while server still has it -> stays removed
+    expect(mergeRemoteCells({}, { r0c0: c(1) }, { r0c0: c(1) }).r0c0).toBeUndefined()
+  })
+})
+
+describe('per-device live-updates toggle', () => {
+  beforeEach(() => vi.stubGlobal('localStorage', new FakeStorage()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('defaults to enabled and round-trips a disable/enable', () => {
+    expect(isLiveUpdatesEnabled('p1')).toBe(true)
+    setLiveUpdatesEnabledFor('p1', false)
+    expect(isLiveUpdatesEnabled('p1')).toBe(false)
+    setLiveUpdatesEnabledFor('p1', true)
+    expect(isLiveUpdatesEnabled('p1')).toBe(true)
   })
 })

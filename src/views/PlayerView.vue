@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import PlayerMobileLayout from '@/components/player/PlayerMobileLayout.vue'
-import PlayerSidePanel from '@/components/player/PlayerSidePanel.vue'
-import PausedOverlay from '@/components/player/PausedOverlay.vue'
+import PlayerDesktopLayout from '@/components/player/PlayerDesktopLayout.vue'
 import ResetConfirmModal from '@/components/player/ResetConfirmModal.vue'
 import RulesIntroModal from '@/components/player/RulesIntroModal.vue'
 import CheckResultModal from '@/components/player/CheckResultModal.vue'
 import PlayerSettingsModal from '@/components/player/PlayerSettingsModal.vue'
 import SolvedModal from '@/components/player/SolvedModal.vue'
+import CollaborationModal from '@/components/player/CollaborationModal.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -78,6 +77,7 @@ const showRulesIntro = ref(false)
 const showCheckResult = ref(false)
 const checkResult = ref<CheckResultEnum>('INCORRECT')
 const showSettings = ref(false)
+const showCollaboration = ref(false)
 
 // Manual "Check Solution": ask the server (which has the solution) for a coarse
 // verdict. A complete-and-correct board routes to the normal win flow; anything
@@ -124,6 +124,9 @@ function closeRules() {
 }
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
+// Present when the user followed a collaboration share link — load INTO the
+// shared play rather than the user's own.
+const joinToken = computed(() => (typeof route.query.join === 'string' ? route.query.join : null))
 
 // Optional collection context: when playing inside a collection, we offer
 // "next puzzle" navigation. `ct` carries the collection's share token (unlisted).
@@ -284,6 +287,7 @@ async function loadPuzzle() {
       puzzleId: puzzle.id,
       solutionHash: solutionHash.value,
       timer,
+      joinToken: joinToken.value,
     })
     // Greet the solver with the rules on a fresh start (when enabled), pausing
     // the clock until dismissed. Skip on resume and when there's no rules text.
@@ -352,46 +356,32 @@ onUnmounted(() => {
       :show-timer="showTimer"
       :elapsed-label="timerLabel"
       :paused="timerPaused"
+      :collaboration-enabled="player.settings.enableCollaborationMode"
       @toggle-pause="timer.toggle()"
       @reset="showReset = true"
       @show-rules="openRules"
       @check="runCheck"
       @settings="showSettings = true"
+      @collaborate="showCollaboration = true"
     />
 
-    <div
+    <PlayerDesktopLayout
       v-else
-      class="flex-1 flex overflow-hidden min-h-0"
-    >
-      <main class="relative flex-1 bg-canvas overflow-hidden min-h-0">
-        <SudokuGrid
-          mode="edit"
-          :given-digits="editor.givenDigits"
-          :cell-states="editor.solverCellStates"
-          :selection="editor.selection"
-          @update:selection="editor.selection = $event"
-          @clear-selection="editor.clearSelection()"
-        />
-        <PausedOverlay
-          v-if="timerPaused"
-          @resume="timer.toggle()"
-        />
-      </main>
-      <PlayerSidePanel
-        :title="title"
-        :author="author"
-        :author-name="authorCredit"
-        :rules="editor.puzzleRules"
-        :show-timer="showTimer"
-        :elapsed-label="timerLabel"
-        :paused="timerPaused"
-        @toggle-pause="timer.toggle()"
-        @show-rules="openRules"
-        @reset="showReset = true"
-        @settings="showSettings = true"
-        @check="runCheck"
-      />
-    </div>
+      :title="title"
+      :author="author"
+      :author-name="authorCredit"
+      :rules="editor.puzzleRules"
+      :show-timer="showTimer"
+      :elapsed-label="timerLabel"
+      :paused="timerPaused"
+      :collaboration-enabled="player.settings.enableCollaborationMode"
+      @toggle-pause="timer.toggle()"
+      @show-rules="openRules"
+      @reset="showReset = true"
+      @settings="showSettings = true"
+      @check="runCheck"
+      @collaborate="showCollaboration = true"
+    />
 
     <ResetConfirmModal
       v-if="showReset"
@@ -419,6 +409,12 @@ onUnmounted(() => {
     <PlayerSettingsModal
       v-if="showSettings"
       @close="showSettings = false"
+    />
+
+    <CollaborationModal
+      v-if="showCollaboration"
+      :puzzle-id="puzzleId"
+      @close="showCollaboration = false"
     />
 
     <SolvedModal

@@ -23,11 +23,16 @@ const httpLink = createUploadLink({
   },
 })
 
-// GraphQL subscriptions ride Rails ActionCable. The consumer is anonymous —
-// guests have no JWT, and per-subscription authorization happens server-side via
-// the unguessable tokens passed as subscription variables. graphql-ruby-client's
-// ActionCableLink speaks the ActionCable protocol that Rails actually serves.
-const cable = createConsumer(`${WS_URL}/cable`)
+// GraphQL subscriptions ride Rails ActionCable. The connection is authenticated:
+// the JWT can't go in a header on the WS handshake, so it rides the cable URL as
+// a `token` param (decoded by ApplicationCable::Connection). The function form is
+// re-evaluated on each (re)connect, so a refreshed token is picked up. Guests have
+// no token and never subscribe, so they never open the connection.
+// graphql-ruby-client's ActionCableLink speaks the protocol Rails actually serves.
+const cable = createConsumer(() => {
+  const token = getToken()
+  return token ? `${WS_URL}/cable?token=${encodeURIComponent(token)}` : `${WS_URL}/cable`
+})
 const cableLink = new ActionCableLink({ cable })
 
 // Subscription operations go to the cable link; queries and mutations (including

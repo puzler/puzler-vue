@@ -312,6 +312,14 @@ export type DeletePuzzleVersionMutationVariables = Exact<{
 
 export type DeletePuzzleVersionMutation = { deletePuzzleVersion: { success: boolean, errors: Array<string> } | null };
 
+export type GeneratePlayShareTokenMutationVariables = Exact<{
+  puzzlePlayId: string | number;
+  singleUse?: boolean | null | undefined;
+}>;
+
+
+export type GeneratePlayShareTokenMutation = { generatePlayShareToken: { errors: Array<string>, shareToken: { id: string, token: string, singleUse: boolean, consumed: boolean } | null } | null };
+
 export type GrantPuzzleAccessMutationVariables = Exact<{
   puzzleId: string | number;
   username: string;
@@ -319,6 +327,13 @@ export type GrantPuzzleAccessMutationVariables = Exact<{
 
 
 export type GrantPuzzleAccessMutation = { grantPuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+
+export type JoinPlaySessionMutationVariables = Exact<{
+  token: string;
+}>;
+
+
+export type JoinPlaySessionMutation = { joinPlaySession: { errors: Array<string>, puzzlePlay: { id: string, cellState: unknown, progressState: unknown, timeElapsedSeconds: number | null, isSolved: boolean, puzzle: { id: string } } | null } | null };
 
 export type PublishPuzzleVersionMutationVariables = Exact<{
   puzzleId: string | number;
@@ -337,6 +352,13 @@ export type RevealSolveMessageMutationVariables = Exact<{
 
 
 export type RevealSolveMessageMutation = { revealSolveMessage: { correct: boolean, solveMessage: string | null } | null };
+
+export type RevokePlaySessionMutationVariables = Exact<{
+  puzzlePlayId: string | number;
+}>;
+
+
+export type RevokePlaySessionMutation = { revokePlaySession: { errors: Array<string>, puzzlePlay: { id: string } | null } | null };
 
 export type RevokePuzzleAccessMutationVariables = Exact<{
   puzzleId: string | number;
@@ -452,6 +474,13 @@ export type PuzzlesQueryVariables = Exact<{
 
 
 export type PuzzlesQuery = { puzzles: { nodes: Array<{ id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, effectiveDifficulty: number | null, solveCount: number, featured: boolean, authorName: string | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
+
+export type ProgressUpdatedSubscriptionVariables = Exact<{
+  puzzlePlayId: string | number;
+}>;
+
+
+export type ProgressUpdatedSubscription = { progressUpdated: { puzzlePlay: { id: string, cellState: unknown, progressState: unknown, timeElapsedSeconds: number | null, isSolved: boolean } } };
 
 export type AddSeriesEntryMutationVariables = Exact<{
   seriesId: string | number;

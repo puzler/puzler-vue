@@ -20,6 +20,9 @@ export interface PlayerSettings {
   revealPartialProgress: boolean
   highlightConflicts: boolean
   highlightConflictingPencilmarks: boolean
+  // Collaboration
+  enableCollaborationMode: boolean
+  hideShareToken: boolean
 }
 
 const KEY = 'puzler:player-settings'
@@ -34,6 +37,8 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   revealPartialProgress: true,
   highlightConflicts: true,
   highlightConflictingPencilmarks: false,
+  enableCollaborationMode: false,
+  hideShareToken: false,
 }
 
 // Merge an arbitrary (possibly partial / server-sourced) object over the

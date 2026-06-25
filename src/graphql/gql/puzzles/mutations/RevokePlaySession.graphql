@@ -1,0 +1,8 @@
+mutation RevokePlaySession($puzzlePlayId: ID!) {
+  revokePlaySession(input: { puzzlePlayId: $puzzlePlayId }) {
+    puzzlePlay {
+      id
+    }
+    errors
+  }
+}

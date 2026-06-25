@@ -432,10 +432,28 @@ declare module '*/DeletePuzzleVersion.graphql' {
 }
     
 
+declare module '*/GeneratePlayShareToken.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const GeneratePlayShareToken: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/GrantPuzzleAccess.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const GrantPuzzleAccess: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/JoinPlaySession.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const JoinPlaySession: DocumentNode;
 
   export default defaultDocument;
 }
@@ -454,6 +472,15 @@ declare module '*/RevealSolveMessage.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const RevealSolveMessage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/RevokePlaySession.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RevokePlaySession: DocumentNode;
 
   export default defaultDocument;
 }
@@ -589,6 +616,15 @@ declare module '*/Puzzles.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const Puzzles: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProgressUpdated.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProgressUpdated: DocumentNode;
 
   export default defaultDocument;
 }

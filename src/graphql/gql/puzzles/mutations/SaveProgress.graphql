@@ -1,0 +1,20 @@
+mutation SaveProgress(
+  $puzzlePlayId: ID!
+  $cellState: JSON!
+  $timeElapsedSeconds: Int!
+  $progressState: JSON!
+) {
+  saveProgress(
+    input: {
+      puzzlePlayId: $puzzlePlayId
+      cellState: $cellState
+      timeElapsedSeconds: $timeElapsedSeconds
+      progressState: $progressState
+    }
+  ) {
+    puzzlePlay {
+      id
+    }
+    errors
+  }
+}

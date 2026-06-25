@@ -346,6 +346,16 @@ export type RevokePuzzleAccessMutationVariables = Exact<{
 
 export type RevokePuzzleAccessMutation = { revokePuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
+export type SaveProgressMutationVariables = Exact<{
+  puzzlePlayId: string | number;
+  cellState: unknown;
+  timeElapsedSeconds: number;
+  progressState: unknown;
+}>;
+
+
+export type SaveProgressMutation = { saveProgress: { errors: Array<string>, puzzlePlay: { id: string } | null } | null };
+
 export type SavePuzzleVersionMutationVariables = Exact<{
   puzzleId: string | number;
   definition: unknown;
@@ -364,6 +374,13 @@ export type SetPuzzleVisibilityMutationVariables = Exact<{
 
 
 export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+
+export type StartPlayMutationVariables = Exact<{
+  puzzleId: string | number;
+}>;
+
+
+export type StartPlayMutation = { startPlay: { errors: Array<string>, puzzlePlay: { id: string, cellState: unknown, progressState: unknown, timeElapsedSeconds: number | null, isSolved: boolean } | null } | null };
 
 export type UnpublishPuzzleMutationVariables = Exact<{
   id: string | number;

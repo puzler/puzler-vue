@@ -1771,6 +1771,8 @@ export type PuzzlePlay = {
   id: Scalars['ID']['output'];
   /** True when the puzzle has been completed */
   isSolved: Scalars['Boolean']['output'];
+  /** Full session state (undo/redo history, timer, selection, input mode), owned by the frontend */
+  progressState: Scalars['JSON']['output'];
   /** The puzzle being played */
   puzzle: Puzzle;
   /** When this session was started */
@@ -2254,6 +2256,8 @@ export type SaveProgressInput = {
   cellState: Scalars['JSON']['input'];
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Full session state (undo/redo history, timer, selection, input mode) */
+  progressState?: InputMaybe<Scalars['JSON']['input']>;
   /** ID of the play session to update */
   puzzlePlayId: Scalars['ID']['input'];
   /** Total seconds elapsed since the session started */

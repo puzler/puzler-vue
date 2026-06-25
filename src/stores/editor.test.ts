@@ -150,3 +150,68 @@ describe('seenDigitsByCell', () => {
     expect(editor.seenDigitsByCell.get('r2c3')?.has(7)).toBe(true)
   })
 })
+
+// The solver writers are now diff-based (see useUndoRedo). These lock in that
+// undo/redo still restore exact cell state and that the history round-trips
+// through serialize/hydrate (the foundation for resuming a solve after reload).
+describe('solver-state undo/redo (diff-based)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('places a digit; undo clears it, redo restores it', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(5)
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+    editor.undo()
+    expect(editor.solverCellStates['r0c0']).toBeUndefined()
+    editor.redo()
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+  })
+
+  it('toggles a corner mark and undoes back to empty', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(3)
+    expect(editor.solverCellStates['r0c0'].cornerMarks).toEqual([3])
+    editor.undo()
+    expect(editor.solverCellStates['r0c0']).toBeUndefined()
+  })
+
+  it('toggles a player color and undoes it', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCellColorForSelection('a')
+    expect(editor.solverCellStates['r0c0'].colors).toEqual(['a'])
+    editor.undo()
+    expect(editor.solverCellStates['r0c0']).toBeUndefined()
+  })
+
+  it('clearSolverState is undoable', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.setSolverValueForSelection(7)
+    editor.clearSolverState()
+    expect(Object.keys(editor.solverCellStates)).toHaveLength(0)
+    editor.undo()
+    expect(editor.solverCellStates['r0c0'].value).toBe(7)
+    expect(editor.solverCellStates['r0c1'].value).toBe(7)
+  })
+
+  it('serializeHistory/hydrateHistory preserves the undo stack across a reload', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(4)
+    editor.selection = new Set(['r0c1'])
+    editor.setSolverValueForSelection(6)
+
+    // Persist + restore the history (plain JSON, as the backend would store it).
+    const history = JSON.parse(JSON.stringify(editor.serializeHistory()))
+    editor.hydrateHistory(history)
+
+    editor.undo() // undoes r0c1 = 6
+    expect(editor.solverCellStates['r0c1']).toBeUndefined()
+    expect(editor.solverCellStates['r0c0'].value).toBe(4)
+  })
+})

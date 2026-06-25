@@ -468,6 +468,15 @@ declare module '*/RevokePuzzleAccess.graphql' {
 }
     
 
+declare module '*/SaveProgress.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SaveProgress: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/SavePuzzleVersion.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -481,6 +490,15 @@ declare module '*/SetPuzzleVisibility.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const SetPuzzleVisibility: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/StartPlay.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const StartPlay: DocumentNode;
 
   export default defaultDocument;
 }

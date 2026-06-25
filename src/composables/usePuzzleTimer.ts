@@ -65,6 +65,18 @@ export function usePuzzleTimer() {
     else hold('manual')
   }
 
+  // Resume a persisted session: set the accumulated time and any held reasons
+  // (e.g. a 'manual' pause the solver left it in), then run. Unlike start(),
+  // this preserves the elapsed value rather than zeroing it.
+  function restore(savedElapsed: number, savedHolds: string[] = []) {
+    clearHandle()
+    elapsed.value = Math.max(0, Math.floor(savedElapsed) || 0)
+    holds.value = new Set(savedHolds)
+    syncPaused()
+    running.value = true
+    handle = setInterval(tick, 1000)
+  }
+
   const label = computed(() => {
     const m = Math.floor(elapsed.value / 60)
     const s = elapsed.value % 60
@@ -73,5 +85,5 @@ export function usePuzzleTimer() {
 
   onUnmounted(stop)
 
-  return { elapsed, paused, running, label, start, stop, reset, hold, release, toggle }
+  return { elapsed, paused, running, holds, label, start, stop, reset, restore, hold, release, toggle }
 }

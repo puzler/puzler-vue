@@ -162,7 +162,7 @@ export const useEditorStore = defineStore('editor', () => {
     linePresets.value.find(p => p.id === activeLinePresetId.value) ?? linePresets.value[0],
   )
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
-  const { canUndo, canRedo, execute, undo, redo, clear: clearHistory } = useUndoRedo()
+  const { canUndo, canRedo, execute, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
 
   const hasSelection = computed(() => selection.value.size > 0)
 
@@ -426,30 +426,54 @@ export const useEditorStore = defineStore('editor', () => {
     keyboardModeOverride.value = m
   }
 
+  // ── Solver-state diff helpers ──────────────────────────────────────────────
+  // Solver edits (digits/marks/colors) are recorded as before/after cell-snapshot
+  // diffs (see useUndoRedo) so the undo/redo history serializes for resume.
+  function blankCell(): CellState {
+    return { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
+  }
+
+  function cloneCell(c: CellState): CellState {
+    return {
+      value: c.value,
+      cornerMarks: [...c.cornerMarks],
+      centerMarks: [...c.centerMarks],
+      color: c.color,
+      colors: [...c.colors],
+    }
+  }
+
+  // Deep-clone the current state of `keys` (null where the cell is absent), used
+  // as the `before` side of a diff and to seed `after`.
+  function snapshotCells(keys: string[]): Record<string, CellState | null> {
+    const snap: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      const cur = solverCellStates.value[k]
+      snap[k] = cur ? cloneCell(cur) : null
+    }
+    return snap
+  }
+
+  // Write a cell-snapshot map into live solver state (clone so the stored diff is
+  // never aliased to live cells); null deletes the cell. This is the applier
+  // useUndoRedo replays diffs through.
+  function applySolverSnapshot(snapshot: Record<string, CellState | null>) {
+    for (const k of Object.keys(snapshot)) {
+      const v = snapshot[k]
+      if (v === null) delete solverCellStates.value[k]
+      else solverCellStates.value[k] = cloneCell(v)
+    }
+  }
+
   function setSolverValueForSelection(digit: number | null) {
     const keys = Array.from(selection.value).filter((k) => givenDigits.value[k] === undefined)
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
-    )
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          if (digit === null) {
-            delete solverCellStates.value[k]
-          } else {
-            const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-            solverCellStates.value[k] = { ...cur, value: digit }
-          }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      after[k] = digit === null ? null : { ...(before[k] ?? blankCell()), value: digit }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function toggleCornerMarkForSelection(digit: number) {
@@ -457,26 +481,16 @@ export const useEditorStore = defineStore('editor', () => {
       (k) => givenDigits.value[k] === undefined && !solverCellStates.value[k]?.value,
     )
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k], cornerMarks: [...(solverCellStates.value[k].cornerMarks)] } : null]),
-    )
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-          const marks = cur.cornerMarks.includes(digit)
-            ? cur.cornerMarks.filter((m) => m !== digit)
-            : [...cur.cornerMarks, digit].sort((a, b) => a - b)
-          solverCellStates.value[k] = { ...cur, cornerMarks: marks }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      const cur = before[k] ?? blankCell()
+      const marks = cur.cornerMarks.includes(digit)
+        ? cur.cornerMarks.filter((m) => m !== digit)
+        : [...cur.cornerMarks, digit].sort((a, b) => a - b)
+      after[k] = { ...cur, cornerMarks: marks }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function toggleCenterMarkForSelection(digit: number) {
@@ -484,26 +498,16 @@ export const useEditorStore = defineStore('editor', () => {
       (k) => givenDigits.value[k] === undefined && !solverCellStates.value[k]?.value,
     )
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k], centerMarks: [...(solverCellStates.value[k].centerMarks)] } : null]),
-    )
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-          const marks = cur.centerMarks.includes(digit)
-            ? cur.centerMarks.filter((m) => m !== digit)
-            : [...cur.centerMarks, digit].sort((a, b) => a - b)
-          solverCellStates.value[k] = { ...cur, centerMarks: marks }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      const cur = before[k] ?? blankCell()
+      const marks = cur.centerMarks.includes(digit)
+        ? cur.centerMarks.filter((m) => m !== digit)
+        : [...cur.centerMarks, digit].sort((a, b) => a - b)
+      after[k] = { ...cur, centerMarks: marks }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function setInputMode(m: SolverInputMode) {
@@ -531,23 +535,12 @@ export const useEditorStore = defineStore('editor', () => {
       }
     }
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
-    )
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-          solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      after[k] = { ...(before[k] ?? blankCell()), value: nextValue[k], centerMarks: nextMarks[k] }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   // ── Solver result write-back ───────────────────────────────────────────────
@@ -565,23 +558,12 @@ export const useEditorStore = defineStore('editor', () => {
       next[key] = values[i]
     }
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
-    )
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-          solverCellStates.value[k] = { ...cur, value: next[k], centerMarks: [] }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      after[k] = { ...(before[k] ?? blankCell()), value: next[k], centerMarks: [] }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   // Fill each empty cell's center marks with its candidates. When singleAsValue,
@@ -608,44 +590,32 @@ export const useEditorStore = defineStore('editor', () => {
       }
     }
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k] } : null]),
-    )
-    const apply = () => {
-      keys.forEach((k) => {
-        const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-        solverCellStates.value[k] = { ...cur, value: nextValue[k], centerMarks: nextMarks[k] }
-      })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      after[k] = { ...(before[k] ?? blankCell()), value: nextValue[k], centerMarks: nextMarks[k] }
     }
+    // Auto True Candidates passes undoable=false: write through without recording
+    // a history entry, since its continual refreshes shouldn't flood undo/redo.
     if (!undoable) {
-      apply()
+      applySolverSnapshot(after)
       return
     }
-    execute({
-      execute: apply,
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function clearCornerMarksForKeys(keys: string[]) {
-    const prev = Object.fromEntries(keys.map((k) => [k, { ...solverCellStates.value[k], cornerMarks: [...solverCellStates.value[k].cornerMarks] }]))
-    execute({
-      execute: () => { keys.forEach((k) => { solverCellStates.value[k] = { ...solverCellStates.value[k], cornerMarks: [] } }) },
-      undo: () => { keys.forEach((k) => { solverCellStates.value[k] = prev[k] }) },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) after[k] = { ...(before[k] ?? blankCell()), cornerMarks: [] }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function clearCenterMarksForKeys(keys: string[]) {
-    const prev = Object.fromEntries(keys.map((k) => [k, { ...solverCellStates.value[k], centerMarks: [...solverCellStates.value[k].centerMarks] }]))
-    execute({
-      execute: () => { keys.forEach((k) => { solverCellStates.value[k] = { ...solverCellStates.value[k], centerMarks: [] } }) },
-      undo: () => { keys.forEach((k) => { solverCellStates.value[k] = prev[k] }) },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) after[k] = { ...(before[k] ?? blankCell()), centerMarks: [] }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function deleteSolverContentForSelection() {
@@ -655,11 +625,10 @@ export const useEditorStore = defineStore('editor', () => {
     // Step 1: clear placed digits, preserving marks
     const withValue = keys.filter((k) => solverCellStates.value[k]?.value != null)
     if (withValue.length) {
-      const prev = Object.fromEntries(withValue.map((k) => [k, { ...solverCellStates.value[k] }]))
-      execute({
-        execute: () => { withValue.forEach((k) => { solverCellStates.value[k] = { ...solverCellStates.value[k], value: null } }) },
-        undo: () => { withValue.forEach((k) => { solverCellStates.value[k] = prev[k] }) },
-      })
+      const before = snapshotCells(withValue)
+      const after: Record<string, CellState | null> = {}
+      for (const k of withValue) after[k] = { ...(before[k] ?? blankCell()), value: null }
+      execute({ kind: 'solverDiff', before, after })
       return
     }
 
@@ -1321,46 +1290,35 @@ export const useEditorStore = defineStore('editor', () => {
   function toggleCellColorForSelection(colorKey: string) {
     const keys = Array.from(selection.value)
     if (!keys.length) return
-    const prev = Object.fromEntries(
-      keys.map((k) => [k, solverCellStates.value[k] ? { ...solverCellStates.value[k], colors: [...solverCellStates.value[k].colors] } : null]),
-    )
+    const before = snapshotCells(keys)
     const allHave = keys.every((k) => solverCellStates.value[k]?.colors.includes(colorKey))
-    execute({
-      execute: () => {
-        keys.forEach((k) => {
-          const cur = solverCellStates.value[k] ?? { value: null, cornerMarks: [], centerMarks: [], color: null, colors: [] }
-          const colors = allHave
-            ? cur.colors.filter((c) => c !== colorKey)
-            : cur.colors.includes(colorKey) ? cur.colors : [...cur.colors, colorKey].sort()
-          solverCellStates.value[k] = { ...cur, colors }
-        })
-      },
-      undo: () => {
-        keys.forEach((k) => {
-          if (prev[k] === null) delete solverCellStates.value[k]
-          else solverCellStates.value[k] = prev[k]!
-        })
-      },
-    })
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) {
+      const cur = before[k] ?? blankCell()
+      const colors = allHave
+        ? cur.colors.filter((c) => c !== colorKey)
+        : cur.colors.includes(colorKey) ? cur.colors : [...cur.colors, colorKey].sort()
+      after[k] = { ...cur, colors }
+    }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function clearCellColorsForSelection() {
     const keys = Array.from(selection.value).filter((k) => solverCellStates.value[k]?.colors.length)
     if (!keys.length) return
-    const prev = Object.fromEntries(keys.map((k) => [k, { ...solverCellStates.value[k], colors: [...solverCellStates.value[k].colors] }]))
-    execute({
-      execute: () => { keys.forEach((k) => { solverCellStates.value[k] = { ...solverCellStates.value[k], colors: [] } }) },
-      undo: () => { keys.forEach((k) => { solverCellStates.value[k] = prev[k] }) },
-    })
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) after[k] = { ...(before[k] ?? blankCell()), colors: [] }
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function clearSolverState() {
-    if (Object.keys(solverCellStates.value).length === 0) return
-    const prev = { ...solverCellStates.value }
-    execute({
-      execute: () => { solverCellStates.value = {} },
-      undo: () => { solverCellStates.value = prev },
-    })
+    const keys = Object.keys(solverCellStates.value)
+    if (keys.length === 0) return
+    const before = snapshotCells(keys)
+    const after: Record<string, CellState | null> = {}
+    for (const k of keys) after[k] = null
+    execute({ kind: 'solverDiff', before, after })
   }
 
   function reset() {
@@ -2107,6 +2065,8 @@ export const useEditorStore = defineStore('editor', () => {
     clearCellColorsForSelection,
     undo,
     redo,
+    serializeHistory,
+    hydrateHistory,
     reset,
     singleCellMarks,
     toggleSingleCellMark,

@@ -1,0 +1,12 @@
+mutation StartPlay($puzzleId: ID!) {
+  startPlay(input: { puzzleId: $puzzleId }) {
+    puzzlePlay {
+      id
+      cellState
+      progressState
+      timeElapsedSeconds
+      isSolved
+    }
+    errors
+  }
+}

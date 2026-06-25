@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { usePuzzleTimer } from '@/composables/usePuzzleTimer'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { useSolveSessionStore } from '@/stores/solveSession'
 import { apolloClient } from '@/utils/apolloClient'
 import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
@@ -52,6 +53,7 @@ const editor = useEditorStore()
 const grid = useGridStore()
 const auth = useAuthStore()
 const player = usePlayerSettingsStore()
+const solveSession = useSolveSessionStore()
 const isMobile = useIsMobile()
 
 const loading = ref(true)
@@ -106,6 +108,7 @@ async function runCheck() {
 function onResetConfirm(resetTimer: boolean) {
   editor.clearSolverState()
   if (resetTimer) timer.reset()
+  solveSession.scheduleSave() // persist the cleared board (and reset clock)
   showReset.value = false
 }
 
@@ -192,12 +195,24 @@ watch(
   { deep: true },
 )
 
+// Autosave: persist the session whenever the board, selection, input mode, or
+// pause state changes. The store debounces the server push (and writes
+// localStorage synchronously), so a flurry of edits batches into one request.
+// Elapsed time isn't watched (it ticks every second); it rides along on the next
+// content change and is captured on flush (tab-hide / unload / navigation).
+watch(
+  () => [editor.solverCellStates, editor.selection, editor.inputMode, timerPaused.value],
+  () => solveSession.scheduleSave(),
+  { deep: true },
+)
+
 // On a correct solve, ask the server for the author's custom message (it's
 // never sent in the puzzle data). Falls back to the default if there is none.
 async function onSolved() {
   solved.value = true
   timer.stop()
   if (puzzleId.value) markSolved(puzzleId.value)
+  solveSession.markSolvedAndStop() // persist the solved board once, then stop autosaving
   // Record the time for the leaderboard (logged-in solvers, timed collections).
   if (collectionTimed.value && collectionId.value && puzzleId.value && auth.isAuthenticated && timer.elapsed.value > 0) {
     apolloClient.mutate<RecordCollectionSolveTimeMutation, RecordCollectionSolveTimeMutationVariables>({
@@ -262,10 +277,17 @@ async function loadPuzzle() {
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
     editor.setMode('solving')
-    timer.start()
-    // Greet the solver with the rules on first load (when enabled), pausing the
-    // clock until they dismiss it. Skip when the puzzle carries no rules text.
-    if (player.settings.showRulesOnStart && editor.puzzleRules) openRules()
+    // Resume saved progress if any (restores the board, history, and timer);
+    // otherwise begin() starts the clock fresh. It owns the timer from here, so
+    // we no longer call timer.start() directly.
+    const resumed = await solveSession.begin({
+      puzzleId: puzzle.id,
+      solutionHash: solutionHash.value,
+      timer,
+    })
+    // Greet the solver with the rules on a fresh start (when enabled), pausing
+    // the clock until dismissed. Skip on resume and when there's no rules text.
+    if (!resumed && player.settings.showRulesOnStart && editor.puzzleRules) openRules()
   } catch (e) {
     errorMessage.value = e instanceof Error ? e.message : 'Could not load this puzzle.'
   } finally {
@@ -279,14 +301,34 @@ async function loadPuzzle() {
 useGridKeyboard()
 
 
-// Re-load when navigating between puzzles in a collection (same route).
-watch(() => route.params.id, loadPuzzle)
+// Re-load when navigating between puzzles in a collection (same route). Flush
+// the outgoing puzzle's progress before the next one resets the board.
+watch(() => route.params.id, async () => {
+  await solveSession.flush()
+  loadPuzzle()
+})
+
+// Persist on tab-hide / app-background and on page unload. visibilitychange is
+// the reliable primary (covers tab switches and mobile backgrounding); pagehide
+// is the more dependable unload signal than beforeunload (esp. mobile Safari).
+function flushOnHide() {
+  if (document.visibilityState === 'hidden') void solveSession.flush()
+}
+function flushOnPageHide() {
+  void solveSession.flush()
+}
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', flushOnHide)
+  window.addEventListener('pagehide', flushOnPageHide)
   await loadCollectionOrder() // sets collectionTimed before the timer can start
   loadPuzzle()
 })
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', flushOnHide)
+  window.removeEventListener('pagehide', flushOnPageHide)
+  void solveSession.flush()
+  solveSession.teardown()
   timer.stop()
   // Leave a clean slate so the editor store isn't holding a played puzzle.
   editor.reset()

@@ -1,13 +1,11 @@
 import { ApolloClient, InMemoryCache, split } from '@apollo/client/core'
-import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
-import { createClient } from 'graphql-ws'
 import { createUploadLink } from 'apollo-upload-client'
+import { createConsumer } from '@rails/actioncable'
+import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink'
 import { getToken } from '@/utils/tokenStorage'
+import { API_URL, WS_URL } from '@/utils/env'
 import fragmentTypes from '@/graphql/generated/fragment-types.json'
-
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-const WS_URL = API_URL.replace(/^http/, 'ws')
 
 function getAuthHeaders(): Record<string, string> {
   const token = getToken()
@@ -25,19 +23,21 @@ const httpLink = createUploadLink({
   },
 })
 
-const wsLink = new GraphQLWsLink(
-  createClient({
-    url: `${WS_URL}/cable`,
-    connectionParams: () => ({ token: getToken() }),
-  }),
-)
+// GraphQL subscriptions ride Rails ActionCable. The consumer is anonymous —
+// guests have no JWT, and per-subscription authorization happens server-side via
+// the unguessable tokens passed as subscription variables. graphql-ruby-client's
+// ActionCableLink speaks the ActionCable protocol that Rails actually serves.
+const cable = createConsumer(`${WS_URL}/cable`)
+const cableLink = new ActionCableLink({ cable })
 
+// Subscription operations go to the cable link; queries and mutations (including
+// avatar uploads) go to the upload/http link.
 const splitLink = split(
   ({ query }) => {
     const def = getMainDefinition(query)
     return def.kind === 'OperationDefinition' && def.operation === 'subscription'
   },
-  wsLink,
+  cableLink,
   httpLink,
 )
 

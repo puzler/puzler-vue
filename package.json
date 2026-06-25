@@ -24,7 +24,7 @@
     "@rails/actioncable": "^8.1.300",
     "@vue/apollo-composable": "^4.2.2",
     "@vueuse/core": "^14.3.0",
-    "apollo-upload-client": "^17.0.0",
+    "apollo-upload-client": "^19.0.0",
     "graphql": "^16.14.2",
     "graphql-ruby-client": "^1.15.1",
     "js-sha256": "^0.11.1",

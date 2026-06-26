@@ -56,7 +56,7 @@ export function applyAppearance(theme: Theme, enableCustomStyles: boolean): void
 export function useThemeApplier() {
   const theme = useThemeStore()
   watch(
-    () => [ theme.activeTheme, theme.enableCustomStyles ] as const,
+    () => [ theme.resolvedActiveTheme, theme.enableCustomStyles ] as const,
     ([ active, enabled ]) => applyAppearance(active, enabled),
     { immediate: true, deep: true },
   )

@@ -237,48 +237,53 @@ export function resolveArrowStyle(override?: ConstraintStyleOverride, enabled = 
 
 // ── Editor support: the DEFAULT value of each editable field ────────────────────
 //
-// The override-field names the per-constraint editor edits, and the built-in default value of
-// each for a given constraint (no override). Static — defaults don't change — so the editor can
-// seed its inputs and know which fields a constraint exposes.
+// The override-field names the per-constraint editor edits, and the DEFAULT value of each — i.e.
+// what the field shows when the user hasn't overridden it, and what "Reset to default" falls back
+// to. Pass the theme's BASE PRESET override for this constraint (`baseOverride`) so the default
+// reflects the base preset (e.g. Dark's value for a Dark-based theme), not the Classic default.
+// With no baseOverride it returns the Classic default, as before.
 
 export type ConstraintField =
   | 'color' | 'strokeWidth' | 'opacity'
   | 'fillColor' | 'outlineColor' | 'textColor' | 'size'
   | 'fontColor' | 'fontSize' | 'backgroundColor'
 
-export function defaultConstraintFields(key: ConstraintStyleKey): Partial<Record<ConstraintField, string | number>> {
+export function defaultConstraintFields(
+  key: ConstraintStyleKey,
+  baseOverride?: ConstraintStyleOverride,
+): Partial<Record<ConstraintField, string | number>> {
   switch (constraintFamily(key)) {
     case 'line':
     case 'diagonal': {
-      const s = resolveLineStyle(key as LineKey)
+      const s = resolveLineStyle(key as LineKey, baseOverride)
       return { color: s.color, strokeWidth: s.strokeWidth, opacity: s.opacity }
     }
     case 'shape': {
-      const s = resolveShapeStyle(key as ShapeKey)
+      const s = resolveShapeStyle(key as ShapeKey, baseOverride)
       return { fillColor: s.fillColor, outlineColor: s.outlineColor, textColor: s.textColor, size: s.width }
     }
     case 'text': {
-      const s = resolveTextStyle(key as TextKey)
+      const s = resolveTextStyle(key as TextKey, baseOverride)
       return { fontColor: s.fontColor, fontSize: s.size }
     }
     case 'cellBg':
-      return { backgroundColor: resolveCellBgColor(key as CellBgKey) }
+      return { backgroundColor: resolveCellBgColor(key as CellBgKey, baseOverride) }
     case 'cage': {
-      const s = resolveCageStyle()
+      const s = resolveCageStyle(baseOverride)
       return { color: s.color, textColor: s.textColor }
     }
     case 'minmax': {
-      const s = resolveMinMaxStyle(key as MinMaxKey)
+      const s = resolveMinMaxStyle(key as MinMaxKey, baseOverride)
       return { backgroundColor: s.backgroundColor, outlineColor: s.chevronColor }
     }
     case 'betweenLine': {
-      const s = resolveBetweenLineStyle()
+      const s = resolveBetweenLineStyle(baseOverride)
       return { color: s.lineColor, fillColor: s.circleFill, outlineColor: s.circleStrokeColor, strokeWidth: s.lineStrokeWidth }
     }
     case 'thermo':
-      return { color: THERMO_STYLE.color }
+      return { color: resolveThermoStyle(baseOverride).color }
     case 'arrow':
-      return { color: ARROW_STYLE.color }
+      return { color: resolveArrowStyle(baseOverride).color }
   }
 }
 
@@ -289,8 +294,10 @@ export function defaultConstraintFields(key: ConstraintStyleKey): Partial<Record
 // re-runs on change.
 export function useConstraintStyles() {
   const theme = useThemeStore()
+  // Read the RESOLVED theme (base preset ⊕ user deltas) so un-overridden constraints — including
+  // ones added to the base preset after a custom theme was made — inherit the base preset's value.
   const ov = (key: string): ConstraintStyleOverride | undefined =>
-    theme.activeTheme.constraints[key as ConstraintStyleKey]
+    theme.resolvedActiveTheme.constraints[key as ConstraintStyleKey]
   return {
     lineStyle: (key: LineKey) => resolveLineStyle(key, ov(key), theme.enableCustomStyles),
     shapeStyle: (key: ShapeKey) => resolveShapeStyle(key, ov(key), theme.enableCustomStyles),

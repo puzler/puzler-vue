@@ -13,9 +13,13 @@ import {
   saveThemeCollection,
   normalizeThemeCollection,
   cloneTheme,
+  makeTheme,
   isBuiltInThemeId,
 } from '@/utils/theme'
-import { BUILTIN_THEMES, BUILTIN_THEME_LIST, getBuiltInTheme } from '@/utils/themePresets'
+import {
+  BUILTIN_THEMES, BUILTIN_THEME_LIST, getBuiltInTheme,
+  resolveEffectiveTheme, thinThemeToDeltas,
+} from '@/utils/themePresets'
 import type { UserThemeAttrsInput } from '@/graphql/generated/types'
 
 // The user's saved themes, the active selection, and the custom-styles gate. Local-first
@@ -27,7 +31,13 @@ import type { UserThemeAttrsInput } from '@/graphql/generated/types'
 // the deep watch keeps localStorage in step. The resolver (useConstraintStyles) and the applier
 // (useThemeApplier) read `activeTheme` + `enableCustomStyles` from here.
 export const useThemeStore = defineStore('theme', () => {
-  const collection = reactive<ThemeCollection>(loadThemeCollection())
+  // Load, then THIN any legacy "snapshot" themes to true deltas from their base preset (idempotent
+  // migration — see thinThemeToDeltas). Persist the thinned form immediately so localStorage holds
+  // the migrated shape going forward.
+  const loaded = loadThemeCollection()
+  loaded.userThemes = loaded.userThemes.map(thinThemeToDeltas)
+  const collection = reactive<ThemeCollection>(loaded)
+  saveThemeCollection(collection)
 
   // The prefs (active id + gate) we believe the server holds, so we skip redundant pushes.
   let serverPrefsJson: string | null = null
@@ -39,12 +49,18 @@ export const useThemeStore = defineStore('theme', () => {
   const allThemes = computed<Theme[]>(() => [ ...BUILTIN_THEME_LIST, ...collection.userThemes ])
   const isActiveBuiltIn = computed(() => isBuiltInThemeId(collection.activeThemeId))
 
-  // The effective theme: a built-in, a saved user theme, or Classic as a last resort.
+  // The RAW active theme: a built-in, a saved user theme (its sparse deltas), or Classic as a last
+  // resort. The editor reads this for override-detection ("did the user set this field?").
   const activeTheme = computed<Theme>(() =>
     getBuiltInTheme(collection.activeThemeId)
       ?? collection.userThemes.find(t => t.id === collection.activeThemeId)
       ?? BUILTIN_THEMES.classic,
   )
+
+  // The RESOLVED active theme: the base preset layered under the user's deltas (Classic ⊕ base ⊕
+  // deltas). This is what RENDERING reads (resolver, applier, preview) so a constraint the user
+  // never touched — including one added to the base preset later — picks up the base preset's value.
+  const resolvedActiveTheme = computed<Theme>(() => resolveEffectiveTheme(activeTheme.value))
 
   function findUserTheme(uid: string): Theme | undefined {
     return collection.userThemes.find(t => t.id === uid)
@@ -105,12 +121,21 @@ export const useThemeStore = defineStore('theme', () => {
     void pushPrefs()
   }
 
-  // Create a new editable theme by cloning a built-in or another user theme (duplicate-then-edit),
-  // then make it active. Returns the new theme's id.
+  // Build an editable theme FROM a source. A built-in source yields EMPTY deltas based on it (it
+  // renders identically via base-preset layering, and new constraints inherit the base); a user
+  // source copies its existing deltas. Either way basePresetId tracks the originating built-in.
+  function deriveTheme(source: Theme, uid: string, name: string): Theme {
+    return isBuiltInThemeId(source.id)
+      ? makeTheme(uid, name, source.basePresetId)
+      : cloneTheme(source, uid, name)
+  }
+
+  // Create a new editable theme from a built-in or another user theme (duplicate-then-edit), then
+  // make it active. Returns the new theme's id.
   function createThemeFrom(baseId: string, name?: string): string {
     const base = getBuiltInTheme(baseId) ?? findUserTheme(baseId) ?? BUILTIN_THEMES.classic
     const uid = newThemeId()
-    const theme = cloneTheme(base, uid, name ?? `${base.name} custom`)
+    const theme = deriveTheme(base, uid, name ?? `${base.name} custom`)
     collection.userThemes.push(theme)
     collection.activeThemeId = uid
     pushNewTheme(theme)
@@ -122,7 +147,7 @@ export const useThemeStore = defineStore('theme', () => {
     const source = getBuiltInTheme(id) ?? findUserTheme(id)
     if (!source) return null
     const uid = newThemeId()
-    const theme = cloneTheme(source, uid, name ?? `${source.name} copy`)
+    const theme = deriveTheme(source, uid, name ?? `${source.name} copy`)
     collection.userThemes.push(theme)
     collection.activeThemeId = uid
     pushNewTheme(theme)
@@ -134,7 +159,8 @@ export const useThemeStore = defineStore('theme', () => {
   // with a fresh per-user id, then activate it. Returns the new id.
   function importTheme(source: Theme): string {
     const uid = newThemeId()
-    const theme = cloneTheme(source, uid, source.name)
+    // Thin in case the shared code came from an older client that stored a full snapshot.
+    const theme = thinThemeToDeltas(cloneTheme(source, uid, source.name))
     collection.userThemes.push(theme)
     collection.activeThemeId = uid
     pushNewTheme(theme)
@@ -211,7 +237,8 @@ export const useThemeStore = defineStore('theme', () => {
     collection.version = next.version
     collection.activeThemeId = next.activeThemeId
     collection.enableCustomStyles = next.enableCustomStyles
-    collection.userThemes = next.userThemes
+    // Thin legacy snapshot themes to deltas (idempotent) as they arrive from the server.
+    collection.userThemes = next.userThemes.map(thinThemeToDeltas)
     serverPrefsJson = prefsJson()
   }
 
@@ -248,6 +275,7 @@ export const useThemeStore = defineStore('theme', () => {
 
   return {
     activeTheme,
+    resolvedActiveTheme,
     activeThemeId,
     enableCustomStyles,
     userThemes,

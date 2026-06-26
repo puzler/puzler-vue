@@ -5,6 +5,7 @@
 // theme-editor's right-hand preview (focus = 'chrome' | 'grid' | a constraint key).
 import { computed } from 'vue'
 import { type Theme, type ConstraintStyleKey, constraintFamily } from '@/utils/theme'
+import { resolveEffectiveTheme } from '@/utils/themePresets'
 import { GRID_DEFAULTS, CHROME_DEFAULTS } from '@/utils/appearanceTokens'
 import {
   resolveLineStyle, resolveShapeStyle, resolveTextStyle, resolveCellBgColor,
@@ -25,9 +26,12 @@ const ROWS = 2
 const VB_W = PADDING * 2 + COLS * CELL_SIZE
 const VB_H = PADDING * 2 + ROWS * CELL_SIZE
 
-const grid = (k: keyof typeof GRID_DEFAULTS) => props.theme.appearance.grid[k] ?? GRID_DEFAULTS[k]
-const chrome = (k: keyof typeof CHROME_DEFAULTS) => props.theme.appearance.chrome[k] ?? CHROME_DEFAULTS[k]
-const ov = (k: ConstraintStyleKey) => props.theme.constraints[k]
+// Preview the EFFECTIVE theme (base preset ⊕ the theme's own deltas) so a custom theme's preview
+// matches what the grid renders, and un-overridden constraints show their base preset's value.
+const eff = computed(() => resolveEffectiveTheme(props.theme))
+const grid = (k: keyof typeof GRID_DEFAULTS) => eff.value.appearance.grid[k] ?? GRID_DEFAULTS[k]
+const chrome = (k: keyof typeof CHROME_DEFAULTS) => eff.value.appearance.chrome[k] ?? CHROME_DEFAULTS[k]
+const ov = (k: ConstraintStyleKey) => eff.value.constraints[k]
 
 interface PathPrim { kind: 'path'; d: string; stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; dash?: string }
 interface CirclePrim { kind: 'circle'; cx: number; cy: number; r: number; fill?: string; stroke?: string; strokeWidth?: number }

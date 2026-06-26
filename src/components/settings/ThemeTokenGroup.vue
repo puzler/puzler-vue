@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
 import { parseRgb } from '@/utils/colorPalette'
+import { getBuiltInTheme } from '@/utils/themePresets'
 import type { ChromeTokenKey, GridTokenKey } from '@/utils/theme'
 
 const props = defineProps<{
@@ -22,7 +23,14 @@ function toHex(value: string): string {
 const overrides = (): Record<string, string | undefined> =>
   (props.group === 'chrome' ? theme.activeTheme.appearance.chrome : theme.activeTheme.appearance.grid)
 
-const hexFor = (tok: { key: string; default: string }) => toHex(overrides()[tok.key] ?? tok.default)
+// The base preset's value for a token — what an un-set token shows and what Reset falls back to.
+// Falls through to the static `default` (Classic) when the base preset leaves the token unset.
+const baseVal = (key: string): string | undefined => {
+  const a = getBuiltInTheme(theme.activeTheme.basePresetId)?.appearance
+  return props.group === 'chrome' ? a?.chrome[key as ChromeTokenKey] : a?.grid[key as GridTokenKey]
+}
+
+const hexFor = (tok: { key: string; default: string }) => toHex(overrides()[tok.key] ?? baseVal(tok.key) ?? tok.default)
 const isSet = (key: string) => overrides()[key] !== undefined
 
 function set(key: string, value: string | null) {

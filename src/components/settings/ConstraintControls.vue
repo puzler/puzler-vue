@@ -4,6 +4,7 @@ import { useThemeStore } from '@/stores/theme'
 import { parseRgb } from '@/utils/colorPalette'
 import { constraintFamily, type ConstraintStyleKey, type ConstraintStyleOverride } from '@/utils/theme'
 import { defaultConstraintFields, type ConstraintField } from '@/composables/useConstraintStyles'
+import { getBuiltInTheme } from '@/utils/themePresets'
 import { FAMILY_FIELDS } from '@/utils/constraintFields'
 import LineWidthControl from './LineWidthControl.vue'
 
@@ -12,7 +13,11 @@ const props = defineProps<{ ckey: ConstraintStyleKey }>()
 const theme = useThemeStore()
 
 const fields = computed(() => FAMILY_FIELDS[constraintFamily(props.ckey)])
-const defaults = computed(() => defaultConstraintFields(props.ckey))
+// "Default" is the theme's BASE PRESET value (what an un-overridden field shows and what Reset
+// falls back to), so a Dark-based theme seeds Dark's values rather than Classic's.
+const defaults = computed(() =>
+  defaultConstraintFields(props.ckey, getBuiltInTheme(theme.activeTheme.basePresetId)?.constraints[props.ckey]),
+)
 const override = computed<ConstraintStyleOverride>(() => theme.activeTheme.constraints[props.ckey] ?? {})
 const isOverridden = computed(() => Object.keys(override.value).length > 0)
 

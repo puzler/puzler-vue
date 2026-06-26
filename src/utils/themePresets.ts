@@ -14,7 +14,10 @@
 // High Contrast is a maximum-legibility light theme: white cells, pure-black box lines and
 // given digits, a strong blue for entered digits, and bold saturated constraint colors.
 
-import { type Theme, type BuiltInThemeId, THEME_SCHEMA_VERSION, emptyAppearance } from '@/utils/theme'
+import {
+  type Theme, type BuiltInThemeId, type ConstraintStyleKey, type ConstraintStyleOverride,
+  THEME_SCHEMA_VERSION, emptyAppearance,
+} from '@/utils/theme'
 
 const CLASSIC: Theme = {
   schemaVersion: THEME_SCHEMA_VERSION,
@@ -216,4 +219,77 @@ export const BUILTIN_THEME_LIST: Theme[] = [CLASSIC, LIGHT, DARK, HIGH_CONTRAST]
 
 export function getBuiltInTheme(id: string): Theme | undefined {
   return (BUILTIN_THEMES as Record<string, Theme>)[id]
+}
+
+// ── Base-preset layering ─────────────────────────────────────────────────────
+//
+// A user theme stores only its DELTAS from its base preset. Its EFFECTIVE style is the base
+// preset's overrides with the user's deltas layered on top (field by field) — so a constraint the
+// user never touched, INCLUDING one added to the base preset after the theme was created, renders
+// with the base preset's value rather than the Classic fallback. A built-in theme is its own base,
+// so it passes through unchanged.
+
+function mergeConstraints(
+  base: Theme['constraints'],
+  over: Theme['constraints'],
+): Theme['constraints'] {
+  const out: Theme['constraints'] = {}
+  for (const key of new Set([...Object.keys(base), ...Object.keys(over)])) {
+    const k = key as ConstraintStyleKey
+    out[k] = { ...base[k], ...over[k] }
+  }
+  return out
+}
+
+export function resolveEffectiveTheme(theme: Theme): Theme {
+  const base = getBuiltInTheme(theme.basePresetId) ?? BUILTIN_THEMES.classic
+  if (base.id === theme.id) return theme // a built-in is its own base
+  return {
+    ...theme,
+    appearance: {
+      chrome: { ...base.appearance.chrome, ...theme.appearance.chrome },
+      grid: { ...base.appearance.grid, ...theme.appearance.grid },
+    },
+    constraints: mergeConstraints(base.constraints, theme.constraints),
+  }
+}
+
+// The inverse, used as a one-time idempotent migration: drop every appearance token and every
+// constraint FIELD whose value still equals the CURRENT base preset's value. This turns older
+// "snapshot" themes (which copied all the base's values at duplicate time) into true deltas so
+// they track future base improvements. Because it compares against the current base, thinning a
+// theme then resolving it reproduces the same effective style — no visible change at migration.
+export function thinThemeToDeltas(theme: Theme): Theme {
+  const base = getBuiltInTheme(theme.basePresetId) ?? BUILTIN_THEMES.classic
+  if (base.id === theme.id) return theme
+
+  const thinTokens = <K extends string>(
+    over: Partial<Record<K, string>>, baseMap: Partial<Record<K, string>>,
+  ): Partial<Record<K, string>> => {
+    const out: Partial<Record<K, string>> = {}
+    for (const key of Object.keys(over) as K[]) {
+      if (over[key] !== baseMap[key]) out[key] = over[key]
+    }
+    return out
+  }
+
+  const constraints: Theme['constraints'] = {}
+  for (const key of Object.keys(theme.constraints) as ConstraintStyleKey[]) {
+    const over = theme.constraints[key] ?? {}
+    const baseOver = base.constraints[key] ?? {}
+    const fields: Record<string, string | number> = {}
+    for (const f of Object.keys(over) as (keyof ConstraintStyleOverride)[]) {
+      if (over[f] !== baseOver[f] && over[f] !== undefined) fields[f] = over[f] as string | number
+    }
+    if (Object.keys(fields).length > 0) constraints[key] = fields as ConstraintStyleOverride
+  }
+
+  return {
+    ...theme,
+    appearance: {
+      chrome: thinTokens(theme.appearance.chrome, base.appearance.chrome),
+      grid: thinTokens(theme.appearance.grid, base.appearance.grid),
+    },
+    constraints,
+  }
 }

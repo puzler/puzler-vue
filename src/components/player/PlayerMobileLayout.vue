@@ -7,6 +7,7 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
+import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
@@ -54,6 +55,7 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
       </div>
       <LiveSyncBadge />
       <PlayersPanel />
+      <ConnectionStatus />
       <div
         v-if="showTimer"
         class="ml-auto shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"

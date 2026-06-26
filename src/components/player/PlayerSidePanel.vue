@@ -5,6 +5,7 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
+import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
 
 defineProps<{
   title: string
@@ -70,6 +71,7 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
         <div class="flex flex-wrap items-center gap-1.5">
           <LiveSyncBadge />
           <PlayersPanel />
+          <ConnectionStatus />
         </div>
       </div>
 

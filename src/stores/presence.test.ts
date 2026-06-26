@@ -1,14 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-// Capture the channel's `received` callback so tests can feed it server messages.
-const { received } = vi.hoisted(() => ({ received: { fn: null as null | ((d: unknown) => void) } }))
+// Capture the channel mixin so tests can drive its callbacks (received / connected
+// / disconnected) as ActionCable would.
+interface ChannelMixin {
+  received: (d: unknown) => void
+  connected?: () => void
+  disconnected?: () => void
+}
+const { channel } = vi.hoisted(() => ({ channel: { mixin: null as null | ChannelMixin } }))
 
 vi.mock('@/utils/cableConsumer', () => ({
   cable: {
     subscriptions: {
-      create: (_params: unknown, mixin: { received: (d: unknown) => void }) => {
-        received.fn = mixin.received
+      create: (_params: unknown, mixin: ChannelMixin) => {
+        channel.mixin = mixin
         return { perform: vi.fn(), unsubscribe: vi.fn() }
       },
     },
@@ -26,7 +32,7 @@ vi.mock('@/utils/apolloClient', () => ({
 import { usePresenceStore } from './presence'
 
 function emit(msg: Record<string, unknown>): void {
-  received.fn?.(msg)
+  channel.mixin?.received(msg)
 }
 
 describe('presence store', () => {
@@ -77,5 +83,14 @@ describe('presence store', () => {
     emit({ type: 'join', actorId: 'guest:me', isHost: false, displayName: 'me' })
     emit({ type: 'kicked', actorId: 'guest:me' })
     expect(presence.wasKicked).toBe(true)
+  })
+
+  it('tracks the realtime link as it drops and reconnects', () => {
+    expect(presence.connected).toBe(true) // optimistic default
+    channel.mixin?.disconnected?.()
+    expect(presence.connected).toBe(false)
+    channel.mixin?.connected?.()
+    expect(presence.connected).toBe(true)
+    presence.stop()
   })
 })

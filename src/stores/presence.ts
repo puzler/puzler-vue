@@ -43,6 +43,9 @@ export const usePresenceStore = defineStore('presence', () => {
   const members = ref<Record<string, PresenceMember>>({})
   const wasKicked = ref(false)
   const playId = ref<string | null>(null)
+  // Realtime link health: false while ActionCable is dropped/reconnecting. Optimistic
+  // by default so a session never flashes "reconnecting" before its first connect.
+  const isConnected = ref(true)
 
   let sub: PresenceSub | null = null
   let selfId = ''
@@ -121,6 +124,7 @@ export const usePresenceStore = defineStore('presence', () => {
     stop()
     playId.value = id
     wasKicked.value = false
+    isConnected.value = true
     selfId = selfActorId()
 
     const broadcastCursor = useThrottleFn(() => {
@@ -138,9 +142,11 @@ export const usePresenceStore = defineStore('presence', () => {
         // cursor to reconverge the roster promptly, without waiting for the next
         // heartbeat.
         connected: () => {
+          isConnected.value = true
           sub?.perform('announce', { display_name: myDisplayName() })
           void broadcastCursor()
         },
+        disconnected: () => { isConnected.value = false },
       },
     ) as PresenceSub
 
@@ -161,6 +167,7 @@ export const usePresenceStore = defineStore('presence', () => {
     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null }
     members.value = {}
     playId.value = null
+    isConnected.value = true
   }
 
   function pruneStale(): void {
@@ -212,6 +219,7 @@ export const usePresenceStore = defineStore('presence', () => {
     members,
     wasKicked,
     playId,
+    connected: isConnected,
     connectedUsers,
     hasPeers,
     isHost,

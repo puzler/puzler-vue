@@ -8,10 +8,8 @@ import { useSolveSessionStore } from '@/stores/solveSession'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import CopyField from '@/components/player/CopyField.vue'
 import JoinSessionForm from '@/components/player/JoinSessionForm.vue'
-import GeneratePlayShareTokenDocument from '@/graphql/gql/puzzles/mutations/GeneratePlayShareToken.graphql'
 import RevokePlaySessionDocument from '@/graphql/gql/puzzles/mutations/RevokePlaySession.graphql'
 import type {
-  GeneratePlayShareTokenMutation, GeneratePlayShareTokenMutationVariables,
   RevokePlaySessionMutation, RevokePlaySessionMutationVariables,
 } from '@/graphql/generated/types'
 
@@ -33,16 +31,13 @@ function graphqlMessage(e: unknown): string | undefined {
   return (e as { graphQLErrors?: { message: string }[] })?.graphQLErrors?.[0]?.message
 }
 
+// Generating a token also PROMOTES a guest host: the store turns their local
+// session into a guest-hosted server play on the first share (see generateShareToken).
 async function generate(single = singleUse.value) {
-  if (!session.playId) { canShare.value = false; return }
   busy.value = true
   error.value = null
   try {
-    const { data } = await apolloClient.mutate<GeneratePlayShareTokenMutation, GeneratePlayShareTokenMutationVariables>({
-      mutation: GeneratePlayShareTokenDocument,
-      variables: { puzzlePlayId: session.playId, singleUse: single },
-    })
-    const t = data?.generatePlayShareToken?.shareToken
+    const t = await session.generateShareToken(single)
     if (t) { token.value = t.token; singleUse.value = t.singleUse }
   } catch (e) {
     if (graphqlMessage(e) === 'Not authorized') canShare.value = false

@@ -459,6 +459,15 @@ declare module '*/JoinPlaySession.graphql' {
 }
     
 
+declare module '*/KickParticipant.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const KickParticipant: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/PublishPuzzleVersion.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

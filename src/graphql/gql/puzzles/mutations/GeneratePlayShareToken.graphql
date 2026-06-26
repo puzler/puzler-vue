@@ -1,5 +1,10 @@
-mutation GeneratePlayShareToken($puzzlePlayId: ID!, $singleUse: Boolean) {
-  generatePlayShareToken(input: { puzzlePlayId: $puzzlePlayId, singleUse: $singleUse }) {
+mutation GeneratePlayShareToken($puzzlePlayId: ID, $puzzleId: ID, $seed: JSON, $singleUse: Boolean) {
+  generatePlayShareToken(
+    input: { puzzlePlayId: $puzzlePlayId, puzzleId: $puzzleId, seed: $seed, singleUse: $singleUse }
+  ) {
+    puzzlePlay {
+      id
+    }
     shareToken {
       id
       token

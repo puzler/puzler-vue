@@ -1,0 +1,6 @@
+mutation KickParticipant($puzzlePlayId: ID!, $actorId: String!, $block: Boolean) {
+  kickParticipant(input: { puzzlePlayId: $puzzlePlayId, actorId: $actorId, block: $block }) {
+    success
+    errors
+  }
+}

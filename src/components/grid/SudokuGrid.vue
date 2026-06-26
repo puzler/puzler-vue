@@ -10,6 +10,7 @@ import GridLabelsLayer from './GridLabelsLayer.vue'
 import CosmeticLayer from './CosmeticLayer.vue'
 import ConstraintLayer from './ConstraintLayer.vue'
 import CellLayer from './CellLayer.vue'
+import MultiplayerSelectionsLayer from './MultiplayerSelectionsLayer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import RegionLayer from './RegionLayer.vue'
 import ConnectorDotsLayer from './constraints/ConnectorDotsLayer.vue'
@@ -67,6 +68,8 @@ const viewBox = computed(() => {
     <GridBorders />
     <CosmeticLayer />
     <ConstraintLayer />
+    <!-- Collaborators' selection rings render behind the current player's own -->
+    <MultiplayerSelectionsLayer />
     <SelectionLayer :selection="selection" />
     <RegionLayer />
     <!-- Dots sit on cell borders, so they render above the grid and region lines -->

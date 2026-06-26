@@ -313,12 +313,14 @@ export type DeletePuzzleVersionMutationVariables = Exact<{
 export type DeletePuzzleVersionMutation = { deletePuzzleVersion: { success: boolean, errors: Array<string> } | null };
 
 export type GeneratePlayShareTokenMutationVariables = Exact<{
-  puzzlePlayId: string | number;
+  puzzlePlayId?: string | number | null | undefined;
+  puzzleId?: string | number | null | undefined;
+  seed?: unknown;
   singleUse?: boolean | null | undefined;
 }>;
 
 
-export type GeneratePlayShareTokenMutation = { generatePlayShareToken: { errors: Array<string>, shareToken: { id: string, token: string, singleUse: boolean, consumed: boolean } | null } | null };
+export type GeneratePlayShareTokenMutation = { generatePlayShareToken: { errors: Array<string>, puzzlePlay: { id: string } | null, shareToken: { id: string, token: string, singleUse: boolean, consumed: boolean } | null } | null };
 
 export type GrantPuzzleAccessMutationVariables = Exact<{
   puzzleId: string | number;
@@ -334,6 +336,15 @@ export type JoinPlaySessionMutationVariables = Exact<{
 
 
 export type JoinPlaySessionMutation = { joinPlaySession: { errors: Array<string>, puzzlePlay: { id: string, cellState: unknown, progressState: unknown, timeElapsedSeconds: number | null, isSolved: boolean, puzzle: { id: string } } | null } | null };
+
+export type KickParticipantMutationVariables = Exact<{
+  puzzlePlayId: string | number;
+  actorId: string;
+  block?: boolean | null | undefined;
+}>;
+
+
+export type KickParticipantMutation = { kickParticipant: { success: boolean, errors: Array<string> } | null };
 
 export type PublishPuzzleVersionMutationVariables = Exact<{
   puzzleId: string | number;

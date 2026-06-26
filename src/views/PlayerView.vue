@@ -9,6 +9,7 @@ import CheckResultModal from '@/components/player/CheckResultModal.vue'
 import PlayerSettingsModal from '@/components/player/PlayerSettingsModal.vue'
 import SolvedModal from '@/components/player/SolvedModal.vue'
 import CollaborationModal from '@/components/player/CollaborationModal.vue'
+import KickedBanner from '@/components/player/KickedBanner.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -16,6 +17,7 @@ import { useIsMobile } from '@/composables/useIsMobile'
 import { usePuzzleTimer } from '@/composables/usePuzzleTimer'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { useSolveSessionStore } from '@/stores/solveSession'
+import { usePresenceStore } from '@/stores/presence'
 import { apolloClient } from '@/utils/apolloClient'
 import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
@@ -53,7 +55,16 @@ const grid = useGridStore()
 const auth = useAuthStore()
 const player = usePlayerSettingsStore()
 const solveSession = useSolveSessionStore()
+const presence = usePresenceStore()
 const isMobile = useIsMobile()
+
+// Removed by the host mid-session: stop server sync, keep solving locally, and
+// surface a dismissible banner.
+const dismissedKick = ref(false)
+const showKickedBanner = computed(() => presence.wasKicked && !dismissedKick.value)
+watch(() => presence.wasKicked, (kicked) => {
+  if (kicked) solveSession.detachServer()
+})
 
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
@@ -259,6 +270,7 @@ async function loadPuzzle() {
   solved.value = false
   solveMessage.value = null
   showRulesIntro.value = false
+  dismissedKick.value = false
   timer.stop()
   editor.reset()
   const id = typeof route.params.id === 'string' ? route.params.id : null
@@ -341,6 +353,11 @@ onUnmounted(() => {
 
 <template>
   <div class="flex-1 flex flex-col overflow-hidden">
+    <KickedBanner
+      v-if="showKickedBanner"
+      @dismiss="dismissedKick = true"
+    />
+
     <div
       v-if="loading || errorMessage"
       class="flex-1 flex items-center justify-center text-soft"

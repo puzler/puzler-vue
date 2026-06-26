@@ -4,6 +4,7 @@ import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
+import PlayersPanel from '@/components/player/PlayersPanel.vue'
 
 defineProps<{
   title: string
@@ -66,7 +67,10 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
             :author-name="authorName"
           />
         </p>
-        <LiveSyncBadge />
+        <div class="flex flex-wrap items-center gap-1.5">
+          <LiveSyncBadge />
+          <PlayersPanel />
+        </div>
       </div>
 
       <section class="flex-1 min-h-0 flex flex-col gap-1.5">

@@ -1,15 +1,19 @@
 import { ApolloClient, InMemoryCache, split } from '@apollo/client/core'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createUploadLink } from 'apollo-upload-client'
-import { createConsumer } from '@rails/actioncable'
 import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink'
 import { getToken } from '@/utils/tokenStorage'
-import { API_URL, WS_URL } from '@/utils/env'
+import { getGuestToken } from '@/utils/guestIdentity'
+import { cable } from '@/utils/cableConsumer'
+import { API_URL } from '@/utils/env'
 import fragmentTypes from '@/graphql/generated/fragment-types.json'
 
+// Logged-in requests carry the JWT; guests carry their opaque guest token (the
+// server gates real access via accessible_by?, so this header just identifies them).
 function getAuthHeaders(): Record<string, string> {
   const token = getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  if (token) return { Authorization: `Bearer ${token}` }
+  return { 'X-Guest-Token': getGuestToken() }
 }
 
 // createUploadLink is a drop-in for createHttpLink that sends a GraphQL
@@ -23,16 +27,9 @@ const httpLink = createUploadLink({
   },
 })
 
-// GraphQL subscriptions ride Rails ActionCable. The connection is authenticated:
-// the JWT can't go in a header on the WS handshake, so it rides the cable URL as
-// a `token` param (decoded by ApplicationCable::Connection). The function form is
-// re-evaluated on each (re)connect, so a refreshed token is picked up. Guests have
-// no token and never subscribe, so they never open the connection.
-// graphql-ruby-client's ActionCableLink speaks the protocol Rails actually serves.
-const cable = createConsumer(() => {
-  const token = getToken()
-  return token ? `${WS_URL}/cable?token=${encodeURIComponent(token)}` : `${WS_URL}/cable`
-})
+// GraphQL subscriptions ride Rails ActionCable (the shared authenticated consumer
+// is in utils/cableConsumer.ts). graphql-ruby-client's ActionCableLink speaks the
+// protocol Rails actually serves.
 const cableLink = new ActionCableLink({ cable })
 
 // Subscription operations go to the cable link; queries and mutations (including

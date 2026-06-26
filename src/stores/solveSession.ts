@@ -5,6 +5,7 @@ import { apolloClient } from '@/utils/apolloClient'
 import { useEditorStore } from './editor'
 import { useColorPaletteStore } from './colorPalette'
 import { useAuthStore } from './auth'
+import { usePresenceStore } from './presence'
 import {
   serializeSession,
   applySession,
@@ -23,6 +24,7 @@ import type { CellState } from '@/types/grid'
 import StartPlayDocument from '@/graphql/gql/puzzles/mutations/StartPlay.graphql'
 import SaveProgressDocument from '@/graphql/gql/puzzles/mutations/SaveProgress.graphql'
 import JoinPlaySessionDocument from '@/graphql/gql/puzzles/mutations/JoinPlaySession.graphql'
+import GeneratePlayShareTokenDocument from '@/graphql/gql/puzzles/mutations/GeneratePlayShareToken.graphql'
 import ProgressUpdatedDocument from '@/graphql/gql/puzzles/subscriptions/ProgressUpdated.graphql'
 import type {
   StartPlayMutation,
@@ -31,6 +33,8 @@ import type {
   SaveProgressMutationVariables,
   JoinPlaySessionMutation,
   JoinPlaySessionMutationVariables,
+  GeneratePlayShareTokenMutation,
+  GeneratePlayShareTokenMutationVariables,
   ProgressUpdatedSubscription,
   ProgressUpdatedSubscriptionVariables,
 } from '@/graphql/generated/types'
@@ -56,6 +60,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   const editor = useEditorStore()
   const palette = useColorPaletteStore()
   const auth = useAuthStore()
+  const presence = usePresenceStore()
 
   const playId = ref<string | null>(null) // server PuzzlePlay id (logged-in only)
   const loading = ref(false)
@@ -113,6 +118,39 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     }
   }
 
+  // Create/refresh this play's active share token. For a guest with no server play
+  // yet, this is the promotion point: the one mutation both creates a guest-hosted
+  // play (seeded from the current local snapshot) and mints the token; we then adopt
+  // the new play id and go live. Throws on errors so the modal can surface them.
+  async function generateShareToken(single: boolean): Promise<{ token: string; singleUse: boolean } | null> {
+    if (!ctx) return null
+    const promoting = !playId.value
+    const seed = promoting ? snapshotNow() : null
+    const { data } = await apolloClient.mutate<GeneratePlayShareTokenMutation, GeneratePlayShareTokenMutationVariables>({
+      mutation: GeneratePlayShareTokenDocument,
+      variables: {
+        puzzlePlayId: playId.value,
+        puzzleId: promoting ? ctx.puzzleId : null,
+        seed: seed ? { cellState: seed.cellState, progressState: seed.progress } : null,
+        singleUse: single,
+      },
+    })
+    const result = data?.generatePlayShareToken
+    const newPlayId = result?.puzzlePlay?.id
+    if (promoting && newPlayId) adoptServerPlay(newPlayId)
+    const t = result?.shareToken
+    return t ? { token: t.token, singleUse: t.singleUse } : null
+  }
+
+  // Adopt a server play we just promoted into: record the baseline, subscribe to
+  // live updates, and flush any edits made between the seed and now.
+  function adoptServerPlay(id: string): void {
+    playId.value = id
+    baseline = snapshotNow()?.cellState ?? {}
+    goLive()
+    void pushServer()
+  }
+
   // Begin (or resume) a session for a freshly-loaded puzzle. Call AFTER
   // deserializePuzzle + editor.reset(); it decides fresh-start vs resume, owns the
   // timer from here, and (logged-in) starts the live subscription. Resolves true
@@ -129,14 +167,12 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       let snapshot: SolveSnapshot | null = local
 
       if (opts.joinToken) {
-        // Join mode: load INTO the shared play instead of the user's own.
-        if (auth.isAuthenticated) {
-          const joined = await joinSharedPlay(opts.joinToken)
-          if (joined) snapshot = joined
-        } else {
-          joinError.value = 'Sign in to join this collaborative session.'
-        }
-      } else if (auth.isAuthenticated) {
+        // Join mode (users and guests): load INTO the shared play, not our own.
+        const joined = await joinSharedPlay(opts.joinToken)
+        if (joined) snapshot = joined
+      } else {
+        // Resume our server play: a logged-in user's, or a guest's already-promoted
+        // guest-hosted play. Returns null for a solo guest -> stay on the local snap.
         const server = await fetchServerPlay(opts.puzzleId)
         if (server === 'solved') {
           resumedSolved = true
@@ -163,7 +199,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       // Baseline = the board as the server has it right now (deep-cloned via
       // serialize), so subsequent edits register as dirty against it.
       baseline = snapshotNow()?.cellState ?? {}
-      if (auth.isAuthenticated && playId.value) subscribeToProgress()
+      goLive()
     } catch {
       opts.timer.start() // any failure -> fresh, never block solving
     } finally {
@@ -191,6 +227,13 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       })
   }
 
+  // Go live on a server play: progress sync + presence/cursors. Idempotent.
+  function goLive(): void {
+    if (!playId.value) return
+    subscribeToProgress()
+    presence.start(playId.value)
+  }
+
   // Apply an incoming update from another session on this play.
   function applyRemoteUpdate(snap: SolveSnapshot): void {
     if (snap.progress.savedAt === lastSavedAt) return // our own broadcast echo
@@ -204,7 +247,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   }
 
   async function pushServer(): Promise<void> {
-    if (!ctx || !playId.value || !auth.isAuthenticated) return
+    if (!ctx || !playId.value) return
     const snap = snapshotNow()
     if (!snap) return
     const json = JSON.stringify(snap)
@@ -238,7 +281,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     const snap = snapshotNow()
     if (!snap) return
     writeLocalSnapshot(ctx.puzzleId, snap)
-    if (auth.isAuthenticated && playId.value && hasLocalChanges(editor.solverCellStates, baseline)) {
+    if (playId.value && hasLocalChanges(editor.solverCellStates, baseline)) {
       void debouncedServerSave()
     }
   }
@@ -250,12 +293,24 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     const snap = snapshotNow()
     if (!snap) return
     writeLocalSnapshot(ctx.puzzleId, snap)
-    if (auth.isAuthenticated && playId.value) await pushServer()
+    if (playId.value) await pushServer()
   }
 
   function markSolvedAndStop(): void {
     void flush() // persist the solved board, then stop autosaving
     active.value = false
+  }
+
+  // Kicked from a shared play: drop server sync + presence but keep the local
+  // session alive (ctx/active intact) so the user can carry on solving offline.
+  function detachServer(): void {
+    if (progressSub) {
+      progressSub.unsubscribe()
+      progressSub = null
+    }
+    playId.value = null
+    lastServerJson = null
+    presence.stop()
   }
 
   // Toggle live-apply for this device + puzzle (surfaced via the "Linked" badge).
@@ -278,22 +333,31 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       progressSub.unsubscribe()
       progressSub = null
     }
+    presence.stop()
   }
 
-  // Guest -> sign-in mid-solve: adopt a server play and seed it from the current
-  // local state so progress isn't stranded on this device.
+  // Guest -> sign-in mid-solve (prev is null, u is set): re-fetch as the now-
+  // authenticated user, seeding from the current local state so progress isn't
+  // stranded. Any guest-hosted server play we held is dropped and left to the
+  // pruner (cross-identity ownership transfer is out of scope).
   watch(
     () => auth.user,
-    (u) => {
+    (u, prev) => {
       const session = ctx
-      if (!u || !session || !active.value || playId.value) return
+      if (!u || prev || !session || !active.value) return
       void (async () => {
         try {
+          if (progressSub) {
+            progressSub.unsubscribe()
+            progressSub = null
+          }
+          playId.value = null
+          lastServerJson = null
           const server = await fetchServerPlay(session.puzzleId)
           if (server !== 'solved' && (!server || isEmptySnapshot(server))) {
             await pushServer()
           }
-          if (playId.value) subscribeToProgress()
+          goLive()
         } catch {
           /* best-effort */
         }
@@ -312,7 +376,9 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     scheduleSave,
     flush,
     markSolvedAndStop,
+    detachServer,
     setLiveUpdates,
+    generateShareToken,
     teardown,
   }
 })

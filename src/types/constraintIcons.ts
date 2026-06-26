@@ -1,6 +1,7 @@
 import { CONSTRAINT_LINE_STYLES } from '@/types/constraints'
 import {
   mdiThermometer,
+  mdiThermometerLow,
   mdiArrowDecisionOutline,
   mdiChartLineVariant,
   mdiCircleMultipleOutline,
@@ -61,6 +62,7 @@ export const CONSTRAINT_ICONS: Record<string, ConstraintIcon> = {
 
   // Multi-Cell
   thermometer:     { path: mdiThermometer },
+  slow_thermometer:{ path: mdiThermometerLow },
   arrow:           { path: mdiArrowDecisionOutline },
   killer_cage:     { path: mdiDotsSquare },
   clone:           { path: mdiCheckboxMultipleBlank },

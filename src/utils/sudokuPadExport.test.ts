@@ -343,6 +343,7 @@ describe('puzzleToFpuzzles', () => {
     editor.cosmeticCellColors = { r8c8: 'col' }
     editor.cosmeticInstances = [
       inst('thermometer', { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }] }),
+      inst('slow_thermometer', { root: 'r1c6', edges: [{ from: 'r1c6', to: 'r1c7' }] }),
       inst('arrow', { bulbCells: ['r2c0'], arrows: [{ cells: ['r2c0', 'r2c1'] }] }),
       inst('killer_cage', { cells: ['r4c0', 'r4c1'], sum: 5 }),
       inst('extra_regions', { cells: ['r6c0', 'r6c1'] }),
@@ -401,9 +402,9 @@ describe('puzzleToFpuzzles', () => {
     expect(has('regionsumline')).toBe(true)
     expect(has('betweenline')).toBe(true)
     expect(has('cage')).toBe(true)  // cosmetic cage
-    expect(has('circle')).toBe(true)  // shape
-    // Cosmetic lines: renban + german + region sum + dutch + cosmetic_line = 5
-    expect(has('line', 5)).toBe(true)
+    expect(has('circle', 2)).toBe(true)  // shape + slow thermo hollow bulb
+    // Cosmetic lines: renban + german + region sum + dutch + cosmetic_line + slow thermo = 6
+    expect(has('line', 6)).toBe(true)
     // Author cosmetic colour
     expect(cells[8][8].c).toBe('#abcdef')
   })

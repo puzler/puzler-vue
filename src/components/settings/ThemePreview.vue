@@ -133,6 +133,13 @@ function constraintPrims(key: ConstraintStyleKey): Prim[] {
   if (fam === 'thermo') {
     const t = resolveThermoStyle(ov(key), true)
     const bulb = cellCenter('r0c0')
+    // Slow thermos render hollow (outline only) on the grid; mirror that here.
+    if (key === 'slow_thermometer') {
+      return [
+        { kind: 'path', d: cellsToPath(['r0c0', 'r0c1', 'r0c2']), stroke: t.color, strokeWidth: 3, fill: 'none' },
+        { kind: 'circle', cx: bulb.x, cy: bulb.y, r: t.bulbRadius, fill: 'none', stroke: t.color, strokeWidth: 3 },
+      ]
+    }
     return [
       { kind: 'path', d: cellsToPath(['r0c0', 'r0c1', 'r0c2']), stroke: t.color, strokeWidth: t.strokeWidth },
       { kind: 'circle', cx: bulb.x, cy: bulb.y, r: t.bulbRadius, fill: t.color },

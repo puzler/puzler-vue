@@ -35,7 +35,7 @@ interface Category {
 
 // Constraint types that activate a draw tool when clicked in the sidebar
 const LOCAL_TOOL_TYPES = new Set([
-  'thermometer', 'arrow', 'renban', 'german_whispers', 'dutch_whispers',
+  'thermometer', 'slow_thermometer', 'arrow', 'renban', 'german_whispers', 'dutch_whispers',
   'palindrome', 'region_sum', 'between_lines',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
   'difference_dots', 'ratio_dots', 'xv', 'quadruples',
@@ -46,7 +46,7 @@ const LOCAL_TOOL_TYPES = new Set([
 // Maps local constraint types to their storage category for correct removal routing
 const LINE_CATEGORY_TYPES = new Set([
   'renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum',
-  'between_lines', 'thermometer', 'arrow',
+  'between_lines', 'thermometer', 'slow_thermometer', 'arrow',
 ])
 const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone', 'extra_regions'])
 const SINGLE_CELL_TYPES = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])

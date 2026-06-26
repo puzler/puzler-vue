@@ -51,6 +51,11 @@ const isOuterClueTool = computed(() => OUTER_CLUE_TYPES.has(editor.activeTool))
     <QuadruplesPanel v-else-if="editor.activeTool === 'quadruples'" />
     <ArrowPanel v-else-if="editor.activeTool === 'arrow'" />
     <ThermoPanel v-else-if="editor.activeTool === 'thermometer'" />
+    <ThermoPanel
+      v-else-if="editor.activeTool === 'slow_thermometer'"
+      title="Slow Thermometers"
+      rule-text="Digits stay the same or increase from the bulb toward each tip"
+    />
     <KropkiDotsPanel v-else-if="isKropkiTool" />
     <KillerCagePanel v-else-if="editor.activeTool === 'killer_cage'" />
     <CosmeticCagePanel v-else-if="editor.activeTool === 'cosmetic_cage'" />

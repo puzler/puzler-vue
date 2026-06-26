@@ -4,7 +4,7 @@ import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
 
@@ -23,7 +23,7 @@ const editor = useEditorStore()
 const isDragging = ref(false)
 const dragAdditive = ref(false)
 
-const DRAWING_TOOLS = new Set(['cosmetic_line', 'thermometer', 'arrow', ...CONSTRAINT_LINE_TYPES])
+const DRAWING_TOOLS = new Set(['cosmetic_line', ...THERMO_TYPES, 'arrow', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
 const SINGLE_CELL_TOOLS = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
 
@@ -97,7 +97,7 @@ function findLineAtCell(key: string): string | null {
 function findThermoAtCell(key: string): string | null {
   for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
     const inst = editor.cosmeticInstances[i]
-    if (inst.type !== 'thermometer') continue
+    if (!THERMO_TYPES.has(inst.type)) continue
     const data = inst.data as ThermometerData
     if (data.root === key || data.edges.some(e => e.from === key || e.to === key)) return inst.id
   }
@@ -535,7 +535,7 @@ function onPointerDown(event: PointerEvent) {
   }
 
   if (isDrawing.value) {
-    if (editor.activeTool === 'thermometer') {
+    if (THERMO_TYPES.has(editor.activeTool)) {
       const mode = event.shiftKey ? 'branch' : editor.effectiveThermoDrawMode
       const thermoId = findThermoAtCell(key)
       if (mode === 'branch') {
@@ -723,7 +723,7 @@ function onPointerUp(event: PointerEvent) {
 
   if (isDrawing.value) {
     if (
-      editor.activeTool === 'thermometer' &&
+      THERMO_TYPES.has(editor.activeTool) &&
       editor.pendingBranchThermoId !== null &&
       editor.pendingLineCells.length < 2
     ) {

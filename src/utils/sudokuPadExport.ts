@@ -9,6 +9,7 @@ import {
   cornerKeyToRowCol,
   parseOuterKey,
   cosmeticPos,
+  THERMO_STYLE,
 } from '@/types/constraints'
 import type {
   ThermometerData,
@@ -364,6 +365,23 @@ export function puzzleToFpuzzles(
       case 'thermometer':
         push(fp, 'thermometer', { lines: thermoLines(inst.data as ThermometerData) })
         break
+      case 'slow_thermometer': {
+        // SudokuPad/f-puzzles has no slow thermometer, so draw it cosmetically: a
+        // grey line down each branch plus a hollow bulb. Correctness is carried by
+        // the embedded solution.
+        const data = inst.data as ThermometerData
+        for (const line of thermoLines(data)) {
+          push(fp, 'line', { lines: [line], outlineC: THERMO_STYLE.color, width: THERMO_STYLE.strokeWidth / 64, isNewConstraint: true })
+        }
+        push(fp, 'circle', {
+          cells: [fpCell(data.root)],
+          baseC: fpColor('none'),
+          outlineC: THERMO_STYLE.color,
+          width: (THERMO_STYLE.bulbRadius * 2) / 64,
+          height: (THERMO_STYLE.bulbRadius * 2) / 64,
+        })
+        break
+      }
       case 'arrow': {
         const data = inst.data as ArrowData
         push(fp, 'arrow', {

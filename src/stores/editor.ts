@@ -6,7 +6,7 @@ import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import type { CellState, SolverInputMode } from '@/types/grid'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   CellColorPreset, CosmeticPos,
@@ -1052,7 +1052,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     const type = activeTool.value
 
-    if (type === 'thermometer') {
+    if (THERMO_TYPES.has(type)) {
       const newEdges: ThermoEdge[] = cells.slice(0, -1).map((c, i) => ({ from: c, to: cells[i + 1] }))
 
       if (pendingBranchThermoId.value) {
@@ -1075,7 +1075,7 @@ export const useEditorStore = defineStore('editor', () => {
       } else {
         const instance: CosmeticInstance = {
           id: crypto.randomUUID(),
-          type: 'thermometer',
+          type,
           data: { root: cells[0], edges: newEdges } satisfies ThermometerData,
         }
         execute({

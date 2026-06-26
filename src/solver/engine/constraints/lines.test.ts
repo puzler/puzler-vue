@@ -77,6 +77,23 @@ describe('connector & line constraints', () => {
     expect(solvable(puzzle([[0, 2], [1, 5]], [thermo]))).toBe(true)
   })
 
+  it('slow thermometer allows equal or increasing from the bulb', () => {
+    // r0c0 → r4c4 share no row/col/box, so equality is purely the slow thermo's
+    // call (normal sudoku rules don't forbid it here).
+    const slow = { kind: 'slow_thermometer', edges: [[0, 40]] }
+    expect(valid(puzzle([[0, 5], [40, 2]], [slow]))).toBe(false)   // decreasing forbidden
+    expect(valid(puzzle([[0, 2], [40, 2]], [slow]))).toBe(true)    // equal allowed
+    expect(solvable(puzzle([[0, 2], [40, 5]], [slow]))).toBe(true) // increasing fine
+  })
+
+  it('slow thermometer weak-links bound a cell from its committed neighbour', () => {
+    // r0c0 → r4c4 (no shared houses). Bulb committed to 5 ⇒ the next cell, being
+    // ≥ the bulb, drops 1..4 via the slow thermo's weak links (equal kept).
+    const slow = { kind: 'slow_thermometer', edges: [[0, 40]] }
+    const { board } = buildBoard(puzzle([[0, 5]], [slow]))
+    expect(board.candidatesPerCell()[40]).toEqual([5, 6, 7, 8, 9])
+  })
+
   it('arrow digits sum to the bulb', () => {
     const arrow = { kind: 'arrow', bulb: [8], shafts: [[9, 10]] } // r0c8 = r1c0 + r1c1
     expect(valid(puzzle([[8, 9], [9, 3], [10, 4]], [arrow]))).toBe(false)

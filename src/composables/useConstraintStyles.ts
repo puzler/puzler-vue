@@ -300,6 +300,7 @@ export function useConstraintStyles() {
     betweenLineStyle: () => resolveBetweenLineStyle(ov('between_lines'), theme.enableCustomStyles),
     minMaxStyle: (key: MinMaxKey) => resolveMinMaxStyle(key, ov(key), theme.enableCustomStyles),
     thermoStyle: () => resolveThermoStyle(ov('thermometer'), theme.enableCustomStyles),
+    slowThermoStyle: () => resolveThermoStyle(ov('slow_thermometer'), theme.enableCustomStyles),
     arrowStyle: () => resolveArrowStyle(ov('arrow'), theme.enableCustomStyles),
     // Tool-selector icon color: line constraints follow the theme (and the gate); others static.
     iconColor: (type: string): string | undefined =>

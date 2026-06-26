@@ -55,6 +55,7 @@ const GROUPS: ConstraintGroup[] = [
     label: 'Multi-Cell Constraints',
     options: [
       { type: 'thermometer', label: 'Thermometers' },
+      { type: 'slow_thermometer', label: 'Slow Thermometers' },
       { type: 'arrow', label: 'Arrows' },
       { type: 'killer_cage', label: 'Killer Cages' },
       { type: 'clone', label: 'Clones' },

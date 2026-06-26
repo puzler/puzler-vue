@@ -112,6 +112,7 @@ export const CONSTRAINT_STYLE_REGISTRY = {
   region_sum:      { family: 'line', category: 'lines', label: 'Region sum line' },
   between_lines:   { family: 'betweenLine', category: 'lines', label: 'Between line' },
   thermometer:     { family: 'thermo', category: 'lines', label: 'Thermometer' },
+  slow_thermometer:{ family: 'thermo', category: 'lines', label: 'Slow thermometer' },
   arrow:           { family: 'arrow', category: 'lines', label: 'Arrow' },
   // Connectors
   difference_dots: { family: 'shape', category: 'connectors', label: 'Difference dot' },

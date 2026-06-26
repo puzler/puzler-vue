@@ -23,7 +23,7 @@ const TOOLS_WITH_CONTROLS = new Set([
   'difference_dots', 'ratio_dots', 'killer_cage', 'extra_regions', 'clone', 'cosmetic_cage',
   'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
   'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
-  'thermometer', ...CONSTRAINT_LINE_TYPES,
+  'thermometer', 'slow_thermometer', ...CONSTRAINT_LINE_TYPES,
   ...Object.keys(GLOBAL_VARIANTS),
 ])
 const activeToolHasControls = computed(() => TOOLS_WITH_CONTROLS.has(editor.activeTool))

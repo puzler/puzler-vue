@@ -67,6 +67,12 @@ export const THERMO_STYLE = {
   bulbRadius: 18,
 }
 
+// Thermo-like tools share the same {root, edges} data shape and draw/branch
+// machinery. Slow thermos differ only in the solver rule (non-decreasing) and a
+// hollow, outline-only render. Generalize type checks against this set rather
+// than duplicating the thermometer logic.
+export const THERMO_TYPES = new Set(['thermometer', 'slow_thermometer'])
+
 // ── Arrows ────────────────────────────────────────────────────────────────────
 
 export interface ArrowPath {

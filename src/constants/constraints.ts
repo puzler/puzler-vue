@@ -13,6 +13,7 @@ export const CONSTRAINT_FILTER_GROUPS: ReadonlyArray<ConstraintFilterGroup> = [
     label: 'Lines',
     options: [
       { value: 'thermometer', label: 'Thermometer' },
+      { value: 'slow_thermometer', label: 'Slow Thermometer' },
       { value: 'arrow', label: 'Arrow' },
       { value: 'renban', label: 'Renban' },
       { value: 'german_whispers', label: 'German Whispers' },

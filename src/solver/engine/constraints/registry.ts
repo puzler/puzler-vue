@@ -21,6 +21,7 @@ import palindrome from './palindrome'
 import whisper from './whisper'
 import renban from './renban'
 import thermometer from './thermometer'
+import slowThermometer from './slowThermometer'
 import arrow from './arrow'
 import betweenLine from './betweenLine'
 import regionSumLine from './regionSumLine'
@@ -53,6 +54,7 @@ export const MODULES: ConstraintModule[] = [
   whisper,
   renban,
   thermometer,
+  slowThermometer,
   arrow,
   betweenLine,
   regionSumLine,

@@ -131,7 +131,16 @@ export const usePresenceStore = defineStore('presence', () => {
       { channel: 'PresenceChannel', play_id: id, display_name: myDisplayName() },
       {
         received: (data: PresenceMessage) => handle(data),
-        connected: () => broadcastCursor(), // share our current selection on (re)connect
+        // Fires on the initial connect AND every ActionCable reconnect (e.g. after
+        // a server restart). ActionCable re-runs the channel's `subscribed` on
+        // reconnect — which re-registers us server-side and restores the
+        // disconnect -> prune path — so here we just re-announce and re-share our
+        // cursor to reconverge the roster promptly, without waiting for the next
+        // heartbeat.
+        connected: () => {
+          sub?.perform('announce', { display_name: myDisplayName() })
+          void broadcastCursor()
+        },
       },
     ) as PresenceSub
 

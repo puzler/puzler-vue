@@ -25,12 +25,48 @@ const CLASSIC: Theme = {
   constraints: {},
 }
 
+// Light is a crisp, COOL daylight theme — the counterpoint to Classic's warm "paper". Same
+// white cells (so the white-grid constraint defaults all carry over and need no overrides), but
+// a cooler slate/blue chrome + grid palette and a brighter blue action accent, so it reads as a
+// clean, airy light mode that's clearly distinct from Classic.
 const LIGHT: Theme = {
   schemaVersion: THEME_SCHEMA_VERSION,
   id: 'light',
   name: 'Light',
   basePresetId: 'light',
-  appearance: emptyAppearance(),
+  appearance: {
+    chrome: {
+      ink: '#1E293B',
+      'ink-2': '#334155',
+      paper: '#F8FAFC',
+      canvas: '#EEF2F6',
+      surface: '#FFFFFF',
+      line: '#E2E8F0',
+      'ink-text': '#0F172A',
+      soft: '#475569',
+      faint: '#94A3B8',
+      action: '#2563EB',
+      'action-deep': '#1D4ED8',
+      'action-tint': '#DBEAFE',
+      spark: '#F59E0B',
+      'spark-tint': '#FEF3C7',
+    },
+    grid: {
+      'grid-canvas': '#EEF2F6',
+      'grid-cell': '#FFFFFF',
+      'grid-line-thin': '#94A3B8',
+      'grid-line-box': '#1E293B',
+      'grid-digit-given': '#0F172A',
+      'grid-digit-input': '#2563EB',
+      'grid-pencil': '#2563EB',
+      'grid-pencil-seen': '#DC2626',
+      'grid-selection': '#F59E0B',
+      'grid-error': '#EF4444',
+      'grid-seen': '#475569',
+    },
+  },
+  // White cells mean the constraint defaults (tuned for the original white grid) all read well,
+  // so Light keeps them — its identity is the cooler chrome/grid palette above.
   constraints: {},
 }
 
@@ -85,9 +121,20 @@ const DARK: Theme = {
     sandwich_sums: { fontColor: '#E6E9EF' },
     skyscrapers: { fontColor: '#E6E9EF' },
     little_killers: { fontColor: '#E6E9EF' },
-    ratio_dots: { fillColor: '#C7CDDA', outlineColor: '#C7CDDA' },
+    // Kropki dots keep their canonical identity — difference = WHITE dot, ratio = BLACK dot (rules
+    // text relies on this). Don't recolor the fills; just add a light ring so each stays visible on
+    // dark cells. This also keeps them distinct from each other (a swap had made both light).
+    ratio_dots: { outlineColor: '#C7CDDA' },
     difference_dots: { outlineColor: '#C7CDDA' },
     between_lines: { fillColor: '#1A2230', outlineColor: '#C7CDDA' },
+    // Region/index fills default to LIGHT greys/pastels that would paint a bright block over the
+    // dark cells and bury the light digits. Darken them while KEEPING each one's identity: the
+    // neutral region shadings stay neutral (just two distinguishable dark greys), and the index
+    // cells keep their pink/green hue (rules refer to "the red/green index"), only much darker.
+    extra_regions: { backgroundColor: '#2E3542' },
+    clone: { backgroundColor: '#3A4250' },
+    row_index_cells: { backgroundColor: '#3A2A33' },
+    col_index_cells: { backgroundColor: '#243A30' },
   },
 }
 
@@ -129,14 +176,31 @@ const HIGH_CONTRAST: Theme = {
       'grid-seen': '#000000',
     },
   },
-  // Bold, fully saturated, mutually distinct line colors plus a pure-black cage.
+  // High contrast DARKENS each constraint's own colour for legibility on white — it does NOT
+  // swap hues, so rules text that names a colour ("the magenta line", "the cyan line") still
+  // holds. Each line below is a deeper, more saturated shade of the SAME Classic hue.
   constraints: {
-    renban: { color: '#7A00E6' },
-    german_whispers: { color: '#007A00' },
-    dutch_whispers: { color: '#CC5200' },
-    region_sum: { color: '#0000CC' },
-    palindrome: { color: '#222222' },
+    renban: { color: '#C000C0' },          // magenta, darkened (was Classic 240,103,240)
+    german_whispers: { color: '#007A00' }, // green, darkened
+    dutch_whispers: { color: '#CC5200' },  // orange, darkened
+    region_sum: { color: '#0085AC' },      // cyan, darkened (NOT pure blue)
+    palindrome: { color: '#222222' },      // grey, darkened
     killer_cage: { color: '#000000', textColor: '#000000' },
+    // Grey marks → bold dark grey (same neutral hue) so they don't wash out on white.
+    thermometer: { color: '#3A3A3A' },
+    slow_thermometer: { color: '#3A3A3A' },
+    arrow: { color: '#3A3A3A' },
+    between_lines: { color: '#333333', outlineColor: '#333333' },
+    odd_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },
+    even_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },
+    // Pale region fills → stronger, mutually-distinct tints that stay readable behind digits.
+    extra_regions: { backgroundColor: '#C4CDD9' },
+    clone: { backgroundColor: '#D9CFC4' },
+    // Pastel diagonals → saturated + thicker, brighter than the navy region-sum line.
+    positive_diagonal: { color: '#1166EE', strokeWidth: 3, opacity: 1 },
+    negative_diagonal: { color: '#1166EE', strokeWidth: 3, opacity: 1 },
+    anti_positive_diagonal: { color: '#D40000', strokeWidth: 3, opacity: 1 },
+    anti_negative_diagonal: { color: '#D40000', strokeWidth: 3, opacity: 1 },
   },
 }
 

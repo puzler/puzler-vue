@@ -9,7 +9,7 @@ const showEditor = ref(false)
 </script>
 
 <template>
-  <section class="bg-paper border border-line rounded-xl p-6">
+  <section class="bg-paper mb-6 border border-line rounded-xl p-6">
     <h2 class="font-display text-lg font-semibold mb-1">
       Appearance
     </h2>

@@ -1,26 +1,10 @@
 #import "../../fragments/PageInfoFields.graphql"
+#import "../../fragments/PuzzleCardFields.graphql"
 
 query Puzzles($filter: ListingFilterInput) {
   puzzles(filter: $filter) {
     nodes {
-      id
-      title
-      constraintTypes
-      avgRating
-      effectiveDifficulty
-      solveCount
-      featured
-      grid {
-        rows
-        cols
-      }
-      authorName
-      author {
-        id
-        username
-        displayName
-        setterTier
-      }
+      ...PuzzleCardFields
     }
     pageInfo {
       ...PageInfoFields

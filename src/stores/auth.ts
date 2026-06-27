@@ -16,6 +16,7 @@ import CreateUserThemeDocument from '@/graphql/gql/auth/mutations/CreateUserThem
 import UpdateUserThemeDocument from '@/graphql/gql/auth/mutations/UpdateUserTheme.graphql'
 import DeleteUserThemeDocument from '@/graphql/gql/auth/mutations/DeleteUserTheme.graphql'
 import UpdateThemePreferencesDocument from '@/graphql/gql/auth/mutations/UpdateThemePreferences.graphql'
+import UpdateProfileVisibilityDocument from '@/graphql/gql/auth/mutations/UpdateProfileVisibility.graphql'
 import type {
   MeQuery,
   UserFieldsFragment,
@@ -43,6 +44,9 @@ import type {
   DeleteUserThemeMutationVariables,
   UpdateThemePreferencesMutation,
   UpdateThemePreferencesMutationVariables,
+  UpdateProfileVisibilityMutation,
+  UpdateProfileVisibilityMutationVariables,
+  ProfileVisibilityInput,
   UserThemeFieldsFragment,
   UserThemeAttrsInput,
 } from '@/graphql/generated/types'
@@ -215,6 +219,21 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
+  // Persist the owner-controlled public-profile visibility preferences. The
+  // settings panel binds toggles to `user.profileVisibility` and calls this to
+  // save; the refreshed user keeps it as the single source of truth.
+  async function updateProfileVisibility(attrs: ProfileVisibilityInput) {
+    const { data } = await apolloClient.mutate<UpdateProfileVisibilityMutation, UpdateProfileVisibilityMutationVariables>({
+      mutation: UpdateProfileVisibilityDocument,
+      variables: { attrs },
+    })
+    const result = data?.updateProfileVisibility
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
   // Persist the player/solver preferences (settings and/or color palette) for
   // a logged-in user. Fire-and-forget from the caller's perspective: the
   // player-settings and color-palette stores own the local copy and only push
@@ -353,6 +372,7 @@ export const useAuthStore = defineStore('auth', () => {
     connectProvider,
     disconnectProvider,
     updateProfile,
+    updateProfileVisibility,
     updatePlayerPrefs,
     createUserTheme,
     updateUserTheme,

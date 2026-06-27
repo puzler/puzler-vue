@@ -1,0 +1,27 @@
+#import "../../fragments/PageInfoFields.graphql"
+#import "../../fragments/PuzzleCardFields.graphql"
+
+query ProfileSolvedPuzzles($username: String!, $filter: ListingFilterInput) {
+  user(username: $username) {
+    id
+    solvedPuzzles(filter: $filter) {
+      nodes {
+        puzzle {
+          ...PuzzleCardFields
+        }
+        ownerRating {
+          stars
+          difficultyVote
+        }
+        ownerReview {
+          id
+          body
+          createdAt
+        }
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

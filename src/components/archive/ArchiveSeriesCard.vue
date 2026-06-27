@@ -2,11 +2,9 @@
 import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { SetterTierEnum } from '@/graphql/generated/types'
-import type { PublicSeriesQuery } from '@/graphql/generated/types'
+import type { SeriesCardFieldsFragment } from '@/graphql/generated/types'
 
-type ArchiveSeries = PublicSeriesQuery['publicSeries']['nodes'][number]
-
-const props = defineProps<{ series: ArchiveSeries }>()
+const props = defineProps<{ series: SeriesCardFieldsFragment }>()
 
 const TIER_LABEL: Record<string, string> = {
   [SetterTierEnum.Rising]: 'Rising setter',

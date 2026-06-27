@@ -21,6 +21,9 @@ export interface FilterableListOptions<TData, TNode> {
   // Toolbar capabilities; also gate which filter args are sent.
   supportsConstraints?: boolean
   supportsFolders?: boolean
+  // Pin the listing to a single setter (e.g. a profile page's content tabs).
+  // Always sent in the filter; harmless to omit for the global archive.
+  authorUsername?: string
   // Extra non-filter variables merged into every request (e.g. { status }).
   baseVariables?: Record<string, unknown>
 }
@@ -63,6 +66,7 @@ export function useFilterableList<TData, TNode>(opts: FilterableListOptions<TDat
       perPage: perPage.value,
       matchMode: matchMode.value,
     }
+    if (opts.authorUsername) filter.authorUsername = opts.authorUsername
     if (debouncedSearch.value.trim()) filter.search = debouncedSearch.value.trim()
     if (visibilities.value.length) filter.visibilities = visibilities.value
     if (opts.supportsFolders) filter.folderId = folderId.value

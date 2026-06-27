@@ -80,6 +80,15 @@ declare module '*/UpdateProfile.graphql' {
 }
     
 
+declare module '*/UpdateProfileVisibility.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateProfileVisibility: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateThemePreferences.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -306,6 +315,15 @@ declare module '*/MyFolders.graphql' {
 }
     
 
+declare module '*/CollectionCardFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CollectionCardFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/CollectionPublicFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -333,10 +351,37 @@ declare module '*/PageInfoFields.graphql' {
 }
     
 
+declare module '*/PublicUserFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PublicUserFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/PuzzleAdminFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const PuzzleAdminFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PuzzleCardFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PuzzleCardFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SeriesCardFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SeriesCardFields: DocumentNode;
 
   export default defaultDocument;
 }
@@ -787,6 +832,60 @@ declare module '*/Tags.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const Tags: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileActivity.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileActivity: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileFavorites.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileFavorites: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileReviewsReceived.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileReviewsReceived: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileSolvedPuzzles.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileSolvedPuzzles: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileSubscribedSeries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileSubscribedSeries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ProfileUser.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ProfileUser: DocumentNode;
 
   export default defaultDocument;
 }

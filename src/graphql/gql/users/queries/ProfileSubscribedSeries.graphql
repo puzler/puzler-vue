@@ -1,0 +1,16 @@
+#import "../../fragments/PageInfoFields.graphql"
+#import "../../fragments/SeriesCardFields.graphql"
+
+query ProfileSubscribedSeries($username: String!, $filter: ListingFilterInput) {
+  user(username: $username) {
+    id
+    subscribedSeries(filter: $filter) {
+      nodes {
+        ...SeriesCardFields
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

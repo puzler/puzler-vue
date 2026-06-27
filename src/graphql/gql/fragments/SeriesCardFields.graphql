@@ -1,0 +1,15 @@
+fragment SeriesCardFields on Series {
+  id
+  title
+  visibility
+  entryCount
+  subscriberCount
+  avgRating
+  solveCount
+  author {
+    id
+    username
+    displayName
+    setterTier
+  }
+}

@@ -1,21 +1,10 @@
 #import "../../fragments/PageInfoFields.graphql"
+#import "../../fragments/SeriesCardFields.graphql"
 
 query PublicSeries($filter: ListingFilterInput) {
   publicSeries(filter: $filter) {
     nodes {
-      id
-      title
-      visibility
-      entryCount
-      subscriberCount
-      avgRating
-      solveCount
-      author {
-        id
-        username
-        displayName
-        setterTier
-      }
+      ...SeriesCardFields
     }
     pageInfo {
       ...PageInfoFields

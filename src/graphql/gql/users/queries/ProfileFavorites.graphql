@@ -1,0 +1,16 @@
+#import "../../fragments/PageInfoFields.graphql"
+#import "../../fragments/PuzzleCardFields.graphql"
+
+query ProfileFavorites($username: String!, $filter: ListingFilterInput) {
+  user(username: $username) {
+    id
+    favoritedPuzzles(filter: $filter) {
+      nodes {
+        ...PuzzleCardFields
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

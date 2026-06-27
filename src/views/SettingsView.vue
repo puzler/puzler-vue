@@ -7,6 +7,7 @@
         </h1>
 
         <ProfileSection />
+        <PrivacySection />
         <AppearanceSection />
         <PasswordSection />
         <ConnectionsSection />
@@ -19,6 +20,7 @@
 <script setup lang="ts">
 import ContentPage from '@/components/ContentPage.vue'
 import ProfileSection from '@/components/settings/ProfileSection.vue'
+import PrivacySection from '@/components/settings/PrivacySection.vue'
 import AppearanceSection from '@/components/settings/AppearanceSection.vue'
 import PasswordSection from '@/components/settings/PasswordSection.vue'
 import ConnectionsSection from '@/components/settings/ConnectionsSection.vue'

@@ -1,0 +1,15 @@
+fragment CollectionCardFields on Collection {
+  id
+  title
+  visibility
+  mode
+  puzzleCount
+  avgRating
+  solveCount
+  author {
+    id
+    username
+    displayName
+    setterTier
+  }
+}

@@ -9,6 +9,13 @@ fragment UserFields on User {
   bio
   role
   passwordSet
+  profileVisibility {
+    solveHistory
+    stats
+    favorites
+    subscriptions
+    activity
+  }
   playerSettings
   colorPalette
   activeThemeId

@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UpdateProfileVisibility($attrs: ProfileVisibilityInput!) {
+  updateProfileVisibility(input: { attrs: $attrs }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

@@ -1,18 +1,11 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-5">
-      <img
-        v-if="previewUrl || auth.user?.avatarUrl"
-        :src="previewUrl ?? auth.user?.avatarUrl ?? ''"
-        alt="Avatar"
-        class="w-16 h-16 rounded-full object-cover border border-line bg-surface"
-      >
-      <div
-        v-else
-        class="w-16 h-16 rounded-full bg-surface border border-line flex items-center justify-center text-xl font-display font-semibold text-soft"
-      >
-        {{ auth.user?.displayName?.charAt(0).toUpperCase() }}
-      </div>
+      <UserAvatar
+        :avatar-url="previewUrl ?? auth.user?.avatarUrl"
+        :display-name="auth.user?.displayName ?? ''"
+        :size="64"
+      />
       <div class="flex gap-2">
         <label
           class="px-3 py-1.5 rounded-lg text-sm border border-line bg-surface hover:bg-line/40 cursor-pointer transition-colors"
@@ -85,6 +78,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/utils/api'
+import UserAvatar from '@/components/UserAvatar.vue'
 import {
   readImageDimensions,
   needsDownscale,

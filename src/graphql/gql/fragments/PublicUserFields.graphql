@@ -1,0 +1,29 @@
+fragment PublicUserFields on User {
+  id
+  username
+  displayName
+  avatarUrl
+  bio
+  role
+  createdAt
+  setterTier
+  setterScore
+  puzzleCount
+  solveCount
+  profileVisibility {
+    solveHistory
+    stats
+    favorites
+    subscriptions
+    activity
+  }
+  profileStats {
+    collectionCount
+    seriesCount
+    totalSolvesReceived
+    totalFavoritesReceived
+    avgRatingReceived
+    reviewsReceivedCount
+    joinedAt
+  }
+}

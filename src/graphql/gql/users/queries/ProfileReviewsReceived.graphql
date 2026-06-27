@@ -1,0 +1,27 @@
+#import "../../fragments/PageInfoFields.graphql"
+
+query ProfileReviewsReceived($username: String!, $page: Int, $perPage: Int) {
+  user(username: $username) {
+    id
+    reviewsReceived(page: $page, perPage: $perPage) {
+      nodes {
+        id
+        body
+        createdAt
+        user {
+          id
+          username
+          displayName
+          avatarUrl
+        }
+        puzzle {
+          id
+          title
+        }
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

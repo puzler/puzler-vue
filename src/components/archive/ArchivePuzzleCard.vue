@@ -3,11 +3,9 @@ import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import DifficultyPips from '@/components/DifficultyPips.vue'
 import { SetterTierEnum } from '@/graphql/generated/types'
-import type { PuzzlesQuery } from '@/graphql/generated/types'
+import type { PuzzleCardFieldsFragment } from '@/graphql/generated/types'
 
-type ArchivePuzzle = PuzzlesQuery['puzzles']['nodes'][number]
-
-const props = defineProps<{ puzzle: ArchivePuzzle }>()
+const props = defineProps<{ puzzle: PuzzleCardFieldsFragment }>()
 
 const TIER_LABEL: Record<string, string> = {
   [SetterTierEnum.Rising]: 'Rising setter',

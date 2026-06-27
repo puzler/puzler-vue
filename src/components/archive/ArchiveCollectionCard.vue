@@ -2,11 +2,9 @@
 import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { SetterTierEnum, CollectionModeEnum } from '@/graphql/generated/types'
-import type { CollectionsQuery } from '@/graphql/generated/types'
+import type { CollectionCardFieldsFragment } from '@/graphql/generated/types'
 
-type ArchiveCollection = CollectionsQuery['collections']['nodes'][number]
-
-const props = defineProps<{ collection: ArchiveCollection }>()
+const props = defineProps<{ collection: CollectionCardFieldsFragment }>()
 
 const TIER_LABEL: Record<string, string> = {
   [SetterTierEnum.Rising]: 'Rising setter',

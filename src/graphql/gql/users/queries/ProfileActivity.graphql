@@ -1,0 +1,18 @@
+query ProfileActivity($username: String!, $limit: Int) {
+  user(username: $username) {
+    id
+    activity(limit: $limit) {
+      kind
+      occurredAt
+      puzzle {
+        id
+        title
+      }
+      comment {
+        id
+        body
+        createdAt
+      }
+    }
+  }
+}

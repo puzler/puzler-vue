@@ -1,0 +1,20 @@
+fragment PuzzleCardFields on Puzzle {
+  id
+  title
+  constraintTypes
+  avgRating
+  effectiveDifficulty
+  solveCount
+  featured
+  grid {
+    rows
+    cols
+  }
+  authorName
+  author {
+    id
+    username
+    displayName
+    setterTier
+  }
+}

@@ -3,6 +3,8 @@ fragment PuzzleAdminFields on Puzzle {
   status
   visibility
   shareToken
+  pageDescriptionHtml
+  commentsRequireSolveOverride
   publishedVersion {
     id
   }

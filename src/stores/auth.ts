@@ -18,6 +18,7 @@ import UpdateUserThemeDocument from '@/graphql/gql/auth/mutations/UpdateUserThem
 import DeleteUserThemeDocument from '@/graphql/gql/auth/mutations/DeleteUserTheme.graphql'
 import UpdateThemePreferencesDocument from '@/graphql/gql/auth/mutations/UpdateThemePreferences.graphql'
 import UpdateProfileVisibilityDocument from '@/graphql/gql/auth/mutations/UpdateProfileVisibility.graphql'
+import UpdatePuzzlePreferencesDocument from '@/graphql/gql/auth/mutations/UpdatePuzzlePreferences.graphql'
 import type {
   MeQuery,
   UserFieldsFragment,
@@ -50,6 +51,9 @@ import type {
   UpdateProfileVisibilityMutation,
   UpdateProfileVisibilityMutationVariables,
   ProfileVisibilityInput,
+  UpdatePuzzlePreferencesMutation,
+  UpdatePuzzlePreferencesMutationVariables,
+  PuzzlePreferencesInput,
   UserThemeFieldsFragment,
   UserThemeAttrsInput,
 } from '@/graphql/generated/types'
@@ -237,6 +241,20 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
+  // Persist the per-account puzzle defaults (SudokuPad solution export, comment
+  // gating). Refreshed user is the single source of truth.
+  async function updatePuzzlePreferences(attrs: PuzzlePreferencesInput) {
+    const { data } = await apolloClient.mutate<UpdatePuzzlePreferencesMutation, UpdatePuzzlePreferencesMutationVariables>({
+      mutation: UpdatePuzzlePreferencesDocument,
+      variables: { attrs },
+    })
+    const result = data?.updatePuzzlePreferences
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
   // Persist the player/solver preferences (settings and/or color palette) for
   // a logged-in user. Fire-and-forget from the caller's perspective: the
   // player-settings and color-palette stores own the local copy and only push
@@ -391,6 +409,7 @@ export const useAuthStore = defineStore('auth', () => {
     disconnectProvider,
     updateProfile,
     updateProfileVisibility,
+    updatePuzzlePreferences,
     updatePlayerPrefs,
     updateOnboarding,
     createUserTheme,

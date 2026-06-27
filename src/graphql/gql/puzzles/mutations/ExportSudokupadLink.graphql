@@ -1,0 +1,7 @@
+mutation ExportSudokupadLink($definition: JSON!, $solution: JSON, $includeSolution: Boolean) {
+  exportSudokupadLink(input: { definition: $definition, solution: $solution, includeSolution: $includeSolution }) {
+    url
+    warnings
+    errors
+  }
+}

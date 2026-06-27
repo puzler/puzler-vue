@@ -1,0 +1,10 @@
+#import "../../fragments/CommentFields.graphql"
+
+mutation CreateComment($puzzleId: ID!, $body: String!, $parentId: ID) {
+  createComment(input: { puzzleId: $puzzleId, body: $body, parentId: $parentId }) {
+    comment {
+      ...CommentFields
+    }
+    errors
+  }
+}

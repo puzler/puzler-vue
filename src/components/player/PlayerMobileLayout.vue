@@ -3,6 +3,8 @@ import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, m
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
+import BackToPuzzleLink from '@/components/player/BackToPuzzleLink.vue'
+import SolverTimerPill from '@/components/player/SolverTimerPill.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
@@ -41,6 +43,10 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
 <template>
   <div class="flex-1 flex flex-col overflow-hidden">
     <header class="px-3 py-2 border-b border-line bg-paper shrink-0 flex items-center gap-2">
+      <BackToPuzzleLink
+        icon-only
+        class="shrink-0 -ml-1 w-8 h-8 flex items-center justify-center rounded-lg text-soft hover:text-action hover:bg-action-tint transition-colors"
+      />
       <div class="min-w-0 flex flex-col">
         <h1 class="font-display text-base font-semibold text-ink-text leading-tight truncate">
           {{ title || 'Puzzle' }}
@@ -56,24 +62,13 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
       <LiveSyncBadge />
       <PlayersPanel />
       <ConnectionStatus />
-      <div
+      <SolverTimerPill
         v-if="showTimer"
-        data-tour="player-timer"
-        class="ml-auto shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
-      >
-        <span
-          class="font-mono text-sm tabular-nums text-ink-text"
-          title="Elapsed time"
-        >{{ elapsedLabel }}</span>
-        <button
-          class="w-5 h-5 flex items-center justify-center rounded-full text-[11px] text-soft hover:text-action transition-colors"
-          :title="paused ? 'Resume' : 'Pause'"
-          :aria-label="paused ? 'Resume timer' : 'Pause timer'"
-          @click="$emit('toggle-pause')"
-        >
-          {{ paused ? '▶' : '⏸' }}
-        </button>
-      </div>
+        class="ml-auto"
+        :elapsed-label="elapsedLabel"
+        :paused="paused"
+        @toggle-pause="$emit('toggle-pause')"
+      />
     </header>
 
     <div

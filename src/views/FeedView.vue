@@ -23,7 +23,7 @@ function itemLink(item: FeedItem) {
     return { name: 'collection', params: { id: item.collection!.id }, query: token ? { t: token } : {} }
   }
   const token = item.puzzle?.shareToken
-  return { name: 'player', params: { id: item.puzzle!.id }, query: token ? { t: token } : {} }
+  return { name: 'puzzle', params: { id: item.puzzle!.id }, query: token ? { t: token } : {} }
 }
 
 function title(item: FeedItem): string {

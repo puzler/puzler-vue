@@ -16,7 +16,7 @@ const tierBadge = TIER_LABEL[props.puzzle.author.setterTier] ?? null
 
 <template>
   <RouterLink
-    :to="{ name: 'player', params: { id: props.puzzle.id } }"
+    :to="{ name: 'puzzle', params: { id: props.puzzle.id } }"
     class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
   >
     <div class="flex items-baseline justify-between gap-2">

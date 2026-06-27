@@ -39,7 +39,7 @@ function isUnlocked(index: number): boolean {
     >
       <RouterLink
         v-if="isUnlocked(index)"
-        :to="{ name: 'player', params: { id: puzzle.id }, query: puzzleLink(puzzle) }"
+        :to="{ name: 'puzzle', params: { id: puzzle.id }, query: puzzleLink(puzzle) }"
         class="flex items-center gap-3 p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
       >
         <span

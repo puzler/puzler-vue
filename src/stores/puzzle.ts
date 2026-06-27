@@ -10,6 +10,9 @@ import UpdatePuzzleDocument from '@/graphql/gql/puzzles/mutations/UpdatePuzzle.g
 import DeletePuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/DeletePuzzleVersion.graphql'
 import UpdatePuzzleVersionLabelDocument from '@/graphql/gql/puzzles/mutations/UpdatePuzzleVersionLabel.graphql'
 import PublishPuzzleVersionDocument from '@/graphql/gql/puzzles/mutations/PublishPuzzleVersion.graphql'
+import ConfigurePuzzlePageDocument from '@/graphql/gql/puzzles/mutations/ConfigurePuzzlePage.graphql'
+import UpdatePageDescriptionDocument from '@/graphql/gql/puzzles/mutations/UpdatePageDescription.graphql'
+import UploadDescriptionImageDocument from '@/graphql/gql/puzzles/mutations/UploadDescriptionImage.graphql'
 import UnpublishPuzzleDocument from '@/graphql/gql/puzzles/mutations/UnpublishPuzzle.graphql'
 import SetPuzzleVisibilityDocument from '@/graphql/gql/puzzles/mutations/SetPuzzleVisibility.graphql'
 import GrantPuzzleAccessDocument from '@/graphql/gql/puzzles/mutations/GrantPuzzleAccess.graphql'
@@ -31,6 +34,12 @@ import type {
   UpdatePuzzleVersionLabelMutationVariables,
   PublishPuzzleVersionMutation,
   PublishPuzzleVersionMutationVariables,
+  ConfigurePuzzlePageMutation,
+  ConfigurePuzzlePageMutationVariables,
+  UpdatePageDescriptionMutation,
+  UpdatePageDescriptionMutationVariables,
+  UploadDescriptionImageMutation,
+  UploadDescriptionImageMutationVariables,
   UnpublishPuzzleMutation,
   UnpublishPuzzleMutationVariables,
   SetPuzzleVisibilityMutation,
@@ -59,6 +68,9 @@ export const usePuzzleStore = defineStore('puzzle', () => {
   const publishedVersionId = ref<string | null>(null)
   const status = ref<PuzzleStatusEnum>(PuzzleStatusEnum.Draft)
   const visibility = ref<PuzzleVisibilityEnum>(PuzzleVisibilityEnum.Private)
+  const pageDescriptionHtml = ref<string | null>(null)
+  // null = inherit the author's account default; true/false = per-puzzle override.
+  const commentsRequireSolveOverride = ref<boolean | null>(null)
   const grantedUsers = ref<GrantedUser[]>([])
   const versions = ref<VersionSummaryFragment[]>([])
   const saveStatus = ref<SaveStatus>('idle')
@@ -71,6 +83,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     publishedVersionId.value = null
     status.value = PuzzleStatusEnum.Draft
     visibility.value = PuzzleVisibilityEnum.Private
+    pageDescriptionHtml.value = null
+    commentsRequireSolveOverride.value = null
     grantedUsers.value = []
     versions.value = []
     saveStatus.value = 'idle'
@@ -85,6 +99,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     status.value = puzzle.status
     visibility.value = puzzle.visibility
     shareToken.value = puzzle.shareToken ?? null
+    pageDescriptionHtml.value = puzzle.pageDescriptionHtml ?? null
+    commentsRequireSolveOverride.value = puzzle.commentsRequireSolveOverride ?? null
     publishedVersionId.value = puzzle.publishedVersion?.id ?? null
     grantedUsers.value = [...puzzle.grantedUsers]
     versions.value = versions.value.map((v) => ({ ...v, isPublished: v.id === publishedVersionId.value }))
@@ -248,6 +264,43 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     applyAdminFields(result.puzzle)
   }
 
+  // Save the sanitized rich page description (server sanitizes authoritatively).
+  async function updatePageDescription(html: string) {
+    const puzzleId = await ensurePuzzle()
+    const { data } = await apolloClient.mutate<UpdatePageDescriptionMutation, UpdatePageDescriptionMutationVariables>({
+      mutation: UpdatePageDescriptionDocument,
+      variables: { puzzleId, html },
+    })
+    const result = data?.updatePageDescription
+    if (!result?.puzzle) throw new Error(result?.errors?.[0] ?? 'Could not save description')
+    applyAdminFields(result.puzzle)
+  }
+
+  // Upload an image for the rich description; returns the hosted URL to insert.
+  async function uploadDescriptionImage(file: File): Promise<string> {
+    const puzzleId = await ensurePuzzle()
+    const { data } = await apolloClient.mutate<UploadDescriptionImageMutation, UploadDescriptionImageMutationVariables>({
+      mutation: UploadDescriptionImageDocument,
+      variables: { puzzleId, file },
+    })
+    const result = data?.uploadDescriptionImage
+    if (!result?.url) throw new Error(result?.errors?.[0] ?? 'Could not upload image')
+    return result.url
+  }
+
+  // Persist the per-puzzle comment-gate override. (SudokuPad links are now built
+  // server-side on publish, so nothing puzzle-specific is sent from here.)
+  async function configurePuzzlePage(commentsRequireSolveOverride: boolean | null) {
+    const puzzleId = await ensurePuzzle()
+    const { data } = await apolloClient.mutate<ConfigurePuzzlePageMutation, ConfigurePuzzlePageMutationVariables>({
+      mutation: ConfigurePuzzlePageDocument,
+      variables: { puzzleId, commentsRequireSolveOverride },
+    })
+    const result = data?.configurePuzzlePage
+    if (!result?.puzzle) throw new Error(result?.errors?.[0] ?? 'Could not save page settings')
+    applyAdminFields(result.puzzle)
+  }
+
   async function setVisibility(mode: PuzzleVisibilityEnum) {
     if (!serverPuzzleId.value) throw new Error('Save the puzzle first')
     const { data } = await apolloClient.mutate<SetPuzzleVisibilityMutation, SetPuzzleVisibilityMutationVariables>({
@@ -288,6 +341,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     publishedVersionId,
     status,
     visibility,
+    pageDescriptionHtml,
+    commentsRequireSolveOverride,
     grantedUsers,
     versions,
     saveStatus,
@@ -299,6 +354,9 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     renameVersion,
     deleteVersion,
     publishVersion,
+    updatePageDescription,
+    uploadDescriptionImage,
+    configurePuzzlePage,
     unpublish,
     setVisibility,
     grantAccess,

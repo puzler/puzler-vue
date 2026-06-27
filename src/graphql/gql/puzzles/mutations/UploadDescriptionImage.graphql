@@ -1,0 +1,6 @@
+mutation UploadDescriptionImage($puzzleId: ID!, $file: Upload!) {
+  uploadDescriptionImage(input: { puzzleId: $puzzleId, file: $file }) {
+    url
+    errors
+  }
+}

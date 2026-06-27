@@ -1,0 +1,12 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation ConfigurePuzzlePage($puzzleId: ID!, $commentsRequireSolveOverride: Boolean) {
+  configurePuzzlePage(
+    input: { puzzleId: $puzzleId, commentsRequireSolveOverride: $commentsRequireSolveOverride }
+  ) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

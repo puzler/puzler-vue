@@ -59,7 +59,14 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      // Canonical puzzle URL: the public description page every puzzle link
+      // points to. ?t=<share_token> still grants access to token-gated puzzles.
       path: '/puzzles/:id',
+      name: 'puzzle',
+      component: () => import('@/views/DescriptionView.vue'),
+    },
+    {
+      path: '/puzzles/:id/play',
       name: 'player',
       component: () => import('@/views/PlayerView.vue'),
       // The solver is a focus screen — drop the global footer so the grid owns

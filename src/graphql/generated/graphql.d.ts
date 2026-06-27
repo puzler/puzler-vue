@@ -98,6 +98,15 @@ declare module '*/UpdateProfileVisibility.graphql' {
 }
     
 
+declare module '*/UpdatePuzzlePreferences.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePuzzlePreferences: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateThemePreferences.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -351,6 +360,15 @@ declare module '*/CollectionSummary.graphql' {
 }
     
 
+declare module '*/CommentFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CommentFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/PageInfoFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -382,6 +400,15 @@ declare module '*/PuzzleCardFields.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const PuzzleCardFields: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PuzzleDescriptionFields.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PuzzleDescriptionFields: DocumentNode;
 
   export default defaultDocument;
 }
@@ -459,6 +486,15 @@ declare module '*/CheckSolution.graphql' {
 }
     
 
+declare module '*/ConfigurePuzzlePage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ConfigurePuzzlePage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/CreatePuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -481,6 +517,15 @@ declare module '*/DeletePuzzleVersion.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const DeletePuzzleVersion: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ExportSudokupadLink.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ExportSudokupadLink: DocumentNode;
 
   export default defaultDocument;
 }
@@ -603,6 +648,15 @@ declare module '*/UnpublishPuzzle.graphql' {
 }
     
 
+declare module '*/UpdatePageDescription.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePageDescription: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdatePuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -621,6 +675,15 @@ declare module '*/UpdatePuzzleVersionLabel.graphql' {
 }
     
 
+declare module '*/UploadDescriptionImage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UploadDescriptionImage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/MyPuzzles.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -634,6 +697,24 @@ declare module '*/PuzzleByTokenForPlay.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const PuzzleByTokenForPlay: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PuzzleDescription.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PuzzleDescription: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PuzzleDescriptionByToken.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PuzzleDescriptionByToken: DocumentNode;
 
   export default defaultDocument;
 }
@@ -823,6 +904,15 @@ declare module '*/SeriesPublic.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const SeriesPublic: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CreateComment.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CreateComment: DocumentNode;
 
   export default defaultDocument;
 }

@@ -37,7 +37,7 @@ function entryLink(entry: Entry) {
     return { name: 'collection', params: { id: entry.collection!.id }, query: token ? { t: token } : {} }
   }
   const token = entry.puzzle?.shareToken
-  return { name: 'player', params: { id: entry.puzzle!.id }, query: token ? { t: token } : {} }
+  return { name: 'puzzle', params: { id: entry.puzzle!.id }, query: token ? { t: token } : {} }
 }
 
 async function load() {

@@ -1,0 +1,48 @@
+#import "./CommentFields.graphql"
+
+fragment PuzzleDescriptionFields on Puzzle {
+  id
+  title
+  authorName
+  description
+  pageDescriptionHtml
+  status
+  visibility
+  shareToken
+  publishedAt
+  effectiveDifficulty
+  avgRating
+  solveCount
+  favoriteCount
+  constraintTypes
+  grid {
+    rows
+    cols
+  }
+  author {
+    id
+    username
+    displayName
+    avatarUrl
+  }
+  publishedVersion {
+    id
+    definition
+    solutionHash
+  }
+  sudokupadUrl
+  sudokupadIncludesSolution
+  commentsRequireSolveEffective
+  viewerHasSolved
+  isFavorited
+  myRating {
+    stars
+    difficultyVote
+  }
+  comments {
+    ...CommentFields
+    replies {
+      ...CommentFields
+    }
+  }
+}

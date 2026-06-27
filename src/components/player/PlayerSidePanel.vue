@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { mdiRestart, mdiBookOpenVariant, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
+import BackToPuzzleLink from '@/components/player/BackToPuzzleLink.vue'
+import SolverTimerPill from '@/components/player/SolverTimerPill.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import PlayerRulesPanel from '@/components/player/PlayerRulesPanel.vue'
@@ -38,28 +40,17 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
     <!-- Title, author and rules sit at the top; the rules scroll within a card. -->
     <div class="flex-1 min-h-0 p-3 flex flex-col gap-3">
       <div class="shrink-0 flex flex-col gap-1.5 px-1">
+        <BackToPuzzleLink class="self-start text-xs text-soft hover:text-action transition-colors" />
         <div class="flex items-start gap-2">
           <h1 class="flex-1 min-w-0 font-display text-lg font-semibold text-ink-text leading-snug">
             {{ title || 'Puzzle' }}
           </h1>
-          <div
+          <SolverTimerPill
             v-if="showTimer"
-            data-tour="player-timer"
-            class="shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
-          >
-            <span
-              class="font-mono text-sm tabular-nums text-ink-text"
-              title="Elapsed time"
-            >{{ elapsedLabel }}</span>
-            <button
-              class="w-5 h-5 flex items-center justify-center rounded-full text-[11px] text-soft hover:text-action transition-colors"
-              :title="paused ? 'Resume' : 'Pause'"
-              :aria-label="paused ? 'Resume timer' : 'Pause timer'"
-              @click="$emit('toggle-pause')"
-            >
-              {{ paused ? '▶' : '⏸' }}
-            </button>
-          </div>
+            :elapsed-label="elapsedLabel"
+            :paused="paused"
+            @toggle-pause="$emit('toggle-pause')"
+          />
         </div>
         <p
           v-if="author"

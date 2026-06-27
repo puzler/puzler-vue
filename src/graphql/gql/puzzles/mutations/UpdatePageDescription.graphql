@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation UpdatePageDescription($puzzleId: ID!, $html: String!) {
+  updatePageDescription(input: { puzzleId: $puzzleId, html: $html }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

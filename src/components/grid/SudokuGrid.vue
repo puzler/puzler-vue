@@ -24,6 +24,9 @@ defineProps<{
   givenDigits: Record<string, number>
   selection: Set<string>
   cellStates?: Record<string, CellState>
+  // Set false for a static render (e.g. a description-page thumbnail): drops the
+  // input layer so the grid is purely visual. Defaults to interactive.
+  interactive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -80,6 +83,7 @@ const viewBox = computed(() => {
     />
     <OuterCluesLayer />
     <InteractionLayer
+      v-if="interactive !== false"
       :svg-ref="svgEl"
       :selection="selection"
       @update:selection="emit('update:selection', $event)"

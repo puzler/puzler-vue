@@ -1,0 +1,7 @@
+#import "../../fragments/PuzzleDescriptionFields.graphql"
+
+query PuzzleDescriptionByToken($token: String!) {
+  puzzleByToken(token: $token) {
+    ...PuzzleDescriptionFields
+  }
+}

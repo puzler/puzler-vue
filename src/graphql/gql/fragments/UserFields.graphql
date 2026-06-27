@@ -16,6 +16,10 @@ fragment UserFields on User {
     subscriptions
     activity
   }
+  puzzlePreferences {
+    includeSolutionInSudokupadExport
+    commentsRequireSolveDefault
+  }
   playerSettings
   colorPalette
   onboardingSeen

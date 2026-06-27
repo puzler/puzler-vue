@@ -1,0 +1,13 @@
+fragment CommentFields on Comment {
+  id
+  body
+  createdAt
+  commenterSolved
+  isAuthor
+  user {
+    id
+    username
+    displayName
+    avatarUrl
+  }
+}

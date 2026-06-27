@@ -8,6 +8,7 @@
 
         <ProfileSection data-tour="settings-profile" />
         <PrivacySection data-tour="settings-privacy" />
+        <PuzzleDefaultsSection data-tour="settings-puzzle-defaults" />
         <AppearanceSection data-tour="settings-appearance" />
         <PasswordSection data-tour="settings-password" />
         <ConnectionsSection data-tour="settings-connections" />
@@ -22,6 +23,7 @@
 import ContentPage from '@/components/ContentPage.vue'
 import ProfileSection from '@/components/settings/ProfileSection.vue'
 import PrivacySection from '@/components/settings/PrivacySection.vue'
+import PuzzleDefaultsSection from '@/components/settings/PuzzleDefaultsSection.vue'
 import AppearanceSection from '@/components/settings/AppearanceSection.vue'
 import PasswordSection from '@/components/settings/PasswordSection.vue'
 import ConnectionsSection from '@/components/settings/ConnectionsSection.vue'

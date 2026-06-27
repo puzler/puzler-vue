@@ -80,7 +80,7 @@ function formatDate(iso: string) {
           {{ review.body }}
         </p>
         <RouterLink
-          :to="{ name: 'player', params: { id: review.puzzle.id } }"
+          :to="{ name: 'puzzle', params: { id: review.puzzle.id } }"
           class="mt-2 inline-block text-xs text-soft hover:text-action transition-colors"
         >
           on {{ review.puzzle.title }}

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
 import AccessManager from './AccessManager.vue'
+import PageDescriptionEditor from './PageDescriptionEditor.vue'
+import CommentPolicyField from './CommentPolicyField.vue'
 
 const emit = defineEmits<{ close: [] }>()
 const puzzle = usePuzzleStore()
@@ -19,6 +21,16 @@ const selectedMode = ref<PuzzleVisibilityEnum>(SELECTABLE.includes(puzzle.visibi
 const busy = ref(false)
 const error = ref<string | null>(null)
 const copied = ref(false)
+
+// Per-puzzle comment-gate override as a 3-state: inherit the account default,
+// require a confirmed solve, or allow everyone.
+type CommentGate = 'inherit' | 'required' | 'open'
+const commentGate = ref<CommentGate>(
+  puzzle.commentsRequireSolveOverride == null ? 'inherit' : puzzle.commentsRequireSolveOverride ? 'required' : 'open',
+)
+function commentGateValue(): boolean | null {
+  return commentGate.value === 'inherit' ? null : commentGate.value === 'required'
+}
 
 const isPublished = computed(() => puzzle.status === PuzzleStatusEnum.Published)
 const versionToPublish = computed(() => puzzle.currentVersionId ?? puzzle.versions.at(-1)?.id ?? null)
@@ -45,7 +57,12 @@ function publish() {
     error.value = 'Save a version before publishing'
     return
   }
-  run(() => puzzle.publishVersion(versionToPublish.value!, selectedMode.value))
+  run(async () => {
+    await puzzle.publishVersion(versionToPublish.value!, selectedMode.value)
+    // Cache the publish-page settings (comment gate + SudokuPad links) after the
+    // version is live.
+    await puzzle.configurePuzzlePage(commentGateValue())
+  })
 }
 
 async function copyLink() {
@@ -98,6 +115,16 @@ async function copyLink() {
         </div>
 
         <AccessManager v-if="selectedMode === PuzzleVisibilityEnum.Private" />
+
+        <div class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-widest text-soft">Page description</span>
+          <p class="text-xs text-faint">
+            Shown on the puzzle's public page. Supports headings, styles, links, and images.
+          </p>
+          <PageDescriptionEditor />
+        </div>
+
+        <CommentPolicyField v-model="commentGate" />
 
         <div
           v-if="isPublished && shareUrl"

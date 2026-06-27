@@ -1,0 +1,7 @@
+#import "../../fragments/PuzzleDescriptionFields.graphql"
+
+query PuzzleDescription($id: ID!) {
+  puzzle(id: $id) {
+    ...PuzzleDescriptionFields
+  }
+}

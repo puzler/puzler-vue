@@ -11,7 +11,7 @@ export type ChangePasswordMutationVariables = Exact<{
 }>;
 
 
-export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type ChangePasswordMutation = { changePassword: { token: string | null, errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type CreateUserThemeMutationVariables = Exact<{
   uid: string;
@@ -41,7 +41,7 @@ export type DisconnectOauthProviderMutationVariables = Exact<{
 }>;
 
 
-export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type DisconnectOauthProviderMutation = { disconnectOauthProvider: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type PrepareOauthConnectMutationVariables = Exact<{
   provider: string;
@@ -53,7 +53,7 @@ export type PrepareOauthConnectMutation = { prepareOauthConnect: { url: string |
 export type RemoveAvatarMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type RemoveAvatarMutation = { removeAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateOnboardingMutationVariables = Exact<{
   onboardingSeen?: unknown;
@@ -61,7 +61,7 @@ export type UpdateOnboardingMutationVariables = Exact<{
 }>;
 
 
-export type UpdateOnboardingMutation = { updateOnboarding: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateOnboardingMutation = { updateOnboarding: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdatePlayerPrefsMutationVariables = Exact<{
   playerSettings?: unknown;
@@ -69,7 +69,7 @@ export type UpdatePlayerPrefsMutationVariables = Exact<{
 }>;
 
 
-export type UpdatePlayerPrefsMutation = { updatePlayerPrefs: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdatePlayerPrefsMutation = { updatePlayerPrefs: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateProfileMutationVariables = Exact<{
   username?: string | null | undefined;
@@ -78,14 +78,21 @@ export type UpdateProfileMutationVariables = Exact<{
 }>;
 
 
-export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateProfileMutation = { updateProfile: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateProfileVisibilityMutationVariables = Exact<{
   attrs: Types.ProfileVisibilityInput;
 }>;
 
 
-export type UpdateProfileVisibilityMutation = { updateProfileVisibility: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateProfileVisibilityMutation = { updateProfileVisibility: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+
+export type UpdatePuzzlePreferencesMutationVariables = Exact<{
+  attrs: Types.PuzzlePreferencesInput;
+}>;
+
+
+export type UpdatePuzzlePreferencesMutation = { updatePuzzlePreferences: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateThemePreferencesMutationVariables = Exact<{
   activeThemeId?: string | null | undefined;
@@ -93,7 +100,7 @@ export type UpdateThemePreferencesMutationVariables = Exact<{
 }>;
 
 
-export type UpdateThemePreferencesMutation = { updateThemePreferences: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UpdateThemePreferencesMutation = { updateThemePreferences: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type UpdateUserThemeMutationVariables = Exact<{
   uid: string;
@@ -108,12 +115,12 @@ export type UploadAvatarMutationVariables = Exact<{
 }>;
 
 
-export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
+export type UploadAvatarMutation = { uploadAvatar: { errors: Array<string>, user: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null } | null };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { me: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
+export type MeQuery = { me: { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null } | null };
 
 export type AddPuzzleToCollectionMutationVariables = Exact<{
   collectionId: string | number;
@@ -281,13 +288,17 @@ export type CollectionPublicFieldsFragment = { id: string, title: string, descri
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null };
 
+export type CommentFieldsFragment = { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } };
+
 export type PageInfoFieldsFragment = { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean };
 
 export type PublicUserFieldsFragment = { id: string, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, createdAt: string, setterTier: Types.SetterTierEnum, setterScore: number, puzzleCount: number, publicCollectionCount: number, publicSeriesCount: number, solveCount: number, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, profileStats: { collectionCount: number, seriesCount: number, totalSolvesReceived: number, totalFavoritesReceived: number, avgRatingReceived: number | null, reviewsReceivedCount: number, joinedAt: string } | null };
 
-export type PuzzleAdminFieldsFragment = { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> };
+export type PuzzleAdminFieldsFragment = { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> };
 
 export type PuzzleCardFieldsFragment = { id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, effectiveDifficulty: number | null, solveCount: number, featured: boolean, authorName: string | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
+
+export type PuzzleDescriptionFieldsFragment = { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> };
 
 export type SeriesCardFieldsFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
@@ -295,7 +306,7 @@ export type SeriesEntryFieldsFragment = { id: string, position: number, entryTyp
 
 export type SeriesSummaryFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null };
 
-export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
+export type UserFieldsFragment = { id: string, email: string | null, username: string, displayName: string, avatarUrl: string | null, bio: string | null, role: Types.UserRoleEnum, passwordSet: boolean | null, playerSettings: unknown, colorPalette: unknown, onboardingSeen: unknown, onboardingDisabled: boolean | null, activeThemeId: string | null, enableCustomStyles: boolean | null, profileVisibility: { solveHistory: Types.SolveHistoryVisibilityEnum, stats: boolean, favorites: boolean, subscriptions: boolean, activity: boolean }, puzzlePreferences: { includeSolutionInSudokupadExport: boolean, commentsRequireSolveDefault: boolean } | null, userThemes: Array<{ id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number }> | null, oauthConnections: Array<{ provider: string, createdAt: string }> | null };
 
 export type UserThemeFieldsFragment = { id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number };
 
@@ -311,6 +322,14 @@ export type CheckSolutionMutationVariables = Exact<{
 
 
 export type CheckSolutionMutation = { checkSolution: { result: Types.CheckResultEnum } | null };
+
+export type ConfigurePuzzlePageMutationVariables = Exact<{
+  puzzleId: string | number;
+  commentsRequireSolveOverride?: boolean | null | undefined;
+}>;
+
+
+export type ConfigurePuzzlePageMutation = { configurePuzzlePage: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type CreatePuzzleMutationVariables = Exact<{
   title: string;
@@ -335,6 +354,15 @@ export type DeletePuzzleVersionMutationVariables = Exact<{
 
 export type DeletePuzzleVersionMutation = { deletePuzzleVersion: { success: boolean, errors: Array<string> } | null };
 
+export type ExportSudokupadLinkMutationVariables = Exact<{
+  definition: unknown;
+  solution?: unknown;
+  includeSolution?: boolean | null | undefined;
+}>;
+
+
+export type ExportSudokupadLinkMutation = { exportSudokupadLink: { url: string | null, warnings: Array<string>, errors: Array<string> } | null };
+
 export type GeneratePlayShareTokenMutationVariables = Exact<{
   puzzlePlayId?: string | number | null | undefined;
   puzzleId?: string | number | null | undefined;
@@ -351,7 +379,7 @@ export type GrantPuzzleAccessMutationVariables = Exact<{
 }>;
 
 
-export type GrantPuzzleAccessMutation = { grantPuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+export type GrantPuzzleAccessMutation = { grantPuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type JoinPlaySessionMutationVariables = Exact<{
   token: string;
@@ -376,7 +404,7 @@ export type PublishPuzzleVersionMutationVariables = Exact<{
 }>;
 
 
-export type PublishPuzzleVersionMutation = { publishPuzzleVersion: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+export type PublishPuzzleVersionMutation = { publishPuzzleVersion: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type RevealSolveMessageMutationVariables = Exact<{
   puzzleId: string | number;
@@ -400,7 +428,7 @@ export type RevokePuzzleAccessMutationVariables = Exact<{
 }>;
 
 
-export type RevokePuzzleAccessMutation = { revokePuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+export type RevokePuzzleAccessMutation = { revokePuzzleAccess: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type SaveProgressMutationVariables = Exact<{
   puzzlePlayId: string | number;
@@ -429,7 +457,7 @@ export type SetPuzzleVisibilityMutationVariables = Exact<{
 }>;
 
 
-export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type StartPlayMutationVariables = Exact<{
   puzzleId: string | number;
@@ -443,7 +471,15 @@ export type UnpublishPuzzleMutationVariables = Exact<{
 }>;
 
 
-export type UnpublishPuzzleMutation = { unpublishPuzzle: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+export type UnpublishPuzzleMutation = { unpublishPuzzle: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
+
+export type UpdatePageDescriptionMutationVariables = Exact<{
+  puzzleId: string | number;
+  html: string;
+}>;
+
+
+export type UpdatePageDescriptionMutation = { updatePageDescription: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
 
 export type UpdatePuzzleMutationVariables = Exact<{
   id: string | number;
@@ -461,6 +497,14 @@ export type UpdatePuzzleVersionLabelMutationVariables = Exact<{
 
 export type UpdatePuzzleVersionLabelMutation = { updatePuzzleVersionLabel: { errors: Array<string>, version: { id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string } | null } | null };
 
+export type UploadDescriptionImageMutationVariables = Exact<{
+  puzzleId: string | number;
+  file: File;
+}>;
+
+
+export type UploadDescriptionImageMutation = { uploadDescriptionImage: { url: string | null, errors: Array<string> } | null };
+
 export type MyPuzzlesQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
   status?: Types.PuzzleStatusEnum | null | undefined;
@@ -476,12 +520,26 @@ export type PuzzleByTokenForPlayQueryVariables = Exact<{
 
 export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
+export type PuzzleDescriptionQueryVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type PuzzleDescriptionQuery = { puzzle: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
+
+export type PuzzleDescriptionByTokenQueryVariables = Exact<{
+  token: string;
+}>;
+
+
+export type PuzzleDescriptionByTokenQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
+
 export type PuzzleForEditQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, authorDifficulty: number | null, id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
+export type PuzzleForEditQuery = { puzzle: { title: string, description: string | null, authorDifficulty: number | null, id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, versions: Array<{ id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string }>, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
 
 export type PuzzleForPlayQueryVariables = Exact<{
   id: string | number;
@@ -623,6 +681,15 @@ export type SeriesPublicQueryVariables = Exact<{
 
 
 export type SeriesPublicQuery = { series: { id: string, title: string, description: string | null, visibility: Types.SeriesVisibilityEnum, subscribed: boolean, subscriberCount: number, author: { id: string, username: string, displayName: string }, entries: Array<{ id: string, position: number, entryType: string, released: boolean, releasedAt: string | null, puzzle: { id: string, title: string, shareToken: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, avgRating: number | null } | null, collection: { id: string, title: string, shareToken: string | null, visibility: Types.CollectionVisibilityEnum, puzzleCount: number } | null }> } | null };
+
+export type CreateCommentMutationVariables = Exact<{
+  puzzleId: string | number;
+  body: string;
+  parentId?: string | number | null | undefined;
+}>;
+
+
+export type CreateCommentMutation = { createComment: { errors: Array<string>, comment: { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } } | null } | null };
 
 export type RatePuzzleMutationVariables = Exact<{
   puzzleId: string | number;

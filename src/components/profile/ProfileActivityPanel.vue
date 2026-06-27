@@ -82,7 +82,7 @@ function formatDate(iso: string) {
             {{ VERB[item.kind] }}
             <RouterLink
               v-if="item.puzzle"
-              :to="{ name: 'player', params: { id: item.puzzle.id } }"
+              :to="{ name: 'puzzle', params: { id: item.puzzle.id } }"
               class="font-medium hover:text-action transition-colors"
             >
               {{ item.puzzle.title }}

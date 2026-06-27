@@ -3,30 +3,46 @@ import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
-import { exportToSudokuPad } from '@/utils/sudokuPadExport'
+import { apolloClient } from '@/utils/apolloClient'
+import { serializePlayDefinition } from '@/utils/puzzleExport'
+import ExportSudokupadLinkDocument from '@/graphql/gql/puzzles/mutations/ExportSudokupadLink.graphql'
+import type { ExportSudokupadLinkMutation, ExportSudokupadLinkMutationVariables } from '@/graphql/generated/types'
 
 const editor = useEditorStore()
 const grid = useGridStore()
 const auth = useAuthStore()
 
-// f-puzzles export → SudokuPad. The main button copies the link and opens it so
-// the setter can preview immediately; the side button just copies. Warnings list
-// anything that couldn't be represented (and so needs re-creating by hand).
+// The backend converts the live editor state to a SudokuPad short link (convert
+// → compress → shorten, with its own long-URL fallback). The main button copies
+// the link and opens it so the setter can preview; the side button just copies.
+// Warnings list anything that couldn't be represented (and so needs re-creating
+// by hand).
 const copiedKind = ref<'open' | 'copy' | null>(null)
 const error = ref<string | null>(null)
 const warnings = ref<string[]>([])
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
-// Builds the URL and records any warnings; returns null (and sets error) on
-// failure, e.g. a non-square grid.
-function buildUrl(): string | null {
+// Request a SudokuPad link for the current puzzle. Records any fidelity
+// warnings; returns null (and sets error) on failure, e.g. a non-square grid.
+// The solution is embedded per the author's account setting (defaults on).
+async function requestLink(): Promise<string | null> {
   error.value = null
   warnings.value = []
   try {
-    // Blank author defaults to the signed-in user's display name, matching the
-    // placeholder shown in the editor's author field.
-    const result = exportToSudokuPad(editor, grid, { fallbackAuthor: auth.user?.displayName })
-    warnings.value = result.warnings
+    const { data } = await apolloClient.mutate<ExportSudokupadLinkMutation, ExportSudokupadLinkMutationVariables>({
+      mutation: ExportSudokupadLinkDocument,
+      variables: {
+        definition: serializePlayDefinition(editor, grid),
+        solution: editor.solution,
+        includeSolution: auth.user?.puzzlePreferences?.includeSolutionInSudokupadExport ?? true,
+      },
+    })
+    const result = data?.exportSudokupadLink
+    warnings.value = result?.warnings ?? []
+    if (!result?.url) {
+      error.value = result?.errors?.[0] ?? 'Could not export to SudokuPad.'
+      return null
+    }
     return result.url
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Could not export to SudokuPad.'
@@ -41,17 +57,26 @@ function flagCopied(kind: 'open' | 'copy') {
 }
 
 async function exportAndOpen() {
-  const url = buildUrl()
-  if (!url) return
-  await navigator.clipboard.writeText(url)
+  // Open synchronously to keep the user gesture (avoids popup blocking), then
+  // navigate it to the link once the backend responds.
+  const win = window.open('about:blank', '_blank')
+  const link = await requestLink()
+  if (!link) {
+    win?.close()
+    return
+  }
+  if (win) {
+    win.opener = null
+    win.location.href = link
+  }
+  await navigator.clipboard.writeText(link)
   flagCopied('open')
-  window.open(url, '_blank', 'noopener')
 }
 
 async function copyLink() {
-  const url = buildUrl()
-  if (!url) return
-  await navigator.clipboard.writeText(url)
+  const link = await requestLink()
+  if (!link) return
+  await navigator.clipboard.writeText(link)
   flagCopied('copy')
 }
 

@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation UpdatePuzzlePreferences($attrs: PuzzlePreferencesInput!) {
+  updatePuzzlePreferences(input: { attrs: $attrs }) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

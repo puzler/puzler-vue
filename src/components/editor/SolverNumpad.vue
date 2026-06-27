@@ -63,7 +63,10 @@ function swatchStyle(index: number): Record<string, string> {
 
 <template>
   <div class="flex flex-col gap-2 md:gap-3 bg-paper overflow-y-auto h-full p-2 md:p-4">
-    <div class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full max-w-[14rem] md:max-w-none mx-auto content-start">
+    <div
+      data-tour="numpad-digits"
+      class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full max-w-[14rem] md:max-w-none mx-auto content-start"
+    >
       <!-- Rows 1-3: digits 1-9 (swatches in color mode) -->
       <button
         v-for="n in 9"
@@ -83,6 +86,11 @@ function swatchStyle(index: number): Record<string, string> {
       </button>
 
       <!-- Mode buttons in the trailing column, rows 1-4 -->
+      <!-- Transparent tour anchor spanning all four mode buttons (col 5, rows 1-4). -->
+      <div
+        data-tour="numpad-modes"
+        class="col-start-5 row-start-1 row-end-5 pointer-events-none"
+      />
       <button
         title="Full digits (Z)"
         aria-label="Full digits"

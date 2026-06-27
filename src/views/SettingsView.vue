@@ -6,12 +6,13 @@
           Account settings
         </h1>
 
-        <ProfileSection />
-        <PrivacySection />
-        <AppearanceSection />
-        <PasswordSection />
-        <ConnectionsSection />
-        <DataSection />
+        <ProfileSection data-tour="settings-profile" />
+        <PrivacySection data-tour="settings-privacy" />
+        <AppearanceSection data-tour="settings-appearance" />
+        <PasswordSection data-tour="settings-password" />
+        <ConnectionsSection data-tour="settings-connections" />
+        <DataSection data-tour="settings-data" />
+        <ToursSection />
       </div>
     </div>
   </ContentPage>
@@ -25,4 +26,8 @@ import AppearanceSection from '@/components/settings/AppearanceSection.vue'
 import PasswordSection from '@/components/settings/PasswordSection.vue'
 import ConnectionsSection from '@/components/settings/ConnectionsSection.vue'
 import DataSection from '@/components/settings/DataSection.vue'
+import ToursSection from '@/components/settings/ToursSection.vue'
+import { usePageTour } from '@/composables/usePageTour'
+
+usePageTour()
 </script>

@@ -27,7 +27,10 @@ defineEmits<{
 
 <template>
   <div class="flex-1 flex overflow-hidden min-h-0">
-    <main class="relative flex-1 bg-canvas overflow-hidden min-h-0">
+    <main
+      data-tour="player-grid"
+      class="relative flex-1 bg-canvas overflow-hidden min-h-0"
+    >
       <SudokuGrid
         mode="edit"
         :given-digits="editor.givenDigits"

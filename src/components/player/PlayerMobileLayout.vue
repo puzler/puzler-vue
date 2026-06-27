@@ -58,6 +58,7 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
       <ConnectionStatus />
       <div
         v-if="showTimer"
+        data-tour="player-timer"
         class="ml-auto shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
       >
         <span
@@ -75,7 +76,10 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
       </div>
     </header>
 
-    <div class="relative flex-1 bg-canvas overflow-hidden min-h-0">
+    <div
+      data-tour="player-grid"
+      class="relative flex-1 bg-canvas overflow-hidden min-h-0"
+    >
       <SudokuGrid
         mode="edit"
         :given-digits="editor.givenDigits"
@@ -92,10 +96,14 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
     </div>
 
     <div class="h-72 flex border-t border-line shrink-0">
-      <div class="flex flex-col items-center gap-2 py-3 px-1.5 border-r border-line bg-surface shrink-0 w-12">
+      <div
+        data-tour="player-controls"
+        class="flex flex-col items-center gap-2 py-3 px-1.5 border-r border-line bg-surface shrink-0 w-12"
+      >
         <button
           v-for="b in RAIL"
           :key="b.event"
+          :data-tour="b.event === 'show-rules' ? 'player-rules' : b.event === 'check' ? 'player-check' : undefined"
           :class="BTN"
           :title="b.title"
           :aria-label="b.label"
@@ -119,7 +127,10 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
           />
         </button>
       </div>
-      <div class="flex-1 overflow-hidden bg-surface">
+      <div
+        data-tour="player-numpad"
+        class="flex-1 overflow-hidden bg-surface"
+      >
         <SolverNumpad class="w-full h-full" />
       </div>
     </div>

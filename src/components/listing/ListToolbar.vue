@@ -40,20 +40,28 @@ function removeChip(chip: { kind: 'constraint' | 'visibility'; value: string }) 
 <template>
   <div class="mb-4">
     <div class="flex items-center gap-2">
-      <SearchField v-model="search" />
+      <SearchField
+        v-model="search"
+        data-tour="toolbar-search"
+      />
       <!-- Floated right so they hold position as the search input animates open. -->
       <div class="ml-auto flex items-center gap-1">
         <ConstraintFilter
           v-if="supportsConstraints"
           v-model:match-mode="matchMode"
           v-model:constraint-types="constraintTypes"
+          data-tour="toolbar-constraints"
         />
         <VisibilityFilter
           v-if="visibilityOptions"
           v-model="visibilities"
           :options="visibilityOptions"
+          data-tour="toolbar-visibility"
         />
-        <SortSelect v-model="sort" />
+        <SortSelect
+          v-model="sort"
+          data-tour="toolbar-sort"
+        />
         <slot />
       </div>
     </div>

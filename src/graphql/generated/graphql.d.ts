@@ -62,6 +62,15 @@ declare module '*/RemoveAvatar.graphql' {
 }
     
 
+declare module '*/UpdateOnboarding.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateOnboarding: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdatePlayerPrefs.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

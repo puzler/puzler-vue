@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
-import MdiIcon from '@/components/MdiIcon.vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import CollectionLeaderboard from '@/components/collections/CollectionLeaderboard.vue'
-import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
+import CollectionPuzzleList from '@/components/collections/CollectionPuzzleList.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { solvedIds } from '@/utils/solveProgress'
+import { usePageTour } from '@/composables/usePageTour'
 import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
 import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
 import type {
@@ -25,24 +25,6 @@ const solved = ref(new Set<string>())
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
 const isSequence = computed(() => collection.value?.mode === CollectionModeEnum.Sequence)
-
-// The collection context (`collection` + `ct`) powers next-puzzle navigation.
-// A container-only puzzle isn't public, so we also pass its own share token —
-// surfaced by the API only because we can already see this collection.
-function puzzleLink(puzzle: { id: string; shareToken?: string | null }): Record<string, string> {
-  if (!collection.value) return {}
-  return {
-    collection: collection.value.id,
-    ...(shareToken.value ? { ct: shareToken.value } : {}),
-    ...(puzzle.shareToken ? { t: puzzle.shareToken } : {}),
-  }
-}
-
-// In a sequence collection, a puzzle unlocks only once every earlier one is solved.
-function isUnlocked(index: number): boolean {
-  if (!isSequence.value || !collection.value) return true
-  return collection.value.puzzles.slice(0, index).every((p) => solved.value.has(p.id))
-}
 
 async function load() {
   const id = typeof route.params.id === 'string' ? route.params.id : null
@@ -65,6 +47,8 @@ async function load() {
 }
 
 onMounted(load)
+
+usePageTour({ ready: computed(() => !loading.value && !!collection.value) })
 </script>
 
 <template>
@@ -83,7 +67,10 @@ onMounted(load)
         This collection isn’t available.
       </p>
       <div v-else>
-        <h1 class="font-display text-2xl font-bold">
+        <h1
+          data-tour="collection-header"
+          class="font-display text-2xl font-bold"
+        >
           {{ collection.title }}
         </h1>
         <p class="text-sm text-soft mt-1">
@@ -108,46 +95,14 @@ onMounted(load)
           ⏱ Timed — your solve times are ranked below.
         </p>
 
-        <ol class="mt-6 flex flex-col gap-3">
-          <li
-            v-for="(puzzle, index) in collection.puzzles"
-            :key="puzzle.id"
-          >
-            <RouterLink
-              v-if="isUnlocked(index)"
-              :to="{ name: 'player', params: { id: puzzle.id }, query: puzzleLink(puzzle) }"
-              class="flex items-center gap-3 p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
-            >
-              <span
-                v-if="isSequence"
-                class="text-sm text-faint w-5 text-right shrink-0"
-              >{{ index + 1 }}</span>
-              <span class="font-medium text-ink-text truncate flex-1">{{ puzzle.title }}</span>
-              <MdiIcon
-                v-if="solved.has(puzzle.id)"
-                :path="mdiCheckCircle"
-                :size="16"
-                class="text-green-500 shrink-0"
-              />
-              <span
-                v-else-if="puzzle.avgRating"
-                class="text-xs text-faint shrink-0"
-              >★ {{ puzzle.avgRating.toFixed(1) }}</span>
-            </RouterLink>
-            <div
-              v-else
-              class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line text-faint cursor-not-allowed"
-            >
-              <span class="text-sm w-5 text-right shrink-0">{{ index + 1 }}</span>
-              <span class="truncate flex-1">{{ puzzle.title }}</span>
-              <MdiIcon
-                :path="mdiLockOutline"
-                :size="16"
-                class="shrink-0"
-              />
-            </div>
-          </li>
-        </ol>
+        <CollectionPuzzleList
+          data-tour="collection-puzzles"
+          :puzzles="collection.puzzles"
+          :is-sequence="isSequence"
+          :solved="solved"
+          :collection-id="collection.id"
+          :share-token="shareToken"
+        />
 
         <p
           v-if="!collection.puzzles.length"

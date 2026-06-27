@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { mdiPuzzle, mdiFolderMultiple } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
+import { usePageTour } from '@/composables/usePageTour'
 import SeriesFeedDocument from '@/graphql/gql/series/queries/SeriesFeed.graphql'
 import type { SeriesFeedQuery, SeriesFeedQueryVariables } from '@/graphql/generated/types'
 
@@ -12,6 +13,8 @@ type FeedItem = SeriesFeedQuery['seriesFeed'][number]
 
 const items = ref<FeedItem[]>([])
 const loading = ref(true)
+
+usePageTour({ ready: computed(() => !loading.value) })
 
 function itemLink(item: FeedItem) {
   // Container-only targets carry their own share token so the target resolves.
@@ -44,7 +47,10 @@ onMounted(load)
 <template>
   <ContentPage>
     <div class="p-8 max-w-2xl mx-auto">
-      <h1 class="font-display text-2xl font-bold">
+      <h1
+        data-tour="feed-intro"
+        class="font-display text-2xl font-bold"
+      >
         New in your series
       </h1>
       <p class="text-sm text-soft mt-1">
@@ -65,6 +71,7 @@ onMounted(load)
       </p>
       <ul
         v-else
+        data-tour="feed-list"
         class="mt-6 flex flex-col gap-3"
       >
         <li

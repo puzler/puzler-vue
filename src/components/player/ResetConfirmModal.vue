@@ -17,6 +17,7 @@ const resetTimer = ref(false)
 <template>
   <Teleport to="body">
     <div
+      data-modal-open
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       @click.self="emit('cancel')"
     >

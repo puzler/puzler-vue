@@ -3,6 +3,7 @@ import { mdiRestart, mdiBookOpenVariant, mdiCheckCircleOutline, mdiCogOutline, m
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
+import PlayerRulesPanel from '@/components/player/PlayerRulesPanel.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
 import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
@@ -43,6 +44,7 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
           </h1>
           <div
             v-if="showTimer"
+            data-tour="player-timer"
             class="shrink-0 flex items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-0.5 py-0.5"
           >
             <span
@@ -75,29 +77,17 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
         </div>
       </div>
 
-      <section class="flex-1 min-h-0 flex flex-col gap-1.5">
-        <p class="px-1 text-[10px] font-semibold uppercase tracking-widest text-soft">
-          Rules
-        </p>
-        <div class="flex-1 min-h-0 overflow-y-auto rounded-xl border border-line bg-surface p-3.5">
-          <p
-            v-if="rules"
-            class="text-sm text-ink-text whitespace-pre-line leading-relaxed"
-          >
-            {{ rules }}
-          </p>
-          <p
-            v-else
-            class="text-sm italic text-faint"
-          >
-            Normal sudoku rules apply.
-          </p>
-        </div>
-      </section>
+      <PlayerRulesPanel
+        :rules="rules"
+        data-tour="player-rules"
+      />
     </div>
 
     <!-- Action controls sit just above the numpad. -->
-    <div class="shrink-0 border-t border-line px-3 py-2 flex items-center gap-1">
+    <div
+      data-tour="player-controls"
+      class="shrink-0 border-t border-line px-3 py-2 flex items-center gap-1"
+    >
       <button
         v-if="collaborationEnabled"
         :class="ICON_BTN"
@@ -113,6 +103,7 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
       <button
         v-for="c in CONTROLS"
         :key="c.event"
+        :data-tour="c.event === 'check' ? 'player-check' : undefined"
         :class="[ICON_BTN, c.end ? 'ml-auto' : '']"
         :title="c.title"
         :aria-label="c.label"
@@ -126,7 +117,10 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
     </div>
 
     <!-- Numpad anchored to the bottom of the panel. -->
-    <div class="shrink-0 border-t border-line">
+    <div
+      data-tour="player-numpad"
+      class="shrink-0 border-t border-line"
+    >
       <SolverNumpad class="w-full" />
     </div>
   </aside>

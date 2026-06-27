@@ -33,6 +33,7 @@ const hasResults = computed(() => list.nodes.value.length > 0)
       v-model:featured="list.featured.value"
       v-model:tags="list.tags.value"
       v-model:grid-sizes="list.gridSizes.value"
+      data-tour="archive-filters"
       :show-my-status="auth.isAuthenticated"
     />
 
@@ -42,6 +43,7 @@ const hasResults = computed(() => list.nodes.value.length > 0)
         v-model:sort="list.sort.value"
         v-model:match-mode="list.matchMode.value"
         v-model:constraint-types="list.constraintTypes.value"
+        data-tour="archive-toolbar"
         :supports-constraints="true"
       />
 
@@ -62,8 +64,9 @@ const hasResults = computed(() => list.nodes.value.length > 0)
         class="grid grid-cols-1 sm:grid-cols-2 gap-3"
       >
         <li
-          v-for="puzzle in list.nodes.value"
+          v-for="(puzzle, i) in list.nodes.value"
           :key="puzzle.id"
+          :data-tour="i === 0 ? 'archive-card' : undefined"
         >
           <ArchivePuzzleCard :puzzle="puzzle" />
         </li>

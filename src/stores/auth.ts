@@ -6,6 +6,7 @@ import * as tokenStorage from '@/utils/tokenStorage'
 import MeDocument from '@/graphql/gql/auth/queries/Me.graphql'
 import UpdateProfileDocument from '@/graphql/gql/auth/mutations/UpdateProfile.graphql'
 import UpdatePlayerPrefsDocument from '@/graphql/gql/auth/mutations/UpdatePlayerPrefs.graphql'
+import UpdateOnboardingDocument from '@/graphql/gql/auth/mutations/UpdateOnboarding.graphql'
 import ChangePasswordDocument from '@/graphql/gql/auth/mutations/ChangePassword.graphql'
 import DisconnectOauthProviderDocument from '@/graphql/gql/auth/mutations/DisconnectOauthProvider.graphql'
 import PrepareOauthConnectDocument from '@/graphql/gql/auth/mutations/PrepareOauthConnect.graphql'
@@ -24,6 +25,8 @@ import type {
   UpdateProfileMutationVariables,
   UpdatePlayerPrefsMutation,
   UpdatePlayerPrefsMutationVariables,
+  UpdateOnboardingMutation,
+  UpdateOnboardingMutationVariables,
   ChangePasswordMutation,
   ChangePasswordMutationVariables,
   DisconnectOauthProviderMutation,
@@ -250,6 +253,21 @@ export const useAuthStore = defineStore('auth', () => {
     if (result.user) user.value = result.user
   }
 
+  // Persist onboarding/walkthrough state (seen tours and/or the global disable
+  // toggle) for a logged-in user. The onboarding store owns the local copy and
+  // pushes here to sync; JSON is stored verbatim by the API.
+  async function updateOnboarding(attrs: { onboardingSeen?: unknown; onboardingDisabled?: boolean }) {
+    const { data } = await apolloClient.mutate<UpdateOnboardingMutation, UpdateOnboardingMutationVariables>({
+      mutation: UpdateOnboardingDocument,
+      variables: attrs,
+    })
+    const result = data?.updateOnboarding
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
   // --- Themes (the store owns `user`, so user-mutating actions live here) ---
   // The theme store keeps the local copy and calls these to sync for logged-in users.
   // create/update/delete return the affected row; updateThemePreferences refreshes `user`.
@@ -374,6 +392,7 @@ export const useAuthStore = defineStore('auth', () => {
     updateProfile,
     updateProfileVisibility,
     updatePlayerPrefs,
+    updateOnboarding,
     createUserTheme,
     updateUserTheme,
     deleteUserTheme,

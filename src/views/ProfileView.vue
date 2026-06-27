@@ -14,6 +14,7 @@ import ProfileSolvesPanel from '@/components/profile/ProfileSolvesPanel.vue'
 import ProfileFavoritesPanel from '@/components/profile/ProfileFavoritesPanel.vue'
 import ProfileSubscriptionsPanel from '@/components/profile/ProfileSubscriptionsPanel.vue'
 import ProfileActivityPanel from '@/components/profile/ProfileActivityPanel.vue'
+import { usePageTour } from '@/composables/usePageTour'
 import { SolveHistoryVisibilityEnum } from '@/graphql/generated/types'
 import ProfileUserDocument from '@/graphql/gql/users/queries/ProfileUser.graphql'
 import type { ProfileUserQuery, ProfileUserQueryVariables, PublicUserFieldsFragment } from '@/graphql/generated/types'
@@ -30,6 +31,13 @@ const activeTab = ref<TabKey>('puzzles')
 
 const isOwner = computed(() => auth.isAuthenticated && auth.user?.username === user.value?.username)
 
+// A "setter" has published at least one public puzzle, collection, or series.
+// Pure solvers get a trimmed profile: no empty setter tabs and no setter stats.
+const isSetter = computed(() => {
+  const u = user.value
+  return !!u && (u.puzzleCount > 0 || u.publicCollectionCount > 0 || u.publicSeriesCount > 0)
+})
+
 const TAB = 'px-3 py-1.5 text-sm transition-colors border-b-2 whitespace-nowrap'
 function tabClass(name: TabKey) {
   return activeTab.value === name
@@ -44,12 +52,14 @@ const tabs = computed<{ key: TabKey; label: string }[]>(() => {
   const u = user.value
   if (!u) return []
   const vis = u.profileVisibility
-  const list: { key: TabKey; label: string }[] = [
-    { key: 'puzzles', label: 'Puzzles' },
-    { key: 'collections', label: 'Collections' },
-    { key: 'series', label: 'Series' },
-    { key: 'reviews', label: 'Reviews' },
-  ]
+  const list: { key: TabKey; label: string }[] = []
+  // Setter tabs are content-driven: shown only when they actually have items, so a
+  // pure solver's profile never displays empty setter sections. Reviews live on a
+  // setter's public puzzles, so they only exist when there are published puzzles.
+  if (u.puzzleCount > 0) list.push({ key: 'puzzles', label: 'Puzzles' })
+  if (u.publicCollectionCount > 0) list.push({ key: 'collections', label: 'Collections' })
+  if (u.publicSeriesCount > 0) list.push({ key: 'series', label: 'Series' })
+  if (u.puzzleCount > 0) list.push({ key: 'reviews', label: 'Reviews' })
   if (isOwner.value || vis.solveHistory !== SolveHistoryVisibilityEnum.Hidden) list.push({ key: 'solves', label: 'Solves' })
   if (isOwner.value || vis.favorites) list.push({ key: 'favorites', label: 'Favorites' })
   if (isOwner.value || vis.subscriptions) list.push({ key: 'subscriptions', label: 'Subscriptions' })
@@ -65,7 +75,6 @@ const solvesCountOnly = computed(
 
 async function load() {
   loading.value = true
-  activeTab.value = 'puzzles'
   try {
     const { data } = await apolloClient.query<ProfileUserQuery, ProfileUserQueryVariables>({
       query: ProfileUserDocument,
@@ -73,12 +82,17 @@ async function load() {
       fetchPolicy: 'network-only',
     })
     user.value = data?.user ?? null
+    // The Puzzles tab may not exist (pure solvers), so land on the first available tab.
+    activeTab.value = tabs.value[0]?.key ?? 'puzzles'
   } finally {
     loading.value = false
   }
 }
 
 watch(username, load, { immediate: true })
+
+// First-visit walkthrough, once the profile data has rendered its anchors.
+usePageTour({ ready: computed(() => !loading.value && !!user.value) })
 </script>
 
 <template>
@@ -102,17 +116,21 @@ watch(username, load, { immediate: true })
 
       <template v-else>
         <ProfileHeader
+          data-tour="profile-header"
           :user="user"
           :is-owner="isOwner"
         />
 
         <ProfileStatTiles
-          v-if="user.profileStats"
+          v-if="user.profileStats && isSetter"
           :stats="user.profileStats"
           class="mt-6 block"
         />
 
-        <div class="flex gap-2 mt-6 mb-6 border-b border-line overflow-x-auto">
+        <div
+          data-tour="profile-tabs"
+          class="flex gap-2 mt-6 mb-6 border-b border-line overflow-x-auto"
+        >
           <button
             v-for="t in tabs"
             :key="t.key"

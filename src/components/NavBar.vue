@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { mdiHelpCircleOutline } from '@mdi/js'
 import BrandMark from './BrandMark.vue'
+import MdiIcon from './MdiIcon.vue'
 import NavMobileMenu from './NavMobileMenu.vue'
 import NavUserActions from './NavUserActions.vue'
 import { useAuthStore } from '@/stores/auth'
+import { startTour } from '@/composables/useTourRunner'
+import { ROUTE_TO_TOUR } from '@/data/tours'
 
 const auth = useAuthStore()
+const route = useRoute()
 const menuOpen = ref(false)
+
+// The "?" replays the current page's walkthrough (ignoring seen/disabled). Hidden
+// on pages that have no tour.
+const currentTour = computed(() => ROUTE_TO_TOUR[String(route.name)])
+function replayTour() {
+  if (currentTour.value) startTour(currentTour.value)
+}
 </script>
 
 <template>
@@ -24,6 +36,7 @@ const menuOpen = ref(false)
       <div class="hidden md:flex items-center gap-1 self-stretch">
         <RouterLink
           to="/puzzles"
+          data-tour="nav-browse"
           class="flex items-center px-3 text-sm text-[#9AA3B8] border-b-2 border-transparent hover:text-white transition-colors"
           active-class="!text-white !border-spark"
         >
@@ -31,6 +44,7 @@ const menuOpen = ref(false)
         </RouterLink>
         <RouterLink
           to="/editor"
+          data-tour="nav-editor"
           class="flex items-center px-3 text-sm text-[#9AA3B8] border-b-2 border-transparent hover:text-white transition-colors"
           active-class="!text-white !border-spark"
         >
@@ -55,6 +69,20 @@ const menuOpen = ref(false)
       </div>
 
       <div class="flex-1" />
+
+      <button
+        v-if="currentTour"
+        data-tour="nav-help"
+        class="p-2 rounded-md text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
+        aria-label="Help and tips"
+        title="Replay this page's walkthrough"
+        @click="replayTour"
+      >
+        <MdiIcon
+          :path="mdiHelpCircleOutline"
+          :size="20"
+        />
+      </button>
 
       <NavUserActions />
 

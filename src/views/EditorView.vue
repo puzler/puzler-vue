@@ -11,12 +11,19 @@ import { useEditorStore } from '@/stores/editor'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
+import { usePageTour } from '@/composables/usePageTour'
 import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES } from '@/types/constraints'
 
 const editor = useEditorStore()
 const puzzle = usePuzzleStore()
 const route = useRoute()
 const isMobile = useIsMobile()
+
+// The editor walkthrough targets the desktop panels (the mobile layout differs),
+// so only auto-start it on desktop. The runner forces setting mode so the
+// collapsible tool panels are on screen.
+const tourReady = computed(() => !isMobile.value)
+usePageTour({ ready: tourReady })
 
 const TOOLS_WITH_CONTROLS = new Set([
   'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',
@@ -62,6 +69,7 @@ onMounted(() => {
     class="flex-1 flex overflow-hidden"
   >
     <div
+      data-tour="editor-toolselector"
       class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
       :class="editor.mode === 'setting' ? 'w-56' : 'w-0'"
     >
@@ -77,7 +85,10 @@ onMounted(() => {
 
     <main class="flex-1 flex flex-col overflow-hidden min-w-0">
       <PuzzleControls />
-      <div class="flex-1 bg-canvas overflow-hidden min-h-0">
+      <div
+        data-tour="editor-grid"
+        class="flex-1 bg-canvas overflow-hidden min-h-0"
+      >
         <SudokuGrid
           mode="edit"
           :given-digits="editor.givenDigits"

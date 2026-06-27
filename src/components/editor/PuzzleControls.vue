@@ -37,6 +37,7 @@ function toggleMode() {
       <button
         title="New grid"
         aria-label="New grid"
+        data-tour="editor-newgrid"
         :class="ICON_BTN"
         @click="openNewGrid"
       >
@@ -48,6 +49,7 @@ function toggleMode() {
       <button
         title="Clear"
         aria-label="Clear"
+        data-tour="editor-clear"
         :class="ICON_BTN_DANGER"
         @click="editor.clearSolverState()"
       >
@@ -56,8 +58,8 @@ function toggleMode() {
           :size="18"
         />
       </button>
-      <SetSolutionButton v-if="editor.mode === 'solving'" />
-      <ViewSolutionButton v-if="editor.mode === 'solving'" />
+      <SetSolutionButton data-tour="editor-setsolution" />
+      <ViewSolutionButton data-tour="editor-viewsolution" />
     </div>
 
     <div class="order-1 md:order-none flex items-center justify-center gap-2">
@@ -69,6 +71,7 @@ function toggleMode() {
         Setting
       </button>
       <button
+        data-tour="editor-modetoggle"
         role="switch"
         :aria-checked="editor.mode === 'solving'"
         aria-label="Toggle between setting and solving"

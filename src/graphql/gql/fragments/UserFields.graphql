@@ -18,6 +18,8 @@ fragment UserFields on User {
   }
   playerSettings
   colorPalette
+  onboardingSeen
+  onboardingDisabled
   activeThemeId
   enableCustomStyles
   userThemes {

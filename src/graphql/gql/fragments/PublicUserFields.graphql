@@ -9,6 +9,8 @@ fragment PublicUserFields on User {
   setterTier
   setterScore
   puzzleCount
+  publicCollectionCount
+  publicSeriesCount
   solveCount
   profileVisibility {
     solveHistory

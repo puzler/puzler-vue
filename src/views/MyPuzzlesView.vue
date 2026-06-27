@@ -5,6 +5,9 @@ import ContentPage from '@/components/ContentPage.vue'
 import PuzzlesPanel from '@/components/mypuzzles/PuzzlesPanel.vue'
 import CollectionsPanel from '@/components/mypuzzles/CollectionsPanel.vue'
 import SeriesPanel from '@/components/mypuzzles/SeriesPanel.vue'
+import { usePageTour } from '@/composables/usePageTour'
+
+usePageTour()
 
 const tab = ref<'puzzles' | 'collections' | 'series'>('puzzles')
 const TAB = 'px-3 py-1.5 text-sm transition-colors border-b-2'
@@ -25,13 +28,17 @@ function tabClass(name: typeof tab.value) {
         </h1>
         <RouterLink
           :to="{ name: 'editor-new' }"
+          data-tour="mypuzzles-new"
           class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep"
         >
           New puzzle
         </RouterLink>
       </div>
 
-      <div class="flex gap-2 mb-6 border-b border-line">
+      <div
+        data-tour="mypuzzles-tabs"
+        class="flex gap-2 mb-6 border-b border-line"
+      >
         <button
           :class="[TAB, tabClass('puzzles')]"
           @click="tab = 'puzzles'"

@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { startTour } from '@/composables/useTourRunner'
+import { ROUTE_TO_TOUR } from '@/data/tours'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const auth = useAuthStore()
+const route = useRoute()
+
+const currentTour = computed(() => ROUTE_TO_TOUR[String(route.name)])
+function replayTour() {
+  emit('close')
+  if (currentTour.value) startTour(currentTour.value)
+}
 </script>
 
 <template>
@@ -47,6 +57,13 @@ const auth = useAuthStore()
     >
       Updates
     </RouterLink>
+    <button
+      v-if="currentTour"
+      class="text-left px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
+      @click="replayTour"
+    >
+      Replay this page's walkthrough
+    </button>
     <div class="h-px bg-ink-2 my-1" />
     <template v-if="auth.isAuthenticated">
       <RouterLink

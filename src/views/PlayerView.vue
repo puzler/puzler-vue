@@ -23,6 +23,7 @@ import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils
 import { hashSolution } from '@/utils/solutionHash'
 import { markSolved } from '@/utils/solveProgress'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
+import { usePageTour } from '@/composables/usePageTour'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
 import RevealSolveMessageDocument from '@/graphql/gql/puzzles/mutations/RevealSolveMessage.graphql'
@@ -315,6 +316,11 @@ async function loadPuzzle() {
 // lockstep (the editor-only branches are inert here). It self-registers its
 // own window listeners.
 useGridKeyboard()
+
+// First-visit walkthrough: only once the puzzle has loaded and the rules intro
+// (if any) is dismissed, so the highlighted controls actually exist on screen.
+const tourReady = computed(() => !loading.value && !errorMessage.value && !showRulesIntro.value)
+usePageTour({ ready: tourReady })
 
 
 // Re-load when navigating between puzzles in a collection (same route). Flush

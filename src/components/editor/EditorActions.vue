@@ -26,6 +26,7 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
     <button
       title="Version history"
       aria-label="Version history"
+      data-tour="editor-versions"
       :class="ICON_BTN"
       @click="showVersions = true"
     >
@@ -34,32 +35,38 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
         :size="18"
       />
     </button>
-    <button
-      title="Import puzzle JSON"
-      aria-label="Import puzzle JSON"
-      :class="ICON_BTN"
-      @click="showImport = true"
+    <div
+      data-tour="editor-importexport"
+      class="flex items-center gap-1.5"
     >
-      <MdiIcon
-        :path="mdiTrayArrowDown"
-        :size="18"
-      />
-    </button>
-    <button
-      title="Export"
-      aria-label="Export"
-      :class="ICON_BTN"
-      @click="showExport = true"
-    >
-      <MdiIcon
-        :path="mdiTrayArrowUp"
-        :size="18"
-      />
-    </button>
+      <button
+        title="Import puzzle JSON"
+        aria-label="Import puzzle JSON"
+        :class="ICON_BTN"
+        @click="showImport = true"
+      >
+        <MdiIcon
+          :path="mdiTrayArrowDown"
+          :size="18"
+        />
+      </button>
+      <button
+        title="Export"
+        aria-label="Export"
+        :class="ICON_BTN"
+        @click="showExport = true"
+      >
+        <MdiIcon
+          :path="mdiTrayArrowUp"
+          :size="18"
+        />
+      </button>
+    </div>
     <button
       v-if="puzzle.serverPuzzleId"
       title="Publish & share"
       aria-label="Publish and share"
+      data-tour="editor-publish"
       :class="ICON_BTN"
       @click="showPublish = true"
     >
@@ -79,7 +86,7 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
         :size="18"
       />
     </button>
-    <SaveButton />
+    <SaveButton data-tour="editor-save" />
 
     <ExportModal
       v-if="showExport"

@@ -1,18 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import ConfirmModal from '@/components/ConfirmModal.vue'
-import MdiIcon from '@/components/MdiIcon.vue'
-import { mdiPencilOutline, mdiTrashCanOutline } from '@mdi/js'
 import FolderSidebar from './FolderSidebar.vue'
-import FolderSelect from './FolderSelect.vue'
+import MyPuzzleRow from './MyPuzzleRow.vue'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
-import RowMeta from './RowMeta.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import type { FolderNode } from './folderTree'
-import { PUZZLE_VISIBILITY_OPTIONS, PUZZLE_VISIBILITY_FILTER_OPTIONS, VISIBILITY_LABEL } from '@/constants/visibility'
+import { PUZZLE_VISIBILITY_OPTIONS, PUZZLE_VISIBILITY_FILTER_OPTIONS } from '@/constants/visibility'
 import MyPuzzlesDocument from '@/graphql/gql/puzzles/queries/MyPuzzles.graphql'
 import MyFolderTreeDocument from '@/graphql/gql/collections/queries/MyFolderTree.graphql'
 import MyFoldersDocument from '@/graphql/gql/collections/queries/MyFolders.graphql'
@@ -56,14 +52,6 @@ const deleteMessage = computed(() => {
   return t.status === PuzzleStatusEnum.Published ? `${base} Any solves, comments, and ratings on it will be deleted too.` : base
 })
 
-function subtext(p: MyPuzzle) {
-  if (p.status !== PuzzleStatusEnum.Published) return 'Draft'
-  const bits = [VISIBILITY_LABEL[p.visibility]]
-  if (p.avgRating) bits.push(`★ ${p.avgRating.toFixed(1)}`)
-  if (p.solveCount) bits.push(`${p.solveCount} solve${p.solveCount === 1 ? '' : 's'}`)
-  return bits.join(' · ')
-}
-
 async function moveToFolder(puzzle: MyPuzzle, folderId: string | null) {
   await apolloClient.mutate<MovePuzzleToFolderMutation, MovePuzzleToFolderMutationVariables>({
     mutation: MovePuzzleToFolderDocument, variables: { puzzleId: puzzle.id, folderId },
@@ -92,6 +80,7 @@ onMounted(loadFolders)
 <template>
   <div class="flex gap-6">
     <FolderSidebar
+      data-tour="mypuzzles-folders"
       :tree="tree"
       :selected-id="list.folderId.value"
       noun="puzzles"
@@ -127,49 +116,16 @@ onMounted(loadFolders)
         v-else
         class="flex flex-col gap-2"
       >
-        <li
+        <MyPuzzleRow
           v-for="puzzle in list.nodes.value"
           :key="puzzle.id"
-          class="flex items-center gap-3 p-3 rounded-xl border border-line"
-        >
-          <div class="flex flex-col min-w-0 flex-1">
-            <span class="font-medium text-ink-text truncate">{{ puzzle.title }}</span>
-            <span class="text-xs text-faint">{{ subtext(puzzle) }}</span>
-          </div>
-          <RowMeta
-            kind="puzzle"
-            :entity-id="puzzle.id"
-            :visibility="puzzle.visibility"
-            :share-token="puzzle.shareToken"
-            :visibility-options="PUZZLE_VISIBILITY_OPTIONS"
-            @update-visibility="changeVisibility(puzzle, $event)"
-          />
-          <FolderSelect
-            :folders="flatFolders"
-            :value="puzzle.folder?.id"
-            @change="moveToFolder(puzzle, $event)"
-          />
-          <RouterLink
-            :to="{ name: 'editor-edit', params: { id: puzzle.id } }"
-            class="p-1.5 rounded-lg text-soft hover:text-action hover:bg-paper shrink-0"
-            title="Edit"
-          >
-            <MdiIcon
-              :path="mdiPencilOutline"
-              :size="16"
-            />
-          </RouterLink>
-          <button
-            class="p-1.5 rounded-lg text-soft hover:text-red-600 hover:bg-paper shrink-0"
-            title="Delete"
-            @click="deleteTarget = puzzle"
-          >
-            <MdiIcon
-              :path="mdiTrashCanOutline"
-              :size="16"
-            />
-          </button>
-        </li>
+          :puzzle="puzzle"
+          :folders="flatFolders"
+          :visibility-options="PUZZLE_VISIBILITY_OPTIONS"
+          @change-visibility="changeVisibility(puzzle, $event)"
+          @move-to-folder="moveToFolder(puzzle, $event)"
+          @delete="deleteTarget = puzzle"
+        />
       </ul>
 
       <ListPagination

@@ -19,6 +19,7 @@ export const MY_STATUS_OPTIONS = [
   { value: MyStatusEnum.Unsolved, label: 'Unsolved' },
   { value: MyStatusEnum.Solved, label: 'Solved' },
   { value: MyStatusEnum.Favorited, label: 'Favorited' },
+  { value: MyStatusEnum.SharedWithMe, label: 'Shared with me' },
 ] as const
 
 // Difficulty levels (1-5) for the star-pip filter.

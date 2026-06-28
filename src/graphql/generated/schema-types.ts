@@ -1023,7 +1023,7 @@ export type ListingFilterInput = {
   matchMode?: InputMaybe<MatchModeEnum>;
   /** Only puzzles with at least this average star rating */
   minRating?: InputMaybe<Scalars['Float']['input']>;
-  /** Filter by the current viewer's relationship (solved/unsolved/favorited) */
+  /** Filter by the current viewer's relationship (solved/unsolved/favorited/shared-with-me) */
   myStatus?: InputMaybe<MyStatusEnum>;
   /** Page number (1-based) */
   page?: InputMaybe<Scalars['Int']['input']>;
@@ -1681,6 +1681,8 @@ export type MutationUpsertCosmeticArgs = {
 export const MyStatusEnum = {
   /** Puzzles the viewer has favorited */
   Favorited: 'FAVORITED',
+  /** Private puzzles other users have shared with the viewer */
+  SharedWithMe: 'SHARED_WITH_ME',
   /** Puzzles the viewer has solved */
   Solved: 'SOLVED',
   /** Puzzles the viewer has not solved */

@@ -5348,7 +5348,7 @@
           },
           {
             "name": "myStatus",
-            "description": "Filter by the current viewer's relationship (solved/unsolved/favorited)",
+            "description": "Filter by the current viewer's relationship (solved/unsolved/favorited/shared-with-me)",
             "type": {
               "kind": "ENUM",
               "name": "MyStatusEnum",
@@ -7908,6 +7908,12 @@
           {
             "name": "FAVORITED",
             "description": "Puzzles the viewer has favorited",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "SHARED_WITH_ME",
+            "description": "Private puzzles other users have shared with the viewer",
             "isDeprecated": false,
             "deprecationReason": null
           },

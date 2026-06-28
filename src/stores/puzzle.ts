@@ -348,6 +348,7 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     saveStatus,
     errorMessage,
     resetPuzzle,
+    applyAdminFields,
     saveVersion,
     loadForEdit,
     restoreVersion,

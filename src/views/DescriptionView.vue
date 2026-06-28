@@ -6,7 +6,10 @@ import PuzzleBanner from '@/components/puzzle/PuzzleBanner.vue'
 import PuzzlePlayRail from '@/components/puzzle/PuzzlePlayRail.vue'
 import PuzzleDescriptionBody from '@/components/puzzle/PuzzleDescriptionBody.vue'
 import PuzzleComments from '@/components/puzzle/PuzzleComments.vue'
+import ManagePuzzleModal from '@/components/puzzle/ManagePuzzleModal.vue'
 import { apolloClient } from '@/utils/apolloClient'
+import { useAuthStore } from '@/stores/auth'
+import { usePuzzleStore } from '@/stores/puzzle'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
 import type { SerializedPuzzle } from '@/utils/puzzleExport'
 import PuzzleDescriptionDocument from '@/graphql/gql/puzzles/queries/PuzzleDescription.graphql'
@@ -20,9 +23,16 @@ import type {
 } from '@/graphql/generated/types'
 
 const route = useRoute()
+const auth = useAuthStore()
+const puzzleStore = usePuzzleStore()
 
 const loading = ref(true)
 const puzzle = ref<PuzzleDescriptionFieldsFragment | null>(null)
+const showManage = ref(false)
+
+// The signed-in viewer owns this puzzle, so show the author-only controls. The
+// mutations are gated server-side regardless; this just decides what to render.
+const isAuthor = computed(() => !!auth.user && puzzle.value?.author?.id === auth.user.id)
 
 const shareToken = computed(() => (typeof route.query.t === 'string' ? route.query.t : null))
 
@@ -66,10 +76,21 @@ async function load() {
         query: PuzzleDescriptionDocument, variables: { id }, fetchPolicy: 'network-only',
       })
       puzzle.value = data?.puzzle ?? null
+      // Point the puzzle store at this puzzle so the Manage modal's store-backed
+      // actions work. Only when the viewer owns it (the query returns the admin
+      // fields as null/[] otherwise).
+      if (data?.puzzle && auth.user && data.puzzle.author?.id === auth.user.id) {
+        puzzleStore.applyAdminFields(data.puzzle)
+      }
     }
   } finally {
     loading.value = false
   }
+}
+
+function onManageClose() {
+  showManage.value = false
+  load() // reflect any visibility/description/comment-policy changes on the page
 }
 
 onMounted(load)
@@ -102,6 +123,8 @@ watch(() => [route.params.id, route.query.t], load)
           :puzzle="puzzle"
           :play-to="playTo"
           :thumbnail-definition="thumbnailDefinition"
+          :is-author="isAuthor"
+          @manage="showManage = true"
         />
         <div class="lg:order-first lg:flex-1 lg:min-w-0 flex flex-col gap-6">
           <PuzzleDescriptionBody
@@ -114,6 +137,13 @@ watch(() => [route.params.id, route.query.t], load)
           />
         </div>
       </div>
+
+      <ManagePuzzleModal
+        v-if="showManage"
+        :puzzle-id="puzzle.id"
+        :title="puzzle.title"
+        @close="onManageClose"
+      />
     </div>
   </ContentPage>
 </template>

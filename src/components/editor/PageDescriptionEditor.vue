@@ -12,6 +12,10 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
 
+// `tall` lets a roomy host (the puzzle-page Manage modal) make the editor fill
+// its container; the default compact sizing is unchanged for other callers.
+const props = defineProps<{ tall?: boolean }>()
+
 const puzzle = usePuzzleStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
@@ -25,7 +29,7 @@ const editor = useEditor({
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
     Image,
   ],
-  editorProps: { attributes: { class: 'description-prose focus:outline-none min-h-[8rem]' } },
+  editorProps: { attributes: { class: `description-prose focus:outline-none ${props.tall ? 'flex-1 min-h-[16rem]' : 'min-h-[8rem]'}` } },
   onUpdate: scheduleSave,
 })
 
@@ -94,7 +98,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded-xl border border-line bg-paper overflow-hidden">
+  <div
+    class="rounded-xl border border-line bg-paper overflow-hidden"
+    :class="tall ? 'flex flex-col flex-1 min-h-0' : ''"
+  >
     <div
       v-if="editor"
       class="flex flex-wrap items-center gap-0.5 border-b border-line px-1.5 py-1"
@@ -146,7 +153,8 @@ onBeforeUnmount(() => {
 
     <EditorContent
       :editor="editor"
-      class="px-3 py-2 text-sm text-ink-text max-h-64 overflow-y-auto"
+      class="px-3 py-2 text-sm text-ink-text overflow-y-auto"
+      :class="tall ? 'flex-1 min-h-0 flex flex-col' : 'max-h-64'"
     />
 
     <input

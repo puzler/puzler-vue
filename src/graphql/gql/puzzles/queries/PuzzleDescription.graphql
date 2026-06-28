@@ -1,7 +1,11 @@
 #import "../../fragments/PuzzleDescriptionFields.graphql"
+#import "../../fragments/PuzzleAdminFields.graphql"
 
 query PuzzleDescription($id: ID!) {
   puzzle(id: $id) {
     ...PuzzleDescriptionFields
+    # Author-only fields (the server gates these to the author/admin; everyone
+    # else gets null/[]). Used to hydrate the in-page "Manage puzzle" controls.
+    ...PuzzleAdminFields
   }
 }

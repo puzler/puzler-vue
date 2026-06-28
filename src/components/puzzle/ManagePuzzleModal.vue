@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { usePuzzleStore } from '@/stores/puzzle'
-import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
-import PuzzleSettingsModalShell from '@/components/puzzle/PuzzleSettingsModalShell.vue'
-import PuzzleSettingsPanels from '@/components/puzzle/PuzzleSettingsPanels.vue'
+import { PuzzleVisibilityEnum } from '@/graphql/generated/types'
+import PuzzleSettingsModalShell from './PuzzleSettingsModalShell.vue'
+import PuzzleSettingsPanels from './PuzzleSettingsPanels.vue'
 
-// Publish & Share, opened from the editor. Reuses the same tabbed shell + panels
-// as the puzzle-page Manage modal; the only differences are the heading and the
-// primary action (publish/update a saved version vs. save settings).
+// Author-only "Manage puzzle" controls on the public puzzle page. The puzzle
+// store is hydrated by the page (applyAdminFields) before this opens, so the
+// store-backed actions work; the shared shell + panels are reused by the
+// editor's Publish modal too.
+defineProps<{ puzzleId: string; title: string }>()
 const emit = defineEmits<{ close: [] }>()
 const puzzle = usePuzzleStore()
 
-const activeTab = ref('visibility')
+const activeTab = ref('description')
 const selectedMode = ref<PuzzleVisibilityEnum>(puzzle.visibility)
 type CommentGate = 'inherit' | 'required' | 'open'
 const commentGate = ref<CommentGate>(
@@ -23,12 +26,12 @@ function commentGateValue(): boolean | null {
 
 const busy = ref(false)
 const error = ref<string | null>(null)
-const isPublished = computed(() => puzzle.status === PuzzleStatusEnum.Published)
-const versionToPublish = computed(() => puzzle.currentVersionId ?? puzzle.versions.at(-1)?.id ?? null)
+const saved = ref(false)
 
 async function run(action: () => Promise<unknown>) {
   busy.value = true
   error.value = null
+  saved.value = false
   try {
     await action()
   } catch (e) {
@@ -38,16 +41,14 @@ async function run(action: () => Promise<unknown>) {
   }
 }
 
-function publish() {
-  if (!versionToPublish.value) {
-    error.value = 'Save a version before publishing'
-    return
-  }
+// Apply the visibility + comment-gate fields (only what changed). The rich
+// description autosaves on its own via PageDescriptionEditor.
+function save() {
   run(async () => {
-    await puzzle.publishVersion(versionToPublish.value!, selectedMode.value)
-    // Cache the publish-page settings (comment gate + SudokuPad links) after the
-    // version is live.
-    await puzzle.configurePuzzlePage(commentGateValue())
+    if (selectedMode.value !== puzzle.visibility) await puzzle.setVisibility(selectedMode.value)
+    if (commentGateValue() !== puzzle.commentsRequireSolveOverride) await puzzle.configurePuzzlePage(commentGateValue())
+    saved.value = true
+    setTimeout(() => { saved.value = false }, 2000)
   })
 }
 </script>
@@ -55,7 +56,7 @@ function publish() {
 <template>
   <PuzzleSettingsModalShell
     v-model:active-tab="activeTab"
-    heading="Publish &amp; Share"
+    :heading="`Manage “${title}”`"
     :error="error"
     @close="emit('close')"
   >
@@ -63,11 +64,17 @@ function publish() {
       v-model:mode="selectedMode"
       v-model:comment-gate="commentGate"
       :active-tab="activeTab"
-      :puzzle-id="puzzle.serverPuzzleId ?? ''"
+      :puzzle-id="puzzleId"
       :busy="busy"
       @unpublish="run(() => puzzle.unpublish())"
     />
     <template #footer>
+      <RouterLink
+        :to="`/editor/${puzzleId}`"
+        class="text-xs text-action hover:underline whitespace-nowrap"
+      >
+        Open in full editor
+      </RouterLink>
       <button
         class="ml-auto text-sm text-soft hover:text-ink-text"
         @click="emit('close')"
@@ -77,9 +84,9 @@ function publish() {
       <button
         class="px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep disabled:opacity-50"
         :disabled="busy"
-        @click="publish"
+        @click="save"
       >
-        {{ isPublished ? 'Update' : 'Publish' }}
+        {{ saved ? 'Saved!' : 'Save changes' }}
       </button>
     </template>
   </PuzzleSettingsModalShell>

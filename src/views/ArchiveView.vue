@@ -9,7 +9,7 @@ import { usePageTour } from '@/composables/usePageTour'
 usePageTour()
 
 const tab = ref<'puzzles' | 'collections' | 'series'>('puzzles')
-const TAB = 'px-3 py-1.5 text-sm transition-colors border-b-2'
+const TAB = 'px-3 py-1.5 text-sm transition-colors border-b-2 whitespace-nowrap'
 function tabClass(name: typeof tab.value) {
   return tab.value === name ? 'text-action border-action font-medium' : 'text-soft border-transparent hover:text-ink-text'
 }
@@ -17,14 +17,14 @@ function tabClass(name: typeof tab.value) {
 
 <template>
   <ContentPage>
-    <div class="p-8 w-full max-w-5xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 w-full max-w-5xl mx-auto">
       <h1 class="font-display text-2xl font-bold mb-6">
         Puzzle Archive
       </h1>
 
       <div
         data-tour="archive-tabs"
-        class="flex gap-2 mb-6 border-b border-line"
+        class="flex gap-2 mb-6 border-b border-line overflow-x-auto"
       >
         <button
           :class="[TAB, tabClass('puzzles')]"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useSolverStore, type TechniqueToggles } from '@/stores/solver'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const solver = useSolverStore()
 defineEmits<{ close: [] }>()
@@ -74,62 +75,60 @@ const TOOLTIP =
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="$emit('close')"
-    >
-      <div class="bg-surface rounded-xl shadow-xl w-[32rem] max-w-[calc(100vw-2rem)] p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-display font-semibold text-ink-text text-sm">
-            Solver Settings
-          </h3>
-          <button
-            class="text-faint hover:text-soft text-xl leading-none"
-            aria-label="Close"
-            @click="$emit('close')"
-          >
-            ×
-          </button>
-        </div>
-
-        <div class="flex flex-col gap-5">
-          <section
-            v-for="group in GROUPS"
-            :key="group.title"
-            class="flex flex-col gap-2.5"
-          >
-            <span class="text-sm text-ink-text">{{ group.title }}</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
-              <div
-                v-for="row in group.rows"
-                :key="row.label"
-                class="flex items-center justify-between gap-2"
-              >
-                <label :class="CHECK">
-                  <input
-                    type="checkbox"
-                    class="accent-action"
-                    :checked="row.get()"
-                    @change="row.set(($event.target as HTMLInputElement).checked)"
-                  >
-                  {{ row.label }}
-                </label>
-                <span class="relative group inline-flex">
-                  <button
-                    type="button"
-                    :class="INFO"
-                    :aria-label="`About ${row.label}`"
-                  >
-                    ?
-                  </button>
-                  <span :class="TOOLTIP">{{ row.hint }}</span>
-                </span>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
+  <BaseModal
+    size="lg"
+    :scroll="false"
+    card-class="p-5"
+    @close="$emit('close')"
+  >
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-semibold text-ink-text text-sm">
+        Solver Settings
+      </h3>
+      <button
+        class="text-faint hover:text-soft text-xl leading-none"
+        aria-label="Close"
+        @click="$emit('close')"
+      >
+        ×
+      </button>
     </div>
-  </Teleport>
+
+    <div class="flex flex-col gap-5">
+      <section
+        v-for="group in GROUPS"
+        :key="group.title"
+        class="flex flex-col gap-2.5"
+      >
+        <span class="text-sm text-ink-text">{{ group.title }}</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+          <div
+            v-for="row in group.rows"
+            :key="row.label"
+            class="flex items-center justify-between gap-2"
+          >
+            <label :class="CHECK">
+              <input
+                type="checkbox"
+                class="accent-action"
+                :checked="row.get()"
+                @change="row.set(($event.target as HTMLInputElement).checked)"
+              >
+              {{ row.label }}
+            </label>
+            <span class="relative group inline-flex">
+              <button
+                type="button"
+                :class="INFO"
+                :aria-label="`About ${row.label}`"
+              >
+                ?
+              </button>
+              <span :class="TOOLTIP">{{ row.hint }}</span>
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </BaseModal>
 </template>

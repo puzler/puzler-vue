@@ -45,7 +45,7 @@ function choose(value: string) {
     </button>
     <div
       v-if="open"
-      class="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-line bg-surface shadow-xl p-1"
+      class="absolute right-0 z-20 mt-1 w-52 max-w-[calc(100vw-1rem)] rounded-xl border border-line bg-surface shadow-xl p-1"
     >
       <button
         v-for="opt in props.options"

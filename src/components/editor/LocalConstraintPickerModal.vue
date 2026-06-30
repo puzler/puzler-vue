@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import ConstraintTile from '@/components/editor/ConstraintTile.vue'
 import ConstraintCategoryNav from '@/components/editor/ConstraintCategoryNav.vue'
 import ConstraintPickerToolbar from '@/components/editor/ConstraintPickerToolbar.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 interface ConstraintOption {
   type: string
@@ -144,52 +145,72 @@ function pick(type: string, label: string) {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="emit('close')"
-    >
-      <div class="bg-surface rounded-xl shadow-xl w-full max-w-3xl h-[600px] max-h-[85vh] flex flex-col">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-line shrink-0">
-          <h3 class="font-display font-semibold text-ink-text text-sm">
-            Add Local Constraint
-          </h3>
-          <button
-            class="text-faint hover:text-soft text-lg leading-none"
-            @click="emit('close')"
+  <BaseModal
+    variant="sheet"
+    size="3xl"
+    card-class="sm:h-[600px]"
+    @close="emit('close')"
+  >
+    <div class="flex items-center justify-between px-5 py-4 border-b border-line shrink-0">
+      <h3 class="font-display font-semibold text-ink-text text-sm">
+        Add Local Constraint
+      </h3>
+      <button
+        class="text-faint hover:text-soft text-lg leading-none"
+        @click="emit('close')"
+      >
+        ×
+      </button>
+    </div>
+
+    <div class="flex-1 min-h-0 flex flex-col md:flex-row md:gap-4">
+      <ConstraintCategoryNav
+        v-model="selectedCategory"
+        :groups="GROUPS"
+      />
+
+      <!-- Right: search + sort toolbar, then scrollable grid -->
+      <div class="flex-1 min-w-0 flex flex-col min-h-0">
+        <ConstraintPickerToolbar
+          v-model:search="search"
+          v-model:sort="sortMode"
+        />
+
+        <div class="flex-1 overflow-y-auto px-4 pb-4">
+          <p
+            v-if="filtered.length === 0"
+            class="text-center text-sm text-faint py-10"
           >
-            ×
-          </button>
-        </div>
+            No constraints match your search.
+          </p>
 
-        <div class="flex-1 min-h-0 flex flex-col md:flex-row md:gap-4">
-          <ConstraintCategoryNav
-            v-model="selectedCategory"
-            :groups="GROUPS"
-          />
-
-          <!-- Right: search + sort toolbar, then scrollable grid -->
-          <div class="flex-1 min-w-0 flex flex-col min-h-0">
-            <ConstraintPickerToolbar
-              v-model:search="search"
-              v-model:sort="sortMode"
+          <!-- Alphabetical: one flat grid -->
+          <div
+            v-else-if="sortMode === 'alphabetical'"
+            class="grid grid-cols-3 md:grid-cols-4 gap-2"
+          >
+            <ConstraintTile
+              v-for="opt in alphabetical"
+              :key="opt.type"
+              :type="opt.type"
+              :label="opt.label"
+              :disabled="isDisabled(opt.type)"
+              @pick="pick"
             />
+          </div>
 
-            <div class="flex-1 overflow-y-auto px-4 pb-4">
-              <p
-                v-if="filtered.length === 0"
-                class="text-center text-sm text-faint py-10"
-              >
-                No constraints match your search.
+          <!-- By Category: section header + sub-grid per category -->
+          <template v-else>
+            <section
+              v-for="group in byCategory"
+              :key="group.categoryKey"
+            >
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-faint px-1 mb-1.5 mt-3 first:mt-0">
+                {{ group.categoryLabel }}
               </p>
-
-              <!-- Alphabetical: one flat grid -->
-              <div
-                v-else-if="sortMode === 'alphabetical'"
-                class="grid grid-cols-3 md:grid-cols-4 gap-2"
-              >
+              <div class="grid grid-cols-3 md:grid-cols-4 gap-2">
                 <ConstraintTile
-                  v-for="opt in alphabetical"
+                  v-for="opt in group.items"
                   :key="opt.type"
                   :type="opt.type"
                   :label="opt.label"
@@ -197,32 +218,10 @@ function pick(type: string, label: string) {
                   @pick="pick"
                 />
               </div>
-
-              <!-- By Category: section header + sub-grid per category -->
-              <template v-else>
-                <section
-                  v-for="group in byCategory"
-                  :key="group.categoryKey"
-                >
-                  <p class="text-[10px] font-semibold uppercase tracking-widest text-faint px-1 mb-1.5 mt-3 first:mt-0">
-                    {{ group.categoryLabel }}
-                  </p>
-                  <div class="grid grid-cols-3 md:grid-cols-4 gap-2">
-                    <ConstraintTile
-                      v-for="opt in group.items"
-                      :key="opt.type"
-                      :type="opt.type"
-                      :label="opt.label"
-                      :disabled="isDisabled(opt.type)"
-                      @pick="pick"
-                    />
-                  </div>
-                </section>
-              </template>
-            </div>
-          </div>
+            </section>
+          </template>
         </div>
       </div>
     </div>
-  </Teleport>
+  </BaseModal>
 </template>

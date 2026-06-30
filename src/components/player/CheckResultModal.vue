@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import type { CheckResultEnum } from '@/graphql/generated/types'
 
 const props = defineProps<{
@@ -24,23 +25,19 @@ const display = computed(() => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      data-modal-open
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="emit('close')"
+  <BaseModal
+    size="sm"
+    card-class="p-8 items-center gap-3"
+    @close="emit('close')"
+  >
+    <span class="text-4xl">{{ display.icon }}</span>
+    <span class="text-lg font-display font-semibold text-ink-text">{{ display.title }}</span>
+    <span class="text-sm text-center text-soft">{{ display.text }}</span>
+    <button
+      class="mt-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+      @click="emit('close')"
     >
-      <div class="bg-surface rounded-2xl shadow-xl p-8 flex flex-col items-center gap-3 w-80">
-        <span class="text-4xl">{{ display.icon }}</span>
-        <span class="text-lg font-display font-semibold text-ink-text">{{ display.title }}</span>
-        <span class="text-sm text-center text-soft">{{ display.text }}</span>
-        <button
-          class="mt-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
-          @click="emit('close')"
-        >
-          Keep solving
-        </button>
-      </div>
-    </div>
-  </Teleport>
+      Keep solving
+    </button>
+  </BaseModal>
 </template>

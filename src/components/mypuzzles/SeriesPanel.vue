@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
@@ -7,18 +6,14 @@ import RowMeta from './RowMeta.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import { SERIES_VISIBILITY_OPTIONS } from '@/constants/visibility'
 import MySeriesDocument from '@/graphql/gql/series/queries/MySeries.graphql'
-import CreateSeriesDocument from '@/graphql/gql/series/mutations/CreateSeries.graphql'
 import UpdateSeriesDocument from '@/graphql/gql/series/mutations/UpdateSeries.graphql'
 import type {
   MySeriesQuery,
-  CreateSeriesMutation, CreateSeriesMutationVariables,
   UpdateSeriesMutation, UpdateSeriesMutationVariables,
 } from '@/graphql/generated/types'
 import { SeriesVisibilityEnum } from '@/graphql/generated/types'
 
 type MySeriesEntry = MySeriesQuery['mySeries']['nodes'][number]
-
-const router = useRouter()
 
 const list = useFilterableList<MySeriesQuery, MySeriesEntry>({
   query: MySeriesDocument,
@@ -30,14 +25,6 @@ function subtext(s: MySeriesEntry) {
   if (s.avgRating) bits.push(`★ ${s.avgRating.toFixed(1)}`)
   if (s.solveCount) bits.push(`${s.solveCount} solve${s.solveCount === 1 ? '' : 's'}`)
   return bits.join(' · ')
-}
-
-async function createSeries() {
-  const title = window.prompt('New series title')?.trim()
-  if (!title) return
-  const { data } = await apolloClient.mutate<CreateSeriesMutation, CreateSeriesMutationVariables>({ mutation: CreateSeriesDocument, variables: { title } })
-  const created = data?.createSeries?.series
-  if (created) router.push({ name: 'series-detail', params: { id: created.id } })
 }
 
 async function changeVisibility(series: MySeriesEntry, visibility: string) {
@@ -57,14 +44,7 @@ async function changeVisibility(series: MySeriesEntry, visibility: string) {
       v-model:visibilities="list.visibilities.value"
       v-model:constraint-types="list.constraintTypes.value"
       :visibility-options="SERIES_VISIBILITY_OPTIONS"
-    >
-      <button
-        class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep shrink-0"
-        @click="createSeries"
-      >
-        New series
-      </button>
-    </ListToolbar>
+    />
 
     <p
       v-if="list.loading.value"

@@ -53,8 +53,13 @@ function toggleGridSize(value: string) {
 }
 </script>
 
+<!--
+  The facet controls for the puzzle archive. Rendered chrome-less (no width /
+  sidebar wrapper) so FilterPanel can place it in either the desktop sidebar or
+  the mobile filter sheet.
+-->
 <template>
-  <aside class="w-56 shrink-0 flex flex-col gap-4">
+  <div class="flex flex-col gap-4">
     <FacetSelect
       v-model="timeRange"
       label="Published"
@@ -139,5 +144,5 @@ function toggleGridSize(value: string) {
       :options="MY_STATUS_OPTIONS"
       any-label="Any"
     />
-  </aside>
+  </div>
 </template>

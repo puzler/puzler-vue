@@ -97,7 +97,7 @@ usePageTour({ ready: computed(() => !loading.value && !!user.value) })
 
 <template>
   <ContentPage>
-    <div class="p-8 w-full max-w-5xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 w-full max-w-5xl mx-auto">
       <p
         v-if="loading"
         class="text-soft"

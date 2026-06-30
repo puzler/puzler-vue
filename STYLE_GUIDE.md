@@ -83,11 +83,35 @@ ink: white primary, `#9AA3B8` secondary.
   label `text-ink-text font-semibold`, inactive `text-soft`; labels are
   clickable to jump directly to a mode. Track uses `role="switch"` +
   `aria-checked`. Lives centered in the puzzle toolbar.
-- **Modals**: `bg-surface rounded-xl shadow-xl`, title in `font-display`
-  semibold, overlay `bg-black/40`.
+- **Modals**: use `BaseModal` (`components/ui/BaseModal.vue`) — never hand-roll
+  the Teleport/backdrop. `variant="center"` for small dialogs, `variant="sheet"`
+  for content-heavy ones (full-screen on mobile, centered card on desktop). Card
+  is `bg-surface rounded-2xl shadow-xl`, title in `font-display` semibold,
+  overlay `bg-black/40`.
 - **Grid**: white surface on `canvas` bg; heavy lines `ink-text`; light lines
   `#D8D4CA`; selected cells `spark-tint` fill with `spark` edge; given digits
   `ink-text`; entered digits `action`.
+
+## Responsive / mobile-first
+
+The app must work well on phones. Design and **verify** every view, modal, and
+tab at mobile widths (≤430px) before it's done — not as a retrofit.
+
+- **Breakpoint:** `md:` (768px) is the canonical mobile↔desktop line (matches the
+  `useIsMobile` composable). Prefer pure-CSS visibility (`hidden md:flex` /
+  `md:hidden`) over JS layout swaps — `useIsMobile` is `onMounted`-gated and
+  flashes the wrong layout on first paint.
+- **Page padding:** `p-4 sm:p-6 lg:p-8` — never a bare `p-8`.
+- **Primitives (don't reinvent):**
+  - `ui/BaseModal` — modal chrome with `center`/`sheet` variants + `size`
+    presets; never hard-code a `w-NN` wider than ~320px.
+  - `ui/FilterSheet` — slide-up bottom sheet for mobile-only secondary UI.
+  - `ui/FilterPanel` — a list page's filters from one slot: desktop sidebar +
+    mobile sheet.
+  - `listing/MobileFilterButton` — the `md:hidden` trigger that opens the sheet.
+  - **Tab bars:** `overflow-x-auto whitespace-nowrap` so they scroll, never wrap.
+- **Verify** with the preview MCP at 320 / 375 / 390 / 430 and the 768 boundary:
+  no horizontal overflow (`scrollWidth <= innerWidth`) and screenshot.
 
 ## Motion
 

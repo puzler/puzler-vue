@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { mdiStar, mdiStarOutline } from '@mdi/js'
 import DifficultyPips from '@/components/DifficultyPips.vue'
@@ -50,72 +51,68 @@ watch([stars, difficulty], async () => {
 </script>
 
 <template>
-  <Teleport to="body">
+  <BaseModal
+    size="sm"
+    card-class="p-8 items-center gap-3"
+    @close="$emit('close')"
+  >
+    <span class="text-2xl">🎉</span>
+    <span class="text-lg font-semibold text-ink-text">Solved!</span>
+    <span
+      class="text-sm text-center whitespace-pre-line"
+      :class="solveMessage ? 'text-ink-text' : 'text-faint'"
+    >{{ solveMessage || `Nicely done! You completed “${title}”.` }}</span>
+
     <div
-      data-modal-open
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="$emit('close')"
+      v-if="rating.canRate && rating.puzzleId"
+      class="w-full mt-2 pt-3 border-t border-line flex flex-col items-center gap-2"
     >
-      <div class="bg-surface rounded-2xl shadow-xl p-8 flex flex-col items-center gap-3 w-80">
-        <span class="text-2xl">🎉</span>
-        <span class="text-lg font-semibold text-ink-text">Solved!</span>
-        <span
-          class="text-sm text-center whitespace-pre-line"
-          :class="solveMessage ? 'text-ink-text' : 'text-faint'"
-        >{{ solveMessage || `Nicely done! You completed “${title}”.` }}</span>
-
-        <div
-          v-if="rating.canRate && rating.puzzleId"
-          class="w-full mt-2 pt-3 border-t border-line flex flex-col items-center gap-2"
-        >
-          <span class="text-xs font-semibold uppercase tracking-widest text-soft">
-            {{ saved ? 'Thanks for rating!' : 'Rate this puzzle' }}
-          </span>
-          <div class="flex items-center gap-0.5">
-            <button
-              v-for="value in STARS"
-              :key="value"
-              type="button"
-              class="text-amber-500 hover:scale-110 transition-transform"
-              :title="`${value} star${value === 1 ? '' : 's'}`"
-              @click="pickStars(value)"
-            >
-              <MdiIcon
-                :path="stars && value <= stars ? mdiStar : mdiStarOutline"
-                :size="20"
-              />
-            </button>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-soft">Difficulty</span>
-            <DifficultyPips
-              v-model="difficulty"
-              :size="16"
-            />
-          </div>
-        </div>
-
+      <span class="text-xs font-semibold uppercase tracking-widest text-soft">
+        {{ saved ? 'Thanks for rating!' : 'Rate this puzzle' }}
+      </span>
+      <div class="flex items-center gap-0.5">
         <button
-          v-if="inCollection && hasNext"
-          class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
-          @click="$emit('next')"
+          v-for="value in STARS"
+          :key="value"
+          type="button"
+          class="text-amber-500 hover:scale-110 transition-transform"
+          :title="`${value} star${value === 1 ? '' : 's'}`"
+          @click="pickStars(value)"
         >
-          Next puzzle →
-        </button>
-        <button
-          v-else-if="inCollection"
-          class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
-          @click="$emit('back')"
-        >
-          Back to {{ collectionTitle || 'collection' }}
-        </button>
-        <button
-          class="text-sm text-soft hover:text-ink-text"
-          @click="$emit('close')"
-        >
-          Keep looking
+          <MdiIcon
+            :path="stars && value <= stars ? mdiStar : mdiStarOutline"
+            :size="20"
+          />
         </button>
       </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-soft">Difficulty</span>
+        <DifficultyPips
+          v-model="difficulty"
+          :size="16"
+        />
+      </div>
     </div>
-  </Teleport>
+
+    <button
+      v-if="inCollection && hasNext"
+      class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+      @click="$emit('next')"
+    >
+      Next puzzle →
+    </button>
+    <button
+      v-else-if="inCollection"
+      class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+      @click="$emit('back')"
+    >
+      Back to {{ collectionTitle || 'collection' }}
+    </button>
+    <button
+      class="text-sm text-soft hover:text-ink-text"
+      @click="$emit('close')"
+    >
+      Keep looking
+    </button>
+  </BaseModal>
 </template>

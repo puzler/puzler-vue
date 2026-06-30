@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
+import MobileFilterButton from '@/components/listing/MobileFilterButton.vue'
+import FilterPanel from '@/components/ui/FilterPanel.vue'
 import ArchiveFilterSidebar from './ArchiveFilterSidebar.vue'
 import ArchivePuzzleCard from './ArchivePuzzleCard.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
@@ -20,22 +22,43 @@ const list = useFilterableList<PuzzlesQuery, ArchivePuzzle>({
 })
 
 const hasResults = computed(() => list.nodes.value.length > 0)
+
+const filtersOpen = ref(false)
+// Count of applied facets, shown as a badge on the mobile Filters trigger.
+const activeFilters = computed(() => {
+  let n = 0
+  if (list.timeRange.value) n++
+  if (list.setterTier.value) n++
+  n += list.difficulties.value.length
+  if (list.minRating.value) n++
+  if (list.myStatus.value) n++
+  if (list.featured.value) n++
+  n += list.tags.value.length
+  n += list.gridSizes.value.length
+  return n
+})
 </script>
 
 <template>
   <div class="flex gap-6">
-    <ArchiveFilterSidebar
-      v-model:time-range="list.timeRange.value"
-      v-model:setter-tier="list.setterTier.value"
-      v-model:difficulties="list.difficulties.value"
-      v-model:min-rating="list.minRating.value"
-      v-model:my-status="list.myStatus.value"
-      v-model:featured="list.featured.value"
-      v-model:tags="list.tags.value"
-      v-model:grid-sizes="list.gridSizes.value"
-      data-tour="archive-filters"
-      :show-my-status="auth.isAuthenticated"
-    />
+    <FilterPanel
+      :open="filtersOpen"
+      title="Filters"
+      tour="archive-filters"
+      @close="filtersOpen = false"
+    >
+      <ArchiveFilterSidebar
+        v-model:time-range="list.timeRange.value"
+        v-model:setter-tier="list.setterTier.value"
+        v-model:difficulties="list.difficulties.value"
+        v-model:min-rating="list.minRating.value"
+        v-model:my-status="list.myStatus.value"
+        v-model:featured="list.featured.value"
+        v-model:tags="list.tags.value"
+        v-model:grid-sizes="list.gridSizes.value"
+        :show-my-status="auth.isAuthenticated"
+      />
+    </FilterPanel>
 
     <div class="flex-1 min-w-0">
       <ListToolbar
@@ -45,7 +68,14 @@ const hasResults = computed(() => list.nodes.value.length > 0)
         v-model:constraint-types="list.constraintTypes.value"
         data-tour="archive-toolbar"
         :supports-constraints="true"
-      />
+      >
+        <template #lead>
+          <MobileFilterButton
+            :count="activeFilters"
+            @open="filtersOpen = true"
+          />
+        </template>
+      </ListToolbar>
 
       <p
         v-if="list.loading.value"

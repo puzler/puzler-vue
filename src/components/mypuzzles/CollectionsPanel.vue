@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { mdiFolderOutline } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
 import FolderSidebar from './FolderSidebar.vue'
 import FolderSelect from './FolderSelect.vue'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
+import MobileFilterButton from '@/components/listing/MobileFilterButton.vue'
+import FilterPanel from '@/components/ui/FilterPanel.vue'
 import RowMeta from './RowMeta.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import type { FolderNode } from './folderTree'
@@ -13,20 +15,16 @@ import { COLLECTION_VISIBILITY_OPTIONS } from '@/constants/visibility'
 import MyCollectionsDocument from '@/graphql/gql/collections/queries/MyCollections.graphql'
 import MyFolderTreeDocument from '@/graphql/gql/collections/queries/MyFolderTree.graphql'
 import MyFoldersDocument from '@/graphql/gql/collections/queries/MyFolders.graphql'
-import CreateCollectionDocument from '@/graphql/gql/collections/mutations/CreateCollection.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import MoveCollectionToFolderDocument from '@/graphql/gql/collections/mutations/MoveCollectionToFolder.graphql'
 import type {
   MyCollectionsQuery, MyFolderTreeQuery, MyFolderTreeQueryVariables, MyFoldersQuery, MyFoldersQueryVariables,
-  CreateCollectionMutation, CreateCollectionMutationVariables,
   UpdateCollectionMutation, UpdateCollectionMutationVariables,
   MoveCollectionToFolderMutation, MoveCollectionToFolderMutationVariables,
 } from '@/graphql/generated/types'
 import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 type MyCollection = MyCollectionsQuery['myCollections']['nodes'][number]
-
-const router = useRouter()
 
 const list = useFilterableList<MyCollectionsQuery, MyCollection>({
   query: MyCollectionsDocument,
@@ -36,6 +34,8 @@ const list = useFilterableList<MyCollectionsQuery, MyCollection>({
 
 const tree = ref<FolderNode[]>([])
 const flatFolders = ref<MyFoldersQuery['myFolders']>([])
+const foldersOpen = ref(false)
+const folderActive = computed(() => (list.folderId.value !== 'all' ? 1 : 0))
 
 async function loadFolders() {
   const [t, f] = await Promise.all([
@@ -51,14 +51,6 @@ function subtext(c: MyCollection) {
   if (c.avgRating) bits.push(`★ ${c.avgRating.toFixed(1)}`)
   if (c.solveCount) bits.push(`${c.solveCount} solve${c.solveCount === 1 ? '' : 's'}`)
   return bits.join(' · ')
-}
-
-async function createCollection() {
-  const title = window.prompt('New collection title')?.trim()
-  if (!title) return
-  const { data } = await apolloClient.mutate<CreateCollectionMutation, CreateCollectionMutationVariables>({ mutation: CreateCollectionDocument, variables: { title } })
-  const created = data?.createCollection?.collection
-  if (created) router.push({ name: 'collection-detail', params: { id: created.id } })
 }
 
 async function changeVisibility(collection: MyCollection, visibility: string) {
@@ -80,14 +72,20 @@ onMounted(loadFolders)
 
 <template>
   <div class="flex gap-6">
-    <FolderSidebar
-      :tree="tree"
-      :selected-id="list.folderId.value"
-      noun="collections"
-      count-key="collectionCount"
-      @select="list.folderId.value = $event"
-      @changed="loadFolders"
-    />
+    <FilterPanel
+      :open="foldersOpen"
+      title="Folders"
+      @close="foldersOpen = false"
+    >
+      <FolderSidebar
+        :tree="tree"
+        :selected-id="list.folderId.value"
+        noun="collections"
+        count-key="collectionCount"
+        @select="list.folderId.value = $event; foldersOpen = false"
+        @changed="loadFolders"
+      />
+    </FilterPanel>
 
     <div class="flex-1 min-w-0">
       <ListToolbar
@@ -98,12 +96,14 @@ onMounted(loadFolders)
         v-model:constraint-types="list.constraintTypes.value"
         :visibility-options="COLLECTION_VISIBILITY_OPTIONS"
       >
-        <button
-          class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep shrink-0"
-          @click="createCollection"
-        >
-          New collection
-        </button>
+        <template #lead>
+          <MobileFilterButton
+            label="Folders"
+            :icon="mdiFolderOutline"
+            :count="folderActive"
+            @open="foldersOpen = true"
+          />
+        </template>
       </ListToolbar>
 
       <p

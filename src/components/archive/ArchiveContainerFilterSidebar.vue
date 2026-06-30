@@ -12,8 +12,12 @@ const setterTier = defineModel<SetterTierEnum | null>('setterTier', { required: 
 const minRating = defineModel<number | null>('minRating', { required: true })
 </script>
 
+<!--
+  Trimmed facet controls for the collection/series archive tabs, rendered
+  chrome-less so FilterPanel can place them in the desktop sidebar or mobile sheet.
+-->
 <template>
-  <aside class="w-56 shrink-0 flex flex-col gap-4">
+  <div class="flex flex-col gap-4">
     <FacetSelect
       v-model="timeRange"
       label="Released"
@@ -32,5 +36,5 @@ const minRating = defineModel<number | null>('minRating', { required: true })
       :options="MIN_RATING_OPTIONS"
       any-label="Any rating"
     />
-  </aside>
+  </div>
 </template>

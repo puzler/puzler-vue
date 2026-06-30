@@ -87,8 +87,13 @@ provide(FOLDER_TREE_KEY, {
 })
 </script>
 
+<!--
+  The folder tree controls for My Puzzles / My Collections. Rendered chrome-less
+  (no width / sidebar wrapper) so FilterPanel can place it in the desktop sidebar
+  or the mobile "Folders" sheet.
+-->
 <template>
-  <aside class="w-56 shrink-0 flex flex-col gap-1">
+  <div class="flex flex-col gap-1">
     <button
       :class="[ITEM, itemClass('all')]"
       title="Drop a folder here to move it to the top level"
@@ -140,5 +145,5 @@ provide(FOLDER_TREE_KEY, {
       @confirm="confirmDelete"
       @cancel="deleteTarget = null"
     />
-  </aside>
+  </div>
 </template>

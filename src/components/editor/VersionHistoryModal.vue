@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { mdiRestore, mdiPencilOutline, mdiTrashCanOutline, mdiCheckCircle, mdiStarCircle } from '@mdi/js'
 
@@ -45,100 +46,97 @@ function rename(id: string, current: string | null) {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="emit('close')"
+  <BaseModal
+    size="sm"
+    card-class="p-6 gap-4"
+    @close="emit('close')"
+  >
+    <span class="text-sm font-semibold text-ink-text">Version history</span>
+
+    <p
+      v-if="error"
+      class="text-xs text-red-600"
     >
-      <div class="bg-surface rounded-2xl shadow-xl p-6 w-96 max-h-[80vh] flex flex-col gap-4">
-        <span class="text-sm font-semibold text-ink-text">Version history</span>
+      {{ error }}
+    </p>
 
-        <p
-          v-if="error"
-          class="text-xs text-red-600"
+    <p
+      v-if="!ordered.length"
+      class="text-sm text-faint"
+    >
+      No saved versions yet. Hit Save to create v1.
+    </p>
+
+    <ul
+      v-else
+      class="flex flex-col gap-2 overflow-y-auto"
+    >
+      <li
+        v-for="version in ordered"
+        :key="version.id"
+        class="flex items-center gap-2 px-3 py-2 rounded-xl border"
+        :class="version.id === puzzle.currentVersionId
+          ? 'border-action bg-action-tint'
+          : 'border-line'"
+      >
+        <div class="flex flex-col min-w-0 flex-1">
+          <span class="text-sm font-medium text-ink-text truncate flex items-center gap-1">
+            {{ version.displayName }}
+            <MdiIcon
+              v-if="version.isPublished"
+              :path="mdiStarCircle"
+              :size="14"
+              class="text-action shrink-0"
+              title="Published version"
+            />
+            <MdiIcon
+              v-else-if="version.id === puzzle.currentVersionId"
+              :path="mdiCheckCircle"
+              :size="14"
+              class="text-action shrink-0"
+              title="Currently loaded"
+            />
+          </span>
+          <span class="text-xs text-faint">{{ formatDate(version.createdAt) }}</span>
+        </div>
+
+        <button
+          title="Restore into editor"
+          aria-label="Restore"
+          class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-action hover:bg-action-tint transition-colors disabled:opacity-40"
+          :disabled="busy"
+          @click="restore(version.id)"
         >
-          {{ error }}
-        </p>
-
-        <p
-          v-if="!ordered.length"
-          class="text-sm text-faint"
+          <MdiIcon
+            :path="mdiRestore"
+            :size="16"
+          />
+        </button>
+        <button
+          title="Rename"
+          aria-label="Rename"
+          class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-action hover:bg-action-tint transition-colors disabled:opacity-40"
+          :disabled="busy"
+          @click="rename(version.id, version.label ?? null)"
         >
-          No saved versions yet. Hit Save to create v1.
-        </p>
-
-        <ul
-          v-else
-          class="flex flex-col gap-2 overflow-y-auto"
+          <MdiIcon
+            :path="mdiPencilOutline"
+            :size="16"
+          />
+        </button>
+        <button
+          title="Delete"
+          aria-label="Delete"
+          class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30"
+          :disabled="busy || version.isPublished"
+          @click="remove(version.id)"
         >
-          <li
-            v-for="version in ordered"
-            :key="version.id"
-            class="flex items-center gap-2 px-3 py-2 rounded-xl border"
-            :class="version.id === puzzle.currentVersionId
-              ? 'border-action bg-action-tint'
-              : 'border-line'"
-          >
-            <div class="flex flex-col min-w-0 flex-1">
-              <span class="text-sm font-medium text-ink-text truncate flex items-center gap-1">
-                {{ version.displayName }}
-                <MdiIcon
-                  v-if="version.isPublished"
-                  :path="mdiStarCircle"
-                  :size="14"
-                  class="text-action shrink-0"
-                  title="Published version"
-                />
-                <MdiIcon
-                  v-else-if="version.id === puzzle.currentVersionId"
-                  :path="mdiCheckCircle"
-                  :size="14"
-                  class="text-action shrink-0"
-                  title="Currently loaded"
-                />
-              </span>
-              <span class="text-xs text-faint">{{ formatDate(version.createdAt) }}</span>
-            </div>
-
-            <button
-              title="Restore into editor"
-              aria-label="Restore"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-action hover:bg-action-tint transition-colors disabled:opacity-40"
-              :disabled="busy"
-              @click="restore(version.id)"
-            >
-              <MdiIcon
-                :path="mdiRestore"
-                :size="16"
-              />
-            </button>
-            <button
-              title="Rename"
-              aria-label="Rename"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-action hover:bg-action-tint transition-colors disabled:opacity-40"
-              :disabled="busy"
-              @click="rename(version.id, version.label ?? null)"
-            >
-              <MdiIcon
-                :path="mdiPencilOutline"
-                :size="16"
-              />
-            </button>
-            <button
-              title="Delete"
-              aria-label="Delete"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-soft hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30"
-              :disabled="busy || version.isPublished"
-              @click="remove(version.id)"
-            >
-              <MdiIcon
-                :path="mdiTrashCanOutline"
-                :size="16"
-              />
-            </button>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </Teleport>
+          <MdiIcon
+            :path="mdiTrashCanOutline"
+            :size="16"
+          />
+        </button>
+      </li>
+    </ul>
+  </BaseModal>
 </template>

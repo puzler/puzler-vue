@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
+import MobileFilterButton from '@/components/listing/MobileFilterButton.vue'
+import FilterPanel from '@/components/ui/FilterPanel.vue'
 import ArchiveContainerFilterSidebar from './ArchiveContainerFilterSidebar.vue'
 import ArchiveSeriesCard from './ArchiveSeriesCard.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
@@ -16,15 +18,26 @@ const list = useFilterableList<PublicSeriesQuery, ArchiveSeries>({
 })
 
 const hasResults = computed(() => list.nodes.value.length > 0)
+
+const filtersOpen = ref(false)
+const activeFilters = computed(() =>
+  (list.timeRange.value ? 1 : 0) + (list.setterTier.value ? 1 : 0) + (list.minRating.value ? 1 : 0),
+)
 </script>
 
 <template>
   <div class="flex gap-6">
-    <ArchiveContainerFilterSidebar
-      v-model:time-range="list.timeRange.value"
-      v-model:setter-tier="list.setterTier.value"
-      v-model:min-rating="list.minRating.value"
-    />
+    <FilterPanel
+      :open="filtersOpen"
+      title="Filters"
+      @close="filtersOpen = false"
+    >
+      <ArchiveContainerFilterSidebar
+        v-model:time-range="list.timeRange.value"
+        v-model:setter-tier="list.setterTier.value"
+        v-model:min-rating="list.minRating.value"
+      />
+    </FilterPanel>
 
     <div class="flex-1 min-w-0">
       <ListToolbar
@@ -33,7 +46,14 @@ const hasResults = computed(() => list.nodes.value.length > 0)
         v-model:match-mode="list.matchMode.value"
         v-model:constraint-types="list.constraintTypes.value"
         :supports-constraints="false"
-      />
+      >
+        <template #lead>
+          <MobileFilterButton
+            :count="activeFilters"
+            @open="filtersOpen = true"
+          />
+        </template>
+      </ListToolbar>
 
       <p
         v-if="list.loading.value"

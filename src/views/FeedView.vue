@@ -46,7 +46,7 @@ onMounted(load)
 
 <template>
   <ContentPage>
-    <div class="p-8 max-w-2xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto">
       <h1
         data-tour="feed-intro"
         class="font-display text-2xl font-bold"

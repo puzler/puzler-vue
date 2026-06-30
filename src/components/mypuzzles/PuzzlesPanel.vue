@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { mdiFolderOutline } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import FolderSidebar from './FolderSidebar.vue'
 import MyPuzzleRow from './MyPuzzleRow.vue'
 import ListToolbar from '@/components/listing/ListToolbar.vue'
 import ListPagination from '@/components/listing/ListPagination.vue'
+import MobileFilterButton from '@/components/listing/MobileFilterButton.vue'
+import FilterPanel from '@/components/ui/FilterPanel.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import type { FolderNode } from './folderTree'
 import { PUZZLE_VISIBILITY_OPTIONS, PUZZLE_VISIBILITY_FILTER_OPTIONS } from '@/constants/visibility'
@@ -35,6 +38,9 @@ const list = useFilterableList<MyPuzzlesQuery, MyPuzzle>({
 const tree = ref<FolderNode[]>([])
 const flatFolders = ref<MyFoldersQuery['myFolders']>([])
 const deleteTarget = ref<MyPuzzle | null>(null)
+const foldersOpen = ref(false)
+// "all" is the default (no folder filter); anything else counts as active.
+const folderActive = computed(() => (list.folderId.value !== 'all' ? 1 : 0))
 
 async function loadFolders() {
   const [t, f] = await Promise.all([
@@ -79,15 +85,21 @@ onMounted(loadFolders)
 
 <template>
   <div class="flex gap-6">
-    <FolderSidebar
-      data-tour="mypuzzles-folders"
-      :tree="tree"
-      :selected-id="list.folderId.value"
-      noun="puzzles"
-      count-key="puzzleCount"
-      @select="list.folderId.value = $event"
-      @changed="loadFolders"
-    />
+    <FilterPanel
+      :open="foldersOpen"
+      title="Folders"
+      tour="mypuzzles-folders"
+      @close="foldersOpen = false"
+    >
+      <FolderSidebar
+        :tree="tree"
+        :selected-id="list.folderId.value"
+        noun="puzzles"
+        count-key="puzzleCount"
+        @select="list.folderId.value = $event; foldersOpen = false"
+        @changed="loadFolders"
+      />
+    </FilterPanel>
 
     <div class="flex-1 min-w-0">
       <ListToolbar
@@ -98,7 +110,16 @@ onMounted(loadFolders)
         v-model:constraint-types="list.constraintTypes.value"
         :supports-constraints="true"
         :visibility-options="PUZZLE_VISIBILITY_FILTER_OPTIONS"
-      />
+      >
+        <template #lead>
+          <MobileFilterButton
+            label="Folders"
+            :icon="mdiFolderOutline"
+            :count="folderActive"
+            @open="foldersOpen = true"
+          />
+        </template>
+      </ListToolbar>
 
       <p
         v-if="list.loading.value"

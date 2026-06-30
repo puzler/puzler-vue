@@ -99,7 +99,7 @@ onMounted(load)
 
 <template>
   <ContentPage>
-    <div class="p-8 max-w-2xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto">
       <RouterLink
         :to="{ name: 'my-puzzles' }"
         class="text-sm text-soft hover:text-action"

@@ -6,6 +6,7 @@ import { ref, computed, onMounted } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { useSolveSessionStore } from '@/stores/solveSession'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import CopyField from '@/components/player/CopyField.vue'
 import JoinSessionForm from '@/components/player/JoinSessionForm.vue'
 import RevokePlaySessionDocument from '@/graphql/gql/puzzles/mutations/RevokePlaySession.graphql'
@@ -65,81 +66,77 @@ onMounted(() => generate())
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      data-modal-open
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="emit('close')"
-    >
-      <div class="bg-surface rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
-        <div class="px-6 pt-5 pb-4 border-b border-line flex items-center justify-between">
-          <h2 class="font-display text-lg font-semibold text-ink-text">
-            Collaborate
-          </h2>
-          <button
-            class="text-faint hover:text-soft text-xl leading-none"
-            aria-label="Close"
-            @click="emit('close')"
-          >
-            ×
-          </button>
-        </div>
-
-        <div class="px-6 py-4 flex flex-col gap-5">
-          <!-- Share section (owner only) -->
-          <section
-            v-if="canShare"
-            class="flex flex-col gap-3"
-          >
-            <p class="text-[11px] font-semibold uppercase tracking-widest text-soft">
-              Invite collaborators
-            </p>
-            <p
-              v-if="error"
-              class="text-xs text-red-500"
-            >
-              {{ error }}
-            </p>
-
-            <template v-if="token">
-              <div :class="player.settings.hideShareToken ? 'flex items-center gap-2' : 'flex flex-col gap-3'">
-                <CopyField
-                  label="Share link"
-                  :value="shareLink"
-                  :hide-value="player.settings.hideShareToken"
-                />
-                <CopyField
-                  label="Token"
-                  :value="token"
-                  mono
-                  :hide-value="player.settings.hideShareToken"
-                />
-              </div>
-
-              <label class="flex items-center gap-2 text-sm text-ink-text">
-                <input
-                  type="checkbox"
-                  :checked="singleUse"
-                  :disabled="busy"
-                  @change="generate(!singleUse)"
-                >
-                Single-use (locks to the first person who joins)
-              </label>
-
-              <button
-                class="self-start text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
-                :disabled="busy"
-                @click="revoke"
-              >
-                Revoke &amp; remove collaborators
-              </button>
-            </template>
-          </section>
-
-          <!-- Join section (anyone) -->
-          <JoinSessionForm @joined="emit('close')" />
-        </div>
-      </div>
+  <BaseModal
+    variant="sheet"
+    size="md"
+    @close="emit('close')"
+  >
+    <div class="px-6 pt-5 pb-4 border-b border-line flex items-center justify-between shrink-0">
+      <h2 class="font-display text-lg font-semibold text-ink-text">
+        Collaborate
+      </h2>
+      <button
+        class="text-faint hover:text-soft text-xl leading-none"
+        aria-label="Close"
+        @click="emit('close')"
+      >
+        ×
+      </button>
     </div>
-  </Teleport>
+
+    <div class="px-6 py-4 flex flex-col gap-5 flex-1 min-h-0 overflow-y-auto">
+      <!-- Share section (owner only) -->
+      <section
+        v-if="canShare"
+        class="flex flex-col gap-3"
+      >
+        <p class="text-[11px] font-semibold uppercase tracking-widest text-soft">
+          Invite collaborators
+        </p>
+        <p
+          v-if="error"
+          class="text-xs text-red-500"
+        >
+          {{ error }}
+        </p>
+
+        <template v-if="token">
+          <div :class="player.settings.hideShareToken ? 'flex items-center gap-2' : 'flex flex-col gap-3'">
+            <CopyField
+              label="Share link"
+              :value="shareLink"
+              :hide-value="player.settings.hideShareToken"
+            />
+            <CopyField
+              label="Token"
+              :value="token"
+              mono
+              :hide-value="player.settings.hideShareToken"
+            />
+          </div>
+
+          <label class="flex items-center gap-2 text-sm text-ink-text">
+            <input
+              type="checkbox"
+              :checked="singleUse"
+              :disabled="busy"
+              @change="generate(!singleUse)"
+            >
+            Single-use (locks to the first person who joins)
+          </label>
+
+          <button
+            class="self-start text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+            :disabled="busy"
+            @click="revoke"
+          >
+            Revoke &amp; remove collaborators
+          </button>
+        </template>
+      </section>
+
+      <!-- Join section (anyone) -->
+      <JoinSessionForm @joined="emit('close')" />
+    </div>
+  </BaseModal>
 </template>

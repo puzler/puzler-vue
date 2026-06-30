@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const props = defineProps<{
   rules: string
@@ -27,55 +28,52 @@ function save() {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="emit('close')"
-    >
-      <div class="bg-surface rounded-xl shadow-xl w-full max-w-xl p-6 flex flex-col gap-4">
-        <div class="flex gap-1">
-          <button
-            :class="[TAB, tab === 'rules' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
-            @click="tab = 'rules'"
-          >
-            Rules
-          </button>
-          <button
-            :class="[TAB, tab === 'solve' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
-            @click="tab = 'solve'"
-          >
-            Solve Message
-          </button>
-        </div>
-        <textarea
-          v-show="tab === 'rules'"
-          v-model="rulesDraft"
-          rows="13"
-          placeholder="Describe how this puzzle is solved — normal sudoku rules plus any variant constraints…"
-          class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
-        />
-        <textarea
-          v-show="tab === 'solve'"
-          v-model="solveDraft"
-          rows="13"
-          placeholder="Shown when the puzzle is solved (leave blank for the default). Handy for puzzle-hunt clues — it stays hidden until a correct solve."
-          class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
-        />
-        <div class="flex gap-2 justify-end">
-          <button
-            class="px-4 py-1.5 rounded-lg text-sm text-soft hover:bg-paper transition-colors"
-            @click="emit('close')"
-          >
-            Cancel
-          </button>
-          <button
-            class="px-4 py-1.5 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors"
-            @click="save"
-          >
-            Save
-          </button>
-        </div>
-      </div>
+  <BaseModal
+    size="xl"
+    card-class="p-6 gap-4"
+    @close="emit('close')"
+  >
+    <div class="flex gap-1">
+      <button
+        :class="[TAB, tab === 'rules' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
+        @click="tab = 'rules'"
+      >
+        Rules
+      </button>
+      <button
+        :class="[TAB, tab === 'solve' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
+        @click="tab = 'solve'"
+      >
+        Solve Message
+      </button>
     </div>
-  </Teleport>
+    <textarea
+      v-show="tab === 'rules'"
+      v-model="rulesDraft"
+      rows="13"
+      placeholder="Describe how this puzzle is solved — normal sudoku rules plus any variant constraints…"
+      class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
+    />
+    <textarea
+      v-show="tab === 'solve'"
+      v-model="solveDraft"
+      rows="13"
+      placeholder="Shown when the puzzle is solved (leave blank for the default). Handy for puzzle-hunt clues — it stays hidden until a correct solve."
+      class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
+    />
+    <div class="flex gap-2 justify-end">
+      <button
+        class="px-4 py-1.5 rounded-lg text-sm text-soft hover:bg-paper transition-colors"
+        @click="emit('close')"
+      >
+        Cancel
+      </button>
+      <button
+        class="px-4 py-1.5 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors"
+        @click="save"
+      >
+        Save
+      </button>
+    </div>
+  </BaseModal>
 </template>

@@ -1,6 +1,6 @@
 <template>
   <ContentPage>
-    <div class="h-full flex items-center justify-center p-8">
+    <div class="h-full flex items-center justify-center p-4 sm:p-8">
       <div class="w-full max-w-sm">
         <h1 class="font-display text-2xl font-bold mb-2 text-center">
           Reset password

@@ -43,7 +43,15 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: app/coverage/
+          if-no-files-found: ignore
 
       # Catches build-only breakage (Vite/Rollup/codegen artifacts) before
       # Render attempts the same build on deploy.

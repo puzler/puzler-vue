@@ -19,7 +19,11 @@ import DigitLayer from './DigitLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
 import type { CellState, GridMode } from '@/types/grid'
 
-defineProps<{
+// `interactive` must default to true via withDefaults, NOT be left implicit: it
+// is a Boolean prop, and an absent Boolean prop casts to `false` in Vue. Giving
+// it an explicit default suppresses that cast, so any consumer can safely omit
+// it and still get an interactive grid; only a static render opts out.
+withDefaults(defineProps<{
   mode: GridMode
   givenDigits: Record<string, number>
   selection: Set<string>
@@ -27,7 +31,9 @@ defineProps<{
   // Set false for a static render (e.g. a description-page thumbnail): drops the
   // input layer so the grid is purely visual. Defaults to interactive.
   interactive?: boolean
-}>()
+}>(), {
+  interactive: true,
+})
 
 const emit = defineEmits<{
   'update:selection': [sel: Set<string>]
@@ -83,7 +89,7 @@ const viewBox = computed(() => {
     />
     <OuterCluesLayer />
     <InteractionLayer
-      v-if="interactive !== false"
+      v-if="interactive"
       :svg-ref="svgEl"
       :selection="selection"
       @update:selection="emit('update:selection', $event)"

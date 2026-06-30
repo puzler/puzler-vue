@@ -38,19 +38,16 @@ async function prepareForTour(key: TourKey): Promise<void> {
 }
 
 /**
- * Start a page's tour. Resolves once the tour has been launched (or skipped for
- * lack of visible anchors). `onDone` fires when the tour finishes or is dismissed.
+ * Start a page's tour on demand (from the "?" button or the Settings replay
+ * list). Resolves once the tour has been launched, or returns early if a tour is
+ * already running or the page has no visible anchors to point at.
  */
-export async function startTour(key: TourKey, opts: { onDone?: () => void } = {}): Promise<void> {
+export async function startTour(key: TourKey): Promise<void> {
   if (isTourActive()) return
   await prepareForTour(key)
 
   const steps = (TOURS[key] ?? []).filter(stepIsVisible)
-  if (steps.length === 0) {
-    // Nothing to show; still record completion so we do not retry every visit.
-    opts.onDone?.()
-    return
-  }
+  if (steps.length === 0) return // nothing on screen to point at
 
   const instance = driver({
     steps,
@@ -63,10 +60,6 @@ export async function startTour(key: TourKey, opts: { onDone?: () => void } = {}
     nextBtnText: 'Next',
     prevBtnText: 'Back',
     doneBtnText: 'Done',
-    // Fires on natural finish AND on dismiss (close button / escape / overlay).
-    onDestroyed: () => {
-      opts.onDone?.()
-    },
   })
 
   instance.drive()

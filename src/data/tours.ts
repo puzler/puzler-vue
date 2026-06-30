@@ -48,7 +48,7 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
   home: [
     step('[data-tour="nav-browse"]', 'Browse puzzles', 'Explore the archive to find puzzles by difficulty, type, and rating.', { side: 'bottom' }),
     step('[data-tour="nav-editor"]', 'Set your own', 'Ready to create? The editor has everything you need to build a puzzle.', { side: 'bottom' }),
-    step('[data-tour="nav-help"]', 'Tips any time', 'Tap the help button on any page to replay its walkthrough.', { side: 'bottom', align: 'end' }),
+    step('[data-tour="nav-help"]', 'Tips any time', 'Tap the help button on any page to see its walkthrough.', { side: 'bottom', align: 'end' }),
   ],
 
   archive: [
@@ -89,7 +89,7 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
     step('[data-tour="settings-password"]', 'Password', 'Set or change the password you use to sign in.'),
     step('[data-tour="settings-connections"]', 'Connections', 'Link Google or Patreon so you can sign in with one tap.'),
     step('[data-tour="settings-data"]', 'Your data', 'Export everything we hold, or delete your account. Your data, your call.'),
-    step('[data-tour="settings-tours"]', 'Replay these tips', 'Want a refresher? Replay any walkthrough, or turn tips off entirely, from here.'),
+    step('[data-tour="settings-tours"]', 'Replay these tips', 'Want a refresher? Start any page walkthrough from here whenever you like.'),
   ],
 
   'my-puzzles': [

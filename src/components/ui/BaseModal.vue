@@ -3,8 +3,8 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { pushModal } from './modalStack'
 
 // Shared chrome for every modal: Teleport to body, dimmed backdrop with
-// click-outside-to-close, the `data-modal-open` sentinel (read by usePageTour to
-// avoid covering an open modal), Escape-to-close, and responsive sizing. The
+// click-outside-to-close, a `data-modal-open` sentinel marking that a modal is on
+// screen, Escape-to-close, and responsive sizing. The
 // modal supplies its own header/body/footer markup in the default slot, so each
 // migration just swaps the outer Teleport+backdrop+card boilerplate for this.
 //

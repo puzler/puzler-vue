@@ -7,7 +7,6 @@ import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import { mdiPuzzle, mdiFolderMultiple } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
 import { useAuthStore } from '@/stores/auth'
-import { usePageTour } from '@/composables/usePageTour'
 import SeriesPublicDocument from '@/graphql/gql/series/queries/SeriesPublic.graphql'
 import SeriesByTokenPublicDocument from '@/graphql/gql/series/queries/SeriesByTokenPublic.graphql'
 import ToggleSeriesSubscriptionDocument from '@/graphql/gql/series/mutations/ToggleSeriesSubscription.graphql'
@@ -73,8 +72,6 @@ async function toggleSubscribe() {
 }
 
 onMounted(load)
-
-usePageTour({ ready: computed(() => !loading.value && !!series.value) })
 </script>
 
 <template>

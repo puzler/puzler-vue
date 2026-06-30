@@ -12,9 +12,7 @@ import type {
   CreateCollectionMutation, CreateCollectionMutationVariables,
   CreateSeriesMutation, CreateSeriesMutationVariables,
 } from '@/graphql/generated/types'
-import { usePageTour } from '@/composables/usePageTour'
 
-usePageTour()
 const router = useRouter()
 
 const tab = ref<'puzzles' | 'collections' | 'series'>('puzzles')

@@ -7,7 +7,6 @@ import CollectionLeaderboard from '@/components/collections/CollectionLeaderboar
 import CollectionPuzzleList from '@/components/collections/CollectionPuzzleList.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { solvedIds } from '@/utils/solveProgress'
-import { usePageTour } from '@/composables/usePageTour'
 import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
 import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
 import type {
@@ -47,8 +46,6 @@ async function load() {
 }
 
 onMounted(load)
-
-usePageTour({ ready: computed(() => !loading.value && !!collection.value) })
 </script>
 
 <template>

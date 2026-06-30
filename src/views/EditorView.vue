@@ -11,19 +11,12 @@ import { useEditorStore } from '@/stores/editor'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
-import { usePageTour } from '@/composables/usePageTour'
 import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES } from '@/types/constraints'
 
 const editor = useEditorStore()
 const puzzle = usePuzzleStore()
 const route = useRoute()
 const isMobile = useIsMobile()
-
-// The editor walkthrough targets the desktop panels (the mobile layout differs),
-// so only auto-start it on desktop. The runner forces setting mode so the
-// collapsible tool panels are on screen.
-const tourReady = computed(() => !isMobile.value)
-usePageTour({ ready: tourReady })
 
 const TOOLS_WITH_CONTROLS = new Set([
   'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',

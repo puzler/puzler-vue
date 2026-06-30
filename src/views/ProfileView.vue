@@ -14,7 +14,6 @@ import ProfileSolvesPanel from '@/components/profile/ProfileSolvesPanel.vue'
 import ProfileFavoritesPanel from '@/components/profile/ProfileFavoritesPanel.vue'
 import ProfileSubscriptionsPanel from '@/components/profile/ProfileSubscriptionsPanel.vue'
 import ProfileActivityPanel from '@/components/profile/ProfileActivityPanel.vue'
-import { usePageTour } from '@/composables/usePageTour'
 import { SolveHistoryVisibilityEnum } from '@/graphql/generated/types'
 import ProfileUserDocument from '@/graphql/gql/users/queries/ProfileUser.graphql'
 import type { ProfileUserQuery, ProfileUserQueryVariables, PublicUserFieldsFragment } from '@/graphql/generated/types'
@@ -90,9 +89,6 @@ async function load() {
 }
 
 watch(username, load, { immediate: true })
-
-// First-visit walkthrough, once the profile data has rendered its anchors.
-usePageTour({ ready: computed(() => !loading.value && !!user.value) })
 </script>
 
 <template>

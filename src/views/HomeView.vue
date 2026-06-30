@@ -17,14 +17,11 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import HomePuzzleRow from '@/components/home/HomePuzzleRow.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { useAuthStore } from '@/stores/auth'
-import { usePageTour } from '@/composables/usePageTour'
 import { ListingSortEnum } from '@/graphql/generated/types'
 import PuzzlesDocument from '@/graphql/gql/puzzles/queries/Puzzles.graphql'
 import type { PuzzlesQuery, PuzzlesQueryVariables, PuzzleCardFieldsFragment } from '@/graphql/generated/types'
 
 const auth = useAuthStore()
-
-usePageTour()
 
 type QuickLink = { to: string; label: string; description: string; icon: string }
 

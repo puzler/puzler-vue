@@ -14,10 +14,10 @@ const auth = useAuthStore()
 const route = useRoute()
 const menuOpen = ref(false)
 
-// The "?" replays the current page's walkthrough (ignoring seen/disabled). Hidden
-// on pages that have no tour.
+// The "?" launches the current page's walkthrough on demand (tours never auto-run).
+// Hidden on pages that have no tour.
 const currentTour = computed(() => ROUTE_TO_TOUR[String(route.name)])
-function replayTour() {
+function showTour() {
   if (currentTour.value) startTour(currentTour.value)
 }
 </script>
@@ -75,8 +75,8 @@ function replayTour() {
         data-tour="nav-help"
         class="p-2 rounded-md text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
         aria-label="Help and tips"
-        title="Replay this page's walkthrough"
-        @click="replayTour"
+        title="Show this page's walkthrough"
+        @click="showTour"
       >
         <MdiIcon
           :path="mdiHelpCircleOutline"

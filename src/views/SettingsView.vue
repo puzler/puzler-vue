@@ -29,7 +29,4 @@ import PasswordSection from '@/components/settings/PasswordSection.vue'
 import ConnectionsSection from '@/components/settings/ConnectionsSection.vue'
 import DataSection from '@/components/settings/DataSection.vue'
 import ToursSection from '@/components/settings/ToursSection.vue'
-import { usePageTour } from '@/composables/usePageTour'
-
-usePageTour()
 </script>

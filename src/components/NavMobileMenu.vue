@@ -12,7 +12,7 @@ const auth = useAuthStore()
 const route = useRoute()
 
 const currentTour = computed(() => ROUTE_TO_TOUR[String(route.name)])
-function replayTour() {
+function showTour() {
   emit('close')
   if (currentTour.value) startTour(currentTour.value)
 }
@@ -60,9 +60,9 @@ function replayTour() {
     <button
       v-if="currentTour"
       class="text-left px-3 py-2 rounded-md text-sm text-[#9AA3B8] hover:text-white hover:bg-ink-2 transition-colors"
-      @click="replayTour"
+      @click="showTour"
     >
-      Replay this page's walkthrough
+      Show this page's walkthrough
     </button>
     <div class="h-px bg-ink-2 my-1" />
     <template v-if="auth.isAuthenticated">

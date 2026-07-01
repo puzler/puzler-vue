@@ -630,6 +630,24 @@ declare module '*/StartPlay.graphql' {
 }
     
 
+declare module '*/SubmitSolution.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SubmitSolution: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SubmitSolutionCode.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SubmitSolutionCode: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UnpublishPuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -913,6 +931,15 @@ declare module '*/RatePuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const RatePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ToggleFavorite.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ToggleFavorite: DocumentNode;
 
   export default defaultDocument;
 }

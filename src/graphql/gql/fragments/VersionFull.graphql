@@ -6,4 +6,5 @@ fragment VersionFull on PuzzleVersion {
   solution
   solutionHash
   solveMessage
+  solutionCode
 }

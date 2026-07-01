@@ -1,0 +1,15 @@
+mutation SubmitSolution($puzzleId: ID!, $cellState: JSON!, $timeElapsedSeconds: Int!, $shareToken: String) {
+  submitSolution(
+    input: {
+      puzzleId: $puzzleId
+      cellState: $cellState
+      timeElapsedSeconds: $timeElapsedSeconds
+      shareToken: $shareToken
+    }
+  ) {
+    solved
+    recorded
+    solveMessage
+    errors
+  }
+}

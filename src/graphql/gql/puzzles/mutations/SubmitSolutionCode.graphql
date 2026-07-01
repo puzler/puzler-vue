@@ -1,0 +1,8 @@
+mutation SubmitSolutionCode($puzzleId: ID!, $code: String!, $shareToken: String) {
+  submitSolutionCode(input: { puzzleId: $puzzleId, code: $code, shareToken: $shareToken }) {
+    solved
+    recorded
+    solveMessage
+    errors
+  }
+}

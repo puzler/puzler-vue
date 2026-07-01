@@ -290,7 +290,7 @@ export type PuzzleAdminFieldsFragment = { id: string, status: Types.PuzzleStatus
 
 export type PuzzleCardFieldsFragment = { id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, effectiveDifficulty: number | null, solveCount: number, featured: boolean, authorName: string | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
-export type PuzzleDescriptionFieldsFragment = { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> };
+export type PuzzleDescriptionFieldsFragment = { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> };
 
 export type SeriesCardFieldsFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
@@ -302,7 +302,7 @@ export type UserFieldsFragment = { id: string, email: string | null, username: s
 
 export type UserThemeFieldsFragment = { id: string, name: string, basePresetId: string, schemaVersion: number, appearance: unknown, constraints: unknown, position: number };
 
-export type VersionFullFragment = { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
+export type VersionFullFragment = { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, solutionCode: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
 
 export type VersionSummaryFragment = { id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string };
 
@@ -437,6 +437,7 @@ export type SavePuzzleVersionMutationVariables = Exact<{
   definition: unknown;
   solution?: unknown;
   solveMessage?: string | null | undefined;
+  solutionCode?: string | null | undefined;
   label?: string | null | undefined;
 }>;
 
@@ -457,6 +458,25 @@ export type StartPlayMutationVariables = Exact<{
 
 
 export type StartPlayMutation = { startPlay: { errors: Array<string>, puzzlePlay: { id: string, cellState: unknown, progressState: unknown, timeElapsedSeconds: number | null, isSolved: boolean } | null } | null };
+
+export type SubmitSolutionMutationVariables = Exact<{
+  puzzleId: string | number;
+  cellState: unknown;
+  timeElapsedSeconds: number;
+  shareToken?: string | null | undefined;
+}>;
+
+
+export type SubmitSolutionMutation = { submitSolution: { solved: boolean, recorded: boolean, solveMessage: string | null, errors: Array<string> } | null };
+
+export type SubmitSolutionCodeMutationVariables = Exact<{
+  puzzleId: string | number;
+  code: string;
+  shareToken?: string | null | undefined;
+}>;
+
+
+export type SubmitSolutionCodeMutation = { submitSolutionCode: { solved: boolean, recorded: boolean, solveMessage: string | null, errors: Array<string> } | null };
 
 export type UnpublishPuzzleMutationVariables = Exact<{
   id: string | number;
@@ -510,21 +530,21 @@ export type PuzzleByTokenForPlayQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
 export type PuzzleDescriptionQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type PuzzleDescriptionQuery = { puzzle: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, commentsRequireSolveOverride: boolean | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
+export type PuzzleDescriptionQuery = { puzzle: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, commentsRequireSolveOverride: boolean | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
 
 export type PuzzleDescriptionByTokenQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type PuzzleDescriptionByTokenQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
+export type PuzzleDescriptionByTokenQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
 
 export type PuzzleForEditQueryVariables = Exact<{
   id: string | number;
@@ -538,7 +558,7 @@ export type PuzzleForPlayQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
 
 export type PuzzleGridSizesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -550,7 +570,7 @@ export type PuzzleVersionQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleVersionQuery = { puzzleVersion: { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string } | null };
+export type PuzzleVersionQuery = { puzzleVersion: { definition: unknown, solution: unknown, solutionHash: string | null, solveMessage: string | null, solutionCode: string | null, id: string, versionNumber: number, displayName: string, label: string | null, isPublished: boolean, constraintTypes: Array<string>, createdAt: string } | null };
 
 export type PuzzlesQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
@@ -691,6 +711,13 @@ export type RatePuzzleMutationVariables = Exact<{
 
 
 export type RatePuzzleMutation = { ratePuzzle: { errors: Array<string>, rating: { id: string, stars: number | null, difficultyVote: number | null } | null } | null };
+
+export type ToggleFavoriteMutationVariables = Exact<{
+  puzzleId: string | number;
+}>;
+
+
+export type ToggleFavoriteMutation = { toggleFavorite: { isFavorited: boolean, favoriteCount: number } | null };
 
 export type TagsQueryVariables = Exact<{ [key: string]: never; }>;
 

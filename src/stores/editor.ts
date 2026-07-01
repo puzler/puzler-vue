@@ -42,6 +42,9 @@ export const useEditorStore = defineStore('editor', () => {
   // data, kept entirely separate from the ephemeral solverCellStates scratch.
   const solution = ref<Record<string, number> | null>(null)
   const solveMessage = ref<string>('')
+  // Optional setter code (e.g. "row 1 digits, then row 2") that lets someone who
+  // solved off-site claim a solve; blank → only in-app board submissions count.
+  const solutionCode = ref<string>('')
   const mode = ref<'setting' | 'solving'>('setting')
   const inputMode = ref<SolverInputMode>('digit')
   const keyboardModeOverride = ref<SolverInputMode | null>(null)
@@ -1344,6 +1347,7 @@ export const useEditorStore = defineStore('editor', () => {
     authorDifficulty.value = null
     solution.value = null
     solveMessage.value = ''
+    solutionCode.value = ''
     mode.value = 'setting'
     inputMode.value = 'digit'
     keyboardModeOverride.value = null
@@ -1964,6 +1968,7 @@ export const useEditorStore = defineStore('editor', () => {
     authorDifficulty,
     solution,
     solveMessage,
+    solutionCode,
     mode,
     inputMode,
     keyboardModeOverride,

@@ -9,6 +9,7 @@ import PlayerRulesPanel from '@/components/player/PlayerRulesPanel.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
 import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
+import FavoriteButton from '@/components/puzzle/FavoriteButton.vue'
 
 defineProps<{
   title: string
@@ -19,6 +20,7 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
+  favorite?: { puzzleId: string; isFavorited: boolean; favoriteCount: number } | null
 }>()
 
 const emit = defineEmits<{ 'toggle-pause': []; 'show-rules': []; 'reset': []; 'settings': []; 'check': []; 'collaborate': [] }>()
@@ -91,6 +93,13 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
           :size="20"
         />
       </button>
+      <FavoriteButton
+        v-if="favorite"
+        :class="ICON_BTN"
+        :puzzle-id="favorite.puzzleId"
+        :is-favorited="favorite.isFavorited"
+        :favorite-count="favorite.favoriteCount"
+      />
       <button
         v-for="c in CONTROLS"
         :key="c.event"

@@ -143,6 +143,7 @@ export const usePuzzleStore = defineStore('puzzle', () => {
           definition: serializePlayDefinition(editor, grid),
           solution: editor.solution,
           solveMessage: editor.solveMessage,
+          solutionCode: editor.solutionCode,
           label: label ?? null,
         },
       })
@@ -218,6 +219,7 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     // the definition), so restore them from the version, not the definition.
     editor.solution = (version.solution as Record<string, number> | null) ?? null
     editor.solveMessage = version.solveMessage ?? ''
+    editor.solutionCode = version.solutionCode ?? ''
     currentVersionId.value = versionId
   }
 

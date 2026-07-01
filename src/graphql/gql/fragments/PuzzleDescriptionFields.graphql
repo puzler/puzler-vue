@@ -34,6 +34,7 @@ fragment PuzzleDescriptionFields on Puzzle {
   sudokupadIncludesSolution
   commentsRequireSolveEffective
   viewerHasSolved
+  hasSolutionCode
   isFavorited
   myRating {
     stars

@@ -93,6 +93,11 @@ function onManageClose() {
   load() // reflect any visibility/description/comment-policy changes on the page
 }
 
+// Keep the "Favorites" stat in sync after a toggle without a full refetch.
+function onFavorited(next: { isFavorited: boolean; favoriteCount: number }) {
+  if (puzzle.value) puzzle.value = { ...puzzle.value, ...next }
+}
+
 onMounted(load)
 watch(() => [route.params.id, route.query.t], load)
 </script>
@@ -124,7 +129,10 @@ watch(() => [route.params.id, route.query.t], load)
           :play-to="playTo"
           :thumbnail-definition="thumbnailDefinition"
           :is-author="isAuthor"
+          :share-token="shareToken"
           @manage="showManage = true"
+          @solved="load"
+          @favorited="onFavorited"
         />
         <div class="lg:order-first lg:flex-1 lg:min-w-0 flex flex-col gap-6">
           <PuzzleDescriptionBody

@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import PuzzleThumbnail from '@/components/grid/PuzzleThumbnail.vue'
 import PuzzlePlayLinks from '@/components/puzzle/PuzzlePlayLinks.vue'
-import DifficultyPips from '@/components/DifficultyPips.vue'
+import SolutionCodeBox from '@/components/puzzle/SolutionCodeBox.vue'
+import RatePuzzleControl from '@/components/puzzle/RatePuzzleControl.vue'
+import FavoriteButton from '@/components/puzzle/FavoriteButton.vue'
+import PuzzleStatList from '@/components/puzzle/PuzzleStatList.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { PuzzleDescriptionFieldsFragment } from '@/graphql/generated/types'
 import type { SerializedPuzzle } from '@/utils/puzzleExport'
+
+const auth = useAuthStore()
 
 // The thumbnail + play CTAs card. On mobile the thumbnail is capped and the stat
 // list is hidden (the banner already shows those numbers); on desktop it fills
 // the rail and the full stat list appears.
-const props = defineProps<{
+defineProps<{
   puzzle: PuzzleDescriptionFieldsFragment
   playTo: RouteLocationRaw
   thumbnailDefinition: SerializedPuzzle | null
   isAuthor?: boolean
+  shareToken?: string | null
 }>()
 
-defineEmits<{ manage: [] }>()
-
-const published = computed(() =>
-  props.puzzle.publishedAt
-    ? new Date(props.puzzle.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })
-    : null,
-)
+defineEmits<{ manage: []; solved: []; favorited: [{ isFavorited: boolean; favoriteCount: number }] }>()
 </script>
 
 <template>
@@ -40,6 +40,16 @@ const published = computed(() =>
       :play-to="playTo"
       :sudokupad-url="puzzle.sudokupadUrl"
       :sudokupad-includes-solution="puzzle.sudokupadIncludesSolution"
+    />
+
+    <FavoriteButton
+      v-if="auth.isAuthenticated"
+      class="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-line text-sm font-medium text-soft hover:border-action hover:text-action transition-colors"
+      :puzzle-id="puzzle.id"
+      :is-favorited="puzzle.isFavorited"
+      :favorite-count="puzzle.favoriteCount"
+      show-label
+      @changed="$emit('favorited', $event)"
     />
 
     <button
@@ -68,58 +78,21 @@ const published = computed(() =>
       Manage puzzle
     </button>
 
-    <dl class="hidden lg:block border-t border-line pt-3 text-sm">
-      <div
-        v-if="puzzle.effectiveDifficulty != null"
-        class="flex items-center justify-between py-1"
-      >
-        <dt class="text-soft">
-          Difficulty
-        </dt>
-        <dd>
-          <DifficultyPips
-            :model-value="puzzle.effectiveDifficulty"
-            readonly
-            :size="13"
-          />
-        </dd>
-      </div>
-      <div
-        v-if="puzzle.avgRating"
-        class="flex items-center justify-between py-1"
-      >
-        <dt class="text-soft">
-          Rating
-        </dt>
-        <dd class="tabular-nums">
-          <span class="text-spark">★</span> {{ puzzle.avgRating.toFixed(1) }}
-        </dd>
-      </div>
-      <div class="flex items-center justify-between py-1">
-        <dt class="text-soft">
-          Solves
-        </dt>
-        <dd class="tabular-nums">
-          {{ puzzle.solveCount }}
-        </dd>
-      </div>
-      <div class="flex items-center justify-between py-1">
-        <dt class="text-soft">
-          Favorites
-        </dt>
-        <dd class="tabular-nums">
-          {{ puzzle.favoriteCount }}
-        </dd>
-      </div>
-      <div
-        v-if="published"
-        class="flex items-center justify-between py-1"
-      >
-        <dt class="text-soft">
-          Published
-        </dt>
-        <dd>{{ published }}</dd>
-      </div>
-    </dl>
+    <RatePuzzleControl
+      v-if="auth.isAuthenticated && puzzle.viewerHasSolved && !isAuthor"
+      class="border-t border-line pt-3"
+      :puzzle-id="puzzle.id"
+      :stars="puzzle.myRating?.stars ?? null"
+      :difficulty="puzzle.myRating?.difficultyVote ?? null"
+    />
+
+    <SolutionCodeBox
+      v-if="puzzle.hasSolutionCode && !puzzle.viewerHasSolved && !isAuthor"
+      :puzzle-id="puzzle.id"
+      :share-token="shareToken"
+      @solved="$emit('solved')"
+    />
+
+    <PuzzleStatList :puzzle="puzzle" />
   </div>
 </template>

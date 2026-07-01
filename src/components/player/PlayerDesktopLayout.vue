@@ -18,6 +18,7 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
+  favorite?: { puzzleId: string; isFavorited: boolean; favoriteCount: number } | null
 }>()
 
 defineEmits<{
@@ -53,6 +54,7 @@ defineEmits<{
       :elapsed-label="elapsedLabel"
       :paused="paused"
       :collaboration-enabled="collaborationEnabled"
+      :favorite="favorite"
       @toggle-pause="$emit('toggle-pause')"
       @show-rules="$emit('show-rules')"
       @reset="$emit('reset')"

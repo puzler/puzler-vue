@@ -25,7 +25,7 @@ import { markSolved } from '@/utils/solveProgress'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
-import RevealSolveMessageDocument from '@/graphql/gql/puzzles/mutations/RevealSolveMessage.graphql'
+import SubmitSolutionDocument from '@/graphql/gql/puzzles/mutations/SubmitSolution.graphql'
 import CheckSolutionDocument from '@/graphql/gql/puzzles/mutations/CheckSolution.graphql'
 import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
 import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
@@ -35,8 +35,8 @@ import type {
   PuzzleForPlayQueryVariables,
   PuzzleByTokenForPlayQuery,
   PuzzleByTokenForPlayQueryVariables,
-  RevealSolveMessageMutation,
-  RevealSolveMessageMutationVariables,
+  SubmitSolutionMutation,
+  SubmitSolutionMutationVariables,
   CheckSolutionMutation,
   CheckSolutionMutationVariables,
   CheckResultEnum,
@@ -70,16 +70,27 @@ const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const title = ref('')
 const author = ref<{ username: string; displayName: string } | null>(null)
+const authorId = ref<string | null>(null)
 const authorCredit = ref<string | null>(null)
 const puzzleId = ref<string | null>(null)
 const myRating = ref<{ stars: number | null; difficultyVote: number | null } | null>(null)
-// Bundled for SolvedModal's rating section (logged-in solvers only).
+// Bundled for SolvedModal's rating section: logged-in solvers who aren't the
+// author (authors set difficulty via the setter tool and never rate their own).
 const ratingContext = computed(() => ({
   puzzleId: puzzleId.value,
-  canRate: auth.isAuthenticated,
+  canRate: auth.isAuthenticated && authorId.value !== (auth.user?.id ?? null),
   stars: myRating.value?.stars ?? null,
   difficulty: myRating.value?.difficultyVote ?? null,
 }))
+const isFavorited = ref(false)
+const favoriteCount = ref(0)
+// Passed to the solver toolbar's heart; only for logged-in users (favoriting
+// needs an account). Null hides the control.
+const favorite = computed(() =>
+  auth.isAuthenticated && puzzleId.value
+    ? { puzzleId: puzzleId.value, isFavorited: isFavorited.value, favoriteCount: favoriteCount.value }
+    : null,
+)
 const solutionHash = ref<string | null>(null)
 const solved = ref(false)
 const solveMessage = ref<string | null>(null)
@@ -220,8 +231,10 @@ watch(
   { deep: true },
 )
 
-// On a correct solve, ask the server for the author's custom message (it's
-// never sent in the puzzle data). Falls back to the default if there is none.
+// On a correct solve, authoritatively record it server-side (the server
+// re-validates the board) for logged-in users and guests alike, and reveal the
+// author's custom solve message from the response (it's never sent in the puzzle
+// data). Falls back to the default message if there is none / recording fails.
 async function onSolved() {
   solved.value = true
   timer.stop()
@@ -234,15 +247,20 @@ async function onSolved() {
       variables: { collectionId: collectionId.value, puzzleId: puzzleId.value, seconds: timer.elapsed.value },
     }).catch(() => { /* best-effort */ })
   }
-  if (!puzzleId.value || !solutionHash.value) return
+  if (!puzzleId.value) return
   try {
-    const { data } = await apolloClient.mutate<RevealSolveMessageMutation, RevealSolveMessageMutationVariables>({
-      mutation: RevealSolveMessageDocument,
-      variables: { puzzleId: puzzleId.value, solutionHash: solutionHash.value, shareToken: shareToken.value },
+    const { data } = await apolloClient.mutate<SubmitSolutionMutation, SubmitSolutionMutationVariables>({
+      mutation: SubmitSolutionDocument,
+      variables: {
+        puzzleId: puzzleId.value,
+        cellState: boardSnapshot(editor, grid),
+        timeElapsedSeconds: timer.elapsed.value,
+        shareToken: shareToken.value,
+      },
     })
-    solveMessage.value = data?.revealSolveMessage?.solveMessage ?? null
+    solveMessage.value = data?.submitSolution?.solveMessage ?? null
   } catch {
-    // Keep the default message if the reveal call fails.
+    // Keep the default message if recording fails.
   }
 }
 
@@ -286,7 +304,10 @@ async function loadPuzzle() {
     }
     title.value = puzzle.title
     author.value = puzzle.author
+    authorId.value = puzzle.author?.id ?? null
     authorCredit.value = puzzle.authorName ?? null
+    isFavorited.value = puzzle.isFavorited ?? false
+    favoriteCount.value = puzzle.favoriteCount ?? 0
     puzzleId.value = puzzle.id
     myRating.value = puzzle.myRating ?? null
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
@@ -373,6 +394,7 @@ onUnmounted(() => {
       :elapsed-label="timerLabel"
       :paused="timerPaused"
       :collaboration-enabled="player.settings.enableCollaborationMode"
+      :favorite="favorite"
       @toggle-pause="timer.toggle()"
       @reset="showReset = true"
       @show-rules="openRules"
@@ -391,6 +413,7 @@ onUnmounted(() => {
       :elapsed-label="timerLabel"
       :paused="timerPaused"
       :collaboration-enabled="player.settings.enableCollaborationMode"
+      :favorite="favorite"
       @toggle-pause="timer.toggle()"
       @show-rules="openRules"
       @reset="showReset = true"

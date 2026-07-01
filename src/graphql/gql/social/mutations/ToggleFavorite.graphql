@@ -1,0 +1,6 @@
+mutation ToggleFavorite($puzzleId: ID!) {
+  toggleFavorite(input: { puzzleId: $puzzleId }) {
+    isFavorited
+    favoriteCount
+  }
+}

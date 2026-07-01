@@ -52,6 +52,7 @@ const showRules = ref(false)
       v-if="showRules"
       v-model:rules="editor.puzzleRules"
       v-model:solve-message="editor.solveMessage"
+      v-model:solution-code="editor.solutionCode"
       @close="showRules = false"
     />
   </div>

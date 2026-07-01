@@ -5,24 +5,28 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 const props = defineProps<{
   rules: string
   solveMessage: string
+  solutionCode: string
 }>()
 
 const emit = defineEmits<{
   'update:rules': [value: string]
   'update:solveMessage': [value: string]
+  'update:solutionCode': [value: string]
   close: []
 }>()
 
-const tab = ref<'rules' | 'solve'>('rules')
-// Edit buffers so Cancel discards changes; both stay mounted via v-show.
+const tab = ref<'rules' | 'solve' | 'code'>('rules')
+// Edit buffers so Cancel discards changes; all stay mounted via v-show.
 const rulesDraft = ref(props.rules)
 const solveDraft = ref(props.solveMessage)
+const codeDraft = ref(props.solutionCode)
 
 const TAB = 'px-3 py-1.5 text-sm rounded-lg transition-colors'
 
 function save() {
   emit('update:rules', rulesDraft.value.trim())
   emit('update:solveMessage', solveDraft.value.trim())
+  emit('update:solutionCode', codeDraft.value.trim())
   emit('close')
 }
 </script>
@@ -46,6 +50,12 @@ function save() {
       >
         Solve Message
       </button>
+      <button
+        :class="[TAB, tab === 'code' ? 'bg-action-tint text-action font-medium' : 'text-soft hover:text-ink-text']"
+        @click="tab = 'code'"
+      >
+        Solution Code
+      </button>
     </div>
     <textarea
       v-show="tab === 'rules'"
@@ -61,6 +71,22 @@ function save() {
       placeholder="Shown when the puzzle is solved (leave blank for the default). Handy for puzzle-hunt clues — it stays hidden until a correct solve."
       class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text leading-relaxed focus:outline-none focus:border-action resize-y"
     />
+    <div
+      v-show="tab === 'code'"
+      class="flex flex-col gap-2"
+    >
+      <p class="text-sm text-soft leading-relaxed">
+        Optional. Let solvers who played elsewhere (SudokuPad, print, etc.) claim a solve by entering a code.
+        A common choice is the digits of row 1, then row 2, and so on. Leave blank to only accept solves
+        completed here on Puzler. Matching ignores spaces and letter case.
+      </p>
+      <input
+        v-model="codeDraft"
+        type="text"
+        placeholder="e.g. 534678912672195348…"
+        class="w-full text-sm px-3 py-2 rounded-lg border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
+      >
+    </div>
     <div class="flex gap-2 justify-end">
       <button
         class="px-4 py-1.5 rounded-lg text-sm text-soft hover:bg-paper transition-colors"

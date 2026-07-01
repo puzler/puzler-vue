@@ -79,7 +79,7 @@ function onRename(e: Event) {
         Built-in themes can't be edited. Duplicate this one to customize it.
       </p>
       <button
-        class="px-4 py-2 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+        class="px-4 py-2 rounded-lg bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors"
         @click="theme.duplicateTheme(theme.activeThemeId)"
       >
         Duplicate to edit

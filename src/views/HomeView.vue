@@ -85,7 +85,7 @@ onMounted(async () => {
           <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
             <RouterLink
               to="/puzzles"
-              class="px-6 py-3 bg-action text-white rounded-lg font-medium hover:bg-action-deep transition-colors"
+              class="px-6 py-3 bg-action text-on-action rounded-lg font-medium hover:bg-action-deep transition-colors"
             >
               Browse puzzles
             </RouterLink>

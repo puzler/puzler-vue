@@ -45,7 +45,7 @@ async function addUser() {
         @keydown.enter="addUser"
       >
       <button
-        class="px-3 py-1 text-sm rounded-lg bg-action text-white hover:bg-action-deep disabled:opacity-50"
+        class="px-3 py-1 text-sm rounded-lg bg-action text-on-action hover:bg-action-deep disabled:opacity-50"
         :disabled="busy"
         @click="addUser"
       >

@@ -98,7 +98,7 @@ function showTour() {
       </RouterLink>
       <RouterLink
         to="/register"
-        class="px-3 py-2 rounded-md text-sm font-medium bg-action text-white hover:bg-action-deep transition-colors"
+        class="px-3 py-2 rounded-md text-sm font-medium bg-action text-on-action hover:bg-action-deep transition-colors"
         @click="emit('close')"
       >
         Sign up

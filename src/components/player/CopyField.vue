@@ -38,7 +38,7 @@ function copy() {
         :class="mono ? 'font-mono' : ''"
       >
       <button
-        class="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-action text-white hover:bg-action-deep transition-colors"
+        class="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-action text-on-action hover:bg-action-deep transition-colors"
         @click="copy"
       >
         {{ copied ? 'Copied' : 'Copy' }}

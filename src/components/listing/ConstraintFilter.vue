@@ -26,7 +26,7 @@ const open = ref(false)
       />
       <span
         v-if="constraintTypes.length"
-        class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-action text-white text-[10px] font-semibold leading-4 text-center"
+        class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-action text-on-action text-[10px] font-semibold leading-4 text-center"
       >
         {{ constraintTypes.length }}
       </span>

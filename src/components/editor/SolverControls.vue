@@ -59,7 +59,7 @@ function toggle(cmd: SolverCommand): void {
 
     <div class="flex items-center gap-1.5">
       <button
-        :class="[BTN, solver.autoTrueCandidates ? 'bg-action border-action text-white hover:bg-action' : '']"
+        :class="[BTN, solver.autoTrueCandidates ? 'bg-action border-action text-on-action hover:bg-action' : '']"
         class="shrink-0 w-8 px-0"
         title="Auto true candidates"
         @click="solver.toggleAutoTrueCandidates()"

@@ -45,7 +45,7 @@ async function submit() {
         @keyup.enter="submit"
       >
       <button
-        class="px-3 py-2 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors disabled:opacity-50"
+        class="px-3 py-2 rounded-lg text-sm bg-action text-on-action hover:bg-action-deep transition-colors disabled:opacity-50"
         :disabled="state === 'submitting' || !code.trim()"
         @click="submit"
       >

@@ -95,7 +95,7 @@ function save() {
         Cancel
       </button>
       <button
-        class="px-4 py-1.5 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors"
+        class="px-4 py-1.5 rounded-lg text-sm bg-action text-on-action hover:bg-action-deep transition-colors"
         @click="save"
       >
         Save

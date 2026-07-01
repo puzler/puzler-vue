@@ -69,7 +69,7 @@ function movePage(dir: -1 | 1) {
       />
     </button>
     <button
-      class="ml-auto px-4 py-1.5 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors"
+      class="ml-auto px-4 py-1.5 rounded-lg text-sm bg-action text-on-action hover:bg-action-deep transition-colors"
       @click="emit('close')"
     >
       Done

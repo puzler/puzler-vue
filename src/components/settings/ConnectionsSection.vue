@@ -51,7 +51,7 @@
         <button
           v-else
           type="button"
-          class="px-3 py-1.5 rounded-lg text-sm bg-action text-white font-medium hover:bg-action-deep transition-colors"
+          class="px-3 py-1.5 rounded-lg text-sm bg-action text-on-action font-medium hover:bg-action-deep transition-colors"
           @click="connect(provider.key)"
         >
           Connect

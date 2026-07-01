@@ -54,7 +54,7 @@ onUnmounted(() => unregister?.())
 
           <footer class="px-4 py-3 border-t border-line shrink-0">
             <button
-              class="w-full px-4 py-2 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+              class="w-full px-4 py-2 rounded-lg bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors"
               @click="emit('close')"
             >
               {{ doneLabel }}

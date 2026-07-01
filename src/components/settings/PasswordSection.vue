@@ -60,7 +60,7 @@
         <button
           type="submit"
           :disabled="pending"
-          class="self-start px-4 py-2 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors disabled:opacity-50"
+          class="self-start px-4 py-2 rounded-lg bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors disabled:opacity-50"
         >
           {{ pending ? 'Saving…' : auth.user?.passwordSet ? 'Change password' : 'Set password' }}
         </button>

@@ -25,6 +25,7 @@
   --color-action: #4F46E5;
   --color-action-deep: #4338CA;
   --color-action-tint: #EEF0FE;
+  --color-on-action: #FFFFFF;  /* readable foreground on any action-colored fill (buttons) */
   --color-spark: #F0A93B;
   --color-spark-tint: #FBEED3;
 

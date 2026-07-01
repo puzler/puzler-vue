@@ -102,7 +102,7 @@ onMounted(load)
           <button
             v-if="auth.isAuthenticated"
             class="px-3 py-1.5 text-sm rounded-lg shrink-0"
-            :class="subscribed ? 'border border-line text-soft hover:text-ink-text' : 'bg-action text-white hover:bg-action-deep'"
+            :class="subscribed ? 'border border-line text-soft hover:text-ink-text' : 'bg-action text-on-action hover:bg-action-deep'"
             @click="toggleSubscribe"
           >
             {{ subscribed ? 'Subscribed ✓' : 'Subscribe' }}

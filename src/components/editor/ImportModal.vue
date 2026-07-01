@@ -68,7 +68,7 @@ function doImport() {
         Cancel
       </button>
       <button
-        class="px-4 py-1.5 rounded-lg text-sm bg-action text-white hover:bg-action-deep transition-colors disabled:opacity-50"
+        class="px-4 py-1.5 rounded-lg text-sm bg-action text-on-action hover:bg-action-deep transition-colors disabled:opacity-50"
         :disabled="!text.trim()"
         @click="review"
       >

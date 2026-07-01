@@ -26,7 +26,7 @@ defineEmits<{ open: [] }>()
     {{ label }}
     <span
       v-if="count"
-      class="min-w-4 px-1 rounded-full bg-action text-white text-[10px] leading-4 text-center"
+      class="min-w-4 px-1 rounded-full bg-action text-on-action text-[10px] leading-4 text-center"
     >{{ count }}</span>
   </button>
 </template>

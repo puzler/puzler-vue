@@ -59,7 +59,7 @@ const newButton = computed(() => {
         </h1>
         <button
           data-tour="mypuzzles-new"
-          class="px-3 py-1.5 text-sm rounded-lg bg-action text-white hover:bg-action-deep shrink-0"
+          class="px-3 py-1.5 text-sm rounded-lg bg-action text-on-action hover:bg-action-deep shrink-0"
           @click="newButton.run()"
         >
           {{ newButton.label }}

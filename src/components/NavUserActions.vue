@@ -36,7 +36,7 @@ const auth = useAuthStore()
       </RouterLink>
       <RouterLink
         to="/register"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium bg-action text-white hover:bg-action-deep transition-colors"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium bg-action text-on-action hover:bg-action-deep transition-colors"
       >
         Sign up
       </RouterLink>

@@ -77,7 +77,7 @@ defineExpose({ open })
     </div>
 
     <button
-      class="w-full py-2 text-sm font-medium bg-action text-white hover:bg-action-deep rounded-lg transition-colors"
+      class="w-full py-2 text-sm font-medium bg-action text-on-action hover:bg-action-deep rounded-lg transition-colors"
       @click="confirm"
     >
       Create

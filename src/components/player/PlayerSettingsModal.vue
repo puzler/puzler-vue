@@ -146,7 +146,7 @@ const groups: { title: string; items: Item[] }[] = [
 
     <div class="px-6 py-4 border-t border-line flex justify-end shrink-0">
       <button
-        class="px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+        class="px-5 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors"
         @click="emit('close')"
       >
         Done

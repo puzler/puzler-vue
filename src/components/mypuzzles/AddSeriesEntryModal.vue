@@ -72,13 +72,13 @@ onMounted(load)
 
     <div class="flex gap-2">
       <button
-        :class="[TAB, tab === 'puzzles' ? 'bg-action text-white' : 'text-soft hover:text-ink-text']"
+        :class="[TAB, tab === 'puzzles' ? 'bg-action text-on-action' : 'text-soft hover:text-ink-text']"
         @click="tab = 'puzzles'"
       >
         Puzzles
       </button>
       <button
-        :class="[TAB, tab === 'collections' ? 'bg-action text-white' : 'text-soft hover:text-ink-text']"
+        :class="[TAB, tab === 'collections' ? 'bg-action text-on-action' : 'text-soft hover:text-ink-text']"
         @click="tab = 'collections'"
       >
         Collections

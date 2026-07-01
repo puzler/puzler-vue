@@ -40,6 +40,7 @@ Defined in `src/style.css` under `@theme` (Tailwind v4), usable as
 | `action` | `#4F46E5` | Primary buttons, active tool, links, focus rings |
 | `action-deep` | `#4338CA` | Action hover |
 | `action-tint` | `#EEF0FE` | Active tool row bg, subtle action fills |
+| `on-action` | `#FFFFFF` | Text/icons on an `action`-colored fill |
 | `spark` | `#F0A93B` | Active nav underline, selection accents |
 | `spark-tint` | `#FBEED3` | Selected cell fill |
 

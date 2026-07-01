@@ -66,7 +66,7 @@
           <button
             type="submit"
             :disabled="pending"
-            class="px-4 py-3 rounded-lg bg-action text-white font-medium hover:bg-action-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-3 rounded-lg bg-action text-on-action font-medium hover:bg-action-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ pending ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Sign up' }}
           </button>

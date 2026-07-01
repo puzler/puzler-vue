@@ -47,7 +47,7 @@ const MODE_KEY = 'col-start-5 relative aspect-square rounded-lg border shadow-sm
 
 function modeClass(key: 'digit' | 'center' | 'corner' | 'color'): string {
   return editor.effectiveInputMode === key
-    ? 'bg-action border-action text-white'
+    ? 'bg-action border-action text-on-action'
     : 'bg-surface border-line text-soft hover:border-action hover:text-action'
 }
 

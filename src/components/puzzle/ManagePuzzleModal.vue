@@ -82,7 +82,7 @@ function save() {
         Done
       </button>
       <button
-        class="px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep disabled:opacity-50"
+        class="px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-deep disabled:opacity-50"
         :disabled="busy"
         @click="save"
       >

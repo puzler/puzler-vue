@@ -33,7 +33,7 @@ function toggle(value: string) {
         <div class="inline-flex rounded-lg border border-line overflow-hidden text-xs">
           <button
             type="button"
-            :class="['px-2.5 py-1', matchMode === Match.Any ? 'bg-action text-white' : 'text-soft hover:bg-paper']"
+            :class="['px-2.5 py-1', matchMode === Match.Any ? 'bg-action text-on-action' : 'text-soft hover:bg-paper']"
             title="Match puzzles with ANY selected constraint"
             @click="matchMode = Match.Any"
           >
@@ -41,7 +41,7 @@ function toggle(value: string) {
           </button>
           <button
             type="button"
-            :class="['px-2.5 py-1', matchMode === Match.All ? 'bg-action text-white' : 'text-soft hover:bg-paper']"
+            :class="['px-2.5 py-1', matchMode === Match.All ? 'bg-action text-on-action' : 'text-soft hover:bg-paper']"
             title="Match puzzles with ALL selected constraints"
             @click="matchMode = Match.All"
           >
@@ -102,7 +102,7 @@ function toggle(value: string) {
       </button>
       <button
         type="button"
-        class="px-4 py-1.5 rounded-lg bg-action text-white text-sm font-medium hover:opacity-90"
+        class="px-4 py-1.5 rounded-lg bg-action text-on-action text-sm font-medium hover:opacity-90"
         @click="emit('close')"
       >
         Done

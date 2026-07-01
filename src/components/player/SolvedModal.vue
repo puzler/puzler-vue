@@ -62,14 +62,14 @@ defineEmits<{ close: []; next: []; back: [] }>()
 
     <button
       v-if="inCollection && hasNext"
-      class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+      class="mt-2 px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-deep"
       @click="$emit('next')"
     >
       Next puzzle →
     </button>
     <button
       v-else-if="inCollection"
-      class="mt-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep"
+      class="mt-2 px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-deep"
       @click="$emit('back')"
     >
       Back to {{ collectionTitle || 'collection' }}

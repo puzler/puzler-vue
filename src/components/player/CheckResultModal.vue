@@ -34,7 +34,7 @@ const display = computed(() => {
     <span class="text-lg font-display font-semibold text-ink-text">{{ display.title }}</span>
     <span class="text-sm text-center text-soft">{{ display.text }}</span>
     <button
-      class="mt-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+      class="mt-2 px-5 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors"
       @click="emit('close')"
     >
       Keep solving

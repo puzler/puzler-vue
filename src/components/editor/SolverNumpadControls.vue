@@ -12,7 +12,7 @@ const CTRL_IDLE = 'bg-surface border-line text-soft enabled:hover:bg-action-tint
 
 function multiSelectClass(): string {
   return editor.multiSelectMode
-    ? 'bg-action border-action text-white'
+    ? 'bg-action border-action text-on-action'
     : 'bg-surface border-line text-soft hover:border-action hover:text-action'
 }
 </script>

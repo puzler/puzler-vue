@@ -58,7 +58,7 @@ const baseName = () => getBuiltInTheme(theme.activeTheme.basePresetId)?.name ?? 
     </button>
     <button
       type="button"
-      class="ml-auto px-4 py-1.5 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-deep transition-colors"
+      class="ml-auto px-4 py-1.5 rounded-lg bg-action text-on-action text-sm font-medium hover:bg-action-deep transition-colors"
       @click="emit('close')"
     >
       Done

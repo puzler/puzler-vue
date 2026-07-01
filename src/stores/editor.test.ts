@@ -215,3 +215,56 @@ describe('solver-state undo/redo (diff-based)', () => {
     expect(editor.solverCellStates['r0c0'].value).toBe(4)
   })
 })
+
+// Dragging a line back over a cell already in the current stroke should
+// backtrack: erase every segment after that cell, leaving it as the endpoint.
+describe('extendPendingLine backtracking', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('appends distinct cells as the stroke advances', () => {
+    const editor = useEditorStore()
+    editor.startPendingLine('r0c0')
+    editor.extendPendingLine('r0c1')
+    editor.extendPendingLine('r0c2')
+    expect(editor.pendingLineCells).toEqual(['r0c0', 'r0c1', 'r0c2'])
+  })
+
+  it('re-hitting the current endpoint is a no-op', () => {
+    const editor = useEditorStore()
+    editor.startPendingLine('r0c0')
+    editor.extendPendingLine('r0c1')
+    editor.extendPendingLine('r0c1')
+    expect(editor.pendingLineCells).toEqual(['r0c0', 'r0c1'])
+  })
+
+  it('truncates to a retraced cell, erasing the segments after it', () => {
+    const editor = useEditorStore()
+    editor.startPendingLine('r0c0')
+    editor.extendPendingLine('r0c1')
+    editor.extendPendingLine('r0c2')
+    editor.extendPendingLine('r0c1') // drag back onto the middle cell
+    expect(editor.pendingLineCells).toEqual(['r0c0', 'r0c1'])
+  })
+
+  it('collapses to a single cell when retracing onto the start (loop case)', () => {
+    const editor = useEditorStore()
+    editor.startPendingLine('r0c0')
+    editor.extendPendingLine('r0c1')
+    editor.extendPendingLine('r1c1')
+    editor.extendPendingLine('r1c0')
+    editor.extendPendingLine('r0c0') // close the loop back onto the start
+    expect(editor.pendingLineCells).toEqual(['r0c0'])
+  })
+
+  it('re-extends normally after a backtrack', () => {
+    const editor = useEditorStore()
+    editor.startPendingLine('r0c0')
+    editor.extendPendingLine('r0c1')
+    editor.extendPendingLine('r0c2')
+    editor.extendPendingLine('r0c1') // backtrack to ['r0c0', 'r0c1']
+    editor.extendPendingLine('r1c1') // draw off in a new direction
+    expect(editor.pendingLineCells).toEqual(['r0c0', 'r0c1', 'r1c1'])
+  })
+})

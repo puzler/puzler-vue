@@ -1033,6 +1033,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   function extendPendingLine(cell: string) {
     if (pendingLineCells.value.at(-1) === cell) return
+    const idx = pendingLineCells.value.indexOf(cell)
+    if (idx !== -1) {
+      // Retraced into an earlier cell of this stroke: erase every segment drawn
+      // after it, leaving that cell as the new endpoint (backtracking). Continuing
+      // the drag re-extends from here. Retracing onto the start cell collapses the
+      // path to one cell — intended; a loop is drawn as a fresh stroke.
+      pendingLineCells.value = pendingLineCells.value.slice(0, idx + 1)
+      return
+    }
     pendingLineCells.value = [...pendingLineCells.value, cell]
   }
 

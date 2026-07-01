@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
+import { isModalOpen } from '@/components/ui/modalStack'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { cellKey, keyToRowCol } from './useGrid'
@@ -41,6 +42,10 @@ export function useGridKeyboard() {
   function onKeyDown(event: KeyboardEvent) {
     if (event.key === 'Shift') editor.setShiftHeld(true)
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+    // While any modal/sheet is open the grid is inert: swallow keystrokes so
+    // typing into modal content (e.g. the contenteditable description editor)
+    // doesn't move the selection or place digits underneath.
+    if (isModalOpen()) return
 
     if (editor.mode === 'solving') {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
@@ -185,6 +190,7 @@ export function useGridKeyboard() {
 
   function onKeyUp(event: KeyboardEvent) {
     if (event.key === 'Shift') editor.setShiftHeld(false)
+    if (isModalOpen()) return
     if (event.key !== 'Shift' && event.key !== 'Control' && event.key !== 'Meta') return
     if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
     else if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')

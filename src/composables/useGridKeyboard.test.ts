@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { pushModal } from '@/components/ui/modalStack'
 import { useGridKeyboard } from './useGridKeyboard'
 
 // Mounts a throwaway host so the composable's onMounted registers its window
@@ -100,6 +101,23 @@ describe('useGridKeyboard', () => {
     editor.selectCell('r0c0')
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '5', code: 'Digit5' }))
     expect(editor.solverCellStates['r0c0']?.value).toBe(5)
+  })
+
+  it('ignores grid keystrokes while a modal is open', () => {
+    editor.setMode('solving')
+    editor.setInputMode('digit')
+    editor.selectCell('r0c0')
+    const closeModal = pushModal(() => {})
+
+    press('ArrowRight')
+    expect([...editor.selection]).toEqual(['r0c0']) // selection unmoved
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '5', code: 'Digit5' }))
+    expect(editor.solverCellStates['r0c0']?.value).toBeUndefined() // no digit placed
+
+    closeModal()
+    press('ArrowRight')
+    expect([...editor.selection]).toEqual(['r0c1']) // grid live again once closed
   })
 })
 

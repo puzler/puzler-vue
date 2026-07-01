@@ -30,6 +30,14 @@ function stopListening() {
   listening = false
 }
 
+// True while any overlay (modal or sheet) is open. The grid keyboard handler
+// (useGridKeyboard) consults this to ignore keystrokes while a modal is up, so
+// typing into modal content (e.g. the TipTap description editor, which is a
+// contenteditable rather than an <input>) doesn't leak through to the grid.
+export function isModalOpen(): boolean {
+  return stack.length > 0
+}
+
 // Register an overlay's close handler as the new top of the stack. Returns an
 // unregister function (call on unmount). Only the topmost overlay reacts to
 // Escape, so nested overlays (e.g. the theme editor inside player settings)

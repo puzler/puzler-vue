@@ -10,7 +10,6 @@ import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
 import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
-import FavoriteButton from '@/components/puzzle/FavoriteButton.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
@@ -23,7 +22,6 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
-  favorite?: { puzzleId: string; isFavorited: boolean; favoriteCount: number } | null
 }>()
 
 const emit = defineEmits<{ 'toggle-pause': []; 'reset': []; 'show-rules': []; 'check': []; 'settings': []; 'collaborate': [] }>()
@@ -123,13 +121,6 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
             :size="20"
           />
         </button>
-        <FavoriteButton
-          v-if="favorite"
-          :class="BTN"
-          :puzzle-id="favorite.puzzleId"
-          :is-favorited="favorite.isFavorited"
-          :favorite-count="favorite.favoriteCount"
-        />
       </div>
       <div
         data-tour="player-numpad"

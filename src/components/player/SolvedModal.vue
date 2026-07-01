@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BaseModal from '@/components/ui/BaseModal.vue'
 import RatePuzzleControl from '@/components/puzzle/RatePuzzleControl.vue'
+import FavoriteButton from '@/components/puzzle/FavoriteButton.vue'
 
 interface RatingContext {
   puzzleId: string | null
@@ -19,6 +20,8 @@ defineProps<{
   // Rating context: the section is shown only to logged-in solvers who aren't the
   // author; prefilled from any prior vote.
   rating: RatingContext
+  // Favorite state, shown alongside the rating (same solver-only gate). Null hides it.
+  favorite: { puzzleId: string; isFavorited: boolean; favoriteCount: number } | null
 }>()
 
 defineEmits<{ close: []; next: []; back: [] }>()
@@ -37,13 +40,25 @@ defineEmits<{ close: []; next: []; back: [] }>()
       :class="solveMessage ? 'text-ink-text' : 'text-faint'"
     >{{ solveMessage || `Nicely done! You completed “${title}”.` }}</span>
 
-    <RatePuzzleControl
-      v-if="rating.canRate && rating.puzzleId"
-      class="w-full mt-2 pt-3 border-t border-line"
-      :puzzle-id="rating.puzzleId"
-      :stars="rating.stars"
-      :difficulty="rating.difficulty"
-    />
+    <div
+      v-if="(rating.canRate && rating.puzzleId) || favorite"
+      class="w-full mt-2 pt-3 border-t border-line flex flex-col items-center gap-3"
+    >
+      <RatePuzzleControl
+        v-if="rating.canRate && rating.puzzleId"
+        :puzzle-id="rating.puzzleId"
+        :stars="rating.stars"
+        :difficulty="rating.difficulty"
+      />
+      <FavoriteButton
+        v-if="favorite"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line text-sm font-medium text-soft hover:border-action hover:text-action transition-colors"
+        :puzzle-id="favorite.puzzleId"
+        :is-favorited="favorite.isFavorited"
+        :favorite-count="favorite.favoriteCount"
+        show-label
+      />
+    </div>
 
     <button
       v-if="inCollection && hasNext"

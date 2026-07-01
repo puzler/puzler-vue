@@ -84,10 +84,10 @@ const ratingContext = computed(() => ({
 }))
 const isFavorited = ref(false)
 const favoriteCount = ref(0)
-// Passed to the solver toolbar's heart; only for logged-in users (favoriting
-// needs an account). Null hides the control.
+// Shown in the Solved modal alongside rating, so it follows the same gate:
+// logged-in solvers who aren't the author. Null hides the control.
 const favorite = computed(() =>
-  auth.isAuthenticated && puzzleId.value
+  ratingContext.value.canRate && puzzleId.value
     ? { puzzleId: puzzleId.value, isFavorited: isFavorited.value, favoriteCount: favoriteCount.value }
     : null,
 )
@@ -394,7 +394,6 @@ onUnmounted(() => {
       :elapsed-label="timerLabel"
       :paused="timerPaused"
       :collaboration-enabled="player.settings.enableCollaborationMode"
-      :favorite="favorite"
       @toggle-pause="timer.toggle()"
       @reset="showReset = true"
       @show-rules="openRules"
@@ -413,7 +412,6 @@ onUnmounted(() => {
       :elapsed-label="timerLabel"
       :paused="timerPaused"
       :collaboration-enabled="player.settings.enableCollaborationMode"
-      :favorite="favorite"
       @toggle-pause="timer.toggle()"
       @show-rules="openRules"
       @reset="showReset = true"
@@ -464,6 +462,7 @@ onUnmounted(() => {
       :has-next="!!nextId"
       :collection-title="collectionTitle"
       :rating="ratingContext"
+      :favorite="favorite"
       @close="solved = false"
       @next="goToNext"
       @back="backToCollection"

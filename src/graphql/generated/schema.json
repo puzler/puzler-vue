@@ -9086,7 +9086,7 @@
           },
           {
             "name": "authorName",
-            "description": "Free-form author credit from the published puzzle's metadata; null when left blank, in which case attribution falls back to the author's display name",
+            "description": "Free-form author credit from the published puzzle's metadata; null when left\nblank, in which case attribution falls back to the author's display name",
             "args": [],
             "type": {
               "kind": "SCALAR",
@@ -9294,7 +9294,7 @@
           },
           {
             "name": "effectiveDifficulty",
-            "description": "Difficulty shown in the archive: the community average once there are enough votes, otherwise the setter's value; null until either exists",
+            "description": "Difficulty shown in the archive: the community average once there are enough\nvotes, otherwise the setter's value; null until either exists",
             "args": [],
             "type": {
               "kind": "SCALAR",
@@ -19821,6 +19821,7 @@
         "deprecationReason": null,
         "locations": [
           "ARGUMENT_DEFINITION",
+          "DIRECTIVE_DEFINITION",
           "ENUM_VALUE",
           "FIELD_DEFINITION",
           "INPUT_FIELD_DEFINITION"
@@ -19828,7 +19829,7 @@
         "args": [
           {
             "name": "reason",
-            "description": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted in [Markdown](https://daringfireball.net/projects/markdown/).",
+            "description": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax, as specified by [CommonMark](https://commonmark.org/).",
             "type": {
               "kind": "SCALAR",
               "name": "String",
@@ -19872,7 +19873,7 @@
       },
       {
         "name": "oneOf",
-        "description": "Requires that exactly one field must be supplied and that field must not be `null`.",
+        "description": "Indicates exactly one field must be supplied and this field must not be `null`.",
         "isRepeatable": false,
         "isDeprecated": false,
         "deprecationReason": null,

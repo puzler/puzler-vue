@@ -7,7 +7,9 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** An ISO 8601-encoded datetime */
   ISO8601DateTime: { input: string; output: string; }
+  /** Represents untyped JSON */
   JSON: { input: unknown; output: unknown; }
   Upload: { input: File; output: File; }
 };
@@ -1930,7 +1932,10 @@ export type Puzzle = {
   author: User;
   /** Difficulty the setter chose, 1 (gentlest) to 5 (hardest); null if unset */
   authorDifficulty?: Maybe<Scalars['Int']['output']>;
-  /** Free-form author credit from the published puzzle's metadata; null when left blank, in which case attribution falls back to the author's display name */
+  /**
+   * Free-form author credit from the published puzzle's metadata; null when left
+   * blank, in which case attribution falls back to the author's display name
+   */
   authorName?: Maybe<Scalars['String']['output']>;
   /** Community difficulty average from solver votes (1–5 scale) */
   avgDifficulty?: Maybe<Scalars['Float']['output']>;
@@ -1954,7 +1959,10 @@ export type Puzzle = {
   cosmetics: Array<Cosmetic>;
   /** Optional description or story text */
   description?: Maybe<Scalars['String']['output']>;
-  /** Difficulty shown in the archive: the community average once there are enough votes, otherwise the setter's value; null until either exists */
+  /**
+   * Difficulty shown in the archive: the community average once there are enough
+   * votes, otherwise the setter's value; null until either exists
+   */
   effectiveDifficulty?: Maybe<Scalars['Float']['output']>;
   /** Number of times this puzzle has been favorited */
   favoriteCount: Scalars['Int']['output'];

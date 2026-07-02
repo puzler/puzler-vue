@@ -1,5 +1,9 @@
 overwrite: true
-schema: "http://localhost:3000/graphql"
+# The committed SDL snapshot from the sibling api repo (bin/rails
+# graphql:schema:dump). File-based so codegen needs no running server, and so
+# bin/check can fail when either side drifts: the api gate re-dumps and diffs
+# schema.graphql; the app gate re-runs codegen and diffs src/graphql/generated/.
+schema: "../api/schema.graphql"
 documents: src/graphql/gql/**/*.graphql
 # Shared config, reused by both the base-types and operations outputs.
 # enumsAsConst emits `const` objects + types instead of TS `enum`s, which the

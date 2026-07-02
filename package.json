@@ -23,7 +23,6 @@
     "@mdi/js": "^7.4.47",
     "@rails/actioncable": "^8.1.300",
     "@tiptap/extension-image": "^3.27.1",
-    "@tiptap/extension-link": "^3.27.1",
     "@tiptap/starter-kit": "^3.27.1",
     "@tiptap/vue-3": "^3.27.1",
     "@vue/apollo-composable": "^4.2.2",
@@ -40,6 +39,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@graphql-codegen/add": "^7.0.1",
     "@graphql-codegen/cli": "^7.1.2",
     "@graphql-codegen/fragment-matcher": "^7.0.1",
     "@graphql-codegen/introspection": "^6.0.1",
@@ -57,6 +57,7 @@
     "eslint-plugin-vue": "^10.9.2",
     "happy-dom": "^20.10.3",
     "jsdom": "^29.1.1",
+    "knip": "^6.23.0",
     "tailwindcss": "^4.2.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.61.0",

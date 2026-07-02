@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/types/*.d.ts"],
+  "project": ["src/**/*.{ts,vue}"],
+  "ignore": ["src/graphql/generated/**"],
+  "ignoreDependencies": [
+    "@fontsource/inter",
+    "@fontsource/space-grotesk",
+    "tailwindcss"
+  ]
+}

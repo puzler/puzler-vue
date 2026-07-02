@@ -1,0 +1,15 @@
+import { mdiTextureBox } from '@mdi/js'
+import { defineRegionConstraint } from '../define'
+import { greyscale } from '../types'
+
+export default defineRegionConstraint({
+  type: 'extra_regions',
+  label: 'Extra Region',
+  pickerLabel: 'Extra Regions',
+  themeLabel: 'Extra region',
+  icon: { path: mdiTextureBox },
+  themeFamily: 'cellBg',
+  cellBg: greyscale(221),
+  layers: ['constraint_backgrounds'],
+  panelId: 'extra_regions',
+})

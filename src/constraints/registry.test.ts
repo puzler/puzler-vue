@@ -138,4 +138,19 @@ describe('constraint registry derivations', () => {
     expect(constraintDef('renban')?.label).toBe('Renban')
     expect(constraintDef('nope')).toBeUndefined()
   })
+
+  it('keeps the derived key unions literal (no widening to string)', () => {
+    // If a family factory's return type ever loses a discriminant (type literal,
+    // theme presence/family, cellBg presence), these unions silently widen to
+    // `string` and every Record keyed by them stops type-checking its keys. Guard
+    // at the type level without enumerating the keys.
+    type NoWiden<T extends string> = string extends T ? never : true
+    const styleKeys: NoWiden<import('./registry').ConstraintStyleKey> = true
+    const lineKeys: NoWiden<import('./registry').LineStyleKey> = true
+    const shapeKeys: NoWiden<import('./registry').ShapeStyleKey> = true
+    const textKeys: NoWiden<import('./registry').TextStyleKey> = true
+    const minMaxKeys: NoWiden<import('./registry').MinMaxStyleKey> = true
+    const cellBgKeys: NoWiden<import('./registry').CellBgStyleKey> = true
+    expect([styleKeys, lineKeys, shapeKeys, textKeys, minMaxKeys, cellBgKeys]).toEqual([true, true, true, true, true, true])
+  })
 })

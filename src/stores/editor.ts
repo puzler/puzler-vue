@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
+import { usePresetCollection, styledPatch } from '@/composables/usePresetCollection'
 import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
@@ -108,62 +109,45 @@ export const useEditorStore = defineStore('editor', () => {
   // has its own pending ref tied to color presets)
   const pendingRegionBrushCells = ref<string[]>([])
 
-  // ── Cell color ────────────────────────────────────────────────────────────
+  // ── Cosmetic presets ──────────────────────────────────────────────────────
+  // Five collections with identical mechanics (see usePresetCollection); each
+  // instance's pieces are re-exported below under the store's long-standing
+  // public names, so panels/serialization are untouched.
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
 
-  function makeColorPreset(label: string, color: string): CellColorPreset {
-    return { id: crypto.randomUUID(), label, color }
-  }
-  const _initialColor = makeColorPreset('Color 1', DEFAULT_CELL_COLOR)
-  const cellColorPresets = ref<CellColorPreset[]>([_initialColor])
-  const activeCellColorPresetId = ref<string>(_initialColor.id)
-  const activeCellColorPreset = computed(() =>
-    cellColorPresets.value.find(p => p.id === activeCellColorPresetId.value) ?? cellColorPresets.value[0],
+  const colorPresets = usePresetCollection<CellColorPreset, Partial<Pick<CellColorPreset, 'label' | 'color'>>>(
+    'Color', () => ({ color: DEFAULT_CELL_COLOR }), (p, patch) => ({ ...p, ...patch }),
   )
   const pendingBrushCells = ref<string[]>([])
 
-  // ── Shape ─────────────────────────────────────────────────────────────────
-  function makeShapePreset(label: string): ShapePreset {
-    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_SHAPE_STYLE } }
-  }
-  const _initialShape = makeShapePreset('Shape 1')
-  const shapePresets = ref<ShapePreset[]>([_initialShape])
-  const activeShapePresetId = ref<string>(_initialShape.id)
-  const activeShapePreset = computed(() =>
-    shapePresets.value.find(p => p.id === activeShapePresetId.value) ?? shapePresets.value[0],
+  const shapePresetsC = usePresetCollection<ShapePreset, Partial<ShapeStyle>>(
+    'Shape', () => ({ style: { ...DEFAULT_SHAPE_STYLE } }), styledPatch,
   )
-  // ── Cosmetic cages ────────────────────────────────────────────────────────
-  function makeCagePreset(label: string): CagePreset {
-    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_CAGE_COSMETIC_STYLE } }
-  }
-  const _initialCage = makeCagePreset('Cage 1')
-  const cagePresets = ref<CagePreset[]>([_initialCage])
-  const activeCagePresetId = ref<string>(_initialCage.id)
-  const activeCagePreset = computed(() =>
-    cagePresets.value.find(p => p.id === activeCagePresetId.value) ?? cagePresets.value[0],
+  const cagePresetsC = usePresetCollection<CagePreset, Partial<CageCosmeticStyle>>(
+    'Cage', () => ({ style: { ...DEFAULT_CAGE_COSMETIC_STYLE } }), styledPatch,
+  )
+  const textPresetsC = usePresetCollection<TextPreset, Partial<TextStyle>>(
+    'Text', () => ({ style: { ...DEFAULT_TEXT_STYLE } }), styledPatch,
+  )
+  const linePresetsC = usePresetCollection<LinePreset, Partial<LineStyle>>(
+    'Line', () => ({ style: { ...DEFAULT_LINE_STYLE } }), styledPatch,
   )
 
-  // ── Text ──────────────────────────────────────────────────────────────────
-  function makeTextPreset(label: string): TextPreset {
-    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_TEXT_STYLE } }
-  }
-  const _initialText = makeTextPreset('Text 1')
-  const textPresets = ref<TextPreset[]>([_initialText])
-  const activeTextPresetId = ref<string>(_initialText.id)
-  const activeTextPreset = computed(() =>
-    textPresets.value.find(p => p.id === activeTextPresetId.value) ?? textPresets.value[0],
-  )
-
-  function makePreset(label: string): LinePreset {
-    return { id: crypto.randomUUID(), label, style: { ...DEFAULT_LINE_STYLE } }
-  }
-
-  const _initial = makePreset('Line 1')
-  const linePresets = ref<LinePreset[]>([_initial])
-  const activeLinePresetId = ref<string>(_initial.id)
-  const activeLinePreset = computed(() =>
-    linePresets.value.find(p => p.id === activeLinePresetId.value) ?? linePresets.value[0],
-  )
+  const cellColorPresets = colorPresets.presets
+  const activeCellColorPresetId = colorPresets.activeId
+  const activeCellColorPreset = colorPresets.active
+  const shapePresets = shapePresetsC.presets
+  const activeShapePresetId = shapePresetsC.activeId
+  const activeShapePreset = shapePresetsC.active
+  const cagePresets = cagePresetsC.presets
+  const activeCagePresetId = cagePresetsC.activeId
+  const activeCagePreset = cagePresetsC.active
+  const textPresets = textPresetsC.presets
+  const activeTextPresetId = textPresetsC.activeId
+  const activeTextPreset = textPresetsC.active
+  const linePresets = linePresetsC.presets
+  const activeLinePresetId = linePresetsC.activeId
+  const activeLinePreset = linePresetsC.active
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
   const { canUndo, canRedo, execute, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
 
@@ -786,20 +770,12 @@ export const useEditorStore = defineStore('editor', () => {
   // ── Cell color actions ────────────────────────────────────────────────────
 
   function addCellColorPreset() {
-    const preset = makeColorPreset(`Color ${cellColorPresets.value.length + 1}`, DEFAULT_CELL_COLOR)
-    cellColorPresets.value = [...cellColorPresets.value, preset]
-    activeCellColorPresetId.value = preset.id
+    colorPresets.add()
   }
 
-  function setActiveCellColorPreset(id: string) {
-    if (cellColorPresets.value.some(p => p.id === id)) activeCellColorPresetId.value = id
-  }
+  const setActiveCellColorPreset = colorPresets.setActive
+  const updateActiveCellColorPreset = colorPresets.updateActive
 
-  function updateActiveCellColorPreset(patch: Partial<Pick<CellColorPreset, 'label' | 'color'>>) {
-    cellColorPresets.value = cellColorPresets.value.map(p =>
-      p.id === activeCellColorPresetId.value ? { ...p, ...patch } : p,
-    )
-  }
 
   function setPendingBrushCells(cells: string[]) {
     pendingBrushCells.value = cells
@@ -833,20 +809,12 @@ export const useEditorStore = defineStore('editor', () => {
   // ── Shape actions ─────────────────────────────────────────────────────────
 
   function addShapePreset() {
-    const preset = makeShapePreset(`Shape ${shapePresets.value.length + 1}`)
-    shapePresets.value = [...shapePresets.value, preset]
-    activeShapePresetId.value = preset.id
+    shapePresetsC.add()
   }
 
-  function setActiveShapePreset(id: string) {
-    if (shapePresets.value.some(p => p.id === id)) activeShapePresetId.value = id
-  }
+  const setActiveShapePreset = shapePresetsC.setActive
+  const updateActiveShapePreset = shapePresetsC.updateActive
 
-  function updateActiveShapePreset(patch: Partial<ShapeStyle>) {
-    shapePresets.value = shapePresets.value.map(p =>
-      p.id === activeShapePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
-    )
-  }
 
   function posEq(a: CosmeticPos, b: CosmeticPos) {
     return a.x === b.x && a.y === b.y
@@ -878,20 +846,12 @@ export const useEditorStore = defineStore('editor', () => {
   // ── Text actions ──────────────────────────────────────────────────────────
 
   function addTextPreset() {
-    const preset = makeTextPreset(`Text ${textPresets.value.length + 1}`)
-    textPresets.value = [...textPresets.value, preset]
-    activeTextPresetId.value = preset.id
+    textPresetsC.add()
   }
 
-  function setActiveTextPreset(id: string) {
-    if (textPresets.value.some(p => p.id === id)) activeTextPresetId.value = id
-  }
+  const setActiveTextPreset = textPresetsC.setActive
+  const updateActiveTextPresetStyle = textPresetsC.updateActive
 
-  function updateActiveTextPresetStyle(patch: Partial<TextStyle>) {
-    textPresets.value = textPresets.value.map(p =>
-      p.id === activeTextPresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
-    )
-  }
 
   function toggleTextAt(pos: CosmeticPos) {
     const existingIdx = cosmeticInstances.value.findIndex(
@@ -1024,20 +984,12 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addLinePreset() {
-    const preset = makePreset(`Line ${linePresets.value.length + 1}`)
-    linePresets.value = [...linePresets.value, preset]
-    activeLinePresetId.value = preset.id
+    linePresetsC.add()
   }
 
-  function setActiveLinePreset(id: string) {
-    if (linePresets.value.some(p => p.id === id)) activeLinePresetId.value = id
-  }
+  const setActiveLinePreset = linePresetsC.setActive
+  const updateActiveLinePreset = linePresetsC.updateActive
 
-  function updateActiveLinePreset(patch: Partial<LineStyle>) {
-    linePresets.value = linePresets.value.map(p =>
-      p.id === activeLinePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
-    )
-  }
 
   function startPendingLine(cell: string) {
     pendingLineCells.value = [cell]
@@ -1384,23 +1336,13 @@ export const useEditorStore = defineStore('editor', () => {
     pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
     customGlobalConstraints.value = []
-    const fresh = makePreset('Line 1')
-    linePresets.value = [fresh]
-    activeLinePresetId.value = fresh.id
+    linePresetsC.reset()
     cosmeticCellColors.value = {}
     pendingBrushCells.value = []
-    const freshColor = makeColorPreset('Color 1', DEFAULT_CELL_COLOR)
-    cellColorPresets.value = [freshColor]
-    activeCellColorPresetId.value = freshColor.id
-    const freshShape = makeShapePreset('Shape 1')
-    shapePresets.value = [freshShape]
-    activeShapePresetId.value = freshShape.id
-    const freshText = makeTextPreset('Text 1')
-    textPresets.value = [freshText]
-    activeTextPresetId.value = freshText.id
-    const freshCage = makeCagePreset('Cage 1')
-    cagePresets.value = [freshCage]
-    activeCagePresetId.value = freshCage.id
+    colorPresets.reset()
+    shapePresetsC.reset()
+    textPresetsC.reset()
+    cagePresetsC.reset()
     clearHistory()
   }
 
@@ -1584,20 +1526,11 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addCagePreset() {
-    const preset = makeCagePreset(`Cage ${cagePresets.value.length + 1}`)
-    cagePresets.value = [...cagePresets.value, preset]
-    activeCagePresetId.value = preset.id
+    cagePresetsC.add()
   }
 
-  function setActiveCagePreset(id: string) {
-    if (cagePresets.value.some(p => p.id === id)) activeCagePresetId.value = id
-  }
-
-  function updateActiveCagePreset(patch: Partial<CageCosmeticStyle>) {
-    cagePresets.value = cagePresets.value.map(p =>
-      p.id === activeCagePresetId.value ? { ...p, style: { ...p.style, ...patch } } : p,
-    )
-  }
+  const setActiveCagePreset = cagePresetsC.setActive
+  const updateActiveCagePreset = cagePresetsC.updateActive
 
   // Cosmetic cages share the cage brush, selection, and sum entry with
   // constraint cages — only the instance type and per-preset colors differ

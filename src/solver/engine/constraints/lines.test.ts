@@ -196,6 +196,55 @@ describe('connector & line constraints', () => {
     expect([...specs[0].cells].sort((a, b) => a - b)).toEqual([0, 1, 10])
   })
 
+  it('odd zipper sums symmetric pairs to the central digit', () => {
+    const zip = { kind: 'zipper_line', cells: [0, 1, 2] } // r0c0,r0c1,r0c2
+    expect(valid(puzzle([[0, 3], [1, 6], [2, 4]], [zip]))).toBe(false) // 3+4 != 6
+    expect(solvable(puzzle([[0, 3], [1, 7], [2, 4]], [zip]))).toBe(true)
+    // Ends placed -> logic pins the center to their sum.
+    const { board } = buildBoard(puzzle([[0, 3], [2, 4]], [zip]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[1]).toEqual([7])
+  })
+
+  it('even-length zipper is invalid outright', () => {
+    // A zipper needs a central cell, so an even cell count can never be filled.
+    const zip = { kind: 'zipper_line', cells: [0, 1, 2, 3] }
+    expect(valid(puzzle([], [zip]))).toBe(false)
+  })
+
+  it('zipper with an unreachable sum is logically invalid', () => {
+    // A 9 on one end needs the center above 9: no digit can be its pair's sum.
+    const zip = { kind: 'zipper_line', cells: [0, 1, 2, 3, 4] }
+    const { board } = buildBoard(puzzle([[0, 9]], [zip]))
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('zipper combos respect weak links between the pair cells', () => {
+    // Same-row pair, center 6: 3+3 works arithmetically but the pair cells see
+    // each other, so 3 must drop from both.
+    const rowZip = { kind: 'zipper_line', cells: [0, 1, 2] }
+    const seen = buildBoard(puzzle([[1, 6]], [rowZip]))
+    seen.board.bruteForceLogic()
+    expect(seen.board.candidatesPerCell()[0]).toEqual([1, 2, 4, 5])
+    expect(seen.board.candidatesPerCell()[2]).toEqual([1, 2, 4, 5])
+
+    // Center 2 forces 1+1: impossible for a same-row pair...
+    const forced = buildBoard(puzzle([[1, 2]], [rowZip]))
+    expect(forced.board.bruteForceLogic()).toBe(LogicResult.INVALID)
+
+    // ...but fine when the pair cells share no houses (r0c0 and r8c8).
+    const freeZip = { kind: 'zipper_line', cells: [0, 40, 80] }
+    expect(solvable(puzzle([[40, 2]], [freeZip]))).toBe(true)
+  })
+
+  it('zipper pair cells stay strictly below the central digit', () => {
+    const zip = { kind: 'zipper_line', cells: [0, 1, 2] }
+    const { board } = buildBoard(puzzle([[1, 5]], [zip])) // center = 5
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toEqual([1, 2, 3, 4])
+    expect(board.candidatesPerCell()[2]).toEqual([1, 2, 3, 4])
+  })
+
   it('thermometer strictly increases from the bulb', () => {
     const thermo = { kind: 'thermometer', edges: [[0, 1], [1, 2]] }
     expect(valid(puzzle([[0, 5], [1, 2]], [thermo]))).toBe(false)

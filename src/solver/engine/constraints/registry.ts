@@ -27,6 +27,7 @@ import betweenLine from './betweenLine'
 import regionSumLine from './regionSumLine'
 import groupCycleLine from './groupCycleLine'
 import nabnerLine from './nabnerLine'
+import zipperLine from './zipperLine'
 
 // Phase 7 — cages, regions & outer clues.
 import killerCage from './killerCage'
@@ -62,6 +63,7 @@ export const MODULES: ConstraintModule[] = [
   regionSumLine,
   groupCycleLine,
   nabnerLine,
+  zipperLine,
   killerCage,
   extraRegion,
   clone,

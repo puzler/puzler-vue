@@ -844,3 +844,133 @@ export class NabnerConstraint extends Constraint {
     return ConstraintResult.CHANGED
   }
 }
+
+// Zipper line: digits an equal distance from the line's center sum to the
+// central digit. A zipper needs a central cell, so an even-length line is
+// invalid outright. init seeds the sound pairwise links (a pair cell is always
+// strictly below the center, and a pair summing past the top digit can never
+// match it); the logic step intersects the sums every pair can still make with
+// the center's candidates, fails when none survive, and prunes every cell to
+// values taking part in a surviving sum. Combos are weak-link aware: a pair
+// sharing a house can't split its sum into two equal halves, and any other
+// constraint linking the three cells is honoured too.
+export class ZipperLineConstraint extends Constraint {
+  private center: number | null
+  private pairs: Array<[number, number]>
+  private involved: Set<number>
+  private linked = false
+
+  constructor(cells: number[]) {
+    super('Zipper line')
+    this.center = cells.length % 2 === 1 ? cells[(cells.length - 1) / 2] : null
+    this.pairs = []
+    for (let i = 0, j = cells.length - 1; i < j; i += 1, j -= 1) this.pairs.push([cells[i], cells[j]])
+    this.involved = new Set(cells)
+  }
+
+  init(board: Board) {
+    if (this.center === null) return ConstraintResult.INVALID
+    if (this.linked) return ConstraintResult.UNCHANGED
+    this.linked = true
+    for (const [a, b] of this.pairs) {
+      for (const cell of [a, b]) {
+        for (let x = 1; x <= board.size; x += 1) {
+          for (let z = 1; z <= x; z += 1) {
+            board.addWeakLink(board.candidateIndex(cell, x), board.candidateIndex(this.center, z))
+          }
+        }
+      }
+      for (let x = 1; x <= board.size; x += 1) {
+        for (let y = 1; y <= board.size; y += 1) {
+          if (x + y > board.size) board.addWeakLink(board.candidateIndex(a, x), board.candidateIndex(b, y))
+        }
+      }
+    }
+    return ConstraintResult.UNCHANGED
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    let sum = this.center !== null ? placed(board, this.center) : 0
+    for (const [a, b] of this.pairs) {
+      const av = placed(board, a)
+      const bv = placed(board, b)
+      if (av === 0 || bv === 0) continue
+      if (sum === 0) sum = av + bv
+      else if (av + bv !== sum) return false
+    }
+    return true
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    if (this.center === null) {
+      desc.push('Zipper line has no central cell')
+      return ConstraintResult.INVALID
+    }
+    const center = this.center
+    const size = board.size
+    const linkedPair = (c1: number, v1: number, c2: number, v2: number) =>
+      board.weakLinks[board.candidateIndex(c1, v1)].has(board.candidateIndex(c2, v2))
+
+    // Per pair and per center value, the value masks of combos that survive the
+    // weak-link graph (a same-house pair can't take two equal halves, a cell
+    // linked to the center can't join a combo the center value forbids, ...).
+    const centerValues = valuesList(board.candidateMask(center))
+    const perPair = this.pairs.map(([a, b]) => {
+      const bySum = new Map<number, { a: number; b: number }>()
+      for (const s of centerValues) {
+        let maskA = 0
+        let maskB = 0
+        for (const x of valuesList(board.candidateMask(a))) {
+          const y = s - x
+          if (y < 1 || y > size || (board.candidateMask(b) & valueBit(y)) === 0) continue
+          if (linkedPair(a, x, b, y) || linkedPair(a, x, center, s) || linkedPair(b, y, center, s)) continue
+          maskA |= valueBit(x)
+          maskB |= valueBit(y)
+        }
+        if (maskA !== 0) bySum.set(s, { a: maskA, b: maskB })
+      }
+      return bySum
+    })
+
+    // Sums every pair can still make, within the center's candidates.
+    const feasible = centerValues.filter((s) => perPair.every((bySum) => bySum.has(s)))
+    if (feasible.length === 0) {
+      desc.push('Zipper line has no workable sum')
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    const keep = (cell: number, mask: number): boolean => {
+      if ((board.candidateMask(cell) & ~mask) === 0) return false
+      if (board.keepMask(cell, board.candidateMask(cell) & mask) === ConstraintResult.INVALID) return true
+      cleared.push(cell)
+      return false
+    }
+    let centerMask = 0
+    for (const s of feasible) centerMask |= valueBit(s)
+    if (keep(center, centerMask)) {
+      desc.push(`Zipper line empties ${cellName(center, size)}`)
+      return ConstraintResult.INVALID
+    }
+    for (let i = 0; i < this.pairs.length; i += 1) {
+      const [a, b] = this.pairs[i]
+      let maskA = 0
+      let maskB = 0
+      for (const s of feasible) {
+        const combo = perPair[i].get(s)
+        if (combo) {
+          maskA |= combo.a
+          maskB |= combo.b
+        }
+      }
+      if (keep(a, maskA) || keep(b, maskB)) {
+        desc.push('Zipper line empties a pair cell')
+        return ConstraintResult.INVALID
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Zipper line')
+    return ConstraintResult.CHANGED
+  }
+}

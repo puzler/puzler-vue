@@ -1,5 +1,5 @@
 import { nextTick } from 'vue'
-import { driver, type DriveStep } from 'driver.js'
+import type { DriveStep } from 'driver.js'
 import { TOURS, type TourKey } from '@/data/tours'
 
 // A single place that drives driver.js: filters steps to anchors that are
@@ -44,6 +44,9 @@ async function prepareForTour(key: TourKey): Promise<void> {
  */
 export async function startTour(key: TourKey): Promise<void> {
   if (isTourActive()) return
+  // Tours are rare; keep driver.js (and its stylesheet) out of the main bundle
+  // and load both only when one actually starts.
+  const [{ driver }] = await Promise.all([import('driver.js'), import('driver.js/dist/driver.css')])
   await prepareForTour(key)
 
   const steps = (TOURS[key] ?? []).filter(stepIsVisible)

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, computed, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { useAuthStore } from './auth'
 import {
   type Theme,
@@ -224,7 +225,11 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   // ── Persistence + hydration ──────────────────────────────────────────────────
-  watch(collection, () => { saveThemeCollection(collection) }, { deep: true })
+  // Deep-watching the whole collection means every nested tweak fires (a colour
+  // slider drag fires per tick); debounce the serialize-and-write so localStorage
+  // sees one save per burst. Losing the trailing 300ms to a crash is harmless here.
+  const persistCollection = useDebounceFn(() => { saveThemeCollection(collection) }, 300)
+  watch(collection, () => { void persistCollection() }, { deep: true })
 
   // Replace the local collection with the server's (the server is authoritative once logged in).
   function adoptServer(serverThemes: unknown[], activeId: string, gate: boolean) {

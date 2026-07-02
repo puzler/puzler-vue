@@ -88,20 +88,19 @@ interface DigitEntry {
 
 interface CornerMarkEntry {
   key: string
-  cell: string
   x: number
   y: number
   digit: number
   anchor: string
   baseline: string
+  fill: string
 }
 
 interface CenterMarkEntry {
   key: string
-  cell: string
   x: number
   y: number
-  marks: number[]
+  marks: Array<{ digit: number; fill: string; weight: string }>
 }
 
 const mainDigits = computed<DigitEntry[]>(() => {
@@ -140,12 +139,14 @@ const cornerMarks = computed<CornerMarkEntry[]>(() => {
       active.forEach((slot, i) => {
         out.push({
           key: `cm-${key}-${digits[i]}`,
-          cell: key,
           x: cellX + slot.dx,
           y: cellY + slot.dy,
           digit: digits[i],
           anchor: slot.anchor,
           baseline: slot.baseline,
+          // Resolved here (not in the template) so styling work runs once per
+          // data change instead of once per <text> per render.
+          fill: seenMarkFill(key, digits[i]),
         })
       })
     }
@@ -163,7 +164,16 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       if (!state?.centerMarks.length || state.value != null || props.givenDigits[key] !== undefined) continue
       const cx = PADDING + c * CELL_SIZE + CELL_SIZE / 2
       const cy = PADDING + r * CELL_SIZE + CELL_SIZE / 2
-      out.push({ key: `km-${key}`, cell: key, x: cx, y: cy, marks: state.centerMarks })
+      out.push({
+        key: `km-${key}`,
+        x: cx,
+        y: cy,
+        marks: state.centerMarks.map((digit) => ({
+          digit,
+          fill: centerMarkFill(key, digit),
+          weight: centerMarkWeight(key, digit),
+        })),
+      })
     }
   }
   return out
@@ -198,7 +208,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
       :dominant-baseline="m.baseline"
       :font-size="MARK_FONT"
       font-family="'Space Grotesk', sans-serif"
-      :style="{ fill: seenMarkFill(m.cell, m.digit) }"
+      :style="{ fill: m.fill }"
     >
       {{ m.digit }}
     </text>
@@ -216,11 +226,11 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
     >
       <tspan
         v-for="d in m.marks"
-        :key="d"
-        :style="{ fill: centerMarkFill(m.cell, d) }"
-        :font-weight="centerMarkWeight(m.cell, d)"
+        :key="d.digit"
+        :style="{ fill: d.fill }"
+        :font-weight="d.weight"
       >
-        {{ d }}
+        {{ d.digit }}
       </tspan>
     </text>
   </g>

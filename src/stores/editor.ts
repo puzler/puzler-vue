@@ -300,18 +300,27 @@ export const useEditorStore = defineStore('editor', () => {
   })
 
   // Cells holding a digit that conflicts with another visible (variant-aware) cell.
+  // Only same-digit pairs can conflict, so group by digit first: the pairwise
+  // seesRC scan shrinks from all-filled² to a handful of small per-digit groups
+  // (this recomputes on every keystroke, so the constant matters).
   const errorCells = computed<Set<string>>(() => {
     const { seesRC } = cellVisibility.value
-    const filled = filledDigitCells.value
     const errors = new Set<string>()
-    for (let i = 0; i < filled.length; i++) {
-      const a = filled[i]
-      for (let j = i + 1; j < filled.length; j++) {
-        const b = filled[j]
-        if (a.digit !== b.digit) continue
-        if (seesRC(a.key, a.row, a.col, b.key, b.row, b.col)) {
-          errors.add(a.key)
-          errors.add(b.key)
+    const byDigit = new Map<number, Array<{ key: string; row: number; col: number }>>()
+    for (const f of filledDigitCells.value) {
+      let group = byDigit.get(f.digit)
+      if (!group) byDigit.set(f.digit, (group = []))
+      group.push(f)
+    }
+    for (const group of byDigit.values()) {
+      for (let i = 0; i < group.length; i++) {
+        const a = group[i]
+        for (let j = i + 1; j < group.length; j++) {
+          const b = group[j]
+          if (seesRC(a.key, a.row, a.col, b.key, b.row, b.col)) {
+            errors.add(a.key)
+            errors.add(b.key)
+          }
         }
       }
     }

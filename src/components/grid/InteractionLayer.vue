@@ -327,6 +327,13 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
 
 // Plain cell selection (shared by the setting-mode default tool and all of
 // solving mode). Ctrl/Cmd/Shift extends the selection; a bare click replaces it.
+
+// Selection accumulated across the active drag (the brushes keep brushCells the
+// same way). Extends must read this rather than props.selection: moves processed
+// in one frame batch run before the emitted selection round-trips through the
+// parent, so the prop can be a stale snapshot mid-gesture.
+let dragSelection: Set<string> | null = null
+
 function beginSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
   if (!key) return
@@ -335,20 +342,21 @@ function beginSelectionDrag(event: PointerEvent) {
   // The multi-select toggle makes a plain click behave like ctrl-click.
   const additive = event.ctrlKey || event.metaKey || event.shiftKey || editor.multiSelectMode
   dragAdditive.value = additive
-  if (additive) {
-    const next = new Set(props.selection)
-    if (next.has(key)) next.delete(key)
-    else next.add(key)
-    emit('update:selection', next)
-  } else {
-    emit('update:selection', new Set([key]))
-  }
+  const next = additive ? new Set(props.selection) : new Set<string>()
+  if (additive && next.has(key)) next.delete(key)
+  else next.add(key)
+  dragSelection = next
+  emit('update:selection', new Set(next))
 }
 
 function extendSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
-  if (!key || props.selection.has(key)) return
-  emit('update:selection', new Set([...props.selection, key]))
+  if (!key) return
+  const sel = dragSelection ?? new Set(props.selection)
+  if (sel.has(key)) return
+  sel.add(key)
+  dragSelection = sel
+  emit('update:selection', new Set(sel))
 }
 
 // Double-click a cell to "select all same": every cell matching the clicked
@@ -601,7 +609,36 @@ function updateGhost(event: PointerEvent) {
   editor.setGhostPos(next)
 }
 
+// Pointer moves can arrive well above frame rate (high-Hz mice, coalesced
+// touch bursts); the hit-testing and pending-shape updates below are too heavy
+// to run on the event hot path on mobile. Queue moves and process the batch
+// once per animation frame — in order, so a fast flick never skips cells,
+// while Vue's scheduler still renders the batch as one flush.
+let queuedMoves: PointerEvent[] = []
+let moveFrame = 0
+
 function onPointerMove(event: PointerEvent) {
+  queuedMoves.push(event)
+  if (moveFrame) return
+  moveFrame = requestAnimationFrame(() => {
+    moveFrame = 0
+    const batch = queuedMoves
+    queuedMoves = []
+    for (const e of batch) processPointerMove(e)
+  })
+}
+
+// Drop any queued moves so a stale frame can't fire after the gesture ended
+// (e.g. resurrecting the ghost cursor after pointerleave cleared it).
+function cancelQueuedMove() {
+  queuedMoves = []
+  if (moveFrame) {
+    cancelAnimationFrame(moveFrame)
+    moveFrame = 0
+  }
+}
+
+function processPointerMove(event: PointerEvent) {
   updateGhost(event)
   if (!isDragging.value) return
 
@@ -663,6 +700,8 @@ function onPointerMove(event: PointerEvent) {
 // A pointercancel (system gesture, second finger, etc.) aborts the gesture
 // without a pointerup — reset transient state so we don't get stuck mid-drag.
 function onPointerCancel() {
+  cancelQueuedMove()
+  dragSelection = null
   editor.setGhostPos(null)
   if (!isDragging.value) return
   isDragging.value = false
@@ -676,10 +715,19 @@ function onPointerCancel() {
 
 // Clear the placement ghost when the pointer leaves the grid.
 function onPointerLeave() {
+  cancelQueuedMove()
   if (editor.ghostPos) editor.setGhostPos(null)
 }
 
 function onPointerUp(event: PointerEvent) {
+  // Flush queued moves first so a fast flick's final positions land (line
+  // ends / brush cells) before the gesture commits.
+  if (queuedMoves.length) {
+    const batch = queuedMoves
+    cancelQueuedMove()
+    for (const e of batch) processPointerMove(e)
+  }
+  dragSelection = null
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false

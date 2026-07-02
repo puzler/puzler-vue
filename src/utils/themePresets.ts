@@ -188,6 +188,7 @@ const HIGH_CONTRAST: Theme = {
     dutch_whispers: { color: '#CC5200' },  // orange, darkened
     region_sum: { color: '#0085AC' },      // cyan, darkened (NOT pure blue)
     entropic_lines: { color: '#C24E2E' },  // peach, darkened to rust
+    modular_lines: { color: '#00776F' },   // teal, darkened
     palindrome: { color: '#222222' },      // grey, darkened
     killer_cage: { color: '#000000', textColor: '#000000' },
     // Grey marks → bold dark grey (same neutral hue) so they don't wash out on white.

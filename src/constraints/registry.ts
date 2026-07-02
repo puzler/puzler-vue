@@ -55,6 +55,7 @@ import dutchWhispers from './definitions/dutchWhispers'
 import palindrome from './definitions/palindrome'
 import regionSum from './definitions/regionSum'
 import entropicLines from './definitions/entropicLines'
+import modularLines from './definitions/modularLines'
 import betweenLines from './definitions/betweenLines'
 import thermometer from './definitions/thermometer'
 import slowThermometer from './definitions/slowThermometer'
@@ -100,6 +101,7 @@ const DEFS = [
   palindrome,
   regionSum,
   entropicLines,
+  modularLines,
   betweenLines,
   thermometer,
   slowThermometer,

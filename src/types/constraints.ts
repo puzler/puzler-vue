@@ -1,5 +1,14 @@
-import { LINE_STYLES, SHAPE_STYLES, colorToCss } from '@/types/constraintStyles'
 import { keyToRowCol } from '@/composables/useGrid'
+
+// Constraint membership sets, variant maps and built-in style constants are all
+// derived from the UI constraint registry — the single source of truth for what the
+// frontend knows about each constraint type. Re-exported here so consumers keep one
+// import site for constraint data shapes + membership.
+export {
+  CONSTRAINT_LINE_TYPES, THERMO_TYPES, ARROW_STYLE,
+  BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES,
+  SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS, GLOBAL_VARIANTS,
+} from '@/constraints/registry'
 
 export interface LineStyle {
   color: string
@@ -49,8 +58,10 @@ export interface ConstraintLineData {
   cells: string[]
 }
 
-export const CONSTRAINT_LINE_TYPES = new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum', 'between_lines'])
-
+// Thermo-like tools share the same {root, edges} data shape and draw/branch
+// machinery. Slow thermos differ only in the solver rule (non-decreasing) and a
+// hollow, outline-only render. Generalize type checks against THERMO_TYPES
+// (from the registry) rather than duplicating the thermometer logic.
 export interface ThermoEdge {
   from: string
   to: string
@@ -60,18 +71,6 @@ export interface ThermometerData {
   root: string
   edges: ThermoEdge[]
 }
-
-export const THERMO_STYLE = {
-  color: '#aaaaaa',
-  strokeWidth: 12,
-  bulbRadius: 18,
-}
-
-// Thermo-like tools share the same {root, edges} data shape and draw/branch
-// machinery. Slow thermos differ only in the solver rule (non-decreasing) and a
-// hollow, outline-only render. Generalize type checks against this set rather
-// than duplicating the thermometer logic.
-export const THERMO_TYPES = new Set(['thermometer', 'slow_thermometer'])
 
 // ── Arrows ────────────────────────────────────────────────────────────────────
 
@@ -86,48 +85,11 @@ export interface ArrowData {
   arrows: ArrowPath[]
 }
 
-export const ARROW_STYLE = {
-  color: '#aaaaaa',
-  bulbRadius: 27,
-  outlineWidth: 2.5,
-  lineWidth: 2.5,
-  headLength: 11,
-  // Perpendicular spread of the chevron wings as a fraction of headLength —
-  // kept narrow so several arrows can end in one cell without touching
-  headSpread: 0.45,
-}
-
-export interface ConstraintLineStyle {
-  color: string
-  strokeWidth: number
-  opacity: number
-}
-
-export const CONSTRAINT_LINE_STYLES: Record<string, ConstraintLineStyle> = {
-  renban:          { color: colorToCss(LINE_STYLES.renban.color),          strokeWidth: 8, opacity: 1 },
-  german_whispers: { color: colorToCss(LINE_STYLES.german_whispers.color), strokeWidth: 8, opacity: 1 },
-  dutch_whispers:  { color: colorToCss(LINE_STYLES.dutch_whispers.color),  strokeWidth: 8, opacity: 1 },
-  palindrome:      { color: colorToCss(LINE_STYLES.palindrome.color),      strokeWidth: 8, opacity: 1 },
-  region_sum:      { color: colorToCss(LINE_STYLES.region_sum.color),      strokeWidth: 8, opacity: 1 },
-}
-
-export const BETWEEN_LINE_STYLE = {
-  lineColor:        colorToCss(LINE_STYLES.between_lines.color),
-  lineStrokeWidth:  2,
-  circleRadius:     Math.round(SHAPE_STYLES.between_lines_bulb.width * 64 / 2), // 0.8 * 64 / 2 = 26
-  circleFill:       colorToCss(SHAPE_STYLES.between_lines_bulb.fillColor),
-  circleStrokeColor: colorToCss(SHAPE_STYLES.between_lines_bulb.outlineColor),
-  circleStrokeWidth: 2,
-}
-
 // ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
 
 export type ConnectorDotType = 'difference_dots' | 'ratio_dots'
 export type BorderConnectorType = ConnectorDotType | 'xv' | 'quadruples'
 export type XvValue = 'X' | 'V'
-
-export const CONNECTOR_DOT_TYPES = new Set<string>(['difference_dots', 'ratio_dots'])
-export const BORDER_CONNECTOR_TYPES = new Set<string>([...CONNECTOR_DOT_TYPES, 'xv', 'quadruples'])
 
 export const QUADRUPLE_MAX_DIGITS = 4
 
@@ -187,8 +149,6 @@ export interface CloneData {
 
 export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers'
 
-export const OUTER_CLUE_TYPES = new Set<string>(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers'])
-
 export type LittleKillerDirection = 'up-left' | 'up-right' | 'down-left' | 'down-right'
 
 export interface OuterClue {
@@ -232,49 +192,6 @@ export function littleKillerStep(dir: LittleKillerDirection): { dRow: number; dC
 }
 
 // ── Global constraint variants ────────────────────────────────────────────────
-
-export interface GlobalVariant {
-  type: string
-  label: string
-}
-
-// Marking a cell with one of these types removes it from the paired type
-export const SINGLE_CELL_EXCLUSIONS: Record<string, string> = {
-  odd_cells: 'even_cells',
-  even_cells: 'odd_cells',
-  minimums: 'maximums',
-  maximums: 'minimums',
-}
-
-// Selecting one of these variants automatically deselects its paired counterpart
-export const GLOBAL_VARIANT_EXCLUSIONS: Record<string, string> = {
-  positive_diagonal:      'anti_positive_diagonal',
-  anti_positive_diagonal: 'positive_diagonal',
-  negative_diagonal:      'anti_negative_diagonal',
-  anti_negative_diagonal: 'negative_diagonal',
-}
-
-export const GLOBAL_VARIANTS: Record<string, GlobalVariant[]> = {
-  diagonals: [
-    { type: 'positive_diagonal', label: 'Positive diagonal' },
-    { type: 'negative_diagonal', label: 'Negative diagonal' },
-    { type: 'anti_positive_diagonal', label: 'Anti-positive diagonal' },
-    { type: 'anti_negative_diagonal', label: 'Anti-negative diagonal' },
-  ],
-  chess: [
-    { type: 'kings_move', label: "King's move" },
-    { type: 'knights_move', label: "Knight's move" },
-  ],
-  anti_kropki: [
-    { type: 'nonconsecutive', label: 'Nonconsecutive' },
-    { type: 'anti_black_kropki', label: 'Anti-black Kropki' },
-  ],
-  anti_xv: [
-    { type: 'anti_x', label: 'Anti-X' },
-    { type: 'anti_v', label: 'Anti-V' },
-  ],
-  disjoint_sets: [],
-}
 
 export interface CustomGlobalConstraint {
   id: string

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { CONSTRAINT_ICONS } from '@/constraints/registry'
 import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
 interface ConstraintOption {

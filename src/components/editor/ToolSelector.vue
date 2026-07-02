@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { GLOBAL_VARIANTS } from '@/types/constraints'
+import { LOCAL_TOOL_TYPES, pickerOptionsFor, toolboxCategory } from '@/constraints/registry'
 import LocalConstraintPickerModal from './LocalConstraintPickerModal.vue'
 import ConstraintPickerModal from './ConstraintPickerModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -33,37 +34,11 @@ interface Category {
   mode: 'global' | 'list' | 'cosmetic' | 'tool'
 }
 
-// Constraint types that activate a draw tool when clicked in the sidebar
-const LOCAL_TOOL_TYPES = new Set([
-  'thermometer', 'slow_thermometer', 'arrow', 'renban', 'german_whispers', 'dutch_whispers',
-  'palindrome', 'region_sum', 'between_lines',
-  'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
-  'difference_dots', 'ratio_dots', 'xv', 'quadruples',
-  'killer_cage', 'extra_regions', 'clone',
-  'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
-])
-
-// Maps local constraint types to their storage category for correct removal routing
-const LINE_CATEGORY_TYPES = new Set([
-  'renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum',
-  'between_lines', 'thermometer', 'slow_thermometer', 'arrow',
-])
-const REGION_CATEGORY_TYPES = new Set(['killer_cage', 'clone', 'extra_regions'])
-const SINGLE_CELL_TYPES = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
-const CONNECTOR_TYPES = new Set(['difference_dots', 'ratio_dots', 'xv', 'quadruples'])
-const OUTER_TYPES = new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers'])
-
 const globalCategory: Category = {
   key: 'global',
   label: 'Global Constraints',
   mode: 'global',
-  options: [
-    { type: 'diagonals', label: 'Diagonals' },
-    { type: 'chess', label: 'Chess' },
-    { type: 'anti_kropki', label: 'Anti-Kropki' },
-    { type: 'anti_xv', label: 'Anti-XV' },
-    { type: 'disjoint_sets', label: 'Disjoint Sets' },
-  ],
+  options: pickerOptionsFor('global'),
 }
 
 const localCategory: Category = {
@@ -77,13 +52,7 @@ const cosmeticCategory: Category = {
   key: 'cosmetic',
   label: 'Cosmetics',
   mode: 'cosmetic',
-  options: [
-    { type: 'cosmetic_line', label: 'Line' },
-    { type: 'cell_color', label: 'Cell color' },
-    { type: 'shape', label: 'Shape' },
-    { type: 'text', label: 'Text' },
-    { type: 'cosmetic_cage', label: 'Cage' },
-  ],
+  options: pickerOptionsFor('cosmetic'),
 }
 
 const showLocalPicker = ref(false)
@@ -103,20 +72,9 @@ function constraintsFor(key: string) {
 }
 
 function handleLocalPick(type: string, label: string) {
-  let category: string
-  if (LINE_CATEGORY_TYPES.has(type)) {
-    category = 'line'
-  } else if (REGION_CATEGORY_TYPES.has(type)) {
-    category = 'region'
-  } else if (SINGLE_CELL_TYPES.has(type)) {
-    category = 'single_cell'
-  } else if (CONNECTOR_TYPES.has(type)) {
-    category = 'connector'
-  } else if (OUTER_TYPES.has(type)) {
-    category = 'outer'
-  } else {
-    category = 'local'
-  }
+  // The registry's toolbox category doubles as the storage category, which routes
+  // removal to the right editor cleanup action later.
+  const category = toolboxCategory(type) ?? 'local'
   editor.addConstraint(type, label, category)
   if (LOCAL_TOOL_TYPES.has(type)) editor.setActiveTool(type)
 }

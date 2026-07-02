@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CONSTRAINT_STYLE_REGISTRY, type ConstraintStyleKey, type ConstraintStyleCategory } from '@/utils/theme'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { CONSTRAINT_ICONS } from '@/constraints/registry'
 import { useConstraintStyles } from '@/composables/useConstraintStyles'
 import MdiIcon from '@/components/MdiIcon.vue'
 

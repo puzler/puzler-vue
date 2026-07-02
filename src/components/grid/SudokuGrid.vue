@@ -13,10 +13,9 @@ import CellLayer from './CellLayer.vue'
 import MultiplayerSelectionsLayer from './MultiplayerSelectionsLayer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import RegionLayer from './RegionLayer.vue'
-import ConnectorDotsLayer from './constraints/ConnectorDotsLayer.vue'
-import OuterCluesLayer from './constraints/OuterCluesLayer.vue'
 import DigitLayer from './DigitLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
+import { constraintLayersForSlot } from '@/constraints/layerComponents'
 import type { CellState, GridMode } from '@/types/grid'
 
 // `interactive` must default to true via withDefaults, NOT be left implicit: it
@@ -46,6 +45,10 @@ const svgEl = ref<SVGSVGElement | null>(null)
 const margins = useOuterMargins()
 
 const showLabels = computed(() => player.settings.showRowColLabels)
+
+// Registry-derived constraint layers that sit at fixed points in the grid stack.
+const aboveRegionLayers = constraintLayersForSlot('above_regions')
+const aboveDigitLayers = constraintLayersForSlot('above_digits')
 
 // Outer clue margins extend the viewBox into negative space so all
 // PADDING-based cell math stays untouched; the optional row/column labels add a
@@ -82,12 +85,20 @@ const viewBox = computed(() => {
     <SelectionLayer :selection="selection" />
     <RegionLayer />
     <!-- Dots sit on cell borders, so they render above the grid and region lines -->
-    <ConnectorDotsLayer />
+    <component
+      :is="layer.component"
+      v-for="layer in aboveRegionLayers"
+      :key="layer.id"
+    />
     <DigitLayer
       :given-digits="givenDigits"
       :cell-states="cellStates"
     />
-    <OuterCluesLayer />
+    <component
+      :is="layer.component"
+      v-for="layer in aboveDigitLayers"
+      :key="layer.id"
+    />
     <InteractionLayer
       v-if="interactive"
       :svg-ref="svgEl"

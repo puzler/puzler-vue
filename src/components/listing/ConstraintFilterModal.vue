@@ -2,7 +2,7 @@
 import MdiIcon from '@/components/MdiIcon.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { CONSTRAINT_FILTER_GROUPS } from '@/constants/constraints'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { CONSTRAINT_ICONS } from '@/constraints/registry'
 import type { MatchModeEnum } from '@/graphql/generated/types'
 import { MatchModeEnum as Match } from '@/graphql/generated/types'
 

@@ -3,6 +3,10 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import ModeSwitcher from './ModeSwitcher.vue'
 
+// The constraint rule for the active line type, passed from its registry def
+// (panel.props.ruleText). Interaction is described by the Draw/Branch mode hints.
+const props = withDefaults(defineProps<{ ruleText?: string }>(), { ruleText: '' })
+
 const editor = useEditorStore()
 
 const MODES = [
@@ -10,22 +14,11 @@ const MODES = [
   { key: 'branch', label: 'Branch' },
 ]
 
-// The constraint rule for each line type. Interaction is described by the
-// Draw/Branch mode hints below.
-const LINE_TOOL_DESCRIPTIONS: Record<string, string> = {
-  renban:          'The cells must contain a set of consecutive digits in any order.',
-  german_whispers: 'Adjacent digits on the line must differ by at least 5.',
-  dutch_whispers:  'Adjacent digits on the line must differ by at least 4.',
-  palindrome:      'Digits read the same from both ends of the line.',
-  region_sum:      'The line sums to the same total in each box it passes through.',
-  between_lines:   'Digits on the line fall strictly between the digits in the two end circles.',
-}
-
 const label = computed(() =>
   editor.activeConstraints.find(c => c.type === editor.activeTool)?.label ?? '',
 )
 
-const description = computed(() => LINE_TOOL_DESCRIPTIONS[editor.activeTool] ?? '')
+const description = computed(() => props.ruleText)
 </script>
 
 <template>

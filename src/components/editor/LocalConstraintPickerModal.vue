@@ -4,76 +4,11 @@ import ConstraintTile from '@/components/editor/ConstraintTile.vue'
 import ConstraintCategoryNav from '@/components/editor/ConstraintCategoryNav.vue'
 import ConstraintPickerToolbar from '@/components/editor/ConstraintPickerToolbar.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import { LOCAL_PICKER_GROUPS } from '@/constraints/registry'
 
-interface ConstraintOption {
-  type: string
-  label: string
-}
-
-interface ConstraintGroup {
-  key: string
-  label: string
-  options: ConstraintOption[]
-}
-
-const GROUPS: ConstraintGroup[] = [
-  {
-    key: 'lines',
-    label: 'Lines',
-    options: [
-      { type: 'renban', label: 'Renban Lines' },
-      { type: 'german_whispers', label: 'German Whispers' },
-      { type: 'region_sum', label: 'Region Sum Lines' },
-      { type: 'palindrome', label: 'Palindrome Lines' },
-      { type: 'dutch_whispers', label: 'Dutch Whispers' },
-      { type: 'between_lines', label: 'Between Lines' },
-    ],
-  },
-  {
-    key: 'single_cell',
-    label: 'Single Cell Constraints',
-    options: [
-      { type: 'odd_cells', label: 'Odd Cells' },
-      { type: 'even_cells', label: 'Even Cells' },
-      { type: 'minimums', label: 'Minimums' },
-      { type: 'maximums', label: 'Maximums' },
-      { type: 'row_index_cells', label: 'Row Index Cells' },
-      { type: 'col_index_cells', label: 'Column Index Cells' },
-    ],
-  },
-  {
-    key: 'cell_connectors',
-    label: 'Cell Connectors',
-    options: [
-      { type: 'difference_dots', label: 'Difference Dots' },
-      { type: 'ratio_dots', label: 'Ratio Dots' },
-      { type: 'xv', label: 'XV' },
-      { type: 'quadruples', label: 'Quadruples' },
-    ],
-  },
-  {
-    key: 'multi_cell',
-    label: 'Multi-Cell Constraints',
-    options: [
-      { type: 'thermometer', label: 'Thermometers' },
-      { type: 'slow_thermometer', label: 'Slow Thermometers' },
-      { type: 'arrow', label: 'Arrows' },
-      { type: 'killer_cage', label: 'Killer Cages' },
-      { type: 'clone', label: 'Clones' },
-      { type: 'extra_regions', label: 'Extra Regions' },
-    ],
-  },
-  {
-    key: 'outer_clues',
-    label: 'Outer Clues',
-    options: [
-      { type: 'x_sums', label: 'X-Sums' },
-      { type: 'sandwich_sums', label: 'Sandwich Sums' },
-      { type: 'skyscrapers', label: 'Skyscrapers' },
-      { type: 'little_killers', label: 'Little Killers' },
-    ],
-  },
-]
+// Groups derived from the UI constraint registry (each def's toolbox.pickerGroup +
+// pickerLabel). Both views sort options A-Z, so only group order matters.
+const GROUPS = LOCAL_PICKER_GROUPS
 
 interface FlatConstraint {
   type: string

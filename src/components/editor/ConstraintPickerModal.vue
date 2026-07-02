@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MdiIcon from '@/components/MdiIcon.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
+import { CONSTRAINT_ICONS } from '@/constraints/registry'
 
 interface Option {
   type: string

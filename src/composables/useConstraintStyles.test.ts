@@ -4,10 +4,12 @@ import {
   resolveCellBgColor, resolveCageStyle, resolveBetweenLineStyle, resolveMinMaxStyle,
   resolveThermoStyle, resolveArrowStyle,
 } from './useConstraintStyles'
-import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE } from '@/types/constraints'
+import {
+  CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE,
+} from '@/constraints/registry'
 import {
   SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, colorToCss,
-} from '@/types/constraintStyles'
+} from '@/constraints/registry'
 
 // The core Phase-0 guarantee: with no theme override, every resolver returns BYTE-IDENTICAL
 // values to what the components render today (the existing constants). This is what lets the

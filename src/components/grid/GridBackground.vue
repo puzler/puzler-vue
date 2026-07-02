@@ -5,9 +5,12 @@ import { useEditorStore } from '@/stores/editor'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
-import { CELL_BACKGROUND_COLORS } from '@/types/constraintStyles'
+import { CELL_BACKGROUND_COLORS } from '@/constraints/registry'
 import { useConstraintStyles, type CellBgKey } from '@/composables/useConstraintStyles'
-import ConstraintBackgrounds from './ConstraintBackgrounds.vue'
+import { constraintLayersForSlot } from '@/constraints/layerComponents'
+
+// Registry-derived constraint layers that render under the grid lines.
+const backgroundLayers = constraintLayersForSlot('background')
 
 const grid = useGridStore()
 const editor = useEditorStore()
@@ -98,7 +101,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
     result.push({ x: PADDING + col * CELL_SIZE, y: PADDING + row * CELL_SIZE, color })
   }
   for (const [type, marks] of Object.entries(editor.singleCellMarks)) {
-    const bg = CELL_BACKGROUND_COLORS[type]
+    const bg = CELL_BACKGROUND_COLORS[type as CellBgKey]
     if (!bg || !marks?.size) continue
     const color = cs.cellBgColor(type as CellBgKey)
     const isIndexType = type === 'row_index_cells' || type === 'col_index_cells'
@@ -182,7 +185,11 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :height="CELL_SIZE"
       :fill="cr.color"
     />
-    <ConstraintBackgrounds />
+    <component
+      :is="layer.component"
+      v-for="layer in backgroundLayers"
+      :key="layer.id"
+    />
   </g>
 </template>
 

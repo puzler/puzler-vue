@@ -15,6 +15,9 @@
 // all-empty theme (Classic) reproduces today's look pixel-for-pixel by construction.
 
 import { parseRgb } from '@/utils/colorPalette'
+import {
+  CONSTRAINT_STYLE_REGISTRY, constraintFamily, type ConstraintStyleKey,
+} from '@/constraints/registry'
 
 export const THEME_SCHEMA_VERSION = 1
 
@@ -85,70 +88,18 @@ export interface ConstraintStyleOverride {
   backgroundColor?: string
 }
 
-// The family decides which fields are meaningful and how the resolver merges + clamps them.
-export type ConstraintStyleFamily =
-  | 'line' | 'diagonal' | 'shape' | 'text' | 'cellBg' | 'cage' | 'minmax' | 'betweenLine'
-  | 'thermo' | 'arrow'
-
-// Editor grouping (mirrors the constraint categories in constants/constraints.ts).
-export type ConstraintStyleCategory =
-  | 'lines' | 'connectors' | 'cells' | 'regions' | 'outer' | 'global'
-
-export interface ConstraintStyleMeta {
-  family: ConstraintStyleFamily
-  category: ConstraintStyleCategory
-  label: string
-}
-
-// Single source of truth for "what is themeable" — iterated by the resolver (families) and
-// the editor UI (category grouping + labels). Adding a constraint here is the only step
-// needed to expose it to theming.
-export const CONSTRAINT_STYLE_REGISTRY = {
-  // Lines
-  renban:          { family: 'line', category: 'lines', label: 'Renban' },
-  german_whispers: { family: 'line', category: 'lines', label: 'German whispers' },
-  dutch_whispers:  { family: 'line', category: 'lines', label: 'Dutch whispers' },
-  palindrome:      { family: 'line', category: 'lines', label: 'Palindrome' },
-  region_sum:      { family: 'line', category: 'lines', label: 'Region sum line' },
-  between_lines:   { family: 'betweenLine', category: 'lines', label: 'Between line' },
-  thermometer:     { family: 'thermo', category: 'lines', label: 'Thermometer' },
-  slow_thermometer:{ family: 'thermo', category: 'lines', label: 'Slow thermometer' },
-  arrow:           { family: 'arrow', category: 'lines', label: 'Arrow' },
-  // Connectors
-  difference_dots: { family: 'shape', category: 'connectors', label: 'Difference dot' },
-  ratio_dots:      { family: 'shape', category: 'connectors', label: 'Ratio dot' },
-  xv:              { family: 'text', category: 'connectors', label: 'XV clue' },
-  quadruples:      { family: 'shape', category: 'connectors', label: 'Quadruple' },
-  // Single-cell marks
-  odd_cells:       { family: 'shape', category: 'cells', label: 'Odd cell' },
-  even_cells:      { family: 'shape', category: 'cells', label: 'Even cell' },
-  minimums:        { family: 'minmax', category: 'cells', label: 'Minimum' },
-  maximums:        { family: 'minmax', category: 'cells', label: 'Maximum' },
-  row_index_cells: { family: 'cellBg', category: 'cells', label: 'Row index cell' },
-  col_index_cells: { family: 'cellBg', category: 'cells', label: 'Column index cell' },
-  // Regions
-  killer_cage:     { family: 'cage', category: 'regions', label: 'Killer cage' },
-  extra_regions:   { family: 'cellBg', category: 'regions', label: 'Extra region' },
-  clone:           { family: 'cellBg', category: 'regions', label: 'Clone' },
-  // Outer clues
-  x_sums:          { family: 'text', category: 'outer', label: 'X-sum' },
-  sandwich_sums:   { family: 'text', category: 'outer', label: 'Sandwich sum' },
-  skyscrapers:     { family: 'text', category: 'outer', label: 'Skyscraper' },
-  little_killers:  { family: 'text', category: 'outer', label: 'Little killer' },
-  // Global variants
-  positive_diagonal:      { family: 'diagonal', category: 'global', label: 'Positive diagonal' },
-  negative_diagonal:      { family: 'diagonal', category: 'global', label: 'Negative diagonal' },
-  anti_positive_diagonal: { family: 'diagonal', category: 'global', label: 'Anti-positive diagonal' },
-  anti_negative_diagonal: { family: 'diagonal', category: 'global', label: 'Anti-negative diagonal' },
-} as const satisfies Record<string, ConstraintStyleMeta>
-
-export type ConstraintStyleKey = keyof typeof CONSTRAINT_STYLE_REGISTRY
+// "What is themeable" is derived from the UI constraint registry
+// (src/constraints/registry.ts): every def with a theme facet appears in
+// CONSTRAINT_STYLE_REGISTRY, with its family (resolver merge/clamp rules) and
+// theme-editor grouping. Re-exported here so theme consumers keep one import site.
+export {
+  CONSTRAINT_STYLE_REGISTRY, constraintFamily,
+} from '@/constraints/registry'
+export type {
+  ConstraintStyleFamily, ConstraintStyleCategory, ConstraintStyleMeta, ConstraintStyleKey,
+} from '@/constraints/registry'
 
 const CONSTRAINT_KEY_SET = new Set<string>(Object.keys(CONSTRAINT_STYLE_REGISTRY))
-
-export function constraintFamily(key: ConstraintStyleKey): ConstraintStyleFamily {
-  return CONSTRAINT_STYLE_REGISTRY[key].family
-}
 
 // ── Theme + collection ──────────────────────────────────────────────────────────
 

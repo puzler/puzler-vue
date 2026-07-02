@@ -8,15 +8,18 @@
 // `useConstraintStyles()` composable that binds them to the theme store is added alongside
 // stores/theme.ts (it reads theme.activeTheme.constraints + theme.enableCustomStyles).
 //
-// Built-in defaults are NOT duplicated here — they are read from the existing source of truth
-// (types/constraints.ts + types/constraintStyles.ts) and the handful of colors that today live
-// inline in components (diagonals, min/max chevron). With no override (Classic), every
-// resolver returns byte-identical values to what the components render today.
+// Built-in defaults are NOT duplicated here — they are read from the UI constraint registry
+// (src/constraints/registry.ts, the single source of truth for constraint style defaults).
+// With no override (Classic), every resolver returns byte-identical values to what the
+// components render today.
 
-import { CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE } from '@/types/constraints'
 import {
-  SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, colorToCss,
-} from '@/types/constraintStyles'
+  CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE,
+  SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, DIAGONAL_STYLES,
+  CONSTRAINT_ICONS, colorToCss,
+  type ConstraintShapeStyle, type ConstraintTextStyle,
+  type LineStyleKey, type ShapeStyleKey, type TextStyleKey, type CellBgStyleKey, type MinMaxStyleKey,
+} from '@/constraints/registry'
 import {
   type ConstraintStyleOverride,
   type ConstraintStyleKey,
@@ -24,11 +27,10 @@ import {
   clampLineWidth, clampOpacity, clampFraction, haloFor,
 } from '@/utils/theme'
 import { useThemeStore } from '@/stores/theme'
-import { CONSTRAINT_ICONS } from '@/types/constraintIcons'
 
 // The line constraints whose tool-selector icons should track the user's theme color (the rest
 // keep their static CONSTRAINT_ICONS color).
-const LINE_ICON_TYPES = new Set<string>(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum'])
+const LINE_ICON_TYPES = new Set<string>(Object.keys(CONSTRAINT_LINE_STYLES))
 
 // ── Resolved (render-ready) shapes ──────────────────────────────────────────────
 
@@ -44,37 +46,22 @@ export interface ResolvedBetweenLine {
 }
 export interface ResolvedMinMax { backgroundColor: string; chevronColor: string; halo: string }
 
-export type LineKey =
-  | 'renban' | 'german_whispers' | 'dutch_whispers' | 'palindrome' | 'region_sum'
-  | 'positive_diagonal' | 'negative_diagonal' | 'anti_positive_diagonal' | 'anti_negative_diagonal'
-export type ShapeKey = 'odd_cells' | 'even_cells' | 'difference_dots' | 'ratio_dots' | 'quadruples'
-export type TextKey = 'xv' | 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers'
-export type CellBgKey = keyof typeof CELL_BACKGROUND_COLORS
-export type MinMaxKey = 'minimums' | 'maximums'
+// Style-key unions are derived from the registry (which defs carry each style family);
+// the old local names are kept as aliases for the many call sites.
+export type LineKey = LineStyleKey
+export type ShapeKey = ShapeStyleKey
+export type TextKey = TextStyleKey
+export type CellBgKey = CellBgStyleKey
+export type MinMaxKey = MinMaxStyleKey
 
-// ── Built-in defaults (rendered form) ───────────────────────────────────────────
+// ── Built-in defaults (rendered form, derived from the registry) ─────────────────
 
-// Diagonals are themed as pseudo-constraints; their defaults are the literals that live inline
-// in ConstraintLayer.vue today (blue for diagonals, red for anti-diagonals; width 2, 0.85).
-const DIAGONAL_BLUE = '#93c5fd'
-const DIAGONAL_RED = '#f87171'
-const DIAGONAL_WIDTH = 2
-const DIAGONAL_OPACITY = 0.85
+const LINE_BASE = {
+  ...CONSTRAINT_LINE_STYLES,
+  ...DIAGONAL_STYLES,
+} as Record<LineKey, ResolvedLineStyle>
 
-const LINE_BASE: Record<LineKey, ResolvedLineStyle> = {
-  renban:          CONSTRAINT_LINE_STYLES.renban,
-  german_whispers: CONSTRAINT_LINE_STYLES.german_whispers,
-  dutch_whispers:  CONSTRAINT_LINE_STYLES.dutch_whispers,
-  palindrome:      CONSTRAINT_LINE_STYLES.palindrome,
-  region_sum:      CONSTRAINT_LINE_STYLES.region_sum,
-  positive_diagonal:      { color: DIAGONAL_BLUE, strokeWidth: DIAGONAL_WIDTH, opacity: DIAGONAL_OPACITY },
-  negative_diagonal:      { color: DIAGONAL_BLUE, strokeWidth: DIAGONAL_WIDTH, opacity: DIAGONAL_OPACITY },
-  anti_positive_diagonal: { color: DIAGONAL_RED,  strokeWidth: DIAGONAL_WIDTH, opacity: DIAGONAL_OPACITY },
-  anti_negative_diagonal: { color: DIAGONAL_RED,  strokeWidth: DIAGONAL_WIDTH, opacity: DIAGONAL_OPACITY },
-}
-
-function renderShape(key: keyof typeof SHAPE_STYLES): ResolvedShapeStyle {
-  const s = SHAPE_STYLES[key]
+function renderShape(s: ConstraintShapeStyle): ResolvedShapeStyle {
   return {
     fillColor: colorToCss(s.fillColor),
     outlineColor: colorToCss(s.outlineColor),
@@ -84,26 +71,17 @@ function renderShape(key: keyof typeof SHAPE_STYLES): ResolvedShapeStyle {
   }
 }
 
-const SHAPE_BASE: Record<ShapeKey, ResolvedShapeStyle> = {
-  odd_cells:       renderShape('odd_cells'),
-  even_cells:      renderShape('even_cells'),
-  difference_dots: renderShape('difference_dots'),
-  ratio_dots:      renderShape('ratio_dots'),
-  quadruples:      renderShape('quadruples'),
-}
+const SHAPE_BASE = Object.fromEntries(
+  Object.entries(SHAPE_STYLES).map(([key, s]) => [key, renderShape(s)]),
+) as Record<ShapeKey, ResolvedShapeStyle>
 
-function renderText(key: keyof typeof TEXT_STYLES): ResolvedTextStyle {
-  const t = TEXT_STYLES[key]
+function renderText(t: ConstraintTextStyle): ResolvedTextStyle {
   return { fontColor: colorToCss(t.fontColor), size: t.size }
 }
 
-const TEXT_BASE: Record<TextKey, ResolvedTextStyle> = {
-  xv:             renderText('xv'),
-  x_sums:         renderText('x_sums'),
-  sandwich_sums:  renderText('sandwich_sums'),
-  skyscrapers:    renderText('skyscrapers'),
-  little_killers: renderText('little_killers'),
-}
+const TEXT_BASE = Object.fromEntries(
+  Object.entries(TEXT_STYLES).map(([key, t]) => [key, renderText(t)]),
+) as Record<TextKey, ResolvedTextStyle>
 
 const CELLBG_BASE: Record<string, string> = Object.fromEntries(
   Object.entries(CELL_BACKGROUND_COLORS).map(([key, color]) => [key, colorToCss(color)]),

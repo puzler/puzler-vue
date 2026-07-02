@@ -130,7 +130,7 @@ export function layerIdsForSlot(slot: LayerSlot): ConstraintLayerId[] {
 
 export type ConstraintPanelId =
   | 'line_tool' | 'thermo' | 'arrow'
-  | 'single_cell' | 'kropki_dots' | 'xv' | 'quadruples'
+  | 'single_cell' | 'kropki_dots' | 'xv' | 'quadruples' | 'inequality'
   | 'killer_cage' | 'extra_regions' | 'clone'
   | 'outer_clue' | 'global'
   | 'cosmetic_line' | 'cell_color' | 'shape' | 'text' | 'cosmetic_cage'
@@ -188,7 +188,7 @@ export interface ConstraintDef {
   readonly draw?: 'line' | 'thermo' | 'arrow'
   // Connector value kind; any value puts the type in BORDER_CONNECTOR_TYPES,
   // 'dot' additionally in CONNECTOR_DOT_TYPES.
-  readonly connector?: 'dot' | 'xv' | 'quadruple'
+  readonly connector?: 'dot' | 'xv' | 'quadruple' | 'inequality'
   // Placing/selecting this type removes the paired type (single-cell marks) or
   // deselects the paired variant (global variants).
   readonly excludes?: string

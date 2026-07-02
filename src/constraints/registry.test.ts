@@ -17,10 +17,10 @@ describe('constraint registry derivations', () => {
     expect(CONSTRAINT_LINE_TYPES).toEqual(new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum', 'entropic_lines', 'modular_lines', 'nabner_lines', 'zipper_lines', 'between_lines', 'lockout_lines']))
     expect(THERMO_TYPES).toEqual(new Set(['thermometer', 'slow_thermometer']))
     expect(CONNECTOR_DOT_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots']))
-    expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'quadruples']))
+    expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))
     expect(OUTER_CLUE_TYPES).toEqual(new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers']))
     expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells']))
-    expect(LOCAL_TOOL_TYPES.size).toBe(31)
+    expect(LOCAL_TOOL_TYPES.size).toBe(32)
     expect(LOCAL_TOOL_TYPES.has('killer_cage')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('diagonals')).toBe(false)
     expect(LOCAL_TOOL_TYPES.has('cosmetic_line')).toBe(false)
@@ -65,9 +65,9 @@ describe('constraint registry derivations', () => {
     expect(CONSTRAINT_ICONS.quadruples.rotate).toBe(45)
   })
 
-  it('derives the theme style registry with all 35 themeable keys', () => {
+  it('derives the theme style registry with all 36 themeable keys', () => {
     const keys = Object.keys(CONSTRAINT_STYLE_REGISTRY)
-    expect(keys).toHaveLength(35)
+    expect(keys).toHaveLength(36)
     expect(CONSTRAINT_STYLE_REGISTRY.german_whispers).toEqual({ family: 'line', category: 'lines', label: 'German whispers' })
     expect(CONSTRAINT_STYLE_REGISTRY.renban.label).toBe('Renban')
     expect(CONSTRAINT_STYLE_REGISTRY.positive_diagonal.family).toBe('diagonal')

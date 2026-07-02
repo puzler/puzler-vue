@@ -11,22 +11,19 @@ import { useEditorStore } from '@/stores/editor'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
-import { GLOBAL_VARIANTS, CONSTRAINT_LINE_TYPES } from '@/types/constraints'
+import { panelForTool } from '@/constraints/registry'
 
 const editor = useEditorStore()
 const puzzle = usePuzzleStore()
 const route = useRoute()
 const isMobile = useIsMobile()
 
-const TOOLS_WITH_CONTROLS = new Set([
-  'digit', 'cosmetic_line', 'cell_color', 'shape', 'text', 'region', 'xv', 'quadruples', 'arrow',
-  'difference_dots', 'ratio_dots', 'killer_cage', 'extra_regions', 'clone', 'cosmetic_cage',
-  'odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells',
-  'x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers',
-  'thermometer', 'slow_thermometer', ...CONSTRAINT_LINE_TYPES,
-  ...Object.keys(GLOBAL_VARIANTS),
-])
-const activeToolHasControls = computed(() => TOOLS_WITH_CONTROLS.has(editor.activeTool))
+// The control column shows whenever the active tool has a panel — exactly what
+// ToolControlBox renders (constraint panels via the registry, plus the two
+// non-constraint tools).
+const activeToolHasControls = computed(() =>
+  editor.activeTool === 'digit' || editor.activeTool === 'region' || panelForTool(editor.activeTool) !== undefined,
+)
 
 const solverCellStates = computed(() => editor.solverCellStates)
 

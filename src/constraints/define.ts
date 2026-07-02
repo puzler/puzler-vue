@@ -99,7 +99,7 @@ export interface ConnectorConstraintInput {
   pickerLabel?: string
   themeLabel?: string
   icon: ConstraintIconDef
-  connector: 'dot' | 'xv' | 'quadruple'
+  connector: 'dot' | 'xv' | 'quadruple' | 'inequality'
   themeFamily: 'shape' | 'text'
   shapeStyle?: ConstraintShapeStyle
   textStyle?: ConstraintTextStyle

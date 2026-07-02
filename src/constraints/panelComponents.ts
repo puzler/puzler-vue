@@ -18,6 +18,7 @@ import ArrowPanel from '@/components/editor/toolbox/ArrowPanel.vue'
 import SingleCellPanel from '@/components/editor/toolbox/SingleCellPanel.vue'
 import KropkiDotsPanel from '@/components/editor/toolbox/KropkiDotsPanel.vue'
 import XvPanel from '@/components/editor/toolbox/XvPanel.vue'
+import InequalityPanel from '@/components/editor/toolbox/InequalityPanel.vue'
 import QuadruplesPanel from '@/components/editor/toolbox/QuadruplesPanel.vue'
 import KillerCagePanel from '@/components/editor/toolbox/KillerCagePanel.vue'
 import ExtraRegionsPanel from '@/components/editor/toolbox/ExtraRegionsPanel.vue'
@@ -37,6 +38,7 @@ export const PANEL_COMPONENTS: Record<ConstraintPanelId, Component> = {
   single_cell:   SingleCellPanel,
   kropki_dots:   KropkiDotsPanel,
   xv:            XvPanel,
+  inequality:    InequalityPanel,
   quadruples:    QuadruplesPanel,
   killer_cage:   KillerCagePanel,
   extra_regions: ExtraRegionsPanel,

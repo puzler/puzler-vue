@@ -14,7 +14,7 @@ import type {
   ShapePreset, ShapeStyle, ShapeData,
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
-  ConnectorDot, BorderConnectorType, XvValue,
+  ConnectorDot, BorderConnectorType, XvValue, InequalityValue,
   ArrowData, KillerCageData, ExtraRegionData, CloneData,
   OuterClue, OuterClueType,
   CagePreset, CageCosmeticStyle, CosmeticCageData,
@@ -646,14 +646,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   function placeDigitForSelection(digit: number | null, modeOverride?: SolverInputMode) {
     // A selected border connector captures digit input (keyboard and numpad).
-    // Digits only apply to dots; XV takes X/V via setConnectorDotValue, but
-    // delete clears any connector type back to its default.
+    // Digits only apply to dots; XV takes X/V and inequality takes </> via
+    // setConnectorDotValue, but delete clears any connector type back to its
+    // default.
     const selectedDot = selectedDotKey.value ? connectorDots.value[selectedDotKey.value] : null
     if (selectedDot) {
       if (selectedDot.type === 'quadruples') {
         if (digit === null) removeLastQuadrupleDigit()
         else addQuadrupleDigit(digit)
-      } else if (digit === null || selectedDot.type !== 'xv') {
+      } else if (digit === null || (selectedDot.type !== 'xv' && selectedDot.type !== 'inequality')) {
         setConnectorDotValue(digit)
       }
       return
@@ -1444,7 +1445,7 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  function setConnectorDotValue(value: number | XvValue | null) {
+  function setConnectorDotValue(value: number | XvValue | InequalityValue | null) {
     const border = selectedDotKey.value
     if (!border) return
     const prev = connectorDots.value[border]
@@ -1452,8 +1453,9 @@ export const useEditorStore = defineStore('editor', () => {
     // Reject values that don't match the connector type; quadruples are
     // edited through addQuadrupleDigit/removeLastQuadrupleDigit instead
     if (prev.type === 'quadruples') return
-    if (typeof value === 'number' && prev.type === 'xv') return
-    if (typeof value === 'string' && prev.type !== 'xv') return
+    const glyphs = prev.type === 'xv' ? ['X', 'V'] : prev.type === 'inequality' ? ['<', '>'] : null
+    if (typeof value === 'number' && glyphs !== null) return
+    if (typeof value === 'string' && !glyphs?.includes(value)) return
     const prevDot = { ...prev }
     execute({
       execute: () => {

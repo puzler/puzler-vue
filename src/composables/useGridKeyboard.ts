@@ -75,14 +75,23 @@ export function useGridKeyboard() {
       return
     }
 
-    // A selected XV clue captures X/V input (delete falls through to the
-    // generic handler, which routes it to the selected connector)
+    // A selected XV clue captures X/V input, a selected inequality captures
+    // </> (comma/period work unshifted). Delete falls through to the generic
+    // handler, which routes it to the selected connector.
     const selectedDot = editor.selectedDotKey ? editor.connectorDots[editor.selectedDotKey] : null
     if (selectedDot?.type === 'xv') {
       const letter = event.key.toUpperCase()
       if (letter === 'X' || letter === 'V') {
         event.preventDefault()
         editor.setConnectorDotValue(letter)
+        return
+      }
+    }
+    if (selectedDot?.type === 'inequality') {
+      const sign = event.key === '<' || event.key === ',' ? '<' : event.key === '>' || event.key === '.' ? '>' : null
+      if (sign) {
+        event.preventDefault()
+        editor.setConnectorDotValue(sign)
         return
       }
     }

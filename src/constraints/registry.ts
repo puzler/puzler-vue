@@ -68,6 +68,7 @@ import arrow from './definitions/arrow'
 import differenceDots from './definitions/differenceDots'
 import ratioDots from './definitions/ratioDots'
 import xv from './definitions/xv'
+import inequality from './definitions/inequality'
 import quadruples from './definitions/quadruples'
 // Single-cell marks
 import oddCells from './definitions/oddCells'
@@ -116,6 +117,7 @@ const DEFS = [
   differenceDots,
   ratioDots,
   xv,
+  inequality,
   quadruples,
   oddCells,
   evenCells,

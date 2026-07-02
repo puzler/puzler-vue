@@ -88,8 +88,11 @@ export interface ArrowData {
 // ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
 
 export type ConnectorDotType = 'difference_dots' | 'ratio_dots'
-export type BorderConnectorType = ConnectorDotType | 'xv' | 'quadruples'
+export type BorderConnectorType = ConnectorDotType | 'xv' | 'quadruples' | 'inequality'
 export type XvValue = 'X' | 'V'
+// '<' means the border's FIRST cell in canonical key order (left / top) is the
+// smaller; '>' the reverse. The tip always points at the smaller digit.
+export type InequalityValue = '<' | '>'
 
 export const QUADRUPLE_MAX_DIGITS = 4
 
@@ -98,10 +101,11 @@ export const QUADRUPLE_MAX_DIGITS = 4
 // never collide with the border types.
 export interface ConnectorDot {
   type: BorderConnectorType
-  // Dots hold a number; XV holds 'X' or 'V'; quadruples hold up to four
-  // digits sorted ascending. null means the default: difference of 1,
-  // ratio of 2:1, or an unset XV (rendered as underscore)
-  value: number | XvValue | number[] | null
+  // Dots hold a number; XV holds 'X' or 'V'; inequality holds '<' or '>';
+  // quadruples hold up to four digits sorted ascending. null means the
+  // default: difference of 1, ratio of 2:1, or an unset XV/inequality
+  // (rendered as underscore)
+  value: number | XvValue | InequalityValue | number[] | null
 }
 
 // Canonical key for the border between two orthogonally adjacent cells,

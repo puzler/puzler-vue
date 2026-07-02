@@ -3,6 +3,7 @@ import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import type { AdapterContext } from '../../adapterContext'
 import groupCycleLine from './groupCycleLine'
 import nabnerLine from './nabnerLine'
+import connector from './connector'
 import { buildBoard } from '../buildBoard'
 import { LogicResult } from '../board'
 import { findSolution } from '../algorithms'
@@ -417,6 +418,29 @@ describe('connector & line constraints', () => {
     const xv = { kind: 'connector', relation: 'sum', value: 10, a: 0, b: 1 }
     expect(valid(puzzle([[0, 4], [1, 5]], [xv]))).toBe(false)
     expect(valid(puzzle([[0, 4], [1, 6]], [xv]))).toBe(true)
+  })
+
+  it('inequality connector forces the pointed cell smaller', () => {
+    const less = { kind: 'connector', relation: 'less', value: 0, a: 0, b: 1 }
+    expect(valid(puzzle([[0, 5], [1, 3]], [less]))).toBe(false)
+    expect(valid(puzzle([[0, 3], [1, 5]], [less]))).toBe(true)
+    // A committed 1 on the greater side leaves the smaller side empty.
+    const { board } = buildBoard(puzzle([[1, 1]], [less]))
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('inequality specs orient the smaller cell first', () => {
+    const ctx: AdapterContext = {
+      size: 9, rows: 9, cols: 9,
+      keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
+      regionOfCell: () => null,
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, outerClues: {}, constraintInstances: [],
+      connectorDots: {
+        'r0c0|r0c1': { type: 'inequality', value: '>' }, // r0c0 > r0c1 -> smaller cell is r0c1
+        'r1c0|r1c1': { type: 'inequality', value: null }, // unset: no spec
+      },
+    }
+    expect(connector.fromEditor(ctx)).toEqual([{ kind: 'connector', relation: 'less', value: 0, a: 1, b: 0 }])
   })
 
   it('quadruple requires all clued digits in the four cells', () => {

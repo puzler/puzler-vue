@@ -120,6 +120,7 @@ const DARK: Theme = {
     minimums: { backgroundColor: '#222C3C', outlineColor: '#C7CDDA' },
     maximums: { backgroundColor: '#222C3C', outlineColor: '#C7CDDA' },
     xv: { fontColor: '#E6E9EF' },
+    inequality: { fontColor: '#E6E9EF' },
     x_sums: { fontColor: '#E6E9EF' },
     sandwich_sums: { fontColor: '#E6E9EF' },
     skyscrapers: { fontColor: '#E6E9EF' },

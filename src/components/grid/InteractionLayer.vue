@@ -4,7 +4,7 @@ import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
 
@@ -562,8 +562,11 @@ function onPointerDown(event: PointerEvent) {
       }
     } else {
       // Draw: tapping an existing line deletes it. Branch (or Shift): start a
-      // new line even from an existing line's cell, so lines can branch.
-      const mode = event.shiftKey ? 'branch' : editor.effectiveLineDrawMode
+      // new line even from an existing line's cell, so lines can branch —
+      // except for two-endpoint shapes (lockout), which never branch.
+      const mode = UNBRANCHABLE_LINE_TYPES.has(editor.activeTool)
+        ? 'draw'
+        : event.shiftKey ? 'branch' : editor.effectiveLineDrawMode
       if (mode === 'draw') {
         const existingId = editor.activeTool === 'cosmetic_line'
           ? findLineAtCell(key)

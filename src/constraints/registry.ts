@@ -175,6 +175,8 @@ function typesWhere(pred: (d: ConstraintDef) => boolean): Set<string> {
 }
 
 export const CONSTRAINT_LINE_TYPES = typesWhere((d) => d.draw === 'line')
+// Line tools whose shape needs exactly two endpoints, so Branch mode is disabled.
+export const UNBRANCHABLE_LINE_TYPES = typesWhere((d) => d.draw === 'line' && d.branchable === false)
 export const THERMO_TYPES = typesWhere((d) => d.draw === 'thermo')
 export const CONNECTOR_DOT_TYPES = typesWhere((d) => d.connector === 'dot')
 export const BORDER_CONNECTOR_TYPES = typesWhere((d) => d.connector !== undefined)

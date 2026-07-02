@@ -186,6 +186,9 @@ export interface ConstraintDef {
 
   // Interaction kind for draw tools (drives CONSTRAINT_LINE_TYPES / THERMO_TYPES).
   readonly draw?: 'line' | 'thermo' | 'arrow'
+  // Line tools support Branch mode by default; false opts out for shapes whose
+  // semantics need exactly two endpoints (lockout lines' diamonds).
+  readonly branchable?: false
   // Connector value kind; any value puts the type in BORDER_CONNECTOR_TYPES,
   // 'dot' additionally in CONNECTOR_DOT_TYPES.
   readonly connector?: 'dot' | 'xv' | 'quadruple' | 'inequality'

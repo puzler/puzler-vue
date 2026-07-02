@@ -33,6 +33,9 @@ export default defineConstraint({
   theme: { family: 'betweenLine', category: 'lines', label: 'Lockout line' },
   lineStyle: { color: greyscale(187), width: 0.1 },
   draw: 'line',
+  // Branching would scatter extra diamond endpoints mid-shape: a lockout line
+  // has exactly two.
+  branchable: false,
   layers: ['lockout_lines'],
-  panel: { id: 'line_tool', props: { ruleText: 'The digits in the two diamond endpoints differ by at least 4. Digits on the line between them must fall outside of the range set by the endpoints.' } },
+  panel: { id: 'line_tool', props: { ruleText: 'The digits in the two diamond endpoints differ by at least 4. Digits on the line between them must fall outside of the range set by the endpoints.', branchable: false } },
 })

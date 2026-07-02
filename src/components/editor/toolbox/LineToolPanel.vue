@@ -4,8 +4,12 @@ import { useEditorStore } from '@/stores/editor'
 import ModeSwitcher from './ModeSwitcher.vue'
 
 // The constraint rule for the active line type, passed from its registry def
-// (panel.props.ruleText). Interaction is described by the Draw/Branch mode hints.
-const props = withDefaults(defineProps<{ ruleText?: string }>(), { ruleText: '' })
+// (panel.props.ruleText). Interaction is described by the Draw/Branch mode hints;
+// branchable: false hides Branch for two-endpoint shapes (lockout lines).
+const props = withDefaults(
+  defineProps<{ ruleText?: string; branchable?: boolean }>(),
+  { ruleText: '', branchable: true },
+)
 
 const editor = useEditorStore()
 
@@ -28,6 +32,7 @@ const description = computed(() => props.ruleText)
     </p>
 
     <ModeSwitcher
+      v-if="props.branchable"
       :modes="MODES"
       :active="editor.effectiveLineDrawMode"
       @select="editor.setLineDrawMode($event as 'draw' | 'branch')"
@@ -39,7 +44,10 @@ const description = computed(() => props.ruleText)
     <p class="text-[11px] text-faint leading-snug">
       Draw: drag to add a line · tap one to delete it
     </p>
-    <p class="text-[11px] text-faint leading-snug">
+    <p
+      v-if="props.branchable"
+      class="text-[11px] text-faint leading-snug"
+    >
       Branch: drag from an existing line's cell to branch off it · holding Shift switches to Branch
     </p>
   </div>

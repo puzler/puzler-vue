@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  CONSTRAINT_LINE_TYPES, THERMO_TYPES, CONNECTOR_DOT_TYPES, BORDER_CONNECTOR_TYPES,
+  CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, CONNECTOR_DOT_TYPES, BORDER_CONNECTOR_TYPES,
   OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, LOCAL_TOOL_TYPES,
   SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS, GLOBAL_VARIANTS,
   CONSTRAINT_ICONS, CONSTRAINT_STYLE_REGISTRY, CONSTRAINT_FILTER_GROUPS,
@@ -15,6 +15,7 @@ import {
 describe('constraint registry derivations', () => {
   it('derives the draw-tool membership sets', () => {
     expect(CONSTRAINT_LINE_TYPES).toEqual(new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum', 'entropic_lines', 'modular_lines', 'nabner_lines', 'zipper_lines', 'between_lines', 'lockout_lines']))
+    expect(UNBRANCHABLE_LINE_TYPES).toEqual(new Set(['lockout_lines']))
     expect(THERMO_TYPES).toEqual(new Set(['thermometer', 'slow_thermometer']))
     expect(CONNECTOR_DOT_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots']))
     expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))

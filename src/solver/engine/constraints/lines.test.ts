@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import type { AdapterContext } from '../../adapterContext'
 import groupCycleLine from './groupCycleLine'
+import nabnerLine from './nabnerLine'
 import { buildBoard } from '../buildBoard'
 import { LogicResult } from '../board'
 import { findSolution } from '../algorithms'
@@ -142,6 +143,57 @@ describe('connector & line constraints', () => {
     for (const c of [1, 2, 4]) {
       for (const v of board.candidatesPerCell()[c]) expect(v).toBeGreaterThan(3)
     }
+  })
+
+  it('nabner forbids consecutive or equal digits anywhere on the line', () => {
+    const nab = { kind: 'nabner_line', cells: [0, 1, 2] }
+    expect(valid(puzzle([[0, 1], [1, 2]], [nab]))).toBe(false)  // adjacent consecutive
+    expect(valid(puzzle([[0, 3], [2, 4]], [nab]))).toBe(false)  // non-adjacent consecutive
+    expect(solvable(puzzle([[0, 1], [1, 3], [2, 5]], [nab]))).toBe(true)
+  })
+
+  it('nabner prunes the neighbourhood of a committed digit', () => {
+    // r0c0 and r4c4 share no houses, so the eliminations are the nabner's alone.
+    const nab = { kind: 'nabner_line', cells: [0, 40] }
+    const { board } = buildBoard(puzzle([[0, 5]], [nab]))
+    expect(board.candidatesPerCell()[40]).toEqual([1, 2, 3, 7, 8, 9])
+  })
+
+  it('nabner longer than five cells has no valid digit set', () => {
+    // Only {1,3,5,7,9} is pairwise non-consecutive in 1-9, so six cells can
+    // never be filled. Logic alone must catch this — no search.
+    const nab6 = { kind: 'nabner_line', cells: [36, 37, 38, 39, 40, 41] } // r4c0..r4c5
+    const { board, valid } = buildBoard(puzzle([], [nab6]))
+    expect(valid).toBe(true)
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('five-cell nabner is pinned to {1,3,5,7,9} and broken by an even digit', () => {
+    const nab = { kind: 'nabner_line', cells: [0, 1, 2, 3, 4] } // r0c0..r0c4
+    const clean = buildBoard(puzzle([], [nab]))
+    clean.board.bruteForceLogic()
+    for (const c of nab.cells) expect(clean.board.candidatesPerCell()[c]).toEqual([1, 3, 5, 7, 9])
+    // The forced set fills the rest of the row's odd digits' homes.
+    expect(clean.board.candidatesPerCell()[5]).toEqual([2, 4, 6, 8])
+
+    const broken = buildBoard(puzzle([[2, 2]], [nab])) // a 2 on the line
+    expect(broken.board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('nabner merges branched arms into one set', () => {
+    const ctx: AdapterContext = {
+      size: 9, rows: 9, cols: 9,
+      keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
+      regionOfCell: () => null,
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: {}, outerClues: {},
+      constraintInstances: [
+        { type: 'nabner_lines', data: { cells: ['r0c0', 'r0c1'] } },
+        { type: 'nabner_lines', data: { cells: ['r0c1', 'r1c1'] } },
+      ],
+    }
+    const specs = nabnerLine.fromEditor(ctx) as Array<{ kind: string; cells: number[] }>
+    expect(specs).toHaveLength(1)
+    expect([...specs[0].cells].sort((a, b) => a - b)).toEqual([0, 1, 10])
   })
 
   it('thermometer strictly increases from the bulb', () => {

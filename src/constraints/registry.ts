@@ -56,6 +56,7 @@ import palindrome from './definitions/palindrome'
 import regionSum from './definitions/regionSum'
 import entropicLines from './definitions/entropicLines'
 import modularLines from './definitions/modularLines'
+import nabnerLines from './definitions/nabnerLines'
 import betweenLines from './definitions/betweenLines'
 import thermometer from './definitions/thermometer'
 import slowThermometer from './definitions/slowThermometer'
@@ -102,6 +103,7 @@ const DEFS = [
   regionSum,
   entropicLines,
   modularLines,
+  nabnerLines,
   betweenLines,
   thermometer,
   slowThermometer,

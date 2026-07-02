@@ -776,3 +776,71 @@ export class GroupCycleConstraint extends Constraint {
     return ConstraintResult.CHANGED
   }
 }
+
+// Nabner: no two digits on the line are consecutive or equal. The pairwise rule
+// is seeded as weak links over every pair of cells; the logic step adds joint
+// feasibility on top — a length-L nabner needs L mutually non-adjacent digits,
+// so a 9x9 line longer than five cells, or a five-cell line whose only viable
+// set {1,3,5,7,9} is broken by a placed digit, has no valid assignment at all.
+// The realizableValues walk detects that, prunes each cell to values appearing
+// in some valid set, and clears set-forced values from cells seeing the line.
+export class NabnerConstraint extends Constraint {
+  private cells: number[]
+  private linked = false
+
+  constructor(cells: number[]) {
+    super('Nabner line')
+    this.cells = cells
+  }
+
+  init(board: Board) {
+    if (this.linked) return ConstraintResult.UNCHANGED
+    this.linked = true
+    for (let i = 0; i < this.cells.length; i += 1) {
+      for (let j = i + 1; j < this.cells.length; j += 1) {
+        for (let u = 1; u <= board.size; u += 1) {
+          for (let w = 1; w <= board.size; w += 1) {
+            if (Math.abs(u - w) <= 1) {
+              board.addWeakLink(board.candidateIndex(this.cells[i], u), board.candidateIndex(this.cells[j], w))
+            }
+          }
+        }
+      }
+    }
+    return ConstraintResult.UNCHANGED
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const valuesAt = (_pos: number, assigned: number[]): number[] => {
+      const out: number[] = []
+      for (let v = 1; v <= board.size; v += 1) {
+        if (assigned.every((a) => Math.abs(v - a) >= 2)) out.push(v)
+      }
+      return out
+    }
+    const result = realizableValues(board, this.cells, valuesAt)
+    if (result.bailed) return ConstraintResult.UNCHANGED
+    if (!result.feasible) {
+      desc.push('Nabner line has no valid digit set')
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    for (let i = 0; i < this.cells.length; i += 1) {
+      const c = this.cells[i]
+      if ((board.candidateMask(c) & ~result.allowed[i]) === 0) continue
+      if (board.keepMask(c, result.allowed[i]) === ConstraintResult.INVALID) {
+        desc.push(`Nabner line empties ${cellName(c, board.size)}`)
+        return ConstraintResult.INVALID
+      }
+      cleared.push(c)
+    }
+    if (clearSeenByForcedGroup(board, this.cells, result.required, cleared)) {
+      desc.push('Nabner line forces a value with no room')
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Nabner line')
+    return ConstraintResult.CHANGED
+  }
+}

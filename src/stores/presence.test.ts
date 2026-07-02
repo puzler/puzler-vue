@@ -8,14 +8,21 @@ interface ChannelMixin {
   connected?: () => void
   disconnected?: () => void
 }
-const { channel } = vi.hoisted(() => ({ channel: { mixin: null as null | ChannelMixin } }))
+interface ChannelSub {
+  perform: ReturnType<typeof vi.fn>
+  unsubscribe: ReturnType<typeof vi.fn>
+}
+const { channel } = vi.hoisted(() => ({
+  channel: { mixin: null as null | ChannelMixin, sub: null as null | ChannelSub },
+}))
 
 vi.mock('@/utils/cableConsumer', () => ({
   cable: {
     subscriptions: {
       create: (_params: unknown, mixin: ChannelMixin) => {
         channel.mixin = mixin
-        return { perform: vi.fn(), unsubscribe: vi.fn() }
+        channel.sub = { perform: vi.fn(), unsubscribe: vi.fn() }
+        return channel.sub
       },
     },
   },
@@ -91,6 +98,36 @@ describe('presence store', () => {
     expect(presence.connected).toBe(false)
     channel.mixin?.connected?.()
     expect(presence.connected).toBe(true)
+    presence.stop()
+  })
+
+  it('routes peer cell relays to the registered handler, never our own echo', () => {
+    const onCells = vi.fn()
+    const onCellsRequest = vi.fn()
+    presence.setRelayHandlers({ onCells, onCellsRequest })
+    emit({ type: 'cells', actorId: 'user:2', states: { r0c0: { value: 5 } } })
+    emit({ type: 'cells', actorId: 'guest:me', states: { r0c1: { value: 1 } } }) // own echo
+    expect(onCells).toHaveBeenCalledTimes(1)
+    expect(onCells).toHaveBeenCalledWith({ r0c0: { value: 5 } }, 'user:2')
+    emit({ type: 'request_cells', actorId: 'user:2' })
+    emit({ type: 'request_cells', actorId: 'guest:me' }) // own echo
+    expect(onCellsRequest).toHaveBeenCalledTimes(1)
+    presence.stop()
+  })
+
+  it('sends cell batches over the channel, skipping empty ones', () => {
+    presence.sendCells({}) // no-op
+    presence.sendCells({ r0c0: { value: 5 } })
+    expect(channel.sub?.perform).toHaveBeenCalledWith('cells', { states: { r0c0: { value: 5 } } })
+    const cellCalls = channel.sub!.perform.mock.calls.filter((c) => c[0] === 'cells')
+    expect(cellCalls).toHaveLength(1)
+    presence.stop()
+  })
+
+  it('asks peers for a board catch-up on every (re)connect', () => {
+    channel.mixin?.connected?.()
+    const actions = channel.sub!.perform.mock.calls.map((c) => c[0])
+    expect(actions).toContain('request_cells')
     presence.stop()
   })
 })

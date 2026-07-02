@@ -12,6 +12,8 @@ import {
   cellsEqual,
   hasLocalChanges,
   mergeRemoteCells,
+  diffCells,
+  applyCellDiff,
   isLiveUpdatesEnabled,
   setLiveUpdatesEnabledFor,
   SOLVE_SCHEMA_VERSION,
@@ -217,6 +219,51 @@ describe('cell merge (live sync)', () => {
     expect(mergeRemoteCells({ r0c0: c(1) }, { r0c0: c(1) }, {}).r0c0).toBeUndefined() // server cleared, not dirty
     // local deleted r0c0 (dirty) while server still has it -> stays removed
     expect(mergeRemoteCells({}, { r0c0: c(1) }, { r0c0: c(1) }).r0c0).toBeUndefined()
+  })
+
+  it('diffCells reports changed, added and cleared cells since the last relay', () => {
+    const since = { r0c0: c(1), r0c1: c(2) }
+    const current = { r0c0: c(1), r0c1: c(9), r0c2: c(3) } // r0c1 changed, r0c2 added
+    const diff = diffCells(current, since)
+    expect(Object.keys(diff).sort()).toEqual(['r0c1', 'r0c2'])
+    expect(diff.r0c1?.value).toBe(9)
+    expect(diffCells({}, { r0c0: c(1) })).toEqual({ r0c0: null }) // cleared -> null tombstone
+    expect(diffCells(since, since)).toEqual({}) // no change -> empty diff
+  })
+
+  it('diffCells returns clones, not references into the live board', () => {
+    const current = { r0c0: c(5, [1]) }
+    const diff = diffCells(current, {})
+    diff.r0c0!.cornerMarks.push(9)
+    expect(current.r0c0.cornerMarks).toEqual([1])
+  })
+
+  it('applyCellDiff adopts peer cells but lets dirty local edits win', () => {
+    const baseline = { r0c0: c(1), r0c1: c(2) }
+    const current = { r0c0: c(1), r0c1: c(9) } // r0c1 dirty
+    const incoming = { r0c0: { value: 5 }, r0c1: { value: 4 } }
+    const { cells, baseline: nextBaseline, applied } = applyCellDiff(current, baseline, incoming)
+    expect(cells.r0c0.value).toBe(5) // clean -> adopt
+    expect(cells.r0c1.value).toBe(9) // dirty -> local wins
+    expect(nextBaseline.r0c0.value).toBe(5) // adopted state counts as synced
+    expect(nextBaseline.r0c1.value).toBe(2) // untouched: local edit stays dirty/pushable
+    expect(Object.keys(applied)).toEqual(['r0c0'])
+  })
+
+  it('applyCellDiff clears a cell on a null tombstone and reports it as applied', () => {
+    const { cells, baseline: nextBaseline, applied } = applyCellDiff(
+      { r0c0: c(1) }, { r0c0: c(1) }, { r0c0: null },
+    )
+    expect(cells.r0c0).toBeUndefined()
+    expect(nextBaseline.r0c0).toBeUndefined()
+    expect(applied).toEqual({ r0c0: null })
+  })
+
+  it('applyCellDiff ignores tombstones for unknown cells and normalizes garbage', () => {
+    const clean = applyCellDiff({}, {}, { r0c0: null })
+    expect(clean.applied).toEqual({}) // nothing to clear -> nothing applied
+    const garbage = applyCellDiff({}, {}, { r0c0: { value: 'x', cornerMarks: 'nope' } })
+    expect(garbage.cells.r0c0).toEqual(c(null)) // tolerated, normalized to an empty cell
   })
 })
 

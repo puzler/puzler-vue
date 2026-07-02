@@ -74,18 +74,19 @@ export interface SolverPaletteLike {
 
 // ── Snapshot build / apply ───────────────────────────────────────────────────
 
-function cloneCellStates(states: Record<string, CellState>): Record<string, CellState> {
-  const out: Record<string, CellState> = {}
-  for (const k of Object.keys(states)) {
-    const c = states[k]
-    out[k] = {
-      value: c.value,
-      cornerMarks: [...c.cornerMarks],
-      centerMarks: [...c.centerMarks],
-      color: c.color,
-      colors: [...c.colors],
-    }
+function cloneCell(c: CellState): CellState {
+  return {
+    value: c.value,
+    cornerMarks: [...c.cornerMarks],
+    centerMarks: [...c.centerMarks],
+    color: c.color,
+    colors: [...c.colors],
   }
+}
+
+export function cloneCellStates(states: Record<string, CellState>): Record<string, CellState> {
+  const out: Record<string, CellState> = {}
+  for (const k of Object.keys(states)) out[k] = cloneCell(states[k])
   return out
 }
 
@@ -213,6 +214,62 @@ export function mergeRemoteCells(
   for (const k of Object.keys(current)) if (dirty(k)) next[k] = current[k]
   for (const k of Object.keys(incoming)) if (!dirty(k)) next[k] = incoming[k]
   return next
+}
+
+// ── Live cell relay (fast path over the presence channel) ────────────────────
+// Collaborator edits are fanned out as small cell diffs the moment they happen,
+// instead of waiting for the debounced SaveProgress snapshot. `null` marks a
+// cleared cell. The snapshot path above remains the durable source of truth.
+
+// The cells that changed between `since` (the last relayed board) and `current`.
+export function diffCells(
+  current: Record<string, CellState>,
+  since: Record<string, CellState>,
+): Record<string, CellState | null> {
+  const diff: Record<string, CellState | null> = {}
+  for (const k of Object.keys(current)) {
+    if (!cellsEqual(current[k], since[k])) diff[k] = cloneCell(current[k])
+  }
+  for (const k of Object.keys(since)) if (!(k in current)) diff[k] = null
+  return diff
+}
+
+// Apply a relayed diff from a peer. Cells this device has edited since the last
+// server sync (dirty vs `baseline`) win locally, exactly like mergeRemoteCells.
+// Adopted cells are folded into `baseline` too: the relay runs ahead of the
+// server, and treating adopted peer state as already-synced keeps it from being
+// pushed back as our own edit (and from ping-ponging between clients). Returns
+// fresh maps plus the entries actually adopted, so the caller can reconcile its
+// own last-relayed board.
+export function applyCellDiff(
+  current: Record<string, CellState>,
+  baseline: Record<string, CellState>,
+  incoming: Record<string, unknown>,
+): {
+  cells: Record<string, CellState>
+  baseline: Record<string, CellState>
+  applied: Record<string, CellState | null>
+} {
+  const nextCells = cloneCellStates(current)
+  const nextBaseline = cloneCellStates(baseline)
+  const applied: Record<string, CellState | null> = {}
+  for (const k of Object.keys(incoming)) {
+    if (!cellsEqual(current[k], baseline[k])) continue // local unsynced edit wins
+    const raw = incoming[k]
+    if (raw === null || raw === undefined) {
+      if (k in nextCells || k in nextBaseline) {
+        delete nextCells[k]
+        delete nextBaseline[k]
+        applied[k] = null
+      }
+    } else {
+      const cell = normalizeCell(raw)
+      nextCells[k] = cell
+      nextBaseline[k] = cloneCell(cell)
+      applied[k] = cloneCell(cell)
+    }
+  }
+  return { cells: nextCells, baseline: nextBaseline, applied }
 }
 
 // ── Normalization (tolerant of garbage / shape drift) ────────────────────────

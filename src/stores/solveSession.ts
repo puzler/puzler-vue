@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import { apolloClient } from '@/utils/apolloClient'
 import { useEditorStore } from './editor'
 import { useColorPaletteStore } from './colorPalette'
@@ -14,6 +14,9 @@ import {
   writeLocalSnapshot,
   isEmptySnapshot,
   mergeRemoteCells,
+  diffCells,
+  applyCellDiff,
+  cloneCellStates,
   hasLocalChanges,
   isLiveUpdatesEnabled,
   setLiveUpdatesEnabledFor,
@@ -75,6 +78,9 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   // Last-known server cell map. Local cells diverging from this are "dirty" — the
   // unsynced edits we push, and the ones a remote merge must preserve.
   let baseline: Record<string, CellState> = {}
+  // The board as we last relayed it to peers over the live channel; the next
+  // relay sends only the diff against this.
+  let lastRelay: Record<string, CellState> = {}
   let progressSub: { unsubscribe: () => void } | null = null
 
   function snapshotNow(): SolveSnapshot | null {
@@ -147,6 +153,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   function adoptServerPlay(id: string): void {
     playId.value = id
     baseline = snapshotNow()?.cellState ?? {}
+    lastRelay = cloneCellStates(baseline)
     goLive()
     void pushServer()
   }
@@ -197,8 +204,10 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
         opts.timer.start()
       }
       // Baseline = the board as the server has it right now (deep-cloned via
-      // serialize), so subsequent edits register as dirty against it.
+      // serialize), so subsequent edits register as dirty against it. Peers
+      // already know this state too (they hydrate from the same server play).
       baseline = snapshotNow()?.cellState ?? {}
+      lastRelay = cloneCellStates(baseline)
       goLive()
     } catch {
       opts.timer.start() // any failure -> fresh, never block solving
@@ -242,9 +251,63 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     // Cell-level merge keeps this device's unsynced edits; adopt everything else.
     editor.solverCellStates = mergeRemoteCells(editor.solverCellStates, baseline, snap.cellState)
     baseline = snap.cellState
+    // The merged board is now what peers know (they got the same broadcast);
+    // realigning the relay cursor keeps the next diff from re-sending it all.
+    lastRelay = cloneCellStates(editor.solverCellStates)
     editor.hydrateHistory(snap.progress.history) // shared undo/redo
     if (snap.progress.elapsed > ctx.timer.elapsed.value) ctx.timer.elapsed.value = snap.progress.elapsed // shared timer (max)
   }
+
+  // ── Live cell relay ──────────────────────────────────────────────────────────
+  // The fast path for collaboration: local edits fan out to peers as throttled
+  // cell diffs over the presence channel the moment they happen, instead of
+  // riding the debounced SaveProgress autosave (which stays the durable path).
+
+  const RELAY_MS = 150
+
+  function relayNow(force = false): void {
+    if (!playId.value || !ctx) return
+    if (!force && !presence.hasPeers) return // nobody listening; skip the traffic
+    const diff = diffCells(editor.solverCellStates, lastRelay)
+    if (Object.keys(diff).length === 0) return
+    presence.sendCells(diff)
+    lastRelay = cloneCellStates(editor.solverCellStates)
+  }
+  const scheduleRelay = useThrottleFn(relayNow, RELAY_MS, true, true)
+
+  // A peer's live edits. Dirty local cells win (same rule as applyRemoteUpdate);
+  // adopted cells fold into baseline AND lastRelay so we neither push them back
+  // to the server as our own nor re-relay them (which would ping-pong).
+  function applyRelayedCells(states: Record<string, unknown>): void {
+    linked.value = true
+    if (!liveUpdatesEnabled.value || !ctx || !active.value) return
+    // Never let a relay touch a given (defensive, mirroring applySession).
+    const safe: Record<string, unknown> = {}
+    for (const k of Object.keys(states)) {
+      if (editor.givenDigits[k] === undefined) safe[k] = states[k]
+    }
+    const result = applyCellDiff(editor.solverCellStates, baseline, safe)
+    if (Object.keys(result.applied).length === 0) return
+    editor.solverCellStates = result.cells
+    baseline = result.baseline
+    for (const [k, v] of Object.entries(result.applied)) {
+      if (v === null) delete lastRelay[k]
+      else lastRelay[k] = v
+    }
+  }
+
+  // A peer (re)connected and asked for the current board: re-relay ours in full,
+  // jittered so a room full of clients doesn't answer in lockstep. Forced past
+  // the hasPeers gate — the requester may not be in our roster yet.
+  function handleCellsRequest(): void {
+    if (!playId.value || !ctx) return
+    setTimeout(() => {
+      lastRelay = {}
+      relayNow(true)
+    }, Math.random() * 250)
+  }
+
+  presence.setRelayHandlers({ onCells: applyRelayedCells, onCellsRequest: handleCellsRequest })
 
   async function pushServer(): Promise<void> {
     if (!ctx || !playId.value) return
@@ -281,8 +344,9 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     const snap = snapshotNow()
     if (!snap) return
     writeLocalSnapshot(ctx.puzzleId, snap)
-    if (playId.value && hasLocalChanges(editor.solverCellStates, baseline)) {
-      void debouncedServerSave()
+    if (playId.value) {
+      void scheduleRelay() // fast path to peers (no-op when nothing cell-level changed)
+      if (hasLocalChanges(editor.solverCellStates, baseline)) void debouncedServerSave()
     }
   }
 
@@ -310,6 +374,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     }
     playId.value = null
     lastServerJson = null
+    lastRelay = {}
     presence.stop()
   }
 
@@ -329,6 +394,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     lastServerJson = null
     lastSavedAt = 0
     baseline = {}
+    lastRelay = {}
     if (progressSub) {
       progressSub.unsubscribe()
       progressSub = null

@@ -18,11 +18,20 @@ export interface PresenceMember {
 }
 
 interface PresenceMessage {
-  type: 'join' | 'leave' | 'cursor' | 'kicked'
+  type: 'join' | 'leave' | 'cursor' | 'kicked' | 'cells' | 'request_cells'
   actorId: string
   isHost?: boolean
   displayName?: string | null
   cells?: string[]
+  states?: Record<string, unknown>
+}
+
+// Hooks the solve-session store registers to receive the live cell relay
+// (kept as callbacks so this store stays roster/cursor-focused and the
+// dependency keeps pointing solveSession -> presence, never back).
+export interface RelayHandlers {
+  onCells: (states: Record<string, unknown>, actorId: string) => void
+  onCellsRequest: () => void
 }
 
 interface PresenceSub {
@@ -49,6 +58,7 @@ export const usePresenceStore = defineStore('presence', () => {
 
   let sub: PresenceSub | null = null
   let selfId = ''
+  let relayHandlers: RelayHandlers | null = null
   let staleTimer: ReturnType<typeof setInterval> | null = null
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let stopWatch: (() => void) | null = null
@@ -96,6 +106,14 @@ export const usePresenceStore = defineStore('presence', () => {
   }
 
   function handle(msg: PresenceMessage): void {
+    if (msg.type === 'cells') {
+      if (msg.actorId !== selfId) relayHandlers?.onCells(msg.states ?? {}, msg.actorId)
+      return
+    }
+    if (msg.type === 'request_cells') {
+      if (msg.actorId !== selfId) relayHandlers?.onCellsRequest()
+      return
+    }
     if (msg.type === 'kicked') {
       if (msg.actorId === selfId) { wasKicked.value = true; stop() }
       else remove(msg.actorId)
@@ -145,6 +163,9 @@ export const usePresenceStore = defineStore('presence', () => {
           isConnected.value = true
           sub?.perform('announce', { display_name: myDisplayName() })
           void broadcastCursor()
+          // Relays are fire-and-forget, so anything broadcast while we were
+          // down is gone — ask peers to re-relay their boards to catch us up.
+          sub?.perform('request_cells')
         },
         disconnected: () => { isConnected.value = false },
       },
@@ -178,6 +199,17 @@ export const usePresenceStore = defineStore('presence', () => {
       if (id !== selfId && next[id].lastSeen < cutoff) { delete next[id]; changed = true }
     }
     if (changed) members.value = next
+  }
+
+  // Register the solve-session store's relay callbacks (survives start/stop).
+  function setRelayHandlers(handlers: RelayHandlers): void {
+    relayHandlers = handlers
+  }
+
+  // Fan a batch of changed cells out to peers over the live channel.
+  function sendCells(states: Record<string, unknown>): void {
+    if (!sub || Object.keys(states).length === 0) return
+    sub.perform('cells', { states })
   }
 
   // Rename ourselves for this session only (localStorage, per play). Cosmetic;
@@ -229,5 +261,7 @@ export const usePresenceStore = defineStore('presence', () => {
     start,
     stop,
     renameSelf,
+    setRelayHandlers,
+    sendCells,
   }
 })

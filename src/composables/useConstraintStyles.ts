@@ -14,7 +14,7 @@
 // components render today.
 
 import {
-  CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE,
+  CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, LOCKOUT_LINE_STYLE, THERMO_STYLE, ARROW_STYLE,
   SHAPE_STYLES, TEXT_STYLES, CELL_BACKGROUND_COLORS, CAGE_STYLE, DIAGONAL_STYLES,
   CONSTRAINT_ICONS, colorToCss,
   type ConstraintShapeStyle, type ConstraintTextStyle,
@@ -166,8 +166,8 @@ export function resolveCageStyle(
 
 export function resolveBetweenLineStyle(
   override?: ConstraintStyleOverride, enabled = true,
+  base: typeof BETWEEN_LINE_STYLE = BETWEEN_LINE_STYLE,
 ): ResolvedBetweenLine {
-  const base = BETWEEN_LINE_STYLE
   if (!enabled || !override) return { ...base }
   return {
     lineColor: override.color ?? base.lineColor,
@@ -255,7 +255,7 @@ export function defaultConstraintFields(
       return { backgroundColor: s.backgroundColor, outlineColor: s.chevronColor }
     }
     case 'betweenLine': {
-      const s = resolveBetweenLineStyle(baseOverride)
+      const s = resolveBetweenLineStyle(baseOverride, true, key === 'lockout_lines' ? LOCKOUT_LINE_STYLE : BETWEEN_LINE_STYLE)
       return { color: s.lineColor, fillColor: s.circleFill, outlineColor: s.circleStrokeColor, strokeWidth: s.lineStrokeWidth }
     }
     case 'thermo':
@@ -283,6 +283,7 @@ export function useConstraintStyles() {
     cellBgColor: (key: CellBgKey) => resolveCellBgColor(key, ov(key), theme.enableCustomStyles),
     cageStyle: () => resolveCageStyle(ov('killer_cage'), theme.enableCustomStyles),
     betweenLineStyle: () => resolveBetweenLineStyle(ov('between_lines'), theme.enableCustomStyles),
+    lockoutLineStyle: () => resolveBetweenLineStyle(ov('lockout_lines'), theme.enableCustomStyles, LOCKOUT_LINE_STYLE),
     minMaxStyle: (key: MinMaxKey) => resolveMinMaxStyle(key, ov(key), theme.enableCustomStyles),
     thermoStyle: () => resolveThermoStyle(ov('thermometer'), theme.enableCustomStyles),
     slowThermoStyle: () => resolveThermoStyle(ov('slow_thermometer'), theme.enableCustomStyles),

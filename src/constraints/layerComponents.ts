@@ -21,6 +21,7 @@ import ArrowLayer from '@/components/grid/constraints/ArrowLayer.vue'
 import KillerCageLayer from '@/components/grid/constraints/KillerCageLayer.vue'
 import CloneOriginalsLayer from '@/components/grid/constraints/CloneOriginalsLayer.vue'
 import BetweenLinesLayer from '@/components/grid/constraints/BetweenLinesLayer.vue'
+import LockoutLinesLayer from '@/components/grid/constraints/LockoutLinesLayer.vue'
 import ConstraintLinesLayer from '@/components/grid/constraints/ConstraintLinesLayer.vue'
 import ConnectorDotsLayer from '@/components/grid/constraints/ConnectorDotsLayer.vue'
 import OuterCluesLayer from '@/components/grid/constraints/OuterCluesLayer.vue'
@@ -35,6 +36,7 @@ const LAYER_COMPONENTS: Record<ConstraintLayerId, Component> = {
   killer_cages:     KillerCageLayer,
   clone_originals:  CloneOriginalsLayer,
   between_lines:    BetweenLinesLayer,
+  lockout_lines:    LockoutLinesLayer,
   constraint_lines: ConstraintLinesLayer,
   connector_dots:   ConnectorDotsLayer,
   outer_clues:      OuterCluesLayer,

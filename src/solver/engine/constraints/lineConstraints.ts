@@ -974,3 +974,126 @@ export class ZipperLineConstraint extends Constraint {
     return ConstraintResult.CHANGED
   }
 }
+
+// Lockout line: the two diamond endpoints differ by at least 4, and every digit
+// between them falls OUTSIDE the closed range the endpoints set. init seeds the
+// endpoint-gap rule as weak links (plus middles never equalling an endpoint,
+// which is range-membership regardless of the other endpoint); the logic step
+// enumerates the surviving weak-link-aware endpoint combos, requires every
+// middle to keep a candidate outside each combo's range, and prunes endpoints
+// and middles to values taking part in some workable combo.
+export class LockoutLineConstraint extends Constraint {
+  private a: number
+  private b: number
+  private middles: number[]
+  private involved: Set<number>
+  private linked = false
+
+  constructor(cells: number[]) {
+    super('Lockout line')
+    this.a = cells[0]
+    this.b = cells[cells.length - 1]
+    this.middles = cells.slice(1, -1)
+    this.involved = new Set(cells)
+  }
+
+  init(board: Board) {
+    if (this.linked) return ConstraintResult.UNCHANGED
+    this.linked = true
+    for (let u = 1; u <= board.size; u += 1) {
+      for (let w = 1; w <= board.size; w += 1) {
+        if (Math.abs(u - w) < 4) {
+          board.addWeakLink(board.candidateIndex(this.a, u), board.candidateIndex(this.b, w))
+        }
+      }
+      // A middle equal to either endpoint value is always inside the range.
+      for (const m of this.middles) {
+        board.addWeakLink(board.candidateIndex(m, u), board.candidateIndex(this.a, u))
+        board.addWeakLink(board.candidateIndex(m, u), board.candidateIndex(this.b, u))
+      }
+    }
+    return ConstraintResult.UNCHANGED
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    const av = placed(board, this.a)
+    const bv = placed(board, this.b)
+    if (av !== 0 && bv !== 0) {
+      if (Math.abs(av - bv) < 4) return false
+      const lo = Math.min(av, bv)
+      const hi = Math.max(av, bv)
+      for (const m of this.middles) {
+        const mv = placed(board, m)
+        if (mv !== 0 && mv >= lo && mv <= hi) return false
+      }
+    }
+    return true
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const linkedPair = (c1: number, v1: number, c2: number, v2: number) =>
+      board.weakLinks[board.candidateIndex(c1, v1)].has(board.candidateIndex(c2, v2))
+
+    // Middles grouped by shared house: within a house they are all distinct, so
+    // a combo must leave each group at least as many escape digits as it has
+    // cells (a Hall-style pigeonhole — a U-shaped line dropping five middles
+    // into one box can never work, since a 4-plus endpoint gap leaves at most
+    // four digits outside the range).
+    const middleSet = new Set(this.middles)
+    const housedMiddles = board.regions
+      .map((region) => region.filter((c) => middleSet.has(c)))
+      .filter((cells) => cells.length >= 2)
+
+    // Endpoint combos that survive the links and leave every middle an escape.
+    let maskA = 0
+    let maskB = 0
+    const middleMasks = this.middles.map(() => 0)
+    for (const u of valuesList(board.candidateMask(this.a))) {
+      for (const w of valuesList(board.candidateMask(this.b))) {
+        if (Math.abs(u - w) < 4 || linkedPair(this.a, u, this.b, w)) continue
+        const lo = Math.min(u, w)
+        const hi = Math.max(u, w)
+        let outsideMask = 0
+        for (let v = 1; v <= board.size; v += 1) if (v < lo || v > hi) outsideMask |= valueBit(v)
+        if (this.middles.some((m) => (board.candidateMask(m) & outsideMask) === 0)) continue
+        const houseFits = housedMiddles.every((group) => {
+          let union = 0
+          for (const m of group) union |= board.candidateMask(m) & outsideMask
+          return valuesList(union).length >= group.length
+        })
+        if (!houseFits) continue
+        maskA |= valueBit(u)
+        maskB |= valueBit(w)
+        for (let i = 0; i < this.middles.length; i += 1) {
+          middleMasks[i] |= board.candidateMask(this.middles[i]) & outsideMask
+        }
+      }
+    }
+    if (maskA === 0) {
+      desc.push('Lockout line has no workable endpoints')
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    const keep = (cell: number, mask: number): boolean => {
+      if ((board.candidateMask(cell) & ~mask) === 0) return false
+      if (board.keepMask(cell, board.candidateMask(cell) & mask) === ConstraintResult.INVALID) return true
+      cleared.push(cell)
+      return false
+    }
+    if (keep(this.a, maskA) || keep(this.b, maskB)) {
+      desc.push('Lockout line empties an endpoint')
+      return ConstraintResult.INVALID
+    }
+    for (let i = 0; i < this.middles.length; i += 1) {
+      if (keep(this.middles[i], middleMasks[i])) {
+        desc.push(`Lockout line empties ${cellName(this.middles[i], board.size)}`)
+        return ConstraintResult.INVALID
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Lockout line')
+    return ConstraintResult.CHANGED
+  }
+}

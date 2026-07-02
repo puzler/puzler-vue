@@ -245,6 +245,48 @@ describe('connector & line constraints', () => {
     expect(board.candidatesPerCell()[2]).toEqual([1, 2, 3, 4])
   })
 
+  it('lockout endpoints differ by at least four', () => {
+    const lock = { kind: 'lockout_line', cells: [0, 1, 2] }
+    expect(valid(puzzle([[0, 3], [2, 6]], [lock]))).toBe(false) // gap of 3
+    expect(solvable(puzzle([[0, 3], [2, 7]], [lock]))).toBe(true)
+    // One committed endpoint prunes the other to values four or more away.
+    const { board } = buildBoard(puzzle([[0, 5]], [lock]))
+    expect(board.candidatesPerCell()[2]).toEqual([1, 9])
+  })
+
+  it('lockout middles fall outside the endpoint range', () => {
+    const lock = { kind: 'lockout_line', cells: [0, 1, 2] }
+    expect(valid(puzzle([[0, 3], [2, 7], [1, 5]], [lock]))).toBe(false) // 5 inside [3,7]
+    expect(solvable(puzzle([[0, 3], [2, 7], [1, 9]], [lock]))).toBe(true)
+    const { board } = buildBoard(puzzle([[0, 3], [2, 7]], [lock]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[1]).toEqual([1, 2, 8, 9])
+  })
+
+  it('lockout with more same-house middles than escapes is logically invalid', () => {
+    // U-shaped line inside box 0: five middles share the box, but any endpoint
+    // pair four or more apart leaves at most four digits outside its range.
+    const cells = [18, 9, 0, 1, 2, 11, 20] // r2c0,r1c0,r0c0,r0c1,r0c2,r1c2,r2c2
+    const lock = { kind: 'lockout_line', cells }
+    const { board, valid } = buildBoard(puzzle([], [lock]))
+    expect(valid).toBe(true)
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('lockout with exactly enough same-house escapes stays solvable', () => {
+    // Shorter U: three middles in box 0 fit the four digits outside a minimal
+    // endpoint range like [1,5].
+    const lock = { kind: 'lockout_line', cells: [9, 0, 1, 2, 11] } // r1c0,r0c0,r0c1,r0c2,r1c2
+    expect(solvable(puzzle([], [lock]))).toBe(true)
+  })
+
+  it('lockout spanning the whole range is logically invalid', () => {
+    // Endpoints 1 and 9 lock out every digit: the middle has nowhere to go.
+    const lock = { kind: 'lockout_line', cells: [0, 1, 2] }
+    const { board } = buildBoard(puzzle([[0, 1], [2, 9]], [lock]))
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
   it('thermometer strictly increases from the bulb', () => {
     const thermo = { kind: 'thermometer', edges: [[0, 1], [1, 2]] }
     expect(valid(puzzle([[0, 5], [1, 2]], [thermo]))).toBe(false)

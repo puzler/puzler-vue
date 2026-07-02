@@ -39,6 +39,7 @@ export * from './types'
 export { THERMO_STYLE } from './definitions/thermometer'
 export { ARROW_STYLE } from './definitions/arrow'
 export { BETWEEN_LINE_STYLE } from './definitions/betweenLines'
+export { LOCKOUT_LINE_STYLE } from './definitions/lockoutLines'
 export { CAGE_STYLE } from './definitions/killerCage'
 
 // ── Definitions ─────────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ import modularLines from './definitions/modularLines'
 import nabnerLines from './definitions/nabnerLines'
 import zipperLines from './definitions/zipperLines'
 import betweenLines from './definitions/betweenLines'
+import lockoutLines from './definitions/lockoutLines'
 import thermometer from './definitions/thermometer'
 import slowThermometer from './definitions/slowThermometer'
 import arrow from './definitions/arrow'
@@ -107,6 +109,7 @@ const DEFS = [
   nabnerLines,
   zipperLines,
   betweenLines,
+  lockoutLines,
   thermometer,
   slowThermometer,
   arrow,

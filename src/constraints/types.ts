@@ -106,6 +106,7 @@ export const LAYER_SPECS = {
   killer_cages:     { slot: 'constraint', order: 60 },
   clone_originals:  { slot: 'constraint', order: 70 },
   between_lines:    { slot: 'constraint', order: 80 },
+  lockout_lines:    { slot: 'constraint', order: 85 },
   constraint_lines: { slot: 'constraint', order: 90 },
   // SudokuGrid: dots sit on cell borders, above grid + region lines
   connector_dots:   { slot: 'above_regions', order: 10 },

@@ -25,6 +25,7 @@ import slowThermometer from './slowThermometer'
 import arrow from './arrow'
 import betweenLine from './betweenLine'
 import regionSumLine from './regionSumLine'
+import entropicLine from './entropicLine'
 
 // Phase 7 — cages, regions & outer clues.
 import killerCage from './killerCage'
@@ -58,6 +59,7 @@ export const MODULES: ConstraintModule[] = [
   arrow,
   betweenLine,
   regionSumLine,
+  entropicLine,
   killerCage,
   extraRegion,
   clone,

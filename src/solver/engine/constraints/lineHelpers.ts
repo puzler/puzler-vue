@@ -52,8 +52,13 @@ export function mergeConnectedGroups(groups: number[][]): number[][] {
 
 // Consecutive [a, b] pairs along a path.
 export function adjacentPairs(cells: number[]): Array<[number, number]> {
+  return pairsAtDistance(cells, 1)
+}
+
+// Pairs of path cells exactly `distance` steps apart.
+export function pairsAtDistance(cells: number[], distance: number): Array<[number, number]> {
   const pairs: Array<[number, number]> = []
-  for (let i = 0; i + 1 < cells.length; i += 1) pairs.push([cells[i], cells[i + 1]])
+  for (let i = 0; i + distance < cells.length; i += 1) pairs.push([cells[i], cells[i + distance]])
   return pairs
 }
 

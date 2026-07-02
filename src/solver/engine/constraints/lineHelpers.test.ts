@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeConnectedGroups, groupConnectedPaths } from './lineHelpers'
+import { mergeConnectedGroups, groupConnectedPaths, adjacentPairs, pairsAtDistance } from './lineHelpers'
 
 // Sort each group and the list of groups so set equality is order-independent.
 const norm = (groups: number[][]) =>
@@ -25,6 +25,18 @@ describe('mergeConnectedGroups', () => {
 
   it('passes a single group through unchanged', () => {
     expect(norm(mergeConnectedGroups([[3, 4, 5]]))).toEqual([[3, 4, 5]])
+  })
+})
+
+describe('pairsAtDistance', () => {
+  it('pairs cells exactly the given number of steps apart', () => {
+    expect(pairsAtDistance([0, 1, 2, 3], 2)).toEqual([[0, 2], [1, 3]])
+    expect(pairsAtDistance([0, 1, 2, 3], 3)).toEqual([[0, 3]])
+    expect(pairsAtDistance([0, 1, 2], 3)).toEqual([])
+  })
+
+  it('adjacentPairs is distance one', () => {
+    expect(adjacentPairs([5, 6, 7])).toEqual([[5, 6], [6, 7]])
   })
 })
 

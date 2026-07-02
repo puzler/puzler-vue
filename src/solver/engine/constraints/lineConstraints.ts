@@ -699,3 +699,80 @@ export class QuadrupleConstraint extends Constraint {
     return ConstraintResult.CHANGED
   }
 }
+
+// Entropic/modular class logic: along the line, cells whose path positions are a
+// multiple of three apart share one digit GROUP (a third of the range, or a
+// residue class mod 3). The pairwise weak links cover nearby cells; this
+// constraint reasons about whole position classes at once: enumerate the ways to
+// assign groups to the three classes (adjacent classes differ, so the classes
+// take three DISTINCT groups — a permutation), discard assignments that some
+// cell's candidates or some house makes impossible, and prune every cell to its
+// class's surviving groups. Catches globally-invalid lines pairwise propagation
+// only reaches by search — e.g. a snake putting four same-class cells in one
+// row can never fit them into a three-digit group.
+export class GroupCycleConstraint extends Constraint {
+  private groupOf: (v: number) => number
+  private classes: [number[], number[], number[]]
+
+  constructor(name: string, cells: number[], groupOf: (v: number) => number) {
+    super(name)
+    this.groupOf = groupOf
+    this.classes = [[], [], []]
+    cells.forEach((c, i) => this.classes[i % 3].push(c))
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    // Candidate mask and digit count of each group, for this board size.
+    const groupMasks = [0, 0, 0]
+    for (let v = 1; v <= board.size; v += 1) groupMasks[this.groupOf(v)] |= valueBit(v)
+
+    // Largest same-house cluster per class: those cells are pairwise distinct,
+    // so their class's group must hold at least that many digits.
+    const clusterSizes = this.classes.map((cls) => {
+      const members = new Set(cls)
+      let largest = 0
+      for (const region of board.regions) {
+        let n = 0
+        for (const c of region) if (members.has(c)) n += 1
+        if (n > largest) largest = n
+      }
+      return largest
+    })
+
+    // A permutation survives when every nonempty class fits its assigned group:
+    // enough digits for its largest same-house cluster, and every cell keeps a
+    // candidate inside the group.
+    const feasible = (perm: number[]): boolean =>
+      this.classes.every((cls, k) => {
+        if (cls.length === 0) return true
+        const mask = groupMasks[perm[k]]
+        if (valuesList(mask).length < clusterSizes[k]) return false
+        return cls.every((c) => (board.candidateMask(c) & mask) !== 0)
+      })
+
+    const allowed = [0, 0, 0] // per class, union of surviving groups
+    for (const perm of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) {
+      if (!feasible(perm)) continue
+      for (let k = 0; k < 3; k += 1) allowed[k] |= groupMasks[perm[k]]
+    }
+    if (allowed.some((mask, k) => mask === 0 && this.classes[k].length > 0)) {
+      desc.push(`${this.name}: no way to assign the digit groups along the line`)
+      return ConstraintResult.INVALID
+    }
+
+    const cleared: number[] = []
+    for (let k = 0; k < 3; k += 1) {
+      for (const c of this.classes[k]) {
+        if ((board.candidateMask(c) & ~allowed[k]) === 0) continue
+        if (board.keepMask(c, board.candidateMask(c) & allowed[k]) === ConstraintResult.INVALID) {
+          desc.push(`${this.name} empties ${cellName(c, board.size)}`)
+          return ConstraintResult.INVALID
+        }
+        cleared.push(c)
+      }
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(this.name)
+    return ConstraintResult.CHANGED
+  }
+}

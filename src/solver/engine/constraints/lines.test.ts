@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
+import type { AdapterContext } from '../../adapterContext'
+import entropicLine from './entropicLine'
 import { buildBoard } from '../buildBoard'
+import { LogicResult } from '../board'
 import { findSolution } from '../algorithms'
 import { standardBoxes } from '../geometry'
 import { valuesList } from '../bitmask'
@@ -69,6 +72,57 @@ describe('connector & line constraints', () => {
     const { board } = buildBoard(puzzle([[0, 1], [10, 4]], [renban]))
     expect(board.candidatesPerCell()[1]).toEqual([2, 3]) // r0c1
     expect(board.candidatesPerCell()[9]).toEqual([2, 3]) // r1c0
+  })
+
+  it('entropic specs are gathered per drawn line instance', () => {
+    const ctx: AdapterContext = {
+      size: 9, rows: 9, cols: 9,
+      keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
+      regionOfCell: () => null,
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: {}, outerClues: {},
+      constraintInstances: [
+        { type: 'entropic_lines', data: { cells: ['r0c0', 'r0c1', 'r0c2'] } },
+        { type: 'renban', data: { cells: ['r5c0', 'r5c1'] } },
+      ],
+    }
+    expect(entropicLine.fromEditor(ctx)).toEqual([{ kind: 'entropic_line', cells: [0, 1, 2] }])
+  })
+
+  it('entropic line forbids a repeated third within one or two steps', () => {
+    const ent = { kind: 'entropic_line', cells: [0, 1, 2] }
+    expect(valid(puzzle([[0, 1], [1, 3]], [ent]))).toBe(false) // adjacent, both low
+    expect(valid(puzzle([[0, 4], [2, 6]], [ent]))).toBe(false) // two apart, both medium
+    expect(solvable(puzzle([[0, 1], [1, 4], [2, 7]], [ent]))).toBe(true)
+  })
+
+  it('entropic line pins cells three apart to the same third', () => {
+    const ent = { kind: 'entropic_line', cells: [0, 1, 2, 3] } // r0c0..r0c3
+    const { board } = buildBoard(puzzle([[0, 1]], [ent]))
+    // Same third as the committed 1; the row itself rules the 1 out.
+    expect(board.candidatesPerCell()[3]).toEqual([2, 3])
+  })
+
+  it('entropic snake with four same-class cells in one row is logically invalid', () => {
+    // A line snaking through row 2 at path positions 0, 3, 6 and 9: those four
+    // cells must share one third, but a third has only three digits and the row
+    // makes them distinct. Logic alone must catch this — no search.
+    const snake = [18, 9, 10, 19, 28, 29, 20, 11, 12, 21] // r2c0,r1c0,r1c1,r2c1,r3c1,r3c2,r2c2,r1c2,r1c3,r2c3
+    const ent = { kind: 'entropic_line', cells: snake }
+    const { board, valid } = buildBoard(puzzle([], [ent]))
+    expect(valid).toBe(true) // nothing wrong at init time
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('entropic class logic prunes the whole line once a third is committed', () => {
+    // Straight 5-cell line: a committed 1 pins position 0's class (positions 0
+    // and 3) to the low third and clears low digits from the other classes.
+    const ent = { kind: 'entropic_line', cells: [0, 1, 2, 3, 4] }
+    const { board } = buildBoard(puzzle([[0, 1]], [ent]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[3]).toEqual([2, 3])
+    for (const c of [1, 2, 4]) {
+      for (const v of board.candidatesPerCell()[c]) expect(v).toBeGreaterThan(3)
+    }
   })
 
   it('thermometer strictly increases from the bulb', () => {

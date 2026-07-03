@@ -151,7 +151,7 @@ export interface CloneData {
 
 // ── Outer clues ───────────────────────────────────────────────────────────────
 
-export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers'
+export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers' | 'numbered_rooms'
 
 export type LittleKillerDirection = 'up-left' | 'up-right' | 'down-left' | 'down-right'
 

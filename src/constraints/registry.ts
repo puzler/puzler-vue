@@ -86,6 +86,7 @@ import xSums from './definitions/xSums'
 import sandwichSums from './definitions/sandwichSums'
 import skyscrapers from './definitions/skyscrapers'
 import littleKillers from './definitions/littleKillers'
+import numberedRooms from './definitions/numberedRooms'
 // Global constraints (each file exports its category def + variants)
 import diagonals from './definitions/diagonals'
 import chess from './definitions/chess'
@@ -132,6 +133,7 @@ const DEFS = [
   sandwichSums,
   skyscrapers,
   littleKillers,
+  numberedRooms,
   ...diagonals,
   ...chess,
   ...antiKropki,

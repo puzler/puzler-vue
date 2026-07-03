@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import type { SolverPuzzle, SolverConstraintSpec } from '../../types'
 import { buildBoard } from '../buildBoard'
+import { LogicResult } from '../board'
 import { findSolution } from '../algorithms'
+import { describePropagation } from '../logic/logicalSolver'
 import { contradictionForcing } from '../logic/techniques'
 import { standardBoxes } from '../geometry'
 
@@ -67,6 +69,52 @@ describe('cage, region & outer-clue constraints', () => {
     // r0c0 = 3 ⇒ first three cells must total 6.
     expect(valid(puzzle([[0, 3], [1, 4], [2, 5]], [xsum]))).toBe(false) // 3+4+5 = 12
     expect(valid(puzzle([[0, 3], [1, 1], [2, 2]], [xsum]))).toBe(true) // 3+1+2 = 6
+  })
+
+  it('numbered rooms puts the clue at the position the first digit names', () => {
+    const rooms = { kind: 'numbered_rooms', line: ROW0, target: 7 }
+    // r0c0 = 3 ⇒ the third cell holds the clue digit.
+    expect(valid(puzzle([[0, 3], [2, 5]], [rooms]))).toBe(false) // position 3 is 5, not 7
+    expect(solvable(puzzle([[0, 3], [2, 7]], [rooms]))).toBe(true)
+    // First cell = 1 means the first cell IS the clue: only consistent when
+    // clue = 1, caught by the index arc consistency.
+    const { board } = buildBoard(puzzle([[0, 1]], [rooms]))
+    expect(board.bruteForceLogic()).toBe(LogicResult.INVALID)
+  })
+
+  it('numbered rooms arc consistency prunes the indexer to viable positions', () => {
+    // Clue 7 with the 7 already placed at position 5: the indexer must be 5
+    // (or point at another cell that can still be 7 — here the row kills those
+    // one by one as they lose 7; committing 7 at r0c4 pins the first cell).
+    const rooms = { kind: 'numbered_rooms', line: ROW0, target: 7 }
+    const { board } = buildBoard(puzzle([[4, 7]], [rooms]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toEqual([5])
+  })
+
+  it('attributes commit-time propagation from numbered rooms in the read-out', () => {
+    // Column 5 clued with 5 from both ends: placing a 1 mid-column (position 4
+    // from the top, 6 from the bottom) fires the index links while the digit
+    // commits at build time, before any technique runs. The propagation log
+    // must attribute those eliminations instead of applying them silently.
+    const col = [4, 13, 22, 31, 40, 49, 58, 67, 76] // c5 top-down
+    const top = { kind: 'numbered_rooms', line: col, target: 5 }
+    const bottom = { kind: 'numbered_rooms', line: [...col].reverse(), target: 5 }
+    const p: SolverPuzzle = {
+      size: 9,
+      regions: allRegions(9),
+      givens: [],
+      placed: [{ cell: 31, value: 1 }], // r4c5 in reading order
+      constraints: [top, bottom],
+    }
+    const { board, valid } = buildBoard(p, { logPropagation: true })
+    expect(valid).toBe(true)
+    const desc = describePropagation(board)
+    expect(desc).toContain('Numbered rooms propagation')
+    expect(desc).toContain('R1C5≠4')
+    expect(desc).toContain('R9C5≠6')
+    // Consumed: a second read reports nothing.
+    expect(describePropagation(board)).toBeNull()
   })
 
   it('sandwich sums the digits between 1 and 9', () => {

@@ -32,6 +32,11 @@ const INFO: Record<string, { title: string; rule: string; placeHint: string }> =
     rule: 'The clue gives the sum of the digits along the indicated diagonal.',
     placeHint: 'Click an outer cell to place a clue pointing at the nearest diagonal · click again to cycle directions, then remove',
   },
+  numbered_rooms: {
+    title: 'Numbered Rooms',
+    rule: 'The first digit from the clue\'s side picks a position in the row or column; the digit in that position equals the clue.',
+    placeHint: 'Click an outer cell beside a row or column to place a clue',
+  },
 }
 
 const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)

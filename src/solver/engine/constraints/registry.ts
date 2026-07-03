@@ -38,6 +38,7 @@ import xSum from './xSum'
 import sandwich from './sandwich'
 import skyscraper from './skyscraper'
 import littleKiller from './littleKiller'
+import numberedRooms from './numberedRooms'
 
 export type { ConstraintModule } from './module'
 
@@ -73,6 +74,7 @@ export const MODULES: ConstraintModule[] = [
   sandwich,
   skyscraper,
   littleKiller,
+  numberedRooms,
 ]
 
 const BY_KIND = new Map<string, ConstraintModule>(MODULES.map((m) => [m.kind, m]))

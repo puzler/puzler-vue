@@ -13,10 +13,13 @@ export interface BuiltBoard {
 // Construct a fully-initialized Board from a wire SolverPuzzle. Order matters:
 // region links exist from construction, constraints add their links/reductions
 // via initConstraints, then givens and starting marks propagate through all of
-// them, and finally the cheap deductions settle.
-export function buildBoard(puzzle: SolverPuzzle): BuiltBoard {
+// them, and finally the cheap deductions settle. With logPropagation, labeled
+// weak-link eliminations fired by committing givens/placed digits are recorded
+// on board.propagationLog so the logical read-out can attribute them.
+export function buildBoard(puzzle: SolverPuzzle, options: { logPropagation?: boolean } = {}): BuiltBoard {
   const board = new Board(puzzle.size, puzzle.regions)
   board.constraints = buildConstraints(board, puzzle.constraints)
+  if (options.logPropagation) board.propagationLog = []
 
   if (!board.initConstraints()) return { board, valid: false }
 

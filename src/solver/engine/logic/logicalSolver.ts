@@ -21,6 +21,27 @@ import {
 
 // Re-exported for callers that still import it from here.
 export { cellName } from '../geometry'
+import { cellName as nameOf } from '../geometry'
+
+// Describe (and consume) the board's commit-time propagation log: weak links
+// seeded by constraints that fired while placed digits committed at build time,
+// BEFORE any technique ran. Without this the eliminations would silently appear
+// in the candidate read-back under "No logical steps". Grouped by constraint so
+// the read-out attributes them, e.g. "Numbered rooms propagation → R1C5≠4".
+export function describePropagation(board: Board): string | null {
+  const log = board.propagationLog
+  board.propagationLog = null
+  if (!log || log.length === 0) return null
+  const bySource = new Map<string, string[]>()
+  for (const { cell, value, source } of log) {
+    let parts = bySource.get(source)
+    if (!parts) bySource.set(source, (parts = []))
+    parts.push(`${nameOf(cell, board.size)}≠${value}`)
+  }
+  return [...bySource.entries()]
+    .map(([source, parts]) => `${source} propagation → ${parts.join(', ')}`)
+    .join(' · ')
+}
 
 export interface StepResult {
   changed: boolean

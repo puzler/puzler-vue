@@ -2,7 +2,7 @@ import type { SolverCommand, SolverPuzzle, SolverResult } from './types'
 import type { Board } from './engine/board'
 import { buildBoard } from './engine/buildBoard'
 import { findSolution, countSolutions, trueCandidates, logicalCandidates } from './engine/algorithms'
-import { logicalStep, logicalSolve } from './engine/logic/logicalSolver'
+import { logicalStep, logicalSolve, describePropagation } from './engine/logic/logicalSolver'
 import { minValue, valuesList } from './engine/bitmask'
 
 // Stateless per command: each message carries the full puzzle, so cancellation
@@ -72,15 +72,24 @@ function handle(command: SolverCommand): void {
       return post({ result: 'truecandidates', candidates: result.candidates, counts: result.counts })
     }
     case 'step': {
-      const { board, valid } = buildBoard(command.puzzle)
+      const { board, valid } = buildBoard(command.puzzle, { logPropagation: true })
       const givenCells = new Set(command.puzzle.givens.map((g) => g.cell))
       if (!valid) {
         return post({ result: 'step', desc: 'Board is invalid', changed: false, values: [], candidates: [] })
       }
-      // First step on an unpencilled grid: just fill the candidates.
+      // First step on an unpencilled grid: just fill the candidates (which
+      // fold in any build-time propagation).
       if (needsInitialCandidates(board, command.puzzle)) {
+        board.propagationLog = null
         const state = solverState(board, givenCells)
         return post({ result: 'step', desc: 'Initial candidates', changed: true, ...state })
+      }
+      // Constraint links that fired while placed digits committed are their own
+      // step: without this their eliminations would appear unattributed.
+      const propagated = describePropagation(board)
+      if (propagated) {
+        const state = solverState(board, givenCells)
+        return post({ result: 'step', desc: propagated, changed: true, ...state })
       }
       const step = logicalStep(board, command.options?.techniques ?? {})
       const state = solverState(board, givenCells)
@@ -88,12 +97,16 @@ function handle(command: SolverCommand): void {
       return post({ result: 'step', desc, changed: step.changed, ...state })
     }
     case 'logicalsolve': {
-      const { board, valid } = buildBoard(command.puzzle)
+      const { board, valid } = buildBoard(command.puzzle, { logPropagation: true })
       const givenCells = new Set(command.puzzle.givens.map((g) => g.cell))
       if (!valid) {
         return post({ result: 'logicalsolve', desc: ['Board is invalid'], changed: false, values: [], candidates: [] })
       }
       const lines = needsInitialCandidates(board, command.puzzle) ? ['Initial candidates'] : []
+      // Attribute build-time constraint propagation unless it's folded into the
+      // initial candidate fill anyway.
+      const propagated = describePropagation(board)
+      if (propagated && lines.length === 0) lines.push(propagated)
       const solve = logicalSolve(board, command.options?.techniques ?? {})
       lines.push(...solve.desc)
       const state = solverState(board, givenCells)

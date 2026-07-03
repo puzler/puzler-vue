@@ -151,6 +151,34 @@ describe('cage, region & outer-clue constraints', () => {
     for (const c of [2, 3, 4]) expect(board.candidatesPerCell()[c]).toEqual([1, 2, 3])
   })
 
+  it('next-to-nine names the digits beside the 9', () => {
+    const ntn = { kind: 'next_to_nine', line: ROW0, digits: [3, 4] }
+    // 9 at position 3 with neighbours 3 and 4, either order.
+    expect(solvable(puzzle([[2, 9], [1, 4], [3, 3]], [ntn]))).toBe(true)
+    expect(valid(puzzle([[2, 9], [1, 4], [3, 5]], [ntn]))).toBe(false) // 5 is not clued
+  })
+
+  it('two-digit next-to-nine clue keeps the 9 off the line ends', () => {
+    // An end 9 has one neighbour; a two-digit clue needs two.
+    const ntn = { kind: 'next_to_nine', line: ROW0, digits: [3, 4] }
+    const { board } = buildBoard(puzzle([], [ntn]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).not.toContain(9)
+    expect(board.candidatesPerCell()[8]).not.toContain(9)
+    for (const c of [1, 2, 3, 4, 5, 6, 7]) expect(board.candidatesPerCell()[c]).toContain(9)
+  })
+
+  it('single-digit next-to-nine forces the 9 to an end and pins its neighbour', () => {
+    const ntn = { kind: 'next_to_nine', line: ROW0, digits: [7] }
+    const clean = buildBoard(puzzle([], [ntn]))
+    clean.board.bruteForceLogic()
+    for (const c of [1, 2, 3, 4, 5, 6, 7]) expect(clean.board.candidatesPerCell()[c]).not.toContain(9)
+    // Pinning the 9 to one end forces the 7 beside it.
+    const pinned = buildBoard(puzzle([[0, 9]], [ntn]))
+    pinned.board.bruteForceLogic()
+    expect(pinned.board.candidatesPerCell()[1]).toEqual([7])
+  })
+
   it('sandwich sums the digits between 1 and 9', () => {
     const sandwich = { kind: 'sandwich', line: ROW0, target: 5 }
     // 1 at r0c0, 9 at r0c2, middle r0c1 = 5.

@@ -40,6 +40,7 @@ import skyscraper from './skyscraper'
 import littleKiller from './littleKiller'
 import numberedRooms from './numberedRooms'
 import battlefield from './battlefield'
+import nextToNine from './nextToNine'
 
 export type { ConstraintModule } from './module'
 
@@ -77,6 +78,7 @@ export const MODULES: ConstraintModule[] = [
   littleKiller,
   numberedRooms,
   battlefield,
+  nextToNine,
 ]
 
 const BY_KIND = new Map<string, ConstraintModule>(MODULES.map((m) => [m.kind, m]))

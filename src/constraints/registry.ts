@@ -88,6 +88,7 @@ import skyscrapers from './definitions/skyscrapers'
 import littleKillers from './definitions/littleKillers'
 import numberedRooms from './definitions/numberedRooms'
 import battlefield from './definitions/battlefield'
+import nextToNine from './definitions/nextToNine'
 // Global constraints (each file exports its category def + variants)
 import diagonals from './definitions/diagonals'
 import chess from './definitions/chess'
@@ -136,6 +137,7 @@ const DEFS = [
   littleKillers,
   numberedRooms,
   battlefield,
+  nextToNine,
   ...diagonals,
   ...chess,
   ...antiKropki,

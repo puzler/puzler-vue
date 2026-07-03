@@ -42,6 +42,11 @@ const INFO: Record<string, { title: string; rule: string; placeHint: string }> =
     rule: 'The first and last digits claim that many cells from their own ends; the clue sums the digits where the claims overlap, or the gap between them.',
     placeHint: 'Click an outer cell beside a row or column to place a clue',
   },
+  next_to_nine: {
+    title: 'Next to Nine',
+    rule: 'The clue digits are exactly the digits orthogonally adjacent to the 9 in that row or column.',
+    placeHint: 'Click an outer cell beside a row or column to place a clue · type each adjacent digit',
+  },
 }
 
 const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)

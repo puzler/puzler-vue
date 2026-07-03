@@ -507,3 +507,96 @@ export class BattlefieldConstraint extends Constraint {
     return reportClears(board, 'Battlefield', cleared, desc)
   }
 }
+
+// Next-to-nine: the clue lists the digits orthogonally adjacent to the row or
+// column's 9 (its decimal digits — a "34" clue means the 9's neighbours are 3
+// and 4, in either order). A one-digit clue forces the 9 to the line's end,
+// since an interior 9 has two neighbours the clue must name. The logic step
+// prunes the 9 from positions whose neighbours can't supply the clue digits,
+// and once the 9 is pinned, prunes its neighbours to the arrangements that fit.
+export class NextToNineConstraint extends Constraint {
+  private line: number[]
+  private digits: number[]
+  private involved: Set<number>
+
+  constructor(line: number[], digits: number[]) {
+    super('Next to nine')
+    this.line = line
+    this.digits = digits
+    this.involved = new Set(line)
+  }
+
+  private neighbours(i: number): number[] {
+    const out: number[] = []
+    if (i > 0) out.push(this.line[i - 1])
+    if (i < this.line.length - 1) out.push(this.line[i + 1])
+    return out
+  }
+
+  // Can position i's neighbours still supply the clue digits as a multiset?
+  private fits(board: Board, i: number): boolean {
+    const nbrs = this.neighbours(i)
+    if (this.digits.length !== nbrs.length) return false
+    const has = (cell: number, v: number) => (board.candidateMask(cell) & valueBit(v)) !== 0
+    if (this.digits.length === 1) return has(nbrs[0], this.digits[0])
+    const [a, b] = this.digits
+    const [x, y] = nbrs
+    return (has(x, a) && has(y, b)) || (has(x, b) && has(y, a))
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    let nine = -1
+    for (let i = 0; i < this.line.length; i += 1) {
+      if (placed(board, this.line[i]) === board.size) { nine = i; break }
+    }
+    if (nine < 0) return true
+    if (!this.fits(board, nine)) return false
+    const nbrs = this.neighbours(nine)
+    const values = nbrs.map((c) => placed(board, c))
+    if (values.some((v) => v === 0)) return true
+    return values.sort().join(',') === [...this.digits].sort().join(',')
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const nineBit = valueBit(board.size)
+    const cleared: number[] = []
+    const homes: number[] = []
+    for (let i = 0; i < this.line.length; i += 1) {
+      if ((board.candidateMask(this.line[i]) & nineBit) === 0) continue
+      if (this.fits(board, i)) {
+        homes.push(i)
+        continue
+      }
+      if (applyKeep(board, this.line[i], board.candidateMask(this.line[i]) & ~nineBit, cleared)) {
+        desc.push('Next to nine empties a cell')
+        return ConstraintResult.INVALID
+      }
+    }
+    if (homes.length === 0) {
+      desc.push('Next to nine leaves the 9 no home')
+      return ConstraintResult.INVALID
+    }
+    if (homes.length === 1) {
+      const nbrs = this.neighbours(homes[0])
+      const has = (cell: number, v: number) => (board.candidateMask(cell) & valueBit(v)) !== 0
+      let invalid = false
+      if (this.digits.length === 1) {
+        invalid = applyKeep(board, nbrs[0], valueBit(this.digits[0]), cleared)
+      } else {
+        const [a, b] = this.digits
+        const [x, y] = nbrs
+        let maskX = 0
+        let maskY = 0
+        if (has(x, a) && has(y, b)) { maskX |= valueBit(a); maskY |= valueBit(b) }
+        if (has(x, b) && has(y, a)) { maskX |= valueBit(b); maskY |= valueBit(a) }
+        invalid = maskX === 0 || applyKeep(board, x, maskX, cleared) || applyKeep(board, y, maskY, cleared)
+      }
+      if (invalid) {
+        desc.push('Next to nine neighbours cannot fit the clue')
+        return ConstraintResult.INVALID
+      }
+    }
+    return reportClears(board, 'Next to nine', cleared, desc)
+  }
+}

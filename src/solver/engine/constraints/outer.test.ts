@@ -117,6 +117,40 @@ describe('cage, region & outer-clue constraints', () => {
     expect(describePropagation(board)).toBeNull()
   })
 
+  it('battlefield sums the overlap of the two end claims', () => {
+    // First 5 and last 7 claim 5 + 7 = 12 cells of 9: overlap is positions 3-5.
+    const bf = { kind: 'battlefield', line: ROW0, target: 6 }
+    expect(valid(puzzle([[0, 5], [8, 7], [2, 1], [3, 2], [4, 3]], [bf]))).toBe(true) // 1+2+3
+    expect(valid(puzzle([[0, 5], [8, 7], [2, 4], [3, 2], [4, 3]], [bf]))).toBe(false) // 4+2+3
+  })
+
+  it('battlefield sums the gap when the claims fall short', () => {
+    // First 2 and last 3 leave a gap at positions 3-6 (four cells).
+    const bf = { kind: 'battlefield', line: ROW0, target: 30 }
+    expect(solvable(puzzle([[0, 2], [8, 3], [2, 9], [3, 8], [4, 7], [5, 6]], [bf]))).toBe(true)
+    expect(valid(puzzle([[0, 2], [8, 3], [2, 1], [3, 8], [4, 7], [5, 6]], [bf]))).toBe(false) // 22
+  })
+
+  it('battlefield zero clue forces the claims to abut exactly', () => {
+    const bf = { kind: 'battlefield', line: ROW0, target: 0 }
+    expect(solvable(puzzle([[0, 4], [8, 5]], [bf]))).toBe(true) // 4 + 5 = 9
+    expect(valid(puzzle([[0, 4], [8, 6]], [bf]))).toBe(false) // overlap of 1 cell can't sum to 0
+    // With nothing placed, logic prunes both ends to digits with an abutting partner.
+    const { board } = buildBoard(puzzle([], [bf]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(board.candidatesPerCell()[8]).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
+  it('battlefield with pinned ends runs the combination prune on its region', () => {
+    // Ends 5 and 7 pin the overlap to positions 3-5; a target of 6 forces the
+    // distinct triple {1,2,3} there.
+    const bf = { kind: 'battlefield', line: ROW0, target: 6 }
+    const { board } = buildBoard(puzzle([[0, 5], [8, 7]], [bf]))
+    board.bruteForceLogic()
+    for (const c of [2, 3, 4]) expect(board.candidatesPerCell()[c]).toEqual([1, 2, 3])
+  })
+
   it('sandwich sums the digits between 1 and 9', () => {
     const sandwich = { kind: 'sandwich', line: ROW0, target: 5 }
     // 1 at r0c0, 9 at r0c2, middle r0c1 = 5.

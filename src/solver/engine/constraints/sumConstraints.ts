@@ -400,3 +400,110 @@ export class SkyscraperConstraint extends Constraint {
     return reportClears(board, 'Skyscraper', cleared, desc)
   }
 }
+
+// Battlefield: the first cell's digit X claims the first X cells and the last
+// cell's digit Y claims the last Y; the clue sums the digits where the claims
+// overlap, or the digits in the gap when they don't meet (0 when they abut
+// exactly). The logic step enumerates the weak-link-surviving (X, Y) pairs,
+// keeps those whose region can still reach the target (candidate bounds, with
+// an endpoint's own value fixed when it lies inside the region), and prunes the
+// endpoints to surviving values. A unique surviving pair pins the region: its
+// sum is forced with the same range + combination prunes the other sum clues
+// use (region cells share the row/column, so they are distinct).
+export class BattlefieldConstraint extends Constraint {
+  private line: number[]
+  private target: number
+  private involved: Set<number>
+
+  constructor(line: number[], target: number) {
+    super('Battlefield')
+    this.line = line
+    this.target = target
+    this.involved = new Set(line)
+  }
+
+  // Region claimed by the pair (X, Y): overlap, gap, or empty when they abut.
+  private regionFor(u: number, w: number): number[] {
+    const len = this.line.length
+    if (u + w > len) return this.line.slice(Math.max(0, len - w), Math.min(u, len))
+    if (u + w < len) return this.line.slice(u, len - w)
+    return []
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    const u = placed(board, this.line[0])
+    const w = placed(board, this.line[this.line.length - 1])
+    if (u === 0 || w === 0) return true
+    const region = this.regionFor(u, w)
+    if (region.length === 0) return this.target === 0
+    return sumInRange(board, region, this.target)
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const first = this.line[0]
+    const last = this.line[this.line.length - 1]
+    const linked = (v1: number, v2: number) =>
+      board.weakLinks[board.candidateIndex(first, v1)].has(board.candidateIndex(last, v2))
+
+    const cleared: number[] = []
+    let maskFirst = 0
+    let maskLast = 0
+    let pairCount = 0
+    let solePair: [number, number] | null = null
+    for (const u of valuesList(board.candidateMask(first))) {
+      for (const w of valuesList(board.candidateMask(last))) {
+        if (linked(u, w)) continue
+        const region = this.regionFor(u, w)
+        if (region.length === 0) {
+          if (this.target !== 0) continue
+        } else {
+          // Candidate bounds; endpoints inside the region contribute their
+          // pair value exactly.
+          let min = 0
+          let max = 0
+          for (const c of region) {
+            if (c === first) { min += u; max += u }
+            else if (c === last) { min += w; max += w }
+            else {
+              const m = board.candidateMask(c)
+              min += minValue(m)
+              max += maxValue(m)
+            }
+          }
+          if (this.target < min || this.target > max) continue
+        }
+        pairCount += 1
+        solePair = pairCount === 1 ? [u, w] : null
+        maskFirst |= valueBit(u)
+        maskLast |= valueBit(w)
+      }
+    }
+    if (pairCount === 0) {
+      desc.push('Battlefield has no workable end digits')
+      return ConstraintResult.INVALID
+    }
+    if (applyKeep(board, first, maskFirst, cleared) || applyKeep(board, last, maskLast, cleared)) {
+      desc.push('Battlefield empties an end cell')
+      return ConstraintResult.INVALID
+    }
+
+    if (solePair) {
+      const [u, w] = solePair
+      const full = this.regionFor(u, w)
+      const region = full.filter((c) => c !== first && c !== last)
+      const adjusted = this.target - (full.includes(first) ? u : 0) - (full.includes(last) ? w : 0)
+      if (region.length > 0) {
+        if (sumRangePrune(board, region, adjusted, adjusted, cleared)) {
+          desc.push('Battlefield sum is unreachable')
+          return ConstraintResult.INVALID
+        }
+        if (sumCombinationPrune(board, region, adjusted, cleared).invalid) {
+          desc.push('Battlefield has no valid combination')
+          return ConstraintResult.INVALID
+        }
+      }
+    }
+    return reportClears(board, 'Battlefield', cleared, desc)
+  }
+}

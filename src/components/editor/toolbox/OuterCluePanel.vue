@@ -37,6 +37,11 @@ const INFO: Record<string, { title: string; rule: string; placeHint: string }> =
     rule: 'The first digit from the clue\'s side picks a position in the row or column; the digit in that position equals the clue.',
     placeHint: 'Click an outer cell beside a row or column to place a clue',
   },
+  battlefield: {
+    title: 'Battlefield',
+    rule: 'The first and last digits claim that many cells from their own ends; the clue sums the digits where the claims overlap, or the gap between them.',
+    placeHint: 'Click an outer cell beside a row or column to place a clue',
+  },
 }
 
 const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)

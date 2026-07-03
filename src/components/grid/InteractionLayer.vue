@@ -4,7 +4,7 @@ import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
 
@@ -25,11 +25,10 @@ const dragAdditive = ref(false)
 
 const DRAWING_TOOLS = new Set(['cosmetic_line', ...THERMO_TYPES, 'arrow', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
-const SINGLE_CELL_TOOLS = new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells'])
 
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
 const isBrushing = computed(() => BRUSH_TOOLS.has(editor.activeTool))
-const isSingleCellTool = computed(() => SINGLE_CELL_TOOLS.has(editor.activeTool))
+const isSingleCellTool = computed(() => SINGLE_CELL_TYPES.has(editor.activeTool))
 const isDotTool = computed(() => BORDER_CONNECTOR_TYPES.has(editor.activeTool))
 const isOuterTool = computed(() => OUTER_CLUE_TYPES.has(editor.activeTool))
 const margins = useOuterMargins()

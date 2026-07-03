@@ -11,6 +11,7 @@ import chess from './chess'
 import antiKropki from './antiKropki'
 import antiXv from './antiXv'
 import cellMask from './cellMask'
+import countingCircles from './countingCircles'
 import minMax from './minMax'
 import indexCell from './indexCell'
 
@@ -54,6 +55,7 @@ export const MODULES: ConstraintModule[] = [
   antiKropki,
   antiXv,
   cellMask,
+  countingCircles,
   minMax,
   indexCell,
   connector,

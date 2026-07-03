@@ -9,6 +9,7 @@ import { valueBit } from '../bitmask'
 import antiXv from './antiXv'
 import antiKropki from './antiKropki'
 import diagonal from './diagonal'
+import countingCircles from './countingCircles'
 
 const diagonalSpecMeta = (spec: SolverConstraintSpec) =>
   spec as unknown as { mode?: string; segments?: number[][] }
@@ -240,5 +241,35 @@ describe('global & single-cell constraints', () => {
     // r0c0 = 2 ⇒ r0c1 must be 1; giving it 3 contradicts.
     expect(valid(puzzle(4, [[0, 2], [1, 3]], [idx]))).toBe(false)
     expect(valid(puzzle(4, [[0, 2], [1, 1]], [idx]))).toBe(true)
+  })
+
+  it('counting circles gather all marks into one spec', () => {
+    const specs = countingCircles.fromEditor(adapterCtx({
+      singleCellMarks: { counting_circles: ['r0c0', 'r4c4'], odd_cells: ['r8c8'] },
+    })) as Array<{ kind: string; cells: number[] }>
+    expect(specs).toEqual([{ kind: 'counting_circles', cells: [0, 40] }])
+    expect(countingCircles.fromEditor(adapterCtx({}))).toEqual([])
+  })
+
+  it('counting circles make each circled digit count its own circles', () => {
+    // Three circles sharing no houses: r0c0, r4c4, r8c8.
+    const cc = { kind: 'counting_circles', cells: [0, 40, 80] }
+    // A 3 in a circle forces all three circles to hold 3.
+    expect(solvable(puzzle(9, [[0, 3], [40, 3], [80, 3]], [cc]))).toBe(true)
+    expect(valid(puzzle(9, [[0, 3], [40, 3], [80, 5]], [cc]))).toBe(false) // a lone 5 needs 5 circles
+    // Logic: a committed 3 with exactly three possible homes pins the rest.
+    const { board } = buildBoard(puzzle(9, [[0, 3]], [cc]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[40]).toEqual([3])
+    expect(board.candidatesPerCell()[80]).toEqual([3])
+  })
+
+  it('counting circles drop digits above the circle count', () => {
+    // Two circles: no digit above 2 can appear in either.
+    const cc = { kind: 'counting_circles', cells: [0, 40] }
+    const { board } = buildBoard(puzzle(9, [], [cc]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toEqual([1, 2])
+    expect(board.candidatesPerCell()[40]).toEqual([1, 2])
   })
 })

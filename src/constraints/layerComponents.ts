@@ -14,6 +14,7 @@ import { layerIdsForSlot, type ConstraintLayerId, type LayerSlot } from './regis
 
 import ConstraintBackgrounds from '@/components/grid/ConstraintBackgrounds.vue'
 import OddEvenCellsLayer from '@/components/grid/constraints/OddEvenCellsLayer.vue'
+import CountingCirclesLayer from '@/components/grid/constraints/CountingCirclesLayer.vue'
 import MinMaxLayer from '@/components/grid/constraints/MinMaxLayer.vue'
 import DiagonalsLayer from '@/components/grid/constraints/DiagonalsLayer.vue'
 import ThermometerLayer from '@/components/grid/constraints/ThermometerLayer.vue'
@@ -29,6 +30,7 @@ import OuterCluesLayer from '@/components/grid/constraints/OuterCluesLayer.vue'
 const LAYER_COMPONENTS: Record<ConstraintLayerId, Component> = {
   constraint_backgrounds: ConstraintBackgrounds,
   odd_even_cells:   OddEvenCellsLayer,
+  counting_circles: CountingCirclesLayer,
   min_max:          MinMaxLayer,
   diagonals:        DiagonalsLayer,
   thermometers:     ThermometerLayer,

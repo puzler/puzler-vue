@@ -75,6 +75,7 @@ import oddCells from './definitions/oddCells'
 import evenCells from './definitions/evenCells'
 import minimums from './definitions/minimums'
 import maximums from './definitions/maximums'
+import countingCircles from './definitions/countingCircles'
 import rowIndexCells from './definitions/rowIndexCells'
 import colIndexCells from './definitions/colIndexCells'
 // Cages & regions
@@ -127,6 +128,7 @@ const DEFS = [
   evenCells,
   minimums,
   maximums,
+  countingCircles,
   rowIndexCells,
   colIndexCells,
   killerCage,

@@ -20,8 +20,8 @@ describe('constraint registry derivations', () => {
     expect(CONNECTOR_DOT_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots']))
     expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))
     expect(OUTER_CLUE_TYPES).toEqual(new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers', 'numbered_rooms', 'battlefield', 'next_to_nine', 'rossini']))
-    expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'row_index_cells', 'col_index_cells']))
-    expect(LOCAL_TOOL_TYPES.size).toBe(36)
+    expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'counting_circles', 'row_index_cells', 'col_index_cells']))
+    expect(LOCAL_TOOL_TYPES.size).toBe(37)
     expect(LOCAL_TOOL_TYPES.has('killer_cage')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('diagonals')).toBe(false)
     expect(LOCAL_TOOL_TYPES.has('cosmetic_line')).toBe(false)
@@ -66,9 +66,9 @@ describe('constraint registry derivations', () => {
     expect(CONSTRAINT_ICONS.quadruples.rotate).toBe(45)
   })
 
-  it('derives the theme style registry with all 40 themeable keys', () => {
+  it('derives the theme style registry with all 41 themeable keys', () => {
     const keys = Object.keys(CONSTRAINT_STYLE_REGISTRY)
-    expect(keys).toHaveLength(40)
+    expect(keys).toHaveLength(41)
     expect(CONSTRAINT_STYLE_REGISTRY.german_whispers).toEqual({ family: 'line', category: 'lines', label: 'German whispers' })
     expect(CONSTRAINT_STYLE_REGISTRY.renban.label).toBe('Renban')
     expect(CONSTRAINT_STYLE_REGISTRY.positive_diagonal.family).toBe('diagonal')
@@ -130,7 +130,7 @@ describe('constraint registry derivations', () => {
   it('orders grid layers within each slot as the grid stack expects', () => {
     expect(layerIdsForSlot('background')).toEqual(['constraint_backgrounds'])
     expect(layerIdsForSlot('constraint')).toEqual([
-      'odd_even_cells', 'min_max', 'diagonals', 'thermometers', 'arrows',
+      'odd_even_cells', 'counting_circles', 'min_max', 'diagonals', 'thermometers', 'arrows',
       'killer_cages', 'clone_originals', 'between_lines', 'lockout_lines', 'constraint_lines',
     ])
     expect(layerIdsForSlot('above_regions')).toEqual(['connector_dots'])

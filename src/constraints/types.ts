@@ -98,6 +98,7 @@ export const LAYER_SPECS = {
   constraint_backgrounds: { slot: 'background', order: 10 },
   // ConstraintLayer (between cosmetics and selections)
   odd_even_cells:   { slot: 'constraint', order: 10 },
+  counting_circles: { slot: 'constraint', order: 15 },
   min_max:          { slot: 'constraint', order: 20 },
   diagonals:        { slot: 'constraint', order: 30 },
   // Thermometers render before constraint lines so lines overlap bulbs

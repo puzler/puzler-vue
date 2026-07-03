@@ -6,7 +6,7 @@ import { keyToRowCol } from '@/composables/useGrid'
 // import site for constraint data shapes + membership.
 export {
   CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, ARROW_STYLE,
-  BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES,
+  BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES,
   SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS, GLOBAL_VARIANTS,
 } from '@/constraints/registry'
 

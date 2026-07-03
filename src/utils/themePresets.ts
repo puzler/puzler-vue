@@ -134,6 +134,7 @@ const DARK: Theme = {
     // dark cells. This also keeps them distinct from each other (a swap had made both light).
     ratio_dots: { outlineColor: '#C7CDDA' },
     difference_dots: { outlineColor: '#C7CDDA' },
+    counting_circles: { outlineColor: '#C7CDDA' },
     between_lines: { fillColor: '#1A2230', outlineColor: '#C7CDDA' },
     // Region/index fills default to LIGHT greys/pastels that would paint a bright block over the
     // dark cells and bury the light digits. Darken them while KEEPING each one's identity: the
@@ -205,6 +206,7 @@ const HIGH_CONTRAST: Theme = {
     between_lines: { color: '#333333', outlineColor: '#333333' },
     odd_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },
     even_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },
+    counting_circles: { outlineColor: '#333333' },
     // Pale region fills → stronger, mutually-distinct tints that stay readable behind digits.
     extra_regions: { backgroundColor: '#C4CDD9' },
     clone: { backgroundColor: '#D9CFC4' },

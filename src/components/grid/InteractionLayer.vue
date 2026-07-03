@@ -322,6 +322,14 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
     }
     return
   }
+  if (editor.activeTool === 'rossini') {
+    if (editor.outerClues[key]?.type === 'rossini') {
+      editor.cycleRossiniDirection(key)
+    } else {
+      editor.toggleOuterClue('rossini', key)
+    }
+    return
+  }
   editor.toggleOuterClue(editor.activeTool as OuterClueType, key)
 }
 

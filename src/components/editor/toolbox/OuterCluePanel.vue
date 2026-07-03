@@ -47,6 +47,11 @@ const INFO: Record<string, { title: string; rule: string; placeHint: string }> =
     rule: 'The clue digits are exactly the digits orthogonally adjacent to the 9 in that row or column.',
     placeHint: 'Click an outer cell beside a row or column to place a clue · type each adjacent digit',
   },
+  rossini: {
+    title: 'Rossini',
+    rule: 'The three digits nearest the arrow strictly increase in the arrow\'s direction.',
+    placeHint: 'Click an outer cell beside a row or column to place an arrow · click again to flip it, then remove',
+  },
 }
 
 const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)
@@ -65,8 +70,10 @@ const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)
         @select="editor.setConnectorMode($event as 'place' | 'select')"
       />
 
-      <!-- 0 passes through: clue values append digits with no maximum -->
+      <!-- 0 passes through: clue values append digits with no maximum.
+           Rossini clues are arrows with no value, so they get no numpad. -->
       <NumpadPanel
+        v-if="editor.activeTool !== 'rossini'"
         @digit="editor.placeDigitForSelection($event)"
         @delete="editor.placeDigitForSelection(null)"
       />

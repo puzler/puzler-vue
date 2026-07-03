@@ -1765,8 +1765,14 @@ export const useEditorStore = defineStore('editor', () => {
       return
     }
 
-    // New clue, or another type at this position → replace; auto-select
-    const fresh: OuterClue = { type, value: null, ...(direction ? { direction } : {}) }
+    // New clue, or another type at this position → replace; auto-select.
+    // Rossini clues carry an arrow instead of a value; they start increasing.
+    const fresh: OuterClue = {
+      type,
+      value: null,
+      ...(direction ? { direction } : {}),
+      ...(type === 'rossini' ? { rossiniDirection: 'increasing' as const } : {}),
+    }
     execute({
       execute: () => {
         outerClues.value = { ...outerClues.value, [key]: fresh }
@@ -1806,7 +1812,7 @@ export const useEditorStore = defineStore('editor', () => {
     const key = selectedOuterClueKey.value
     if (!key) return
     const clue = outerClues.value[key]
-    if (!clue) return
+    if (!clue || clue.type === 'rossini') return
     patchOuterClue(key, { ...clue }, { ...clue, value: (clue.value ?? 0) * 10 + digit })
   }
 
@@ -1816,6 +1822,17 @@ export const useEditorStore = defineStore('editor', () => {
     const clue = outerClues.value[key]
     if (!clue || clue.value === null) return
     patchOuterClue(key, { ...clue }, { ...clue, value: Math.floor(clue.value / 10) || null })
+  }
+
+  // Re-clicking a rossini arrow flips it, then removes it
+  function cycleRossiniDirection(key: string) {
+    const clue = outerClues.value[key]
+    if (clue?.type !== 'rossini' || !clue.rossiniDirection) return
+    if (clue.rossiniDirection === 'increasing') {
+      patchOuterClue(key, { ...clue }, { ...clue, rossiniDirection: 'decreasing' })
+    } else {
+      toggleOuterClue('rossini', key)
+    }
   }
 
   // Re-clicking a little killer steps through the position's valid diagonal
@@ -2075,6 +2092,7 @@ export const useEditorStore = defineStore('editor', () => {
     appendOuterClueDigit,
     removeLastOuterClueDigit,
     cycleLittleKillerDirection,
+    cycleRossiniDirection,
     removeOuterClueConstraint,
   }
 })

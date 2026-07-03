@@ -53,6 +53,15 @@ function littleKillerArrow(pos: { row: number; col: number }, direction: string)
   return { path, offset: { dx: -ux * 9, dy: -uy * 9 } }
 }
 
+// Rossini arrows run along the row/column: 'increasing' points away from the
+// clue's edge, 'decreasing' points at it.
+function rossiniGlyph(pos: { row: number; col: number }, direction: string): string {
+  if (pos.col < 0) return direction === 'increasing' ? '→' : '←'
+  if (pos.col >= grid.cols) return direction === 'increasing' ? '←' : '→'
+  if (pos.row < 0) return direction === 'increasing' ? '↓' : '↑'
+  return direction === 'increasing' ? '↑' : '↓'
+}
+
 const clues = computed<RenderedClue[]>(() =>
   Object.entries(editor.outerClues).flatMap(([key, clue]) => {
     const pos = parseOuterKey(key)
@@ -62,11 +71,14 @@ const clues = computed<RenderedClue[]>(() =>
     const arrow = clue.type === 'little_killers' && clue.direction
       ? littleKillerArrow(pos, clue.direction)
       : null
+    const text = clue.type === 'rossini'
+      ? (clue.rossiniDirection ? rossiniGlyph(pos, clue.rossiniDirection) : '_')
+      : clue.value === null ? '_' : String(clue.value)
     return [{
       key,
       x: center.x + (arrow?.offset.dx ?? 0),
       y: center.y + (arrow?.offset.dy ?? 0),
-      text: clue.value === null ? '_' : String(clue.value),
+      text,
       fontSize: st.size * CELL_SIZE,
       color: st.fontColor,
       selected: editor.selectedOuterClueKey === key,

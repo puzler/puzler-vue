@@ -151,15 +151,20 @@ export interface CloneData {
 
 // ── Outer clues ───────────────────────────────────────────────────────────────
 
-export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers' | 'numbered_rooms' | 'battlefield' | 'next_to_nine'
+export type OuterClueType = 'x_sums' | 'sandwich_sums' | 'skyscrapers' | 'little_killers' | 'numbered_rooms' | 'battlefield' | 'next_to_nine' | 'rossini'
 
 export type LittleKillerDirection = 'up-left' | 'up-right' | 'down-left' | 'down-right'
 
+// Rossini arrows run along the row/column: 'increasing' points away from the
+// clue's edge (digits rise into the grid), 'decreasing' points at the edge.
+export type RossiniDirection = 'increasing' | 'decreasing'
+
 export interface OuterClue {
   type: OuterClueType
-  // null shows as an underscore (unset)
+  // null shows as an underscore (unset); rossini clues carry no value
   value: number | null
   direction?: LittleKillerDirection
+  rossiniDirection?: RossiniDirection
 }
 
 // Key for a clue cell in the ring outside the grid: row may be -1 or `rows`,

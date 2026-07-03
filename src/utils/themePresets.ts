@@ -128,6 +128,7 @@ const DARK: Theme = {
     numbered_rooms: { fontColor: '#E6E9EF' },
     battlefield: { fontColor: '#E6E9EF' },
     next_to_nine: { fontColor: '#E6E9EF' },
+    rossini: { fontColor: '#E6E9EF' },
     // Kropki dots keep their canonical identity — difference = WHITE dot, ratio = BLACK dot (rules
     // text relies on this). Don't recolor the fills; just add a light ring so each stays visible on
     // dark cells. This also keeps them distinct from each other (a swap had made both light).

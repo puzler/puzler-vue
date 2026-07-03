@@ -179,6 +179,20 @@ describe('cage, region & outer-clue constraints', () => {
     expect(pinned.board.candidatesPerCell()[1]).toEqual([7])
   })
 
+  it('rossini makes the three digits nearest the edge strictly monotonic', () => {
+    const up = { kind: 'rossini', cells: [0, 1, 2], increasing: true }
+    expect(valid(puzzle([[0, 5], [1, 3]], [up]))).toBe(false)
+    expect(solvable(puzzle([[0, 2], [1, 5], [2, 8]], [up]))).toBe(true)
+    // A committed middle digit bounds both sides.
+    const { board } = buildBoard(puzzle([[1, 3]], [up]))
+    expect(board.candidatesPerCell()[0]).toEqual([1, 2])
+    expect(board.candidatesPerCell()[2]).toEqual([4, 5, 6, 7, 8, 9])
+
+    const down = { kind: 'rossini', cells: [0, 1, 2], increasing: false }
+    expect(valid(puzzle([[0, 3], [1, 5]], [down]))).toBe(false)
+    expect(solvable(puzzle([[0, 8], [1, 5], [2, 2]], [down]))).toBe(true)
+  })
+
   it('sandwich sums the digits between 1 and 9', () => {
     const sandwich = { kind: 'sandwich', line: ROW0, target: 5 }
     // 1 at r0c0, 9 at r0c2, middle r0c1 = 5.

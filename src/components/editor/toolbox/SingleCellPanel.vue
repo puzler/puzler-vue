@@ -11,6 +11,7 @@ const DESCRIPTIONS: Record<string, { title: string; rule: string }> = {
   maximums:        { title: 'Maximums',           rule: 'Marked cells must be larger than every orthogonal neighbor.' },
   row_index_cells: { title: 'Row Index Cells',    rule: "A marked cell's digit gives the column where this row's index digit appears." },
   col_index_cells: { title: 'Column Index Cells', rule: "A marked cell's digit gives the row where this column's index digit appears." },
+  counting_circles: { title: 'Counting Circles',  rule: 'The digit in a circle counts how many circles contain that digit.' },
 }
 
 const info = computed(() => DESCRIPTIONS[editor.activeTool] ?? null)

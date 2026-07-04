@@ -7,6 +7,7 @@ import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import SolverControls from '@/components/editor/SolverControls.vue'
 import PuzzleControls from '@/components/editor/PuzzleControls.vue'
 import EditorMobileIconBar from '@/components/editor/EditorMobileIconBar.vue'
+import PuzzleJsonSheet from '@/components/editor/json/PuzzleJsonSheet.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
@@ -82,5 +83,10 @@ function selectView(v: MobileView) {
         />
       </div>
     </div>
+
+    <PuzzleJsonSheet
+      v-if="editor.jsonPanelOpen"
+      @close="editor.jsonPanelOpen = false"
+    />
   </div>
 </template>

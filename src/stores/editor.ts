@@ -68,6 +68,10 @@ export const useEditorStore = defineStore('editor', () => {
   // selection (like ctrl-click) instead of replacing it — a keyboard-free way
   // to multi-select. Surfaced as a toggle on the solver numpad.
   const multiSelectMode = ref(false)
+  // Whether the raw JSON editor panel/sheet is open. Session-only UI state:
+  // deliberately not cleared by reset(), so loading a puzzle doesn't slam the
+  // panel shut (its staleness watcher handles the content change).
+  const jsonPanelOpen = ref(false)
   const shiftHeld = ref(false)
   const effectiveArrowDrawMode = computed<'bulb' | 'arrow'>(() =>
     shiftHeld.value ? 'arrow' : arrowDrawMode.value,
@@ -1405,7 +1409,11 @@ export const useEditorStore = defineStore('editor', () => {
     execute({ kind: 'solverDiff', before, after })
   }
 
-  function reset() {
+  // Everything reset() clears except the undo history. The raw JSON editor's
+  // apply command pairs this with hydratePuzzle so a whole-state swap stays a
+  // single undoable step; note it also wipes authorDifficulty/solutionCode,
+  // which are not part of the export — callers must preserve them.
+  function resetPuzzleState() {
     givenDigits.value = {}
     solverCellStates.value = {}
     selection.value = new Set()
@@ -1454,6 +1462,10 @@ export const useEditorStore = defineStore('editor', () => {
     shapePresetsC.reset()
     textPresetsC.reset()
     cagePresetsC.reset()
+  }
+
+  function reset() {
+    resetPuzzleState()
     clearHistory()
   }
 
@@ -2166,9 +2178,15 @@ export const useEditorStore = defineStore('editor', () => {
     clearCellColorsForSelection,
     undo,
     redo,
+    // Push a prepared Command onto the undo history (runs it immediately).
+    // Exposed for the raw JSON editor's whole-state apply; tool actions build
+    // their commands inside the store instead.
+    pushHistory: execute,
     serializeHistory,
     hydrateHistory,
     reset,
+    resetPuzzleState,
+    jsonPanelOpen,
     singleCellMarks,
     toggleSingleCellMark,
     removeSingleCellConstraint,

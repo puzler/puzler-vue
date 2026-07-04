@@ -119,6 +119,24 @@ describe('useGridKeyboard', () => {
     press('ArrowRight')
     expect([...editor.selection]).toEqual(['r0c1']) // grid live again once closed
   })
+
+  it('ignores keystrokes originating inside a CodeMirror editor', () => {
+    // The raw JSON editor is a contenteditable, so the input/textarea check
+    // doesn't cover it; keystrokes bubbling from .cm-editor must be ignored.
+    editor.selectCell('r0c0')
+    const cm = document.createElement('div')
+    cm.className = 'cm-editor'
+    const content = document.createElement('div')
+    cm.appendChild(content)
+    document.body.appendChild(cm)
+
+    content.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    expect([...editor.selection]).toEqual(['r0c0']) // selection unmoved
+
+    document.body.removeChild(cm)
+    press('ArrowRight')
+    expect([...editor.selection]).toEqual(['r0c1']) // grid live outside the editor
+  })
 })
 
 describe('selected cosmetic keyboard capture', () => {

@@ -43,6 +43,10 @@ export function useGridKeyboard() {
   function onKeyDown(event: KeyboardEvent) {
     if (event.key === 'Shift') editor.setShiftHeld(true)
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+    // CodeMirror (the raw JSON editor) is a contenteditable, not an input, so
+    // the check above misses it — without this bail, digits typed into the
+    // docked panel would land on the grid.
+    if (event.target instanceof HTMLElement && event.target.closest('.cm-editor')) return
     // While any modal/sheet is open the grid is inert: swallow keystrokes so
     // typing into modal content (e.g. the contenteditable description editor)
     // doesn't move the selection or place digits underneath.

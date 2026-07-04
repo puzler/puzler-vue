@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
+import { useEditorStore } from '@/stores/editor'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { mdiTrayArrowUp, mdiTrayArrowDown, mdiHistory, mdiShareVariantOutline, mdiPaletteOutline } from '@mdi/js'
+import { mdiTrayArrowUp, mdiTrayArrowDown, mdiHistory, mdiShareVariantOutline, mdiCodeJson } from '@mdi/js'
 import ExportModal from './ExportModal.vue'
 import ImportModal from './ImportModal.vue'
 import VersionHistoryModal from './VersionHistoryModal.vue'
 import PublishModal from './PublishModal.vue'
 import SaveButton from './SaveButton.vue'
-import ThemeEditorModal from '@/components/settings/ThemeEditorModal.vue'
 
 const puzzle = usePuzzleStore()
+const editor = useEditorStore()
 
 const showExport = ref(false)
 const showImport = ref(false)
 const showVersions = ref(false)
 const showPublish = ref(false)
-const showTheme = ref(false)
 
 const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface border border-line text-soft hover:text-action hover:border-action transition-colors'
 </script>
@@ -63,6 +63,17 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
       </button>
     </div>
     <button
+      title="Edit raw JSON"
+      aria-label="Edit raw JSON"
+      :class="[ICON_BTN, editor.jsonPanelOpen ? 'text-action border-action' : '']"
+      @click="editor.jsonPanelOpen = !editor.jsonPanelOpen"
+    >
+      <MdiIcon
+        :path="mdiCodeJson"
+        :size="18"
+      />
+    </button>
+    <button
       v-if="puzzle.serverPuzzleId"
       title="Publish & share"
       aria-label="Publish and share"
@@ -72,17 +83,6 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
     >
       <MdiIcon
         :path="mdiShareVariantOutline"
-        :size="18"
-      />
-    </button>
-    <button
-      title="Theme editor"
-      aria-label="Theme editor"
-      :class="ICON_BTN"
-      @click="showTheme = true"
-    >
-      <MdiIcon
-        :path="mdiPaletteOutline"
         :size="18"
       />
     </button>
@@ -103,10 +103,6 @@ const ICON_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg bg-surface
     <PublishModal
       v-if="showPublish"
       @close="showPublish = false"
-    />
-    <ThemeEditorModal
-      v-if="showTheme"
-      @close="showTheme = false"
     />
   </div>
 </template>

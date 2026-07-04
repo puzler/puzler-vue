@@ -6,6 +6,7 @@ import ToolSelector from '@/components/editor/ToolSelector.vue'
 import ToolControlBox from '@/components/editor/ToolControlBox.vue'
 import PuzzleControls from '@/components/editor/PuzzleControls.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
+import PuzzleJsonPanel from '@/components/editor/json/PuzzleJsonPanel.vue'
 import EditorMobileLayout from '@/components/editor/EditorMobileLayout.vue'
 import { useEditorStore } from '@/stores/editor'
 import { usePuzzleStore } from '@/stores/puzzle'
@@ -95,6 +96,21 @@ onMounted(() => {
       :class="editor.mode === 'solving' ? 'w-64' : 'w-0'"
     >
       <SolverNumpad class="w-64 flex-1 min-h-0 border-l border-line" />
+    </div>
+
+    <div
+      class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
+      :class="editor.mode === 'setting' && editor.jsonPanelOpen ? 'w-[26rem]' : 'w-0'"
+    >
+      <!-- v-if keeps CodeMirror unmounted until the panel is first opened.
+           The panel's root is a Teleport (for fullscreen), so sizing lives on
+           this wrapper instead of falling through. -->
+      <div
+        v-if="editor.jsonPanelOpen"
+        class="w-[26rem] flex-1 min-h-0 border-l border-line flex flex-col"
+      >
+        <PuzzleJsonPanel />
+      </div>
     </div>
   </div>
 </template>

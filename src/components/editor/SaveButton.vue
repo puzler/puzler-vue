@@ -24,10 +24,12 @@ async function save() {
 </script>
 
 <template>
+  <!-- Icon-only: the icon carries the status (spinner while saving, check when
+       saved) and the title/aria-label name the action. -->
   <button
     :title="puzzle.saveStatus === 'error' ? (puzzle.errorMessage ?? 'Save failed') : 'Save'"
     aria-label="Save"
-    class="h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-white transition-colors disabled:opacity-70"
+    class="w-8 h-8 flex items-center justify-center rounded-lg text-white transition-colors disabled:opacity-70"
     :class="puzzle.saveStatus === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-action hover:bg-action-deep'"
     :disabled="puzzle.saveStatus === 'saving'"
     @click="save"
@@ -37,8 +39,5 @@ async function save() {
       :size="18"
       :class="{ 'animate-spin': puzzle.saveStatus === 'saving' }"
     />
-    <span class="text-xs font-medium">
-      {{ puzzle.saveStatus === 'saving' ? 'Saving' : puzzle.saveStatus === 'saved' ? 'Saved' : 'Save' }}
-    </span>
   </button>
 </template>

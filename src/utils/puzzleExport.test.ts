@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, serializePlayDefinition, deserializePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
+import { serializePuzzle, serializePlayDefinition, deserializePuzzle, hydratePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
 import type { TextData, ShapeData } from '@/types/constraints'
 
 describe('serializePuzzle', () => {
@@ -272,6 +272,45 @@ describe('deserializePuzzle', () => {
     // Unequal dimensions without a stored flag → unlinked; a stored flag wins.
     expect(editor.shapePresets[0].style).toMatchObject({ width: 1.5, height: 0.6, sizeLinked: false })
     expect(editor.shapePresets[1].style).toMatchObject({ width: 0.7, height: 0.7, sizeLinked: false })
+  })
+})
+
+describe('hydratePuzzle', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('hydrating a fresh store reproduces the serialized form (idempotence)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(6, 6)
+    editor.puzzleName = 'Hydrate Me'
+    editor.givenDigits = { r0c0: 4 }
+    editor.singleCellMarks = { odd_cells: new Set(['r1c1']) }
+    editor.activeGlobalVariants = new Set(['antiking'])
+    const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    hydratePuzzle(editor2, grid2, original)
+
+    expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+  })
+
+  it('does not clear undo history, while deserializePuzzle does', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setGivenDigitsForSelection(5)
+    expect(editor.canUndo).toBe(true)
+    const data = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
+
+    hydratePuzzle(editor, grid, data)
+    expect(editor.canUndo).toBe(true)
+
+    deserializePuzzle(editor, grid, data)
+    expect(editor.canUndo).toBe(false)
   })
 })
 

@@ -117,7 +117,15 @@ export function serializePlayDefinition(editor: EditorStore, grid: GridStore): S
 // loading a version is not itself an undoable step. Arrays become Sets again.
 export function deserializePuzzle(editor: EditorStore, grid: GridStore, input: SerializedPuzzle) {
   editor.reset()
+  hydratePuzzle(editor, grid, input)
+}
 
+// The hydration half of deserializePuzzle, without the reset. Callers that need
+// an undoable state swap (the raw JSON editor) pair this with resetPuzzleState()
+// so the undo history survives; everything else goes through deserializePuzzle.
+// Assumes the stores are freshly reset — sections absent from the input keep
+// whatever reset() left behind (empty maps, default presets).
+export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: SerializedPuzzle) {
   // The import modal holds the parsed JSON in a ref, so Vue hands us a reactive
   // proxy. structuredClone() throws DataCloneError on a proxy, which would abort
   // the restore partway (after the spread-based fields, before connectorDots /

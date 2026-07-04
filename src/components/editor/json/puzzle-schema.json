@@ -1,0 +1,919 @@
+{
+  "$ref": "#/definitions/SerializedPuzzleSchema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ActiveConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "label",
+        "category"
+      ],
+      "type": "object"
+    },
+    "ArrowData": {
+      "additionalProperties": false,
+      "properties": {
+        "arrows": {
+          "items": {
+            "$ref": "#/definitions/ArrowPath"
+          },
+          "type": "array"
+        },
+        "bulbCells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "bulbCells",
+        "arrows"
+      ],
+      "type": "object"
+    },
+    "ArrowPath": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "type": "object"
+    },
+    "BorderConnectorType": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ConnectorDotType"
+        },
+        {
+          "const": "xv",
+          "type": "string"
+        },
+        {
+          "const": "quadruples",
+          "type": "string"
+        },
+        {
+          "const": "inequality",
+          "type": "string"
+        }
+      ]
+    },
+    "CageCosmeticStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "cageColor": {
+          "type": "string"
+        },
+        "textColor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cageColor",
+        "textColor"
+      ],
+      "type": "object"
+    },
+    "CagePreset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/definitions/CageCosmeticStyle"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "style"
+      ],
+      "type": "object"
+    },
+    "CellColorPreset": {
+      "additionalProperties": false,
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "color"
+      ],
+      "type": "object"
+    },
+    "CloneData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "copies": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "dCol": {
+                "type": "number"
+              },
+              "dRow": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "dRow",
+              "dCol"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells",
+        "copies"
+      ],
+      "type": "object"
+    },
+    "ConnectorDot": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/BorderConnectorType"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/XvValue"
+            },
+            {
+              "$ref": "#/definitions/InequalityValue"
+            },
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ConnectorDotType": {
+      "enum": [
+        "difference_dots",
+        "ratio_dots"
+      ],
+      "type": "string"
+    },
+    "ConstraintLineData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "type": "object"
+    },
+    "CosmeticCageData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "presetId": {
+          "type": "string"
+        },
+        "sum": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "cells",
+        "sum",
+        "presetId"
+      ],
+      "type": "object"
+    },
+    "CosmeticLineData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "presetId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cells",
+        "presetId"
+      ],
+      "type": "object"
+    },
+    "CosmeticPos": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    "CustomGlobalConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "anti_diff",
+            "anti_ratio",
+            "anti_sum"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ExtraRegionData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "type": "object"
+    },
+    "InequalityValue": {
+      "enum": [
+        "<",
+        ">"
+      ],
+      "type": "string"
+    },
+    "KillerCageData": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "sum": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "cells",
+        "sum"
+      ],
+      "type": "object"
+    },
+    "KnownCosmeticData": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ThermometerData"
+        },
+        {
+          "$ref": "#/definitions/ArrowData"
+        },
+        {
+          "$ref": "#/definitions/ConstraintLineData"
+        },
+        {
+          "$ref": "#/definitions/CosmeticLineData"
+        },
+        {
+          "$ref": "#/definitions/KillerCageData"
+        },
+        {
+          "$ref": "#/definitions/ExtraRegionData"
+        },
+        {
+          "$ref": "#/definitions/CloneData"
+        },
+        {
+          "$ref": "#/definitions/ShapeData"
+        },
+        {
+          "$ref": "#/definitions/TextData"
+        },
+        {
+          "$ref": "#/definitions/CosmeticCageData"
+        }
+      ]
+    },
+    "LinePreset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/definitions/LineStyle"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "style"
+      ],
+      "type": "object"
+    },
+    "LineStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "strokeWidth": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "strokeWidth",
+        "opacity"
+      ],
+      "type": "object"
+    },
+    "LittleKillerDirection": {
+      "enum": [
+        "up-left",
+        "up-right",
+        "down-left",
+        "down-right"
+      ],
+      "type": "string"
+    },
+    "OuterClue": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "$ref": "#/definitions/LittleKillerDirection"
+        },
+        "rossiniDirection": {
+          "$ref": "#/definitions/RossiniDirection"
+        },
+        "type": {
+          "$ref": "#/definitions/OuterClueType"
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "OuterClueType": {
+      "enum": [
+        "x_sums",
+        "sandwich_sums",
+        "skyscrapers",
+        "little_killers",
+        "numbered_rooms",
+        "battlefield",
+        "next_to_nine",
+        "rossini"
+      ],
+      "type": "string"
+    },
+    "RossiniDirection": {
+      "enum": [
+        "increasing",
+        "decreasing"
+      ],
+      "type": "string"
+    },
+    "SerializedPuzzleSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activeConstraints": {
+          "items": {
+            "$ref": "#/definitions/ActiveConstraint"
+          },
+          "type": "array"
+        },
+        "constraints": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorDots": {
+              "additionalProperties": {
+                "$ref": "#/definitions/ConnectorDot"
+              },
+              "type": "object"
+            },
+            "outerClues": {
+              "additionalProperties": {
+                "$ref": "#/definitions/OuterClue"
+              },
+              "type": "object"
+            },
+            "singleCellMarks": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "cosmetics": {
+          "additionalProperties": false,
+          "properties": {
+            "cagePresets": {
+              "items": {
+                "$ref": "#/definitions/CagePreset"
+              },
+              "type": "array"
+            },
+            "cellColorPresets": {
+              "items": {
+                "$ref": "#/definitions/CellColorPreset"
+              },
+              "type": "array"
+            },
+            "cellColors": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "instances": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "$ref": "#/definitions/KnownCosmeticData"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "data"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "linePresets": {
+              "items": {
+                "$ref": "#/definitions/LinePreset"
+              },
+              "type": "array"
+            },
+            "shapePresets": {
+              "items": {
+                "$ref": "#/definitions/ShapePreset"
+              },
+              "type": "array"
+            },
+            "textPresets": {
+              "items": {
+                "$ref": "#/definitions/TextPreset"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "formatVersion": {
+          "type": "number"
+        },
+        "givenDigits": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "globals": {
+          "additionalProperties": false,
+          "properties": {
+            "custom": {
+              "items": {
+                "$ref": "#/definitions/CustomGlobalConstraint"
+              },
+              "type": "array"
+            },
+            "variants": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "grid": {
+          "additionalProperties": false,
+          "properties": {
+            "cols": {
+              "type": "number"
+            },
+            "customCellRegions": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rows": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "rows",
+            "cols"
+          ],
+          "type": "object"
+        },
+        "meta": {
+          "additionalProperties": false,
+          "properties": {
+            "author": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "rules": {
+              "type": "string"
+            },
+            "solveMessage": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "solution": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "formatVersion",
+        "grid"
+      ],
+      "type": "object"
+    },
+    "ShapeAnchor": {
+      "enum": [
+        "center",
+        "top",
+        "bottom",
+        "left",
+        "right",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right"
+      ],
+      "type": "string"
+    },
+    "ShapeData": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor": {
+          "$ref": "#/definitions/ShapeAnchor"
+        },
+        "cell": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "pos": {
+          "$ref": "#/definitions/CosmeticPos"
+        },
+        "presetId": {
+          "type": "string"
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "presetId"
+      ],
+      "type": "object"
+    },
+    "ShapePreset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/definitions/ShapeStyle"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "style"
+      ],
+      "type": "object"
+    },
+    "ShapeStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "fillColor": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "shapeType": {
+          "$ref": "#/definitions/ShapeType"
+        },
+        "sizeLinked": {
+          "type": "boolean"
+        },
+        "strokeColor": {
+          "type": "string"
+        },
+        "strokeWidth": {
+          "type": "number"
+        },
+        "textColor": {
+          "type": "string"
+        },
+        "textSize": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "shapeType",
+        "fillColor",
+        "strokeColor",
+        "strokeWidth",
+        "width",
+        "height",
+        "sizeLinked",
+        "textColor",
+        "textSize"
+      ],
+      "type": "object"
+    },
+    "ShapeType": {
+      "enum": [
+        "circle",
+        "square",
+        "diamond"
+      ],
+      "type": "string"
+    },
+    "TextData": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "pos": {
+          "$ref": "#/definitions/CosmeticPos"
+        },
+        "presetId": {
+          "type": "string"
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "content",
+        "presetId"
+      ],
+      "type": "object"
+    },
+    "TextPreset": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/definitions/TextStyle"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "style"
+      ],
+      "type": "object"
+    },
+    "TextStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "bold": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "fontSize": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "fontSize",
+        "bold"
+      ],
+      "type": "object"
+    },
+    "ThermoEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "ThermometerData": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "items": {
+            "$ref": "#/definitions/ThermoEdge"
+          },
+          "type": "array"
+        },
+        "root": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "edges"
+      ],
+      "type": "object"
+    },
+    "XvValue": {
+      "enum": [
+        "X",
+        "V"
+      ],
+      "type": "string"
+    }
+  }
+}

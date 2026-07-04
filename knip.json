@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/types/*.d.ts"],
+  "entry": [
+    "src/types/*.d.ts",
+    "src/components/editor/json/schemaTypes.ts"
+  ],
   "project": ["src/**/*.{ts,vue}"],
   "ignore": ["src/graphql/generated/**"],
   "ignoreDependencies": [

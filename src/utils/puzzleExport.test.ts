@@ -245,6 +245,33 @@ describe('deserializePuzzle', () => {
     expect(shape.pos).toEqual({ x: 3, y: 2 })       // top-left corner of r2c3
     expect(shape.content).toBe('')
     expect(shape.anchor).toBeUndefined()
+
+    // Legacy single `size` becomes explicit width/height, linked by default.
+    const style = editor.shapePresets[0].style as typeof editor.shapePresets[0]['style'] & { size?: number }
+    expect(style.width).toBe(0.5)
+    expect(style.height).toBe(0.5)
+    expect(style.sizeLinked).toBe(true)
+    expect(style.size).toBeUndefined()
+  })
+
+  it('passes new-format shape presets through unchanged, deriving link state when absent', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, {
+      formatVersion: 3,
+      grid: { rows: 9, cols: 9 },
+      cosmetics: {
+        instances: [],
+        shapePresets: [
+          { id: 'sp1', label: 'S1', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, width: 1.5, height: 0.6, textColor: '#333', textSize: 20 } },
+          { id: 'sp2', label: 'S2', style: { shapeType: 'square', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, width: 0.7, height: 0.7, sizeLinked: false, textColor: '#333', textSize: 20 } },
+        ],
+      },
+    } as never)
+
+    // Unequal dimensions without a stored flag → unlinked; a stored flag wins.
+    expect(editor.shapePresets[0].style).toMatchObject({ width: 1.5, height: 0.6, sizeLinked: false })
+    expect(editor.shapePresets[1].style).toMatchObject({ width: 0.7, height: 0.7, sizeLinked: false })
   })
 })
 

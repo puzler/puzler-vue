@@ -12,6 +12,11 @@ function onFontSizeChange(event: Event) {
   const raw = Number((event.target as HTMLInputElement).value)
   editor.updateActiveTextPresetStyle({ fontSize: Math.max(8, Math.min(48, raw)) })
 }
+
+function onRotationChange(event: Event) {
+  const raw = Number((event.target as HTMLInputElement).value)
+  if (Number.isFinite(raw)) editor.updateActiveTextPresetStyle({ rotation: ((raw % 360) + 360) % 360 })
+}
 </script>
 
 <template>
@@ -64,6 +69,19 @@ function onFontSizeChange(event: Event) {
         B
       </button>
       <span class="text-xs text-soft">Bold</span>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label class="text-xs text-soft">Rotation</label>
+      <div class="flex items-center gap-2">
+        <input
+          type="number"
+          :value="editor.activeTextPreset.style.rotation ?? 0"
+          class="w-16 text-sm px-2 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
+          @change="onRotationChange"
+        >
+        <span class="text-xs text-faint">° on new text</span>
+      </div>
     </div>
   </div>
 </template>

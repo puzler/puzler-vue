@@ -227,7 +227,10 @@ export interface ShapeStyle {
   fillColor: string   // hex or 'none'
   strokeColor: string
   strokeWidth: number
-  size: number        // fraction of CELL_SIZE radius, 0.1–0.9
+  width: number       // fraction of CELL_SIZE
+  height: number      // fraction of CELL_SIZE
+  sizeLinked: boolean // editor UX: width/height inputs mirror each other
+  rotation?: number   // degrees, clockwise; seeds newly placed objects
   textColor: string   // colour of the optional text rendered inside the shape
   textSize: number    // font size (SVG units) of the inner text
 }
@@ -237,7 +240,10 @@ export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
   fillColor: 'none',
   strokeColor: '#333333',
   strokeWidth: 2,
-  size: 0.5,
+  width: 0.5,
+  height: 0.5,
+  sizeLinked: true,
+  rotation: 0,
   textColor: '#333333',
   textSize: 20,
 }
@@ -319,12 +325,14 @@ export interface TextStyle {
   color: string
   fontSize: number  // SVG units
   bold: boolean
+  rotation?: number // degrees, clockwise; seeds newly placed objects
 }
 
 export const DEFAULT_TEXT_STYLE: TextStyle = {
   color: '#333333',
   fontSize: 20,
   bold: false,
+  rotation: 0,
 }
 
 export interface TextPreset {

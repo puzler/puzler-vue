@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import PresetRow from './PresetRow.vue'
 import ShapeStyleControls from './ShapeStyleControls.vue'
 
 const editor = useEditorStore()
@@ -20,14 +21,16 @@ const editor = useEditorStore()
         </button>
       </div>
       <div class="flex flex-col gap-1">
-        <button
+        <PresetRow
           v-for="preset in editor.shapePresets"
           :key="preset.id"
-          class="flex items-center gap-2 w-full px-2 py-1.5 rounded-md transition-colors text-left"
-          :class="preset.id === editor.activeShapePresetId
-            ? 'bg-action-tint text-action ring-1 ring-inset ring-action/30'
-            : 'text-ink-text hover:bg-line/60'"
-          @click="editor.setActiveShapePreset(preset.id)"
+          :label="preset.label"
+          :active="preset.id === editor.activeShapePresetId"
+          :can-delete="editor.shapePresets.length > 1"
+          @select="editor.setActiveShapePreset(preset.id)"
+          @duplicate="editor.duplicateShapePreset(preset.id)"
+          @remove="editor.removeShapePreset(preset.id)"
+          @rename="editor.renameShapePreset(preset.id, $event)"
         >
           <svg
             width="20"
@@ -62,8 +65,7 @@ const editor = useEditorStore()
               stroke-width="1.5"
             />
           </svg>
-          <span class="text-sm truncate">{{ preset.label }}</span>
-        </button>
+        </PresetRow>
       </div>
     </div>
 

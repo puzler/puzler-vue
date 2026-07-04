@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import PresetRow from './PresetRow.vue'
 
 const editor = useEditorStore()
 
@@ -23,21 +24,22 @@ function onColorInput(event: Event) {
         </button>
       </div>
       <div class="flex flex-col gap-1">
-        <button
+        <PresetRow
           v-for="preset in editor.cellColorPresets"
           :key="preset.id"
-          class="flex items-center gap-2 w-full px-2 py-1.5 rounded-md transition-colors text-left"
-          :class="preset.id === editor.activeCellColorPresetId
-            ? 'bg-action-tint text-action ring-1 ring-inset ring-action/30'
-            : 'text-ink-text hover:bg-line/60'"
-          @click="editor.setActiveCellColorPreset(preset.id)"
+          :label="preset.label"
+          :active="preset.id === editor.activeCellColorPresetId"
+          :can-delete="editor.cellColorPresets.length > 1"
+          @select="editor.setActiveCellColorPreset(preset.id)"
+          @duplicate="editor.duplicateCellColorPreset(preset.id)"
+          @remove="editor.removeCellColorPreset(preset.id)"
+          @rename="editor.renameCellColorPreset(preset.id, $event)"
         >
           <span
             class="w-5 h-5 rounded-sm border border-line shrink-0"
             :style="{ background: preset.color }"
           />
-          <span class="text-sm truncate">{{ preset.label }}</span>
-        </button>
+        </PresetRow>
       </div>
     </div>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import PresetRow from './PresetRow.vue'
 import TextStyleControls from './TextStyleControls.vue'
 
 const editor = useEditorStore()
@@ -20,14 +21,16 @@ const editor = useEditorStore()
         </button>
       </div>
       <div class="flex flex-col gap-1">
-        <button
+        <PresetRow
           v-for="preset in editor.textPresets"
           :key="preset.id"
-          class="flex items-center gap-2 w-full px-2 py-1.5 rounded-md transition-colors text-left"
-          :class="preset.id === editor.activeTextPresetId
-            ? 'bg-action-tint ring-1 ring-inset ring-action/30'
-            : 'text-ink-text hover:bg-line/60'"
-          @click="editor.setActiveTextPreset(preset.id)"
+          :label="preset.label"
+          :active="preset.id === editor.activeTextPresetId"
+          :can-delete="editor.textPresets.length > 1"
+          @select="editor.setActiveTextPreset(preset.id)"
+          @duplicate="editor.duplicateTextPreset(preset.id)"
+          @remove="editor.removeTextPreset(preset.id)"
+          @rename="editor.renameTextPreset(preset.id, $event)"
         >
           <span
             class="w-8 text-center shrink-0 text-sm leading-none"
@@ -37,11 +40,7 @@ const editor = useEditorStore()
               fontSize: `${Math.min(preset.style.fontSize, 16)}px`,
             }"
           >A</span>
-          <span
-            class="text-sm truncate"
-            :class="preset.id === editor.activeTextPresetId ? 'text-action font-medium' : ''"
-          >{{ preset.label }}</span>
-        </button>
+        </PresetRow>
       </div>
     </div>
 

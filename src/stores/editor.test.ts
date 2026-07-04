@@ -310,3 +310,131 @@ describe('cosmetic placement selection', () => {
     expect(editor.selectedCosmeticId).toBe(id)
   })
 })
+
+describe('cosmetic rotation', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function selectedRotation(editor: ReturnType<typeof useEditorStore>) {
+    return (editor.selectedCosmetic!.data as { rotation?: number }).rotation ?? 0
+  }
+
+  it('sets an absolute rotation, normalised to [0, 360), with undo', () => {
+    const editor = useEditorStore()
+    editor.toggleShapeAt({ x: 0.5, y: 0.5 })
+
+    editor.setSelectedCosmeticRotation(30)
+    expect(selectedRotation(editor)).toBe(30)
+
+    editor.setSelectedCosmeticRotation(-45)
+    expect(selectedRotation(editor)).toBe(315)
+
+    editor.setSelectedCosmeticRotation(750)
+    expect(selectedRotation(editor)).toBe(30)
+
+    editor.undo()
+    expect(selectedRotation(editor)).toBe(315)
+  })
+
+  it('rotates relative to the current angle via rotateSelectedCosmetic', () => {
+    const editor = useEditorStore()
+    editor.toggleTextAt({ x: 0.5, y: 0.5 })
+    editor.rotateSelectedCosmetic(15)
+    editor.rotateSelectedCosmetic(-45)
+    expect(selectedRotation(editor)).toBe(330)
+  })
+
+  it('seeds newly placed shapes and text with the preset default rotation', () => {
+    const editor = useEditorStore()
+    editor.updateActiveShapePreset({ rotation: 30 })
+    editor.toggleShapeAt({ x: 0.5, y: 0.5 })
+    expect(selectedRotation(editor)).toBe(30)
+
+    editor.updateActiveTextPresetStyle({ rotation: 90 })
+    editor.toggleTextAt({ x: 1.5, y: 0.5 })
+    expect(selectedRotation(editor)).toBe(90)
+
+    // A zero default leaves the field off the instance entirely.
+    editor.updateActiveShapePreset({ rotation: 0 })
+    editor.toggleShapeAt({ x: 2.5, y: 0.5 })
+    expect('rotation' in (editor.selectedCosmetic!.data as object)).toBe(false)
+  })
+})
+
+describe('preset removal cascade', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('removes the preset and its placed shapes as one undoable step', () => {
+    const editor = useEditorStore()
+    const first = editor.activeShapePresetId
+    editor.addShapePreset() // becomes active
+    const second = editor.activeShapePresetId
+    editor.toggleShapeAt({ x: 4.5, y: 4.5 }) // placed with the second preset
+    const placedId = editor.selectedCosmeticId
+
+    editor.removeShapePreset(second)
+    expect(editor.shapePresets.map((p) => p.id)).toEqual([first])
+    expect(editor.cosmeticInstances).toHaveLength(0)
+    expect(editor.selectedCosmeticId).toBeNull()
+    expect(editor.activeShapePresetId).toBe(first)
+
+    editor.undo()
+    expect(editor.shapePresets.map((p) => p.id)).toEqual([first, second])
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    expect(editor.selectedCosmeticId).toBe(placedId)
+    expect(editor.activeShapePresetId).toBe(second)
+
+    editor.redo()
+    expect(editor.shapePresets.map((p) => p.id)).toEqual([first])
+    expect(editor.cosmeticInstances).toHaveLength(0)
+  })
+
+  it('duplicates a preset through the store (styles nest reactive proxies)', () => {
+    const editor = useEditorStore()
+    // updateActive spreads the reactive proxy, nesting proxies in the stored
+    // object — the regression that broke structuredClone-based duplication.
+    editor.updateActiveShapePreset({ width: 1.5, height: 0.6, sizeLinked: false })
+    editor.duplicateShapePreset(editor.activeShapePresetId)
+
+    expect(editor.shapePresets).toHaveLength(2)
+    expect(editor.shapePresets[1].label).toBe('Shape 1 copy')
+    expect(editor.shapePresets[1].style).toMatchObject({ width: 1.5, height: 0.6, sizeLinked: false })
+    expect(editor.activeShapePresetId).toBe(editor.shapePresets[1].id)
+  })
+
+  it('keeps shapes placed with other presets', () => {
+    const editor = useEditorStore()
+    editor.toggleShapeAt({ x: 0.5, y: 0.5 }) // first preset
+    editor.addShapePreset()
+    const second = editor.activeShapePresetId
+    editor.toggleShapeAt({ x: 4.5, y: 4.5 }) // second preset
+
+    editor.removeShapePreset(second)
+    expect(editor.cosmeticInstances).toHaveLength(1)
+  })
+
+  it('refuses to remove the last preset and records no history entry', () => {
+    const editor = useEditorStore()
+    editor.removeShapePreset(editor.activeShapePresetId)
+    expect(editor.shapePresets).toHaveLength(1)
+    expect(editor.canUndo).toBe(false)
+  })
+
+  it('removing a cell color preset clears its painted cells, undo restores them', () => {
+    const editor = useEditorStore()
+    const first = editor.activeCellColorPresetId
+    editor.paintCells(['r0c0'])
+    editor.addCellColorPreset()
+    const second = editor.activeCellColorPresetId
+    editor.paintCells(['r1c1', 'r2c2'])
+
+    editor.removeCellColorPreset(second)
+    expect(editor.cosmeticCellColors).toEqual({ r0c0: first })
+
+    editor.undo()
+    expect(editor.cosmeticCellColors).toEqual({ r0c0: first, r1c1: second, r2c2: second })
+  })
+})

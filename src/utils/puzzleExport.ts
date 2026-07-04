@@ -2,8 +2,8 @@ import { toRaw } from 'vue'
 import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
-import { cosmeticPos } from '@/types/constraints'
-import type { TextData, ShapeData } from '@/types/constraints'
+import { cosmeticPos, DEFAULT_SHAPE_STYLE } from '@/types/constraints'
+import type { TextData, ShapeData, ShapeStyle } from '@/types/constraints'
 
 // The export *format* version — the schema of this JSON, not a puzzle's save
 // version (v1/v2). Exported as `formatVersion`; bumped when the shape changes.
@@ -162,6 +162,18 @@ export function deserializePuzzle(editor: EditorStore, grid: GridStore, input: S
   // keeps the default preset reset() created (the line/shape tools need one).
   if (cosmetics.linePresets) editor.linePresets = structuredClone(cosmetics.linePresets)
   if (cosmetics.shapePresets) editor.shapePresets = structuredClone(cosmetics.shapePresets)
+  // Migrate legacy shape preset sizing: a single `size` fraction becomes
+  // explicit width/height, and presets from before the link toggle existed
+  // default to linked.
+  editor.shapePresets = editor.shapePresets.map((preset) => {
+    const style = { ...preset.style } as ShapeStyle & { size?: number }
+    if (style.width === undefined) {
+      style.width = style.height = style.size ?? DEFAULT_SHAPE_STYLE.width
+    }
+    delete style.size
+    style.sizeLinked = style.sizeLinked ?? style.width === style.height
+    return { ...preset, style }
+  })
   if (cosmetics.textPresets) editor.textPresets = structuredClone(cosmetics.textPresets)
   if (cosmetics.cellColorPresets) editor.cellColorPresets = structuredClone(cosmetics.cellColorPresets)
   if (cosmetics.cagePresets) editor.cagePresets = structuredClone(cosmetics.cagePresets)

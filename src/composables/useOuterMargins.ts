@@ -66,8 +66,8 @@ export function useOuterMargins() {
         heY = fs * 0.7 + 4
       } else {
         const style = editor.shapePresets.find(s => s.id === data.presetId)?.style ?? DEFAULT_SHAPE_STYLE
-        const r = (CELL_SIZE / 2) * style.size + style.strokeWidth + 2
-        heX = heY = Math.max(r, style.textSize * 0.7)
+        heX = Math.max((CELL_SIZE / 2) * style.width + style.strokeWidth + 2, style.textSize * 0.7)
+        heY = Math.max((CELL_SIZE / 2) * style.height + style.strokeWidth + 2, style.textSize * 0.7)
       }
       // A rotated object's bounding box grows; a circular bound covers any angle.
       if (data.rotation) heX = heY = Math.hypot(heX, heY)

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
 import { usePresetCollection, styledPatch } from '@/composables/usePresetCollection'
 import { useGridStore } from '@/stores/grid'
@@ -807,6 +807,73 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  // ── Preset management (all five cosmetic collections) ────────────────────
+  // Duplicate and rename delegate straight to the collection. Delete cascades
+  // to the placed cosmetics referencing the preset (instances by data.presetId,
+  // painted cells by map value) and is one undoable step.
+
+  type PresetCollection<P extends { id: string; label: string }> = {
+    presets: Ref<P[]>
+    remove: (id: string) => { preset: P; index: number } | null
+    restore: (preset: P, index: number) => void
+  }
+
+  function removePresetCascade<P extends { id: string; label: string }>(
+    collection: PresetCollection<P>,
+    instanceType: 'shape' | 'text' | 'line' | 'cosmetic_cage' | null,
+    id: string,
+  ) {
+    // The collection refuses to drop its last preset; skip the history entry too.
+    if (collection.presets.value.length === 1 || !collection.presets.value.some((p) => p.id === id)) return
+    let removed: { preset: P; index: number } | null = null
+    const prevInstances = [...cosmeticInstances.value]
+    const prevColors = { ...cosmeticCellColors.value }
+    const prevSelected = selectedCosmeticId.value
+    execute({
+      execute: () => {
+        removed = collection.remove(id)
+        if (!removed) return
+        if (instanceType) {
+          cosmeticInstances.value = cosmeticInstances.value.filter(
+            (i) => i.type !== instanceType || (i.data as { presetId?: string }).presetId !== id,
+          )
+          if (selectedCosmeticId.value && !cosmeticInstances.value.some((i) => i.id === selectedCosmeticId.value)) {
+            selectedCosmeticId.value = null
+          }
+        } else {
+          for (const [key, presetId] of Object.entries(cosmeticCellColors.value)) {
+            if (presetId === id) delete cosmeticCellColors.value[key]
+          }
+        }
+      },
+      undo: () => {
+        if (!removed) return
+        collection.restore(removed.preset, removed.index)
+        cosmeticInstances.value = prevInstances
+        cosmeticCellColors.value = prevColors
+        selectedCosmeticId.value = prevSelected
+      },
+    })
+  }
+
+  const removeShapePreset = (id: string) => removePresetCascade(shapePresetsC, 'shape', id)
+  const removeTextPreset = (id: string) => removePresetCascade(textPresetsC, 'text', id)
+  const removeLinePreset = (id: string) => removePresetCascade(linePresetsC, 'line', id)
+  const removeCagePreset = (id: string) => removePresetCascade(cagePresetsC, 'cosmetic_cage', id)
+  const removeCellColorPreset = (id: string) => removePresetCascade(colorPresets, null, id)
+
+  const duplicateShapePreset = shapePresetsC.duplicate
+  const duplicateTextPreset = textPresetsC.duplicate
+  const duplicateLinePreset = linePresetsC.duplicate
+  const duplicateCagePreset = cagePresetsC.duplicate
+  const duplicateCellColorPreset = colorPresets.duplicate
+
+  const renameShapePreset = shapePresetsC.rename
+  const renameTextPreset = textPresetsC.rename
+  const renameLinePreset = linePresetsC.rename
+  const renameCagePreset = cagePresetsC.rename
+  const renameCellColorPreset = colorPresets.rename
+
   // ── Shape actions ─────────────────────────────────────────────────────────
 
   function addShapePreset() {
@@ -839,10 +906,14 @@ export const useEditorStore = defineStore('editor', () => {
         },
       })
     } else {
+      const presetRotation = activeShapePreset.value.style.rotation ?? 0
       const instance: CosmeticInstance = {
         id: crypto.randomUUID(),
         type: 'shape',
-        data: { pos, content: '', presetId: activeShapePresetId.value } satisfies ShapeData,
+        data: {
+          pos, content: '', presetId: activeShapePresetId.value,
+          ...(presetRotation ? { rotation: presetRotation } : {}),
+        } satisfies ShapeData,
       }
       const prevSelected = selectedCosmeticId.value
       execute({
@@ -886,10 +957,14 @@ export const useEditorStore = defineStore('editor', () => {
         },
       })
     } else {
+      const presetRotation = activeTextPreset.value.style.rotation ?? 0
       const instance: CosmeticInstance = {
         id: crypto.randomUUID(),
         type: 'text',
-        data: { pos, content: '?', presetId: activeTextPresetId.value } satisfies TextData,
+        data: {
+          pos, content: '?', presetId: activeTextPresetId.value,
+          ...(presetRotation ? { rotation: presetRotation } : {}),
+        } satisfies TextData,
       }
       const prevSelected = selectedCosmeticId.value
       execute({
@@ -967,16 +1042,16 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  // Rotate the selected text/shape by `delta` degrees (clockwise positive),
-  // normalised to [0, 360). Per-object, not the preset.
-  function rotateSelectedCosmetic(delta: number) {
+  // Set the selected text/shape's rotation to an absolute angle in degrees
+  // (clockwise positive), normalised to [0, 360). Per-object, not the preset.
+  function setSelectedCosmeticRotation(rotation: number) {
     const id = selectedCosmeticId.value
     if (!id) return
     const inst = cosmeticInstances.value.find(i => i.id === id)
     if (!inst || (inst.type !== 'text' && inst.type !== 'shape')) return
     const data = inst.data as TextData | ShapeData
     const prev = data.rotation ?? 0
-    const next = (((prev + delta) % 360) + 360) % 360
+    const next = ((rotation % 360) + 360) % 360
     if (next === prev) return
     execute({
       execute: () => {
@@ -990,6 +1065,13 @@ export const useEditorStore = defineStore('editor', () => {
         )
       },
     })
+  }
+
+  // Rotate the selected text/shape by `delta` degrees relative to its current angle.
+  function rotateSelectedCosmetic(delta: number) {
+    const inst = cosmeticInstances.value.find(i => i.id === selectedCosmeticId.value)
+    if (!inst || (inst.type !== 'text' && inst.type !== 'shape')) return
+    setSelectedCosmeticRotation(((inst.data as TextData | ShapeData).rotation ?? 0) + delta)
   }
 
   function removeCosmeticType(constraintId: string, type: string) {
@@ -2009,6 +2091,21 @@ export const useEditorStore = defineStore('editor', () => {
     cancelPendingLine,
     removeCosmeticInstance,
     setRegionForSelection,
+    removeShapePreset,
+    removeTextPreset,
+    removeLinePreset,
+    removeCagePreset,
+    removeCellColorPreset,
+    duplicateShapePreset,
+    duplicateTextPreset,
+    duplicateLinePreset,
+    duplicateCagePreset,
+    duplicateCellColorPreset,
+    renameShapePreset,
+    renameTextPreset,
+    renameLinePreset,
+    renameCagePreset,
+    renameCellColorPreset,
     cosmeticCellColors,
     cellColorPresets,
     activeCellColorPresetId,
@@ -2040,6 +2137,7 @@ export const useEditorStore = defineStore('editor', () => {
     updateCosmeticContent,
     nudgeSelectedCosmetic,
     rotateSelectedCosmetic,
+    setSelectedCosmeticRotation,
     showExternalSpace,
     setShowExternalSpace,
     ghostPos,

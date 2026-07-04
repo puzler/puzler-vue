@@ -22,7 +22,8 @@ const transform = computed(() =>
   props.rotation ? `rotate(${props.rotation} ${center.value.cx} ${center.value.cy})` : undefined,
 )
 
-const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
+const rx = computed(() => (CELL_SIZE / 2) * props.shapeStyle.width)
+const ry = computed(() => (CELL_SIZE / 2) * props.shapeStyle.height)
 </script>
 
 <template>
@@ -31,38 +32,40 @@ const r = computed(() => (CELL_SIZE / 2) * props.shapeStyle.size)
     :transform="transform"
     pointer-events="none"
   >
-    <circle
+    <ellipse
       v-if="selected"
       :cx="center.cx"
       :cy="center.cy"
-      :r="r + 3"
+      :rx="rx + 3"
+      :ry="ry + 3"
       fill="none"
       :style="{ stroke: GLOW_COLOR }"
       stroke-width="3"
       stroke-opacity="0.5"
     />
-    <circle
+    <ellipse
       v-if="shapeStyle.shapeType === 'circle'"
       :cx="center.cx"
       :cy="center.cy"
-      :r="r"
+      :rx="rx"
+      :ry="ry"
       :fill="shapeStyle.fillColor"
       :stroke="shapeStyle.strokeColor"
       :stroke-width="shapeStyle.strokeWidth"
     />
     <rect
       v-else-if="shapeStyle.shapeType === 'square'"
-      :x="center.cx - r"
-      :y="center.cy - r"
-      :width="r * 2"
-      :height="r * 2"
+      :x="center.cx - rx"
+      :y="center.cy - ry"
+      :width="rx * 2"
+      :height="ry * 2"
       :fill="shapeStyle.fillColor"
       :stroke="shapeStyle.strokeColor"
       :stroke-width="shapeStyle.strokeWidth"
     />
     <polygon
       v-else-if="shapeStyle.shapeType === 'diamond'"
-      :points="`${center.cx},${center.cy - r} ${center.cx + r},${center.cy} ${center.cx},${center.cy + r} ${center.cx - r},${center.cy}`"
+      :points="`${center.cx},${center.cy - ry} ${center.cx + rx},${center.cy} ${center.cx},${center.cy + ry} ${center.cx - rx},${center.cy}`"
       :fill="shapeStyle.fillColor"
       :stroke="shapeStyle.strokeColor"
       :stroke-width="shapeStyle.strokeWidth"

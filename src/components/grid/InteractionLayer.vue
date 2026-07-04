@@ -208,8 +208,8 @@ function findCosmeticAt(event: PointerEvent, type: 'text' | 'shape'): string | n
     let hx: number, hy: number
     if (type === 'shape') {
       const style = editor.shapePresets.find(s => s.id === data.presetId)?.style
-      const r = (CELL_SIZE / 2) * (style?.size ?? 0.5)
-      hx = hy = Math.max(r, CELL_SIZE * 0.18)
+      hx = Math.max((CELL_SIZE / 2) * (style?.width ?? 0.5), CELL_SIZE * 0.18)
+      hy = Math.max((CELL_SIZE / 2) * (style?.height ?? 0.5), CELL_SIZE * 0.18)
     } else {
       const fs = editor.textPresets.find(t => t.id === data.presetId)?.style.fontSize ?? 20
       hx = Math.max(fs, (data.content?.length || 1) * fs * 0.35)

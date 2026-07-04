@@ -2,6 +2,7 @@
 import { useEditorStore } from '@/stores/editor'
 import ModeSwitcher from './ModeSwitcher.vue'
 import NumpadPanel from '../NumpadPanel.vue'
+import PresetRow from './PresetRow.vue'
 
 const editor = useEditorStore()
 
@@ -34,14 +35,16 @@ function onTextColorInput(event: Event) {
         </button>
       </div>
       <div class="flex flex-col gap-1">
-        <button
+        <PresetRow
           v-for="preset in editor.cagePresets"
           :key="preset.id"
-          class="flex items-center gap-2 w-full px-2 py-1.5 rounded-md transition-colors text-left"
-          :class="preset.id === editor.activeCagePresetId
-            ? 'bg-action-tint text-action ring-1 ring-inset ring-action/30'
-            : 'text-ink-text hover:bg-line/60'"
-          @click="editor.setActiveCagePreset(preset.id)"
+          :label="preset.label"
+          :active="preset.id === editor.activeCagePresetId"
+          :can-delete="editor.cagePresets.length > 1"
+          @select="editor.setActiveCagePreset(preset.id)"
+          @duplicate="editor.duplicateCagePreset(preset.id)"
+          @remove="editor.removeCagePreset(preset.id)"
+          @rename="editor.renameCagePreset(preset.id, $event)"
         >
           <svg
             width="32"
@@ -68,8 +71,7 @@ function onTextColorInput(event: Event) {
               font-weight="600"
             >12</text>
           </svg>
-          <span class="text-sm truncate">{{ preset.label }}</span>
-        </button>
+        </PresetRow>
       </div>
     </div>
 

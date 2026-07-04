@@ -9,8 +9,8 @@ const editor = useEditorStore()
 // Half a cell per press: snaps the selected object across centres, edges and
 // corners, and can travel arbitrarily far outside the grid.
 const STEP = 0.5
-// Coarse and fine rotation steps per press, in degrees.
-const ROTATE_STEPS = [-45, -15, 15, 45]
+// Each press rotates the selected object 45° in that direction.
+const ROTATE_STEP = 45
 const BTN = 'w-8 h-8 flex items-center justify-center rounded-md border border-line text-soft hover:text-action hover:border-action transition-colors'
 
 const rotation = computed(() => {
@@ -82,28 +82,33 @@ function onRotationChange(event: Event) {
       <span class="text-[10px] uppercase tracking-widest text-faint">Rotate</span>
       <div class="flex items-center gap-1">
         <button
-          v-for="step in ROTATE_STEPS"
-          :key="step"
-          class="w-7 h-7 flex items-center justify-center gap-px rounded-md border border-line text-soft hover:text-action hover:border-action transition-colors text-[10px] tabular-nums"
-          :aria-label="`Rotate ${Math.abs(step)}° ${step < 0 ? 'counter-clockwise' : 'clockwise'}`"
-          @click="editor.rotateSelectedCosmetic(step)"
+          :class="BTN"
+          aria-label="Rotate counter-clockwise"
+          @click="editor.rotateSelectedCosmetic(-ROTATE_STEP)"
         >
           <MdiIcon
-            :path="step < 0 ? mdiRotateLeft : mdiRotateRight"
-            :size="12"
+            :path="mdiRotateLeft"
+            :size="18"
           />
-          {{ Math.abs(step) }}
         </button>
-      </div>
-      <div class="flex items-center gap-1">
         <input
           type="number"
           :value="rotation"
-          class="w-16 text-sm px-2 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
+          class="w-12 text-sm px-1 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
           aria-label="Rotation in degrees"
           @change="onRotationChange"
         >
         <span class="text-xs text-faint">°</span>
+        <button
+          :class="BTN"
+          aria-label="Rotate clockwise"
+          @click="editor.rotateSelectedCosmetic(ROTATE_STEP)"
+        >
+          <MdiIcon
+            :path="mdiRotateRight"
+            :size="18"
+          />
+        </button>
       </div>
     </div>
   </div>

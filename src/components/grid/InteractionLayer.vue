@@ -175,18 +175,20 @@ function findConstraintLineAtCell(key: string): string | null {
 }
 
 // Snap a pointer to the nearest half-cell point (cell centres, edges and
-// corners) for placing a text/shape. Off-grid points are allowed only when
-// "show external space" is on, and only one ring out from the grid.
+// corners) for placing a text/shape. Off-grid points are allowed anywhere the
+// outer margins have revealed space: at least one ring when "show external
+// space" is on, further wherever existing cosmetics have grown the margins.
 function snapPos(event: PointerEvent): CosmeticPos | null {
   if (!props.svgRef) return null
   const pt = pointerToSvgPoint(event, props.svgRef)
   if (!pt) return null
   const x = Math.round(((pt.x - PADDING) / CELL_SIZE) * 2) / 2
   const y = Math.round(((pt.y - PADDING) / CELL_SIZE) * 2) / 2
-  const minX = editor.showExternalSpace ? -1 : 0
-  const maxX = grid.cols + (editor.showExternalSpace ? 1 : 0)
-  const minY = editor.showExternalSpace ? -1 : 0
-  const maxY = grid.rows + (editor.showExternalSpace ? 1 : 0)
+  const m = margins.value
+  const minX = -Math.ceil(m.left / CELL_SIZE)
+  const maxX = grid.cols + Math.ceil(m.right / CELL_SIZE)
+  const minY = -Math.ceil(m.top / CELL_SIZE)
+  const maxY = grid.rows + Math.ceil(m.bottom / CELL_SIZE)
   if (x < minX || x > maxX || y < minY || y > maxY) return null
   return { x, y }
 }

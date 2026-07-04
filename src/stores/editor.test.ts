@@ -268,3 +268,45 @@ describe('extendPendingLine backtracking', () => {
     expect(editor.pendingLineCells).toEqual(['r0c0', 'r0c1', 'r1c1'])
   })
 })
+
+describe('cosmetic placement selection', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('selects a newly placed text and tracks selection through undo/redo', () => {
+    const editor = useEditorStore()
+    editor.toggleTextAt({ x: 0.5, y: 0.5 })
+    const firstId = editor.selectedCosmeticId
+    expect(firstId).not.toBeNull()
+
+    editor.toggleTextAt({ x: 1.5, y: 0.5 })
+    const secondId = editor.selectedCosmeticId
+    expect(secondId).not.toBeNull()
+    expect(secondId).not.toBe(firstId)
+
+    editor.undo() // un-place the second: selection falls back to the first
+    expect(editor.selectedCosmeticId).toBe(firstId)
+    editor.redo() // re-place: reselects the second
+    expect(editor.selectedCosmeticId).toBe(secondId)
+  })
+
+  it('selects a newly placed shape', () => {
+    const editor = useEditorStore()
+    editor.toggleShapeAt({ x: 0.5, y: 0.5 })
+    expect(editor.selectedCosmetic?.type).toBe('shape')
+  })
+
+  it('clears selection when a place-mode click removes the cosmetic, undo restores it', () => {
+    const editor = useEditorStore()
+    editor.toggleTextAt({ x: 0.5, y: 0.5 })
+    const id = editor.selectedCosmeticId
+
+    editor.toggleTextAt({ x: 0.5, y: 0.5 }) // same spot toggles it away
+    expect(editor.cosmeticInstances).toHaveLength(0)
+    expect(editor.selectedCosmeticId).toBeNull()
+
+    editor.undo()
+    expect(editor.selectedCosmeticId).toBe(id)
+  })
+})

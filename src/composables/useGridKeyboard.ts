@@ -4,6 +4,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { cellKey, keyToRowCol } from './useGrid'
 import type { SolverInputMode } from '@/types/grid'
+import type { ShapeData, TextData } from '@/types/constraints'
 
 // The grid's keyboard interaction, shared by the editor and the standalone
 // solver so both stay in lockstep. In solving mode the editor-only branches
@@ -53,6 +54,33 @@ export function useGridKeyboard() {
       else if (event.shiftKey) editor.setKeyboardModeOverride('corner')
     }
 
+    // A selected text/shape cosmetic captures the keyboard as if the content
+    // input box were focused: printable keys edit the text (the first
+    // keystroke replaces the '?' placeholder), Backspace/Delete trims,
+    // arrows nudge by the d-pad's half-cell step. Modifier chords fall
+    // through so undo/redo and select-all keep working; Escape falls through
+    // to the branch below, which deselects.
+    const cosmetic = editor.selectedCosmetic
+    if (editor.mode === 'setting' && cosmetic && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (event.key.startsWith('Arrow') && DIRECTIONS[event.key]) {
+        event.preventDefault()
+        const d = DIRECTIONS[event.key]
+        editor.nudgeSelectedCosmetic(d.dc * 0.5, d.dr * 0.5)
+        return
+      }
+      const content = (cosmetic.data as TextData | ShapeData).content ?? ''
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        event.preventDefault()
+        editor.updateCosmeticContent(cosmetic.id, content.slice(0, -1))
+        return
+      }
+      if (event.key.length === 1) {
+        event.preventDefault()
+        editor.updateCosmeticContent(cosmetic.id, content === '?' ? event.key : content + event.key)
+        return
+      }
+    }
+
     const isWasd = event.key in { w: 1, a: 1, s: 1, d: 1 }
     const dir = DIRECTIONS[event.key]
     if (dir && (!isWasd || (!event.ctrlKey && !event.metaKey))) {
@@ -72,6 +100,7 @@ export function useGridKeyboard() {
       editor.selectConnectorDot(null)
       editor.selectCage(null)
       editor.selectOuterClue(null)
+      editor.selectCosmetic(null)
       return
     }
 

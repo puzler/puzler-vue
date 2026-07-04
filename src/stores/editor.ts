@@ -827,9 +827,16 @@ export const useEditorStore = defineStore('editor', () => {
     )
     if (existingIdx !== -1) {
       const existing = cosmeticInstances.value[existingIdx]
+      const prevSelected = selectedCosmeticId.value
       execute({
-        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id) },
-        undo: () => { cosmeticInstances.value.splice(existingIdx, 0, existing) },
+        execute: () => {
+          cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id)
+          if (selectedCosmeticId.value === existing.id) selectedCosmeticId.value = null
+        },
+        undo: () => {
+          cosmeticInstances.value.splice(existingIdx, 0, existing)
+          selectedCosmeticId.value = prevSelected
+        },
       })
     } else {
       const instance: CosmeticInstance = {
@@ -837,9 +844,16 @@ export const useEditorStore = defineStore('editor', () => {
         type: 'shape',
         data: { pos, content: '', presetId: activeShapePresetId.value } satisfies ShapeData,
       }
+      const prevSelected = selectedCosmeticId.value
       execute({
-        execute: () => { cosmeticInstances.value.push(instance) },
-        undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+        execute: () => {
+          cosmeticInstances.value.push(instance)
+          selectCosmetic(instance.id)
+        },
+        undo: () => {
+          cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
+          if (selectedCosmeticId.value === instance.id) selectedCosmeticId.value = prevSelected
+        },
       })
     }
   }
@@ -860,9 +874,16 @@ export const useEditorStore = defineStore('editor', () => {
     )
     if (existingIdx !== -1) {
       const existing = cosmeticInstances.value[existingIdx]
+      const prevSelected = selectedCosmeticId.value
       execute({
-        execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id) },
-        undo: () => { cosmeticInstances.value.splice(existingIdx, 0, existing) },
+        execute: () => {
+          cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== existing.id)
+          if (selectedCosmeticId.value === existing.id) selectedCosmeticId.value = null
+        },
+        undo: () => {
+          cosmeticInstances.value.splice(existingIdx, 0, existing)
+          selectedCosmeticId.value = prevSelected
+        },
       })
     } else {
       const instance: CosmeticInstance = {
@@ -870,9 +891,16 @@ export const useEditorStore = defineStore('editor', () => {
         type: 'text',
         data: { pos, content: '?', presetId: activeTextPresetId.value } satisfies TextData,
       }
+      const prevSelected = selectedCosmeticId.value
       execute({
-        execute: () => { cosmeticInstances.value.push(instance) },
-        undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+        execute: () => {
+          cosmeticInstances.value.push(instance)
+          selectCosmetic(instance.id)
+        },
+        undo: () => {
+          cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
+          if (selectedCosmeticId.value === instance.id) selectedCosmeticId.value = prevSelected
+        },
       })
     }
   }

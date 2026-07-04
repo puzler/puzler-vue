@@ -121,6 +121,93 @@ describe('useGridKeyboard', () => {
   })
 })
 
+describe('selected cosmetic keyboard capture', () => {
+  let editor: ReturnType<typeof useEditorStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    editor = useEditorStore()
+    useGridStore()
+    mountHost()
+  })
+
+  function placeText() {
+    editor.toggleTextAt({ x: 0.5, y: 0.5 }) // auto-selects the new text
+  }
+
+  function content(): string | undefined {
+    return (editor.selectedCosmetic?.data as { content?: string } | undefined)?.content
+  }
+
+  it('replaces the ? placeholder on the first keystroke, then appends', () => {
+    placeText()
+    expect(content()).toBe('?')
+    press('A', { code: 'KeyA' })
+    expect(content()).toBe('A')
+    press('b', { code: 'KeyB' })
+    expect(content()).toBe('Ab')
+  })
+
+  it('routes digits into the content instead of the grid', () => {
+    editor.selectCell('r0c0')
+    placeText()
+    press('5', { code: 'Digit5' })
+    expect(content()).toBe('5')
+  })
+
+  it('types w instead of moving the grid selection', () => {
+    editor.selectCell('r1c1')
+    placeText()
+    press('w', { code: 'KeyW' })
+    expect(content()).toBe('w')
+    expect([...editor.selection]).toEqual(['r1c1'])
+  })
+
+  it('Backspace trims the last character', () => {
+    placeText()
+    press('A', { code: 'KeyA' })
+    press('B', { code: 'KeyB' })
+    press('Backspace')
+    expect(content()).toBe('A')
+  })
+
+  it('caps typed content at the max length', () => {
+    placeText()
+    for (const ch of 'abcdefghijklmnop') press(ch)
+    expect(content()).toBe('abcdefghijkl') // MAX_COSMETIC_TEXT_LEN = 12
+  })
+
+  it('nudges the cosmetic with arrow keys by half-cell steps', () => {
+    placeText()
+    press('ArrowRight')
+    press('ArrowUp')
+    const data = editor.selectedCosmetic?.data as { pos?: { x: number; y: number } }
+    expect(data.pos).toEqual({ x: 1, y: 0 })
+  })
+
+  it('Escape deselects the cosmetic', () => {
+    placeText()
+    press('Escape')
+    expect(editor.selectedCosmeticId).toBeNull()
+  })
+
+  it('lets Cmd/Ctrl+Z through to undo the last edit', () => {
+    placeText()
+    press('A', { code: 'KeyA' })
+    expect(content()).toBe('A')
+    press('z', { metaKey: true })
+    expect(content()).toBe('?')
+  })
+
+  it('is inert while a modal is open', () => {
+    placeText()
+    const closeModal = pushModal(() => {})
+    press('A', { code: 'KeyA' })
+    expect(content()).toBe('?')
+    closeModal()
+  })
+})
+
 describe('multiSelectMode store state', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

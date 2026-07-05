@@ -751,3 +751,23 @@ describe('fog of war - marks in fogged given cells', () => {
     expect(editor.solverCellStates.r0c0?.centerMarks ?? []).toEqual([])
   })
 })
+
+// Removing a self-toggle global chip must also clear the rule's variant (the
+// group's own type) — ToolSelector passes the type itself in the variant list.
+describe('removeGlobalConstraint - self-toggle groups', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('clears the self variant when it is included in the variant list', () => {
+    const editor = useEditorStore()
+    editor.activeTypes = new Set(['disjoint_sets'])
+    editor.activeGlobalVariants = new Set(['disjoint_sets', 'knights_move'])
+    editor.removeGlobalConstraint('disjoint_sets', ['disjoint_sets'])
+    expect(editor.activeTypes.has('disjoint_sets')).toBe(false)
+    expect(editor.activeGlobalVariants).toEqual(new Set(['knights_move']))
+    editor.undo()
+    expect(editor.activeTypes.has('disjoint_sets')).toBe(true)
+    expect(editor.activeGlobalVariants).toEqual(new Set(['disjoint_sets', 'knights_move']))
+  })
+})

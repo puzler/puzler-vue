@@ -114,7 +114,10 @@ const lightGlyphs = computed(() => {
     <!-- Luminance mask for the layers that sit "under" the fog: white
          everywhere, minus the identical feathered fog shape in black. A
          graphic's visibility is exactly the complement of the fog's cover. -->
-    <mask v-if="maskId" :id="maskId">
+    <mask
+      v-if="maskId"
+      :id="maskId"
+    >
       <rect
         :x="-FAR"
         :y="-FAR"

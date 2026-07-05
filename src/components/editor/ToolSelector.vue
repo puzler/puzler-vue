@@ -94,7 +94,10 @@ function handleRemoveConfirm() {
     if (editor.activeTool === 'fog_lights') editor.setActiveTool('digit')
     editor.removeFogConstraint()
   } else if (category === 'global') {
-    const variantTypes = (GLOBAL_VARIANTS[type] ?? []).map(v => v.type)
+    // The type itself is included for self-toggle groups (disjoint sets),
+    // whose own type doubles as the rule's variant string; harmless for the
+    // others, whose type never appears in activeGlobalVariants.
+    const variantTypes = [type, ...(GLOBAL_VARIANTS[type] ?? []).map(v => v.type)]
     editor.removeGlobalConstraint(type, variantTypes)
   } else if (category === 'cosmetic') {
     editor.removeCosmeticType(type)

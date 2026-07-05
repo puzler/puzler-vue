@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { GLOBAL_VARIANTS } from '@/types/constraints'
+import { constraintDef } from '@/constraints/registry'
 import CustomConstraintList from './CustomConstraintList.vue'
 
 const editor = useEditorStore()
@@ -19,6 +20,11 @@ const activeConstraint = computed(() =>
 )
 
 const activeVariants = computed(() => GLOBAL_VARIANTS[editor.activeTool] ?? [])
+
+// Self-toggle groups (disjoint sets) have no variant list — the group's own
+// type IS the rule toggle, so they get a single Enable checkbox instead.
+// Without it the chip would sit in the sidebar with no way to turn the rule on.
+const isSelfToggle = computed(() => constraintDef(editor.activeTool)?.json?.selfToggleKey !== undefined)
 
 const customDiffInput = ref(2)
 const customRatioInput = ref(3)
@@ -66,6 +72,19 @@ function addCustomSum() {
     <p class="text-[11px] text-faint leading-snug">
       {{ GLOBAL_CONSTRAINT_DESCRIPTIONS[editor.activeTool] }}
     </p>
+
+    <label
+      v-if="isSelfToggle"
+      class="flex items-center gap-2.5 cursor-pointer"
+    >
+      <input
+        type="checkbox"
+        class="accent-action w-3.5 h-3.5 cursor-pointer"
+        :checked="editor.activeGlobalVariants.has(editor.activeTool)"
+        @change="editor.toggleGlobalVariant(editor.activeTool)"
+      >
+      <span class="text-sm text-ink-text">Enable {{ activeConstraint.label.toLowerCase() }}</span>
+    </label>
 
     <div
       v-if="activeVariants.length > 0"

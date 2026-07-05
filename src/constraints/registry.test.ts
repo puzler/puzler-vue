@@ -6,6 +6,7 @@ import {
   CONSTRAINT_ICONS, CONSTRAINT_STYLE_REGISTRY, CONSTRAINT_FILTER_GROUPS,
   LOCAL_PICKER_GROUPS, pickerOptionsFor, panelForTool, toolboxCategory,
   layerIdsForSlot, constraintDef,
+  TYPE_TO_JSON_KEY, JSON_KEY_TO_TYPE, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
 } from './registry'
 
 // The registry replaced hand-maintained literals spread across ~10 files. These tests
@@ -140,6 +141,128 @@ describe('constraint registry derivations', () => {
   it('exposes defs by type', () => {
     expect(constraintDef('renban')?.label).toBe('Renban')
     expect(constraintDef('nope')).toBeUndefined()
+  })
+
+  it('derives a document key for every toolbox type, globally unique', () => {
+    for (const type of LOCAL_TOOL_TYPES) expect(TYPE_TO_JSON_KEY.get(type), type).toBeDefined()
+    for (const type of ['diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets',
+      'cosmetic_line', 'cell_color', 'shape', 'text', 'cosmetic_cage']) {
+      expect(TYPE_TO_JSON_KEY.get(type), type).toBeDefined()
+    }
+    // Unique keys keep JSON_KEY_TO_TYPE a true inverse.
+    expect(JSON_KEY_TO_TYPE.size).toBe(TYPE_TO_JSON_KEY.size)
+    for (const [type, key] of TYPE_TO_JSON_KEY) expect(JSON_KEY_TO_TYPE.get(key)).toBe(type)
+  })
+
+  it('pins the document keys the stored format depends on', () => {
+    // The backend mirror (api: PuzzleDefinition::JsonKeys) and every stored v4
+    // definition depend on these exact strings — renames are format migrations,
+    // not refactors.
+    expect(Object.fromEntries(TYPE_TO_JSON_KEY)).toEqual({
+      renban: 'renbanLines',
+      german_whispers: 'germanWhispers',
+      dutch_whispers: 'dutchWhispers',
+      palindrome: 'palindromes',
+      region_sum: 'regionSumLines',
+      entropic_lines: 'entropicLines',
+      modular_lines: 'modularLines',
+      nabner_lines: 'nabnerLines',
+      zipper_lines: 'zipperLines',
+      between_lines: 'betweenLines',
+      lockout_lines: 'lockoutLines',
+      thermometer: 'thermometers',
+      slow_thermometer: 'slowThermometers',
+      arrow: 'arrows',
+      difference_dots: 'differenceDots',
+      ratio_dots: 'ratioDots',
+      xv: 'xv',
+      inequality: 'inequalities',
+      quadruples: 'quadruples',
+      odd_cells: 'oddCells',
+      even_cells: 'evenCells',
+      minimums: 'minimums',
+      maximums: 'maximums',
+      counting_circles: 'countingCircles',
+      row_index_cells: 'rowIndexCells',
+      col_index_cells: 'colIndexCells',
+      killer_cage: 'killerCages',
+      extra_regions: 'extraRegions',
+      clone: 'clones',
+      x_sums: 'xSums',
+      sandwich_sums: 'sandwichSums',
+      skyscrapers: 'skyscrapers',
+      little_killers: 'littleKillers',
+      numbered_rooms: 'numberedRooms',
+      battlefield: 'battlefield',
+      next_to_nine: 'nextToNine',
+      rossini: 'rossini',
+      diagonals: 'diagonals',
+      chess: 'chess',
+      anti_kropki: 'antiKropki',
+      anti_xv: 'antiXv',
+      disjoint_sets: 'disjointSets',
+      cosmetic_line: 'lines',
+      cell_color: 'cellColors',
+      shape: 'shapes',
+      text: 'texts',
+      cosmetic_cage: 'cages',
+    })
+    expect(Object.fromEntries(PRESETS_KEY_BY_TYPE)).toEqual({
+      cosmetic_line: 'linePresets',
+      cell_color: 'cellColorPresets',
+      shape: 'shapePresets',
+      text: 'textPresets',
+      cosmetic_cage: 'cagePresets',
+    })
+  })
+
+  it('derives the globals group document shapes', () => {
+    expect(GLOBAL_GROUPS_JSON).toEqual([
+      {
+        type: 'diagonals',
+        key: 'diagonals',
+        variants: [
+          { type: 'positive_diagonal', key: 'positive' },
+          { type: 'negative_diagonal', key: 'negative' },
+          { type: 'anti_positive_diagonal', key: 'antiPositive' },
+          { type: 'anti_negative_diagonal', key: 'antiNegative' },
+        ],
+        customValues: {},
+      },
+      {
+        type: 'chess',
+        key: 'chess',
+        variants: [
+          { type: 'kings_move', key: 'king' },
+          { type: 'knights_move', key: 'knight' },
+        ],
+        customValues: {},
+      },
+      {
+        type: 'anti_kropki',
+        key: 'antiKropki',
+        variants: [
+          { type: 'nonconsecutive', key: 'white' },
+          { type: 'anti_black_kropki', key: 'black' },
+        ],
+        customValues: { differences: 'anti_diff', ratios: 'anti_ratio' },
+      },
+      {
+        type: 'anti_xv',
+        key: 'antiXv',
+        variants: [
+          { type: 'anti_x', key: 'x' },
+          { type: 'anti_v', key: 'v' },
+        ],
+        customValues: { sums: 'anti_sum' },
+      },
+      {
+        type: 'disjoint_sets',
+        key: 'disjointSets',
+        variants: [{ type: 'disjoint_sets', key: 'enabled' }],
+        customValues: {},
+      },
+    ])
   })
 
   it('keeps the derived key unions literal (no widening to string)', () => {

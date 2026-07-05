@@ -2,36 +2,15 @@
   "$ref": "#/definitions/SerializedPuzzleSchema",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "ActiveConstraint": {
-      "additionalProperties": false,
-      "properties": {
-        "category": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "type",
-        "label",
-        "category"
-      ],
-      "type": "object"
-    },
-    "ArrowData": {
+    "ArrowDoc": {
       "additionalProperties": false,
       "properties": {
         "arrows": {
           "items": {
-            "$ref": "#/definitions/ArrowPath"
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "type": "array"
         },
@@ -48,97 +27,7 @@
       ],
       "type": "object"
     },
-    "ArrowPath": {
-      "additionalProperties": false,
-      "properties": {
-        "cells": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "cells"
-      ],
-      "type": "object"
-    },
-    "BorderConnectorType": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/ConnectorDotType"
-        },
-        {
-          "const": "xv",
-          "type": "string"
-        },
-        {
-          "const": "quadruples",
-          "type": "string"
-        },
-        {
-          "const": "inequality",
-          "type": "string"
-        }
-      ]
-    },
-    "CageCosmeticStyle": {
-      "additionalProperties": false,
-      "properties": {
-        "cageColor": {
-          "type": "string"
-        },
-        "textColor": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "cageColor",
-        "textColor"
-      ],
-      "type": "object"
-    },
-    "CagePreset": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "style": {
-          "$ref": "#/definitions/CageCosmeticStyle"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "style"
-      ],
-      "type": "object"
-    },
-    "CellColorPreset": {
-      "additionalProperties": false,
-      "properties": {
-        "color": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "color"
-      ],
-      "type": "object"
-    },
-    "CloneData": {
+    "CloneDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -173,49 +62,26 @@
       ],
       "type": "object"
     },
-    "ConnectorDot": {
+    "ColorPresetDoc": {
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "$ref": "#/definitions/BorderConnectorType"
+        "color": {
+          "type": "string"
         },
-        "value": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/definitions/XvValue"
-            },
-            {
-              "$ref": "#/definitions/InequalityValue"
-            },
-            {
-              "items": {
-                "type": "number"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
         }
       },
       "required": [
-        "type",
-        "value"
+        "id",
+        "color"
       ],
       "type": "object"
     },
-    "ConnectorDotType": {
-      "enum": [
-        "difference_dots",
-        "ratio_dots"
-      ],
-      "type": "string"
-    },
-    "ConstraintLineData": {
+    "CosmeticCageDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -223,6 +89,12 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "preset": {
+          "type": "string"
+        },
+        "sum": {
+          "type": "number"
         }
       },
       "required": [
@@ -230,7 +102,7 @@
       ],
       "type": "object"
     },
-    "CosmeticCageData": {
+    "CosmeticLineDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -239,24 +111,16 @@
           },
           "type": "array"
         },
-        "presetId": {
+        "preset": {
           "type": "string"
-        },
-        "sum": {
-          "type": [
-            "number",
-            "null"
-          ]
         }
       },
       "required": [
-        "cells",
-        "sum",
-        "presetId"
+        "cells"
       ],
       "type": "object"
     },
-    "CosmeticLineData": {
+    "DotDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -264,59 +128,51 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "presetId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "cells",
-        "presetId"
-      ],
-      "type": "object"
-    },
-    "CosmeticPos": {
-      "additionalProperties": false,
-      "properties": {
-        "x": {
-          "type": "number"
-        },
-        "y": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "x",
-        "y"
-      ],
-      "type": "object"
-    },
-    "CustomGlobalConstraint": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "type": {
-          "enum": [
-            "anti_diff",
-            "anti_ratio",
-            "anti_sum"
-          ],
-          "type": "string"
         },
         "value": {
           "type": "number"
         }
       },
       "required": [
-        "id",
-        "type",
-        "value"
+        "cells"
       ],
       "type": "object"
     },
-    "ExtraRegionData": {
+    "FreeCosmeticDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "pos": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "type": "object"
+        },
+        "preset": {
+          "type": "string"
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "pos"
+      ],
+      "type": "object"
+    },
+    "InequalityDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -324,6 +180,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "value": {
+          "$ref": "#/definitions/InequalityValue"
         }
       },
       "required": [
@@ -338,7 +197,7 @@
       ],
       "type": "string"
     },
-    "KillerCageData": {
+    "KillerCageDoc": {
       "additionalProperties": false,
       "properties": {
         "cells": {
@@ -348,89 +207,26 @@
           "type": "array"
         },
         "sum": {
-          "type": [
-            "number",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "cells",
-        "sum"
-      ],
-      "type": "object"
-    },
-    "KnownCosmeticData": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/ThermometerData"
-        },
-        {
-          "$ref": "#/definitions/ArrowData"
-        },
-        {
-          "$ref": "#/definitions/ConstraintLineData"
-        },
-        {
-          "$ref": "#/definitions/CosmeticLineData"
-        },
-        {
-          "$ref": "#/definitions/KillerCageData"
-        },
-        {
-          "$ref": "#/definitions/ExtraRegionData"
-        },
-        {
-          "$ref": "#/definitions/CloneData"
-        },
-        {
-          "$ref": "#/definitions/ShapeData"
-        },
-        {
-          "$ref": "#/definitions/TextData"
-        },
-        {
-          "$ref": "#/definitions/CosmeticCageData"
-        }
-      ]
-    },
-    "LinePreset": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "style": {
-          "$ref": "#/definitions/LineStyle"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "style"
-      ],
-      "type": "object"
-    },
-    "LineStyle": {
-      "additionalProperties": false,
-      "properties": {
-        "color": {
-          "type": "string"
-        },
-        "opacity": {
-          "type": "number"
-        },
-        "strokeWidth": {
           "type": "number"
         }
       },
       "required": [
-        "color",
-        "strokeWidth",
-        "opacity"
+        "cells"
+      ],
+      "type": "object"
+    },
+    "LineDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells"
       ],
       "type": "object"
     },
@@ -443,43 +239,60 @@
       ],
       "type": "string"
     },
-    "OuterClue": {
+    "LittleKillerDoc": {
       "additionalProperties": false,
       "properties": {
+        "cell": {
+          "type": "string"
+        },
         "direction": {
           "$ref": "#/definitions/LittleKillerDirection"
         },
-        "rossiniDirection": {
-          "$ref": "#/definitions/RossiniDirection"
-        },
-        "type": {
-          "$ref": "#/definitions/OuterClueType"
-        },
         "value": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         }
       },
       "required": [
-        "type",
-        "value"
+        "cell"
       ],
       "type": "object"
     },
-    "OuterClueType": {
-      "enum": [
-        "x_sums",
-        "sandwich_sums",
-        "skyscrapers",
-        "little_killers",
-        "numbered_rooms",
-        "battlefield",
-        "next_to_nine",
-        "rossini"
+    "OuterClueDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "cell"
       ],
-      "type": "string"
+      "type": "object"
+    },
+    "QuadrupleDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "values": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells",
+        "values"
+      ],
+      "type": "object"
     },
     "RossiniDirection": {
       "enum": [
@@ -488,38 +301,248 @@
       ],
       "type": "string"
     },
+    "RossiniDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/definitions/RossiniDirection"
+        }
+      },
+      "required": [
+        "cell"
+      ],
+      "type": "object"
+    },
     "SerializedPuzzleSchema": {
       "additionalProperties": false,
       "properties": {
-        "activeConstraints": {
-          "items": {
-            "$ref": "#/definitions/ActiveConstraint"
-          },
-          "type": "array"
-        },
         "constraints": {
           "additionalProperties": false,
           "properties": {
-            "connectorDots": {
-              "additionalProperties": {
-                "$ref": "#/definitions/ConnectorDot"
+            "arrows": {
+              "items": {
+                "$ref": "#/definitions/ArrowDoc"
               },
-              "type": "object"
+              "type": "array"
             },
-            "outerClues": {
-              "additionalProperties": {
-                "$ref": "#/definitions/OuterClue"
+            "battlefield": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
               },
-              "type": "object"
+              "type": "array"
             },
-            "singleCellMarks": {
-              "additionalProperties": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
+            "betweenLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
               },
-              "type": "object"
+              "type": "array"
+            },
+            "clones": {
+              "items": {
+                "$ref": "#/definitions/CloneDoc"
+              },
+              "type": "array"
+            },
+            "colIndexCells": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "countingCircles": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "differenceDots": {
+              "items": {
+                "$ref": "#/definitions/DotDoc"
+              },
+              "type": "array"
+            },
+            "dutchWhispers": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "entropicLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "evenCells": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "extraRegions": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "germanWhispers": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "inequalities": {
+              "items": {
+                "$ref": "#/definitions/InequalityDoc"
+              },
+              "type": "array"
+            },
+            "killerCages": {
+              "items": {
+                "$ref": "#/definitions/KillerCageDoc"
+              },
+              "type": "array"
+            },
+            "littleKillers": {
+              "items": {
+                "$ref": "#/definitions/LittleKillerDoc"
+              },
+              "type": "array"
+            },
+            "lockoutLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "maximums": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "minimums": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "modularLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "nabnerLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "nextToNine": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
+              },
+              "type": "array"
+            },
+            "numberedRooms": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
+              },
+              "type": "array"
+            },
+            "oddCells": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "palindromes": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "quadruples": {
+              "items": {
+                "$ref": "#/definitions/QuadrupleDoc"
+              },
+              "type": "array"
+            },
+            "ratioDots": {
+              "items": {
+                "$ref": "#/definitions/DotDoc"
+              },
+              "type": "array"
+            },
+            "regionSumLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "renbanLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
+            "rossini": {
+              "items": {
+                "$ref": "#/definitions/RossiniDoc"
+              },
+              "type": "array"
+            },
+            "rowIndexCells": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "sandwichSums": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
+              },
+              "type": "array"
+            },
+            "skyscrapers": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
+              },
+              "type": "array"
+            },
+            "slowThermometers": {
+              "items": {
+                "$ref": "#/definitions/ThermometerDoc"
+              },
+              "type": "array"
+            },
+            "thermometers": {
+              "items": {
+                "$ref": "#/definitions/ThermometerDoc"
+              },
+              "type": "array"
+            },
+            "xSums": {
+              "items": {
+                "$ref": "#/definitions/OuterClueDoc"
+              },
+              "type": "array"
+            },
+            "xv": {
+              "items": {
+                "$ref": "#/definitions/XvDoc"
+              },
+              "type": "array"
+            },
+            "zipperLines": {
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
             }
           },
           "type": "object"
@@ -529,13 +552,19 @@
           "properties": {
             "cagePresets": {
               "items": {
-                "$ref": "#/definitions/CagePreset"
+                "$ref": "#/definitions/StyledPresetDoc"
+              },
+              "type": "array"
+            },
+            "cages": {
+              "items": {
+                "$ref": "#/definitions/CosmeticCageDoc"
               },
               "type": "array"
             },
             "cellColorPresets": {
               "items": {
-                "$ref": "#/definitions/CellColorPreset"
+                "$ref": "#/definitions/ColorPresetDoc"
               },
               "type": "array"
             },
@@ -545,44 +574,39 @@
               },
               "type": "object"
             },
-            "instances": {
+            "linePresets": {
               "items": {
-                "additionalProperties": false,
-                "properties": {
-                  "data": {
-                    "$ref": "#/definitions/KnownCosmeticData"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "data"
-                ],
-                "type": "object"
+                "$ref": "#/definitions/StyledPresetDoc"
               },
               "type": "array"
             },
-            "linePresets": {
+            "lines": {
               "items": {
-                "$ref": "#/definitions/LinePreset"
+                "$ref": "#/definitions/CosmeticLineDoc"
               },
               "type": "array"
             },
             "shapePresets": {
               "items": {
-                "$ref": "#/definitions/ShapePreset"
+                "$ref": "#/definitions/ShapePresetDoc"
+              },
+              "type": "array"
+            },
+            "shapes": {
+              "items": {
+                "$ref": "#/definitions/FreeCosmeticDoc"
               },
               "type": "array"
             },
             "textPresets": {
               "items": {
-                "$ref": "#/definitions/TextPreset"
+                "$ref": "#/definitions/StyledPresetDoc"
+              },
+              "type": "array"
+            },
+            "texts": {
+              "items": {
+                "$ref": "#/definitions/FreeCosmeticDoc"
               },
               "type": "array"
             }
@@ -601,17 +625,86 @@
         "globals": {
           "additionalProperties": false,
           "properties": {
-            "custom": {
-              "items": {
-                "$ref": "#/definitions/CustomGlobalConstraint"
+            "antiKropki": {
+              "additionalProperties": false,
+              "properties": {
+                "black": {
+                  "type": "boolean"
+                },
+                "differences": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "ratios": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "white": {
+                  "type": "boolean"
+                }
               },
-              "type": "array"
+              "type": "object"
             },
-            "variants": {
-              "items": {
-                "type": "string"
+            "antiXv": {
+              "additionalProperties": false,
+              "properties": {
+                "sums": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "v": {
+                  "type": "boolean"
+                },
+                "x": {
+                  "type": "boolean"
+                }
               },
-              "type": "array"
+              "type": "object"
+            },
+            "chess": {
+              "additionalProperties": false,
+              "properties": {
+                "king": {
+                  "type": "boolean"
+                },
+                "knight": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "diagonals": {
+              "additionalProperties": false,
+              "properties": {
+                "antiNegative": {
+                  "type": "boolean"
+                },
+                "antiPositive": {
+                  "type": "boolean"
+                },
+                "negative": {
+                  "type": "boolean"
+                },
+                "positive": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "disjointSets": {
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
             }
           },
           "type": "object"
@@ -622,21 +715,14 @@
             "cols": {
               "type": "number"
             },
-            "customCellRegions": {
-              "anyOf": [
-                {
-                  "additionalProperties": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "type": "object"
+            "regions": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
                 },
-                {
-                  "type": "null"
-                }
-              ]
+                "type": "array"
+              },
+              "type": "object"
             },
             "rows": {
               "type": "number"
@@ -686,48 +772,7 @@
       ],
       "type": "object"
     },
-    "ShapeAnchor": {
-      "enum": [
-        "center",
-        "top",
-        "bottom",
-        "left",
-        "right",
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right"
-      ],
-      "type": "string"
-    },
-    "ShapeData": {
-      "additionalProperties": false,
-      "properties": {
-        "anchor": {
-          "$ref": "#/definitions/ShapeAnchor"
-        },
-        "cell": {
-          "type": "string"
-        },
-        "content": {
-          "type": "string"
-        },
-        "pos": {
-          "$ref": "#/definitions/CosmeticPos"
-        },
-        "presetId": {
-          "type": "string"
-        },
-        "rotation": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "presetId"
-      ],
-      "type": "object"
-    },
-    "ShapePreset": {
+    "ShapePresetDoc": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -737,60 +782,52 @@
           "type": "string"
         },
         "style": {
-          "$ref": "#/definitions/ShapeStyle"
+          "additionalProperties": false,
+          "properties": {
+            "fillColor": {
+              "type": "string"
+            },
+            "height": {
+              "type": "number"
+            },
+            "rotation": {
+              "type": "number"
+            },
+            "shapeType": {
+              "$ref": "#/definitions/ShapeType"
+            },
+            "strokeColor": {
+              "type": "string"
+            },
+            "strokeWidth": {
+              "type": "number"
+            },
+            "textColor": {
+              "type": "string"
+            },
+            "textSize": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "shapeType",
+            "fillColor",
+            "strokeColor",
+            "strokeWidth",
+            "width",
+            "height",
+            "textColor",
+            "textSize"
+          ],
+          "type": "object"
         }
       },
       "required": [
         "id",
-        "label",
         "style"
-      ],
-      "type": "object"
-    },
-    "ShapeStyle": {
-      "additionalProperties": false,
-      "properties": {
-        "fillColor": {
-          "type": "string"
-        },
-        "height": {
-          "type": "number"
-        },
-        "rotation": {
-          "type": "number"
-        },
-        "shapeType": {
-          "$ref": "#/definitions/ShapeType"
-        },
-        "sizeLinked": {
-          "type": "boolean"
-        },
-        "strokeColor": {
-          "type": "string"
-        },
-        "strokeWidth": {
-          "type": "number"
-        },
-        "textColor": {
-          "type": "string"
-        },
-        "textSize": {
-          "type": "number"
-        },
-        "width": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "shapeType",
-        "fillColor",
-        "strokeColor",
-        "strokeWidth",
-        "width",
-        "height",
-        "sizeLinked",
-        "textColor",
-        "textSize"
       ],
       "type": "object"
     },
@@ -802,37 +839,9 @@
       ],
       "type": "string"
     },
-    "TextData": {
+    "StyledPresetDoc": {
       "additionalProperties": false,
       "properties": {
-        "cell": {
-          "type": "string"
-        },
-        "content": {
-          "type": "string"
-        },
-        "pos": {
-          "$ref": "#/definitions/CosmeticPos"
-        },
-        "presetId": {
-          "type": "string"
-        },
-        "rotation": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "content",
-        "presetId"
-      ],
-      "type": "object"
-    },
-    "TextPreset": {
-      "additionalProperties": false,
-      "properties": {
-        "content": {
-          "type": "string"
-        },
         "id": {
           "type": "string"
         },
@@ -840,71 +849,53 @@
           "type": "string"
         },
         "style": {
-          "$ref": "#/definitions/TextStyle"
+          "additionalProperties": {},
+          "type": "object"
         }
       },
       "required": [
         "id",
-        "label",
         "style"
       ],
       "type": "object"
     },
-    "TextStyle": {
+    "ThermometerDoc": {
       "additionalProperties": false,
       "properties": {
-        "bold": {
-          "type": "boolean"
-        },
-        "color": {
+        "bulb": {
           "type": "string"
         },
-        "fontSize": {
-          "type": "number"
-        },
-        "rotation": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "color",
-        "fontSize",
-        "bold"
-      ],
-      "type": "object"
-    },
-    "ThermoEdge": {
-      "additionalProperties": false,
-      "properties": {
-        "from": {
-          "type": "string"
-        },
-        "to": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "from",
-        "to"
-      ],
-      "type": "object"
-    },
-    "ThermometerData": {
-      "additionalProperties": false,
-      "properties": {
-        "edges": {
+        "lines": {
           "items": {
-            "$ref": "#/definitions/ThermoEdge"
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "bulb",
+        "lines"
+      ],
+      "type": "object"
+    },
+    "XvDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "type": "string"
           },
           "type": "array"
         },
-        "root": {
-          "type": "string"
+        "value": {
+          "$ref": "#/definitions/XvValue"
         }
       },
       "required": [
-        "root",
-        "edges"
+        "cells"
       ],
       "type": "object"
     },

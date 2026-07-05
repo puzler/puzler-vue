@@ -14,7 +14,8 @@ export default defineModule<SkyscraperSpec>({
   kind: 'skyscraper',
   fromEditor: (ctx) => {
     const specs: SkyscraperSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'skyscrapers' || clue.value == null) continue
       const pos = parseOuterKey(key)
       if (!pos) continue

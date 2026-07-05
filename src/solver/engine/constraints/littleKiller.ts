@@ -15,7 +15,8 @@ export default defineModule<LittleKillerSpec>({
   kind: 'little_killer',
   fromEditor: (ctx) => {
     const specs: LittleKillerSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'little_killers' || clue.value == null || !clue.direction) continue
       const pos = parseOuterKey(key)
       if (!pos) continue

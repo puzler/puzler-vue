@@ -3,6 +3,7 @@ import { defineOuterClueConstraint } from '../define'
 
 export default defineOuterClueConstraint({
   type: 'battlefield',
+  jsonKey: 'battlefield',
   label: 'Battlefield',
   themeLabel: 'Battlefield clue',
   iconPath: mdiSwordCross,

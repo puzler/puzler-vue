@@ -3,6 +3,7 @@ import { greyscale } from '../types'
 
 export default defineLineConstraint({
   type: 'palindrome',
+  jsonKey: 'palindromes',
   label: 'Palindrome',
   pickerLabel: 'Palindrome Lines',
   color: greyscale(192),

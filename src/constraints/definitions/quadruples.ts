@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineConnectorConstraint({
   type: 'quadruples',
+  jsonKey: 'quadruples',
   label: 'Quadruple',
   pickerLabel: 'Quadruples',
   icon: { path: mdiGamepadCircleOutline, rotate: 45 },

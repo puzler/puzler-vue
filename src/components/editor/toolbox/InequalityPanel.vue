@@ -14,8 +14,7 @@ const MODES = [
 const BTN = 'aspect-square rounded-lg bg-surface border border-line text-ink-text font-display text-xl font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
 
 const selectedInequality = computed(() => {
-  const key = editor.selectedDotKey
-  const dot = key ? editor.connectorDots[key] : null
+  const dot = editor.selectedConnector
   return dot?.type === 'inequality' ? dot : null
 })
 
@@ -23,9 +22,9 @@ const selectedInequality = computed(() => {
 // point up/down; rotate the button glyphs to match so the choice reads the
 // same way it will render.
 const stacked = computed(() => {
-  const key = editor.selectedDotKey
-  if (!key || !selectedInequality.value) return false
-  const [a, b] = borderKeyCells(key)
+  const dot = selectedInequality.value
+  if (!dot) return false
+  const [a, b] = borderKeyCells(dot.location)
   return a.split('c')[0] !== b.split('c')[0]
 })
 

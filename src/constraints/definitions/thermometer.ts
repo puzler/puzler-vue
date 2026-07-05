@@ -10,6 +10,7 @@ export const THERMO_STYLE = {
 
 export default defineThermoConstraint({
   type: 'thermometer',
+  jsonKey: 'thermometers',
   label: 'Thermometer',
   pickerLabel: 'Thermometers',
   iconPath: mdiThermometer,

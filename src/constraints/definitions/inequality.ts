@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineConnectorConstraint({
   type: 'inequality',
+  jsonKey: 'inequalities',
   label: 'Inequalities',
   themeLabel: 'Inequality sign',
   icon: { path: mdiLessThan },

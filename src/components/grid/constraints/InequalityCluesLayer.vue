@@ -32,17 +32,17 @@ interface RenderedInequality {
 }
 
 const inequalityClues = computed<RenderedInequality[]>(() =>
-  Object.entries(editor.connectorDots).flatMap(([key, dot]) => {
+  editor.connectorDots.flatMap((dot) => {
     if (dot.type !== 'inequality') return []
-    const [a, b] = borderKeyCells(key)
+    const [a, b] = borderKeyCells(dot.location)
     const labels = grid.cellRegionLabelMap
     const horizontal = a.split('c')[0] !== b.split('c')[0]
     return [{
-      key,
-      ...borderMidpoint(key),
+      key: dot.id,
+      ...borderMidpoint(dot.location),
       glyph: dot.value === null ? '_' : String(dot.value),
       rotate: horizontal && dot.value !== null,
-      selected: editor.selectedDotKey === key,
+      selected: editor.selectedConnectorId === dot.id,
       horizontal,
       borderWidth: (labels.get(a) !== labels.get(b) ? BOX_STROKE : THIN_STROKE) + 1,
     }]

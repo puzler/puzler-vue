@@ -25,8 +25,8 @@ function adapterCtx(overrides: Partial<AdapterContext>): AdapterContext {
     variants: new Set(),
     customGlobals: [],
     singleCellMarks: {},
-    connectorDots: {},
-    outerClues: {},
+    connectorDots: [],
+    outerClues: [],
     constraintInstances: [],
     ...overrides,
   }
@@ -171,7 +171,10 @@ describe('global & single-cell constraints', () => {
   it('anti-X exempts pairs carrying an X clue (and only those)', () => {
     const specs = antiXv.fromEditor(adapterCtx({
       variants: new Set(['anti_x']),
-      connectorDots: { 'r0c0|r0c1': { type: 'xv', value: 'X' }, 'r0c2|r0c3': { type: 'xv', value: 'V' } },
+      connectorDots: [
+        { id: 'x1', type: 'xv', location: 'r0c0|r0c1', value: 'X' },
+        { id: 'v1', type: 'xv', location: 'r0c2|r0c3', value: 'V' },
+      ],
     }))
     expect(specs).toHaveLength(1)
     expect(exemptOf(specs[0])).toEqual([[0, 1]]) // the X pair, not the V pair
@@ -192,7 +195,7 @@ describe('global & single-cell constraints', () => {
   it('nonconsecutive exempts pairs carrying a white (difference) dot', () => {
     const specs = antiKropki.fromEditor(adapterCtx({
       variants: new Set(['nonconsecutive']),
-      connectorDots: { 'r0c0|r0c1': { type: 'difference_dots', value: null } },
+      connectorDots: [{ id: 'w1', type: 'difference_dots', location: 'r0c0|r0c1', value: null }],
     }))
     expect(exemptOf(specs[0])).toEqual([[0, 1]])
     // The exempt pair may be consecutive; a non-exempt pair may not.
@@ -204,7 +207,7 @@ describe('global & single-cell constraints', () => {
   it('anti-black-kropki exempts pairs carrying a black (ratio) dot', () => {
     const specs = antiKropki.fromEditor(adapterCtx({
       variants: new Set(['anti_black_kropki']),
-      connectorDots: { 'r0c0|r0c1': { type: 'ratio_dots', value: null } },
+      connectorDots: [{ id: 'b1', type: 'ratio_dots', location: 'r0c0|r0c1', value: null }],
     }))
     expect(exemptOf(specs[0])).toEqual([[0, 1]])
     const ratio = { kind: 'anti_kropki', relation: 'ratio', value: 2, exempt: [[0, 1]] }

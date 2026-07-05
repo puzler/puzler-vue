@@ -168,6 +168,21 @@ export interface ConstraintDef {
     readonly order?: number
   }
 
+  // The type's name in the serialized puzzle document (format v4). For local
+  // constraint and cosmetic defs, `key` is the document key under `constraints`/
+  // `cosmetics`; for global category defs it is the group key under `globals`; for
+  // global VARIANT defs it is the toggle name inside the group's object. Cosmetic
+  // kinds name their sibling presets array via `presetsKey`. Global groups whose
+  // custom value arrays map to CustomGlobalConstraint types declare them in
+  // `customValues` (document field → custom type). A group whose own type doubles
+  // as its variant string (disjoint_sets) names that toggle via `selfToggleKey`.
+  readonly json?: {
+    readonly key: string
+    readonly presetsKey?: string
+    readonly customValues?: Readonly<Record<string, string>>
+    readonly selfToggleKey?: string
+  }
+
   readonly icon?: ConstraintIconDef
 
   // Present iff the constraint is user-themeable (drives CONSTRAINT_STYLE_REGISTRY,

@@ -2,6 +2,7 @@ import { defineLineConstraint } from '../define'
 
 export default defineLineConstraint({
   type: 'zipper_lines',
+  jsonKey: 'zipperLines',
   label: 'Zipper Lines',
   themeLabel: 'Zipper line',
   color: { red: 172, green: 138, blue: 255, opacity: 1 },

@@ -3,6 +3,7 @@ import { defineOuterClueConstraint } from '../define'
 
 export default defineOuterClueConstraint({
   type: 'numbered_rooms',
+  jsonKey: 'numberedRooms',
   label: 'Numbered Rooms',
   themeLabel: 'Numbered room',
   iconPath: mdiDoor,

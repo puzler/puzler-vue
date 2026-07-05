@@ -7,6 +7,7 @@ import { useColorPaletteStore } from '@/stores/colorPalette'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import type { CellState, SolverInputMode } from '@/types/grid'
+import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
@@ -14,12 +15,14 @@ import type {
   ShapePreset, ShapeStyle, ShapeData,
   TextPreset, TextStyle, TextData,
   CustomGlobalConstraint,
-  ConnectorDot, BorderConnectorType, XvValue, InequalityValue,
+  ConnectorInstance, BorderConnectorType, XvValue, InequalityValue,
   ArrowData, KillerCageData, ExtraRegionData, CloneData,
-  OuterClue, OuterClueType,
+  OuterClueInstance, OuterClueType,
   CagePreset, CageCosmeticStyle, CosmeticCageData,
 } from '@/types/constraints'
 
+// The legacy chip shape, now a derived view: `id` is the type itself (chips
+// are unique by type, and everything else comes from the registry).
 export interface ActiveConstraint {
   id: string
   type: string
@@ -32,7 +35,21 @@ export const useEditorStore = defineStore('editor', () => {
   const solverCellStates = ref<Record<string, CellState>>({})
   const selection = ref<Set<string>>(new Set())
   const activeTool = ref<string>('digit')
-  const activeConstraints = ref<ActiveConstraint[]>([])
+  // The set of active constraint types — the single source of truth for the
+  // sidebar chips. Labels/categories derive from the registry, and display
+  // order is the registry's canonical order (not add order), so the same
+  // puzzle always serializes identically.
+  const activeTypes = ref<Set<string>>(new Set())
+  const activeConstraints = computed<ActiveConstraint[]>(() =>
+    [...TYPE_TO_JSON_KEY.keys()]
+      .filter((type) => activeTypes.value.has(type))
+      .map((type) => ({
+        id: type,
+        type,
+        label: constraintDef(type)?.label ?? type,
+        category: toolboxCategory(type) ?? 'local',
+      })),
+  )
   const puzzleName = ref<string>('')
   const puzzleAuthor = ref<string>('')
   const puzzleRules = ref<string>('')
@@ -93,8 +110,10 @@ export const useEditorStore = defineStore('editor', () => {
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   const singleCellMarks = ref<Record<string, Set<string>>>({})
-  const connectorDots = ref<Record<string, ConnectorDot>>({})  // border key → dot
-  const selectedDotKey = ref<string | null>(null)
+  // Ordered instance list; the LAST instance at a location is topmost. The UI
+  // keeps one connector per location — stacks arrive only via the JSON editor.
+  const connectorDots = ref<ConnectorInstance[]>([])
+  const selectedConnectorId = ref<string | null>(null)
   const selectedCageId = ref<string | null>(null)
   const pendingCageCells = ref<string[]>([])
   // The selected movable cosmetic (text or shape); drives content editing and
@@ -107,8 +126,8 @@ export const useEditorStore = defineStore('editor', () => {
   // Snapped pointer position for the placement ghost preview (text/shape tools,
   // place mode). Ephemeral hover state, never persisted.
   const ghostPos = ref<CosmeticPos | null>(null)
-  const outerClues = ref<Record<string, OuterClue>>({})  // outer key → clue
-  const selectedOuterClueKey = ref<string | null>(null)
+  const outerClues = ref<OuterClueInstance[]>([])  // same instance model as connectors
+  const selectedOuterClueId = ref<string | null>(null)
   // Brush preview for extra regions and clone painting (the cell-color brush
   // has its own pending ref tied to color presets)
   const pendingRegionBrushCells = ref<string[]>([])
@@ -153,7 +172,7 @@ export const useEditorStore = defineStore('editor', () => {
   const activeLinePresetId = linePresetsC.activeId
   const activeLinePreset = linePresetsC.active
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
-  const { canUndo, canRedo, execute, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
+  const { canUndo, canRedo, execute, record, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
 
   const hasSelection = computed(() => selection.value.size > 0)
 
@@ -362,10 +381,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setActiveTool(tool: string) {
     activeTool.value = tool
-    selectedDotKey.value = null
+    selectedConnectorId.value = null
     selectedCageId.value = null
     selectedCosmeticId.value = null
-    selectedOuterClueKey.value = null
+    selectedOuterClueId.value = null
     ghostPos.value = null
   }
 
@@ -411,10 +430,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setMode(m: 'setting' | 'solving') {
     mode.value = m
-    selectedDotKey.value = null
+    selectedConnectorId.value = null
     selectedCageId.value = null
     selectedCosmeticId.value = null
-    selectedOuterClueKey.value = null
+    selectedOuterClueId.value = null
     ghostPos.value = null
     if (m === 'setting') {
       keyboardModeOverride.value = null
@@ -653,7 +672,7 @@ export const useEditorStore = defineStore('editor', () => {
     // Digits only apply to dots; XV takes X/V and inequality takes </> via
     // setConnectorDotValue, but delete clears any connector type back to its
     // default.
-    const selectedDot = selectedDotKey.value ? connectorDots.value[selectedDotKey.value] : null
+    const selectedDot = selectedConnector.value
     if (selectedDot) {
       if (selectedDot.type === 'quadruples') {
         if (digit === null) removeLastQuadrupleDigit()
@@ -670,7 +689,7 @@ export const useEditorStore = defineStore('editor', () => {
       return
     }
     // Same append semantics for a selected outer clue
-    if (selectedOuterClueKey.value) {
+    if (selectedOuterClueId.value) {
       if (digit === null) removeLastOuterClueDigit()
       else appendOuterClueDigit(digit)
       return
@@ -700,22 +719,29 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  function addConstraint(type: string, label: string, category: string) {
-    if (category === 'global' && activeConstraints.value.some((c) => c.type === type)) return
-    const constraint = { id: crypto.randomUUID(), type, label, category }
+  // Immutable set updates so the chips computed re-derives.
+  function addActiveType(type: string) {
+    activeTypes.value = new Set(activeTypes.value).add(type)
+  }
+  function dropActiveType(type: string) {
+    const next = new Set(activeTypes.value)
+    next.delete(type)
+    activeTypes.value = next
+  }
+
+  function addConstraint(type: string) {
+    if (activeTypes.value.has(type)) return
     execute({
-      execute: () => { activeConstraints.value.push(constraint) },
-      undo: () => { activeConstraints.value = activeConstraints.value.filter(c => c.id !== constraint.id) },
+      execute: () => addActiveType(type),
+      undo: () => dropActiveType(type),
     })
   }
 
-  function removeConstraint(id: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeConstraint(type: string) {
+    if (!activeTypes.value.has(type)) return
     execute({
-      execute: () => { activeConstraints.value = activeConstraints.value.filter(c => c.id !== id) },
-      undo: () => { activeConstraints.value.splice(idx, 0, constraint) },
+      execute: () => dropActiveType(type),
+      undo: () => addActiveType(type),
     })
   }
 
@@ -735,19 +761,17 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  function removeGlobalConstraint(id: string, variantTypes: string[]) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeGlobalConstraint(type: string, variantTypes: string[]) {
+    if (!activeTypes.value.has(type)) return
     const prevVariants = new Set(activeGlobalVariants.value)
     const nextVariants = new Set([...prevVariants].filter(v => !variantTypes.includes(v)))
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        dropActiveType(type)
         activeGlobalVariants.value = nextVariants
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         activeGlobalVariants.value = prevVariants
       },
     })
@@ -989,9 +1013,9 @@ export const useEditorStore = defineStore('editor', () => {
   function selectCosmetic(id: string | null) {
     selectedCosmeticId.value = id
     if (id !== null) {
-      selectedDotKey.value = null
+      selectedConnectorId.value = null
       selectedCageId.value = null
-      selectedOuterClueKey.value = null
+      selectedOuterClueId.value = null
     }
   }
 
@@ -1078,20 +1102,18 @@ export const useEditorStore = defineStore('editor', () => {
     setSelectedCosmeticRotation(((inst.data as TextData | ShapeData).rotation ?? 0) + delta)
   }
 
-  function removeCosmeticType(constraintId: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === constraintId)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeCosmeticType(type: string) {
+    if (!activeTypes.value.has(type)) return
     const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
     const removedColors = type === 'cell_color' ? { ...cosmeticCellColors.value } : null
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== constraintId)
+        dropActiveType(type)
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
         if (type === 'cell_color') cosmeticCellColors.value = {}
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
         if (removedColors) cosmeticCellColors.value = removedColors
       },
@@ -1322,18 +1344,16 @@ export const useEditorStore = defineStore('editor', () => {
     pendingArrowParentId.value = null
   }
 
-  function removeConstraintLine(id: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeConstraintLine(type: string) {
+    if (!activeTypes.value.has(type)) return
     const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        dropActiveType(type)
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
       },
     })
@@ -1418,7 +1438,7 @@ export const useEditorStore = defineStore('editor', () => {
     solverCellStates.value = {}
     selection.value = new Set()
     activeTool.value = 'digit'
-    activeConstraints.value = []
+    activeTypes.value = new Set()
     puzzleName.value = ''
     // Left blank by default; the editor shows the user's display name as the
     // placeholder, and public attribution falls back to it when blank.
@@ -1433,16 +1453,16 @@ export const useEditorStore = defineStore('editor', () => {
     keyboardModeOverride.value = null
     cosmeticInstances.value = []
     singleCellMarks.value = {}
-    connectorDots.value = {}
-    selectedDotKey.value = null
+    connectorDots.value = []
+    selectedConnectorId.value = null
     selectedCageId.value = null
     selectedCosmeticId.value = null
     showExternalSpace.value = false
     ghostPos.value = null
     pendingCageCells.value = []
     pendingRegionBrushCells.value = []
-    outerClues.value = {}
-    selectedOuterClueKey.value = null
+    outerClues.value = []
+    selectedOuterClueId.value = null
     pendingLineCells.value = []
     pendingBranchThermoId.value = null
     pendingArrowParentId.value = null
@@ -1499,20 +1519,18 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  function removeSingleCellConstraint(id: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeSingleCellConstraint(type: string) {
+    if (!activeTypes.value.has(type)) return
     const prevMarks = singleCellMarks.value[type] ?? new Set<string>()
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        dropActiveType(type)
         const next = { ...singleCellMarks.value }
         delete next[type]
         singleCellMarks.value = next
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         singleCellMarks.value = { ...singleCellMarks.value, [type]: prevMarks }
       },
     })
@@ -1520,57 +1538,72 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Connector dots ────────────────────────────────────────────────────────
 
-  function toggleConnectorDot(type: BorderConnectorType, border: string) {
-    const prev = connectorDots.value[border] ? { ...connectorDots.value[border] } : null
-    const prevSelected = selectedDotKey.value
+  // Topmost instance at a location (instances are ordered; last wins).
+  function connectorAt(location: string): ConnectorInstance | undefined {
+    return connectorDots.value.filter((d) => d.location === location).at(-1)
+  }
 
-    if (prev?.type === type) {
-      // Same type → remove the dot
+  const selectedConnector = computed(() =>
+    connectorDots.value.find((d) => d.id === selectedConnectorId.value) ?? null)
+
+  function toggleConnectorDot(type: BorderConnectorType, location: string) {
+    const top = connectorAt(location)
+    const prevSelected = selectedConnectorId.value
+
+    if (top?.type === type) {
+      // Same type → remove the topmost instance (repeat clicks peel a
+      // JSON-authored stack one instance at a time)
+      const removed = top
+      const idx = connectorDots.value.findIndex((d) => d.id === removed.id)
       execute({
         execute: () => {
-          const next = { ...connectorDots.value }
-          delete next[border]
-          connectorDots.value = next
-          if (selectedDotKey.value === border) selectedDotKey.value = null
+          connectorDots.value = connectorDots.value.filter((d) => d.id !== removed.id)
+          if (selectedConnectorId.value === removed.id) selectedConnectorId.value = null
         },
         undo: () => {
-          connectorDots.value = { ...connectorDots.value, [border]: prev }
-          selectedDotKey.value = prevSelected
+          const next = [...connectorDots.value]
+          next.splice(idx, 0, removed)
+          connectorDots.value = next
+          selectedConnectorId.value = prevSelected
         },
       })
     } else {
-      // New dot, or other type → replace (connector types are exclusive)
-      const fresh: ConnectorDot = { type, value: type === 'quadruples' ? [] : null }
+      // New dot, or other type → replace everything at this location
+      // (placement restores the one-per-location invariant once touched)
+      const fresh: ConnectorInstance = {
+        id: crypto.randomUUID(), type, location, value: type === 'quadruples' ? [] : null,
+      }
+      const prevList = [...connectorDots.value]
       execute({
         execute: () => {
-          connectorDots.value = { ...connectorDots.value, [border]: fresh }
-          selectedDotKey.value = border
+          connectorDots.value = [...prevList.filter((d) => d.location !== location), fresh]
+          selectedConnectorId.value = fresh.id
         },
         undo: () => {
-          const next = { ...connectorDots.value }
-          if (prev) next[border] = prev
-          else delete next[border]
-          connectorDots.value = next
-          selectedDotKey.value = prevSelected
+          connectorDots.value = prevList
+          selectedConnectorId.value = prevSelected
         },
       })
     }
   }
 
-  function selectConnectorDot(border: string | null) {
-    if (border !== null && !connectorDots.value[border]) return
-    selectedDotKey.value = border
-    if (border !== null) {
-      selectedCageId.value = null
-      selectedOuterClueKey.value = null
-      selectedCosmeticId.value = null
+  // Selection is by location (a click on the grid), resolving to the topmost
+  // instance there; null clears.
+  function selectConnectorDot(location: string | null) {
+    if (location === null) {
+      selectedConnectorId.value = null
+      return
     }
+    const top = connectorAt(location)
+    if (!top) return
+    selectedConnectorId.value = top.id
+    selectedCageId.value = null
+    selectedOuterClueId.value = null
+    selectedCosmeticId.value = null
   }
 
   function setConnectorDotValue(value: number | XvValue | InequalityValue | null) {
-    const border = selectedDotKey.value
-    if (!border) return
-    const prev = connectorDots.value[border]
+    const prev = selectedConnector.value
     if (!prev || prev.value === value) return
     // Reject values that don't match the connector type; quadruples are
     // edited through addQuadrupleDigit/removeLastQuadrupleDigit instead
@@ -1578,24 +1611,25 @@ export const useEditorStore = defineStore('editor', () => {
     const glyphs = prev.type === 'xv' ? ['X', 'V'] : prev.type === 'inequality' ? ['<', '>'] : null
     if (typeof value === 'number' && glyphs !== null) return
     if (typeof value === 'string' && !glyphs?.includes(value)) return
-    const prevDot = { ...prev }
+    const id = prev.id
+    const prevValue = prev.value
     execute({
       execute: () => {
-        connectorDots.value = { ...connectorDots.value, [border]: { ...prevDot, value } }
+        connectorDots.value = connectorDots.value.map((d) => d.id === id ? { ...d, value } : d)
       },
       undo: () => {
-        connectorDots.value = { ...connectorDots.value, [border]: prevDot }
+        connectorDots.value = connectorDots.value.map((d) => d.id === id ? { ...d, value: prevValue } : d)
       },
     })
   }
 
-  function setQuadrupleDigits(border: string, prevDigits: number[], nextDigits: number[]) {
+  function setQuadrupleDigits(id: string, prevDigits: number[], nextDigits: number[]) {
     execute({
       execute: () => {
-        connectorDots.value = { ...connectorDots.value, [border]: { type: 'quadruples', value: nextDigits } }
+        connectorDots.value = connectorDots.value.map((d) => d.id === id ? { ...d, value: nextDigits } : d)
       },
       undo: () => {
-        connectorDots.value = { ...connectorDots.value, [border]: { type: 'quadruples', value: prevDigits } }
+        connectorDots.value = connectorDots.value.map((d) => d.id === id ? { ...d, value: prevDigits } : d)
       },
     })
   }
@@ -1603,21 +1637,17 @@ export const useEditorStore = defineStore('editor', () => {
   // Digits are stored in entry order (display sorts them), so backspace can
   // remove the most recently entered digit
   function addQuadrupleDigit(digit: number) {
-    const border = selectedDotKey.value
-    if (!border) return
-    const dot = connectorDots.value[border]
+    const dot = selectedConnector.value
     if (dot?.type !== 'quadruples' || !Array.isArray(dot.value)) return
     const prevDigits = [...dot.value]
     if (prevDigits.length >= QUADRUPLE_MAX_DIGITS) return
-    setQuadrupleDigits(border, prevDigits, [...prevDigits, digit])
+    setQuadrupleDigits(dot.id, prevDigits, [...prevDigits, digit])
   }
 
   function removeLastQuadrupleDigit() {
-    const border = selectedDotKey.value
-    if (!border) return
-    const dot = connectorDots.value[border]
+    const dot = selectedConnector.value
     if (dot?.type !== 'quadruples' || !Array.isArray(dot.value) || dot.value.length === 0) return
-    setQuadrupleDigits(border, [...dot.value], dot.value.slice(0, -1))
+    setQuadrupleDigits(dot.id, [...dot.value], dot.value.slice(0, -1))
   }
 
   // ── Killer cages ──────────────────────────────────────────────────────────
@@ -1639,8 +1669,8 @@ export const useEditorStore = defineStore('editor', () => {
       execute: () => {
         cosmeticInstances.value.push(instance)
         selectedCageId.value = instance.id
-        selectedDotKey.value = null
-        selectedOuterClueKey.value = null
+        selectedConnectorId.value = null
+        selectedOuterClueId.value = null
       },
       undo: () => {
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
@@ -1671,8 +1701,8 @@ export const useEditorStore = defineStore('editor', () => {
       execute: () => {
         cosmeticInstances.value.push(instance)
         selectedCageId.value = instance.id
-        selectedDotKey.value = null
-        selectedOuterClueKey.value = null
+        selectedConnectorId.value = null
+        selectedOuterClueId.value = null
       },
       undo: () => {
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id)
@@ -1684,8 +1714,8 @@ export const useEditorStore = defineStore('editor', () => {
   function selectCage(id: string | null) {
     selectedCageId.value = id
     if (id !== null) {
-      selectedDotKey.value = null
-      selectedOuterClueKey.value = null
+      selectedConnectorId.value = null
+      selectedOuterClueId.value = null
       selectedCosmeticId.value = null
     }
   }
@@ -1866,175 +1896,180 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Outer clues ───────────────────────────────────────────────────────────
 
-  function toggleOuterClue(type: OuterClueType, key: string, direction?: OuterClue['direction']) {
-    const prev = outerClues.value[key] ? { ...outerClues.value[key] } : null
-    const prevSelected = selectedOuterClueKey.value
+  // Topmost instance at an outer location (same ordering rule as connectors).
+  function outerClueAt(location: string): OuterClueInstance | undefined {
+    return outerClues.value.filter((c) => c.location === location).at(-1)
+  }
 
-    if (prev?.type === type) {
-      // Same type → remove the clue
+  const selectedOuterClue = computed(() =>
+    outerClues.value.find((c) => c.id === selectedOuterClueId.value) ?? null)
+
+  function toggleOuterClue(type: OuterClueType, location: string, direction?: OuterClueInstance['direction']) {
+    const top = outerClueAt(location)
+    const prevSelected = selectedOuterClueId.value
+
+    if (top?.type === type) {
+      // Same type → remove the topmost clue at this position
+      const removed = top
+      const idx = outerClues.value.findIndex((c) => c.id === removed.id)
       execute({
         execute: () => {
-          const next = { ...outerClues.value }
-          delete next[key]
-          outerClues.value = next
-          if (selectedOuterClueKey.value === key) selectedOuterClueKey.value = null
+          outerClues.value = outerClues.value.filter((c) => c.id !== removed.id)
+          if (selectedOuterClueId.value === removed.id) selectedOuterClueId.value = null
         },
         undo: () => {
-          outerClues.value = { ...outerClues.value, [key]: prev }
-          selectedOuterClueKey.value = prevSelected
+          const next = [...outerClues.value]
+          next.splice(idx, 0, removed)
+          outerClues.value = next
+          selectedOuterClueId.value = prevSelected
         },
       })
       return
     }
 
-    // New clue, or another type at this position → replace; auto-select.
-    // Rossini clues carry an arrow instead of a value; they start increasing.
-    const fresh: OuterClue = {
+    // New clue, or another type at this position → replace everything there;
+    // auto-select. Rossini clues carry an arrow instead of a value; they start
+    // increasing.
+    const fresh: OuterClueInstance = {
+      id: crypto.randomUUID(),
       type,
+      location,
       value: null,
       ...(direction ? { direction } : {}),
       ...(type === 'rossini' ? { rossiniDirection: 'increasing' as const } : {}),
     }
+    const prevList = [...outerClues.value]
     execute({
       execute: () => {
-        outerClues.value = { ...outerClues.value, [key]: fresh }
-        selectedOuterClueKey.value = key
-        selectedDotKey.value = null
+        outerClues.value = [...prevList.filter((c) => c.location !== location), fresh]
+        selectedOuterClueId.value = fresh.id
+        selectedConnectorId.value = null
         selectedCageId.value = null
         selectedCosmeticId.value = null
       },
       undo: () => {
-        const next = { ...outerClues.value }
-        if (prev) next[key] = prev
-        else delete next[key]
-        outerClues.value = next
-        selectedOuterClueKey.value = prevSelected
+        outerClues.value = prevList
+        selectedOuterClueId.value = prevSelected
       },
     })
   }
 
-  function selectOuterClue(key: string | null) {
-    if (key !== null && !outerClues.value[key]) return
-    selectedOuterClueKey.value = key
-    if (key !== null) {
-      selectedDotKey.value = null
-      selectedCageId.value = null
-      selectedCosmeticId.value = null
+  // Selection is by location, resolving to the topmost instance; null clears.
+  function selectOuterClue(location: string | null) {
+    if (location === null) {
+      selectedOuterClueId.value = null
+      return
     }
+    const top = outerClueAt(location)
+    if (!top) return
+    selectedOuterClueId.value = top.id
+    selectedConnectorId.value = null
+    selectedCageId.value = null
+    selectedCosmeticId.value = null
   }
 
-  function patchOuterClue(key: string, prev: OuterClue, next: OuterClue) {
+  function patchOuterClue(id: string, prev: OuterClueInstance, next: OuterClueInstance) {
     execute({
-      execute: () => { outerClues.value = { ...outerClues.value, [key]: next } },
-      undo: () => { outerClues.value = { ...outerClues.value, [key]: prev } },
+      execute: () => { outerClues.value = outerClues.value.map((c) => c.id === id ? next : c) },
+      undo: () => { outerClues.value = outerClues.value.map((c) => c.id === id ? prev : c) },
     })
   }
 
   function appendOuterClueDigit(digit: number) {
-    const key = selectedOuterClueKey.value
-    if (!key) return
-    const clue = outerClues.value[key]
+    const clue = selectedOuterClue.value
     if (!clue || clue.type === 'rossini') return
-    patchOuterClue(key, { ...clue }, { ...clue, value: (clue.value ?? 0) * 10 + digit })
+    patchOuterClue(clue.id, { ...clue }, { ...clue, value: (clue.value ?? 0) * 10 + digit })
   }
 
   function removeLastOuterClueDigit() {
-    const key = selectedOuterClueKey.value
-    if (!key) return
-    const clue = outerClues.value[key]
+    const clue = selectedOuterClue.value
     if (!clue || clue.value === null) return
-    patchOuterClue(key, { ...clue }, { ...clue, value: Math.floor(clue.value / 10) || null })
+    patchOuterClue(clue.id, { ...clue }, { ...clue, value: Math.floor(clue.value / 10) || null })
   }
 
   // Re-clicking a rossini arrow flips it, then removes it
-  function cycleRossiniDirection(key: string) {
-    const clue = outerClues.value[key]
+  function cycleRossiniDirection(location: string) {
+    const clue = outerClueAt(location)
     if (clue?.type !== 'rossini' || !clue.rossiniDirection) return
     if (clue.rossiniDirection === 'increasing') {
-      patchOuterClue(key, { ...clue }, { ...clue, rossiniDirection: 'decreasing' })
+      patchOuterClue(clue.id, { ...clue }, { ...clue, rossiniDirection: 'decreasing' })
     } else {
-      toggleOuterClue('rossini', key)
+      toggleOuterClue('rossini', location)
     }
   }
 
   // Re-clicking a little killer steps through the position's valid diagonal
   // directions, then removes it after the last one
-  function cycleLittleKillerDirection(key: string) {
-    const clue = outerClues.value[key]
+  function cycleLittleKillerDirection(location: string) {
+    const clue = outerClueAt(location)
     if (clue?.type !== 'little_killers' || !clue.direction) return
-    const pos = parseOuterKey(key)
+    const pos = parseOuterKey(location)
     if (!pos) return
     const gridStore = useGridStore()
     const dirs = validLittleKillerDirections(pos.row, pos.col, gridStore.rows, gridStore.cols)
     const idx = dirs.indexOf(clue.direction)
     if (idx === -1 || idx === dirs.length - 1) {
-      toggleOuterClue('little_killers', key)
+      toggleOuterClue('little_killers', location)
       return
     }
-    patchOuterClue(key, { ...clue }, { ...clue, direction: dirs[idx + 1] })
+    patchOuterClue(clue.id, { ...clue }, { ...clue, direction: dirs[idx + 1] })
   }
 
-  function removeOuterClueConstraint(id: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
-    const prevClues = { ...outerClues.value }
-    const prevSelected = selectedOuterClueKey.value
+  function removeOuterClueConstraint(type: string) {
+    if (!activeTypes.value.has(type)) return
+    const prevClues = [...outerClues.value]
+    const prevSelected = selectedOuterClueId.value
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
-        outerClues.value = Object.fromEntries(
-          Object.entries(outerClues.value).filter(([, clue]) => clue.type !== type),
-        )
-        if (selectedOuterClueKey.value && !outerClues.value[selectedOuterClueKey.value]) selectedOuterClueKey.value = null
+        dropActiveType(type)
+        outerClues.value = outerClues.value.filter((clue) => clue.type !== type)
+        if (selectedOuterClueId.value && !outerClues.value.some((c) => c.id === selectedOuterClueId.value)) {
+          selectedOuterClueId.value = null
+        }
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         outerClues.value = prevClues
-        selectedOuterClueKey.value = prevSelected
+        selectedOuterClueId.value = prevSelected
       },
     })
   }
 
   // Sidebar removal for region-category constraints (cages, clones, extra regions)
-  function removeRegionConstraint(id: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
+  function removeRegionConstraint(type: string) {
+    if (!activeTypes.value.has(type)) return
     const removedInstances = cosmeticInstances.value.filter(i => i.type === type)
     const prevSelected = selectedCageId.value
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
+        dropActiveType(type)
         cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== type)
         selectedCageId.value = null
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         cosmeticInstances.value = [...cosmeticInstances.value, ...removedInstances]
         selectedCageId.value = prevSelected
       },
     })
   }
 
-  function removeConnectorConstraint(id: string, type: string) {
-    const idx = activeConstraints.value.findIndex(c => c.id === id)
-    if (idx === -1) return
-    const constraint = activeConstraints.value[idx]
-    const prevDots = { ...connectorDots.value }
-    const prevSelected = selectedDotKey.value
+  function removeConnectorConstraint(type: string) {
+    if (!activeTypes.value.has(type)) return
+    const prevDots = [...connectorDots.value]
+    const prevSelected = selectedConnectorId.value
     execute({
       execute: () => {
-        activeConstraints.value = activeConstraints.value.filter(c => c.id !== id)
-        connectorDots.value = Object.fromEntries(
-          Object.entries(connectorDots.value).filter(([, dot]) => dot.type !== type),
-        )
-        if (selectedDotKey.value && !connectorDots.value[selectedDotKey.value]) selectedDotKey.value = null
+        dropActiveType(type)
+        connectorDots.value = connectorDots.value.filter((dot) => dot.type !== type)
+        if (selectedConnectorId.value && !connectorDots.value.some((d) => d.id === selectedConnectorId.value)) {
+          selectedConnectorId.value = null
+        }
       },
       undo: () => {
-        activeConstraints.value.splice(idx, 0, constraint)
+        addActiveType(type)
         connectorDots.value = prevDots
-        selectedDotKey.value = prevSelected
+        selectedConnectorId.value = prevSelected
       },
     })
   }
@@ -2044,6 +2079,7 @@ export const useEditorStore = defineStore('editor', () => {
     solverCellStates,
     selection,
     activeTool,
+    activeTypes,
     activeConstraints,
     puzzleName,
     puzzleAuthor,
@@ -2182,6 +2218,9 @@ export const useEditorStore = defineStore('editor', () => {
     // Exposed for the raw JSON editor's whole-state apply; tool actions build
     // their commands inside the store instead.
     pushHistory: execute,
+    // Record a Command whose forward action already ran (JSON apply records
+    // only after its guarded hydrate succeeds).
+    recordHistory: record,
     serializeHistory,
     hydrateHistory,
     reset,
@@ -2191,7 +2230,9 @@ export const useEditorStore = defineStore('editor', () => {
     toggleSingleCellMark,
     removeSingleCellConstraint,
     connectorDots,
-    selectedDotKey,
+    selectedConnectorId,
+    selectedConnector,
+    connectorAt,
     toggleConnectorDot,
     selectConnectorDot,
     setConnectorDotValue,
@@ -2230,7 +2271,9 @@ export const useEditorStore = defineStore('editor', () => {
     removeCloneCopy,
     removeCloneOriginal,
     outerClues,
-    selectedOuterClueKey,
+    selectedOuterClueId,
+    selectedOuterClue,
+    outerClueAt,
     toggleOuterClue,
     selectOuterClue,
     appendOuterClueDigit,

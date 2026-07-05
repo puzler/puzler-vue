@@ -3,6 +3,7 @@ import { defineSingleCellConstraint } from '../define'
 
 export default defineSingleCellConstraint({
   type: 'row_index_cells',
+  jsonKey: 'rowIndexCells',
   label: 'Row Index',
   pickerLabel: 'Row Index Cells',
   themeLabel: 'Row index cell',

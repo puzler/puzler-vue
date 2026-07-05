@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { serializePuzzle, parsePuzzleImport } from './puzzleExport'
-import { formatPuzzleJson, applyPuzzleJson, scanHexColors, bufferStatus } from './puzzleJson'
+import { formatPuzzleJson, applyPuzzleJson, scanHexColors, bufferStatus, lineForIssuePath } from './puzzleJson'
 
 describe('formatPuzzleJson', () => {
   beforeEach(() => {
@@ -48,18 +48,18 @@ describe('applyPuzzleJson', () => {
       d.grid = { rows: 6, cols: 6 }
       d.givenDigits = { r1c1: 4 }
       d.cosmetics = {
-        instances: [
-          { id: 't1', type: 'text', data: { presetId: 'p1', pos: { x: 1.3, y: 1.4 }, content: 'A' } },
-          { id: 't2', type: 'text', data: { presetId: 'p1', pos: { x: 1.6, y: 1.4 }, content: 'B' } },
+        texts: [
+          { pos: { x: 1.3, y: 1.4 }, content: 'A', preset: 'text-1' },
+          { pos: { x: 1.6, y: 1.4 }, content: 'B', preset: 'text-1' },
         ],
-        textPresets: [{ id: 'p1', label: 'Small', style: { color: '#336699', fontSize: 10, bold: false } }],
+        textPresets: [{ id: 'text-1', label: 'Small', style: { color: '#336699', fontSize: 10, bold: false } }],
       }
     })
 
     applyPuzzleJson(editor, grid, data)
 
     expect(grid.rows).toBe(6)
-    expect(editor.givenDigits).toEqual({ r1c1: 4 })
+    expect(editor.givenDigits).toEqual({ r0c0: 4 })
     // Two text cosmetics at off-center positions near the same cell pass
     // through untouched: no semantic validation.
     expect(editor.cosmeticInstances).toHaveLength(2)
@@ -76,7 +76,8 @@ describe('applyPuzzleJson', () => {
 
     applyPuzzleJson(editor, grid, data)
 
-    expect(editor.givenDigits).toEqual({ r2c2: 9 })
+    // Document keys are 1-indexed: doc r2c2 is internal r1c1.
+    expect(editor.givenDigits).toEqual({ r1c1: 9 })
     // One undo reverts the apply, the next reverts the earlier digit — the
     // apply neither cleared history nor split into multiple entries.
     editor.undo()
@@ -162,5 +163,68 @@ describe('bufferStatus', () => {
     expect(bufferStatus('b', 'a', 'a')).toBe('dirty')
     expect(bufferStatus('a', 'a', 'c')).toBe('behind')
     expect(bufferStatus('b', 'a', 'c')).toBe('dirty-behind')
+  })
+})
+
+describe('applyPuzzleJson failure recovery', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('restores the before-state and records no history when hydration throws', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setGivenDigitsForSelection(5)
+    const beforeText = formatPuzzleJson(editor, grid)
+
+    // A thermo whose lines is a string crashes hydration's .map — the kind of
+    // shape the validator normally blocks, exercised here as the backstop.
+    const broken = {
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
+      constraints: { thermometers: [{ bulb: 'r1c1', lines: 'x' }] },
+    } as never
+    const result = applyPuzzleJson(editor, grid, broken)
+
+    expect(result.ok).toBe(false)
+    expect(formatPuzzleJson(editor, grid)).toBe(beforeText)
+    expect(editor.givenDigits).toEqual({ r0c0: 5 })
+    // The failed apply left no history entry: one undo reverts the digit.
+    editor.undo()
+    expect(editor.givenDigits).toEqual({})
+    expect(editor.canUndo).toBe(false)
+  })
+})
+
+describe('lineForIssuePath', () => {
+  const text = JSON.stringify({
+    formatVersion: 4,
+    grid: { rows: 9, cols: 9 },
+    givenDigits: { r1c1: 5, banana: 9 },
+    constraints: {
+      thermometers: [{ bulb: 'r1c1', lines: [['r1c1', 'r1c2']] }],
+      arrows: [
+        { bulbCells: ['r2c1'], arrows: [['r2c1', 'r2c2']] },
+        { bulbCells: ['r5c5'], arrows: ['r5c5', 'r5c6'] },
+      ],
+    },
+  }, null, 2)
+  const lines = text.split('\n')
+  const lineText = (path: string) => lines[lineForIssuePath(text, path)! - 1]
+
+  it('resolves object keys, array indices, and nested paths', () => {
+    expect(lineText('givenDigits.banana')).toContain('"banana"')
+    // arrows[1] is the SECOND arrow object; its flat arrows array opens there.
+    expect(lineText('constraints.arrows[1].arrows')).toContain('"arrows": [')
+    expect(lineForIssuePath(text, 'constraints.arrows[1].arrows'))
+      .toBeGreaterThan(lineForIssuePath(text, 'constraints.arrows[0].arrows')!)
+    expect(lineText('constraints.thermometers[0].bulb')).toContain('"bulb"')
+  })
+
+  it('falls back to the deepest matched node for unmatched tails', () => {
+    // The migrated view can name keys the buffer lacks; point near, not nowhere.
+    expect(lineText('constraints.arrows[0].nope')).toContain('{')
+    expect(lineText('grid.regions.9')).toContain('"grid"')
   })
 })

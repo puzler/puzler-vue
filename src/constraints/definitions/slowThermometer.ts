@@ -3,6 +3,7 @@ import { defineThermoConstraint } from '../define'
 
 export default defineThermoConstraint({
   type: 'slow_thermometer',
+  jsonKey: 'slowThermometers',
   label: 'Slow Thermometer',
   pickerLabel: 'Slow Thermometers',
   themeLabel: 'Slow thermometer',

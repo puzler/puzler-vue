@@ -2,6 +2,7 @@ import { defineLineConstraint } from '../define'
 
 export default defineLineConstraint({
   type: 'region_sum',
+  jsonKey: 'regionSumLines',
   label: 'Region Sum',
   pickerLabel: 'Region Sum Lines',
   themeLabel: 'Region sum line',

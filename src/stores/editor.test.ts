@@ -438,3 +438,144 @@ describe('preset removal cascade', () => {
     expect(editor.cosmeticCellColors).toEqual({ r0c0: first, r1c1: second, r2c2: second })
   })
 })
+
+// The connector/outer-clue stores are ordered instance arrays (the last
+// instance at a location is topmost). UI placement keeps one per location;
+// stacks arrive only via the JSON editor, so placement/removal/undo must be
+// duplicate-aware.
+describe('connector instances', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('places, auto-selects, and toggles off a dot; undo restores both steps', () => {
+    const editor = useEditorStore()
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    expect(editor.connectorDots).toHaveLength(1)
+    const placed = editor.connectorDots[0]
+    expect(placed).toMatchObject({ type: 'difference_dots', location: 'r0c0|r0c1', value: null })
+    expect(editor.selectedConnectorId).toBe(placed.id)
+
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    expect(editor.connectorDots).toHaveLength(0)
+    expect(editor.selectedConnectorId).toBeNull()
+
+    editor.undo()
+    expect(editor.connectorDots).toEqual([placed])
+    expect(editor.selectedConnectorId).toBe(placed.id)
+    editor.undo()
+    expect(editor.connectorDots).toHaveLength(0)
+  })
+
+  it('placing another type replaces everything at that location', () => {
+    const editor = useEditorStore()
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    const dot = editor.connectorDots[0]
+    editor.toggleConnectorDot('xv', 'r0c0|r0c1')
+    expect(editor.connectorDots).toHaveLength(1)
+    expect(editor.connectorDots[0].type).toBe('xv')
+
+    editor.undo()
+    expect(editor.connectorDots).toEqual([dot])
+  })
+
+  it('peels a JSON-authored stack topmost-first; selection resolves to the topmost', () => {
+    const editor = useEditorStore()
+    editor.connectorDots = [
+      { id: 'a', type: 'difference_dots', location: 'r0c0|r0c1', value: 1 },
+      { id: 'b', type: 'difference_dots', location: 'r0c0|r0c1', value: 2 },
+    ]
+    editor.selectConnectorDot('r0c0|r0c1')
+    expect(editor.selectedConnectorId).toBe('b')
+    expect(editor.selectedConnector?.value).toBe(2)
+
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    expect(editor.connectorDots.map((d) => d.id)).toEqual(['a'])
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    expect(editor.connectorDots).toHaveLength(0)
+
+    editor.undo()
+    editor.undo()
+    expect(editor.connectorDots.map((d) => d.id)).toEqual(['a', 'b'])
+  })
+
+  it('edits values on the selected instance; quadruple digits append and pop', () => {
+    const editor = useEditorStore()
+    editor.toggleConnectorDot('quadruples', '+r4c4')
+    editor.addQuadrupleDigit(3)
+    editor.addQuadrupleDigit(7)
+    expect(editor.selectedConnector?.value).toEqual([3, 7])
+    editor.removeLastQuadrupleDigit()
+    expect(editor.selectedConnector?.value).toEqual([3])
+    editor.undo()
+    expect(editor.selectedConnector?.value).toEqual([3, 7])
+  })
+
+  it('removing the constraint type clears only that type, undo restores order', () => {
+    const editor = useEditorStore()
+    editor.addConstraint('difference_dots')
+    editor.toggleConnectorDot('difference_dots', 'r0c0|r0c1')
+    editor.toggleConnectorDot('xv', 'r2c2|r2c3')
+    const before = [...editor.connectorDots]
+
+    editor.removeConnectorConstraint('difference_dots')
+    expect(editor.connectorDots.map((d) => d.type)).toEqual(['xv'])
+
+    editor.undo()
+    expect(editor.connectorDots).toEqual(before)
+  })
+})
+
+describe('outer clue instances', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('places with type defaults, appends digits, and round-trips undo', () => {
+    const editor = useEditorStore()
+    editor.toggleOuterClue('x_sums', 'o:r-1c3')
+    const placed = editor.outerClues[0]
+    expect(placed).toMatchObject({ type: 'x_sums', location: 'o:r-1c3', value: null })
+    expect(editor.selectedOuterClueId).toBe(placed.id)
+
+    editor.appendOuterClueDigit(1)
+    editor.appendOuterClueDigit(5)
+    expect(editor.selectedOuterClue?.value).toBe(15)
+    editor.removeLastOuterClueDigit()
+    expect(editor.selectedOuterClue?.value).toBe(1)
+
+    editor.undo()
+    expect(editor.selectedOuterClue?.value).toBe(15)
+  })
+
+  it('rossini starts increasing, flips, then removes on the third click', () => {
+    const editor = useEditorStore()
+    editor.toggleOuterClue('rossini', 'o:r-1c2')
+    expect(editor.outerClues[0].rossiniDirection).toBe('increasing')
+    editor.cycleRossiniDirection('o:r-1c2')
+    expect(editor.outerClues[0].rossiniDirection).toBe('decreasing')
+    editor.cycleRossiniDirection('o:r-1c2')
+    expect(editor.outerClues).toHaveLength(0)
+  })
+
+  it('replaces a different-type clue at the same position and restores it on undo', () => {
+    const editor = useEditorStore()
+    editor.toggleOuterClue('x_sums', 'o:r-1c3')
+    const xsum = editor.outerClues[0]
+    editor.toggleOuterClue('sandwich_sums', 'o:r-1c3')
+    expect(editor.outerClues).toHaveLength(1)
+    expect(editor.outerClues[0].type).toBe('sandwich_sums')
+    editor.undo()
+    expect(editor.outerClues).toEqual([xsum])
+  })
+
+  it('selection at a stacked location picks the topmost instance', () => {
+    const editor = useEditorStore()
+    editor.outerClues = [
+      { id: 'a', type: 'x_sums', location: 'o:r-1c3', value: 10 },
+      { id: 'b', type: 'x_sums', location: 'o:r-1c3', value: 20 },
+    ]
+    editor.selectOuterClue('o:r-1c3')
+    expect(editor.selectedOuterClueId).toBe('b')
+  })
+})

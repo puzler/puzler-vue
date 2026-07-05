@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { GLOBAL_VARIANTS } from '@/types/constraints'
-import { LOCAL_TOOL_TYPES, pickerOptionsFor, toolboxCategory } from '@/constraints/registry'
+import { LOCAL_TOOL_TYPES, pickerOptionsFor } from '@/constraints/registry'
 import LocalConstraintPickerModal from './LocalConstraintPickerModal.vue'
 import ConstraintPickerModal from './ConstraintPickerModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -71,40 +71,40 @@ function constraintsFor(key: string) {
   return editor.activeConstraints.filter((c) => c.category === key)
 }
 
-function handleLocalPick(type: string, label: string) {
-  // The registry's toolbox category doubles as the storage category, which routes
-  // removal to the right editor cleanup action later.
-  const category = toolboxCategory(type) ?? 'local'
-  editor.addConstraint(type, label, category)
+function handleLocalPick(type: string) {
+  editor.addConstraint(type)
   if (LOCAL_TOOL_TYPES.has(type)) editor.setActiveTool(type)
 }
 
-function handlePick(type: string, label: string) {
+function handlePick(type: string) {
   if (!pickerCategory.value) return
-  editor.addConstraint(type, label, pickerCategory.value.key)
+  editor.addConstraint(type)
   if (pickerCategory.value.mode !== 'list') editor.setActiveTool(type)
 }
 
+// Removal routes by the chip's registry category to the action that also
+// clears that category's placed state.
 function handleRemoveConfirm() {
   if (!confirmTarget.value) return
-  if (editor.activeTool === confirmTarget.value.type) editor.setActiveTool('digit')
-  if (confirmTarget.value.category === 'global') {
-    const variantTypes = (GLOBAL_VARIANTS[confirmTarget.value.type] ?? []).map(v => v.type)
-    editor.removeGlobalConstraint(confirmTarget.value.id, variantTypes)
-  } else if (confirmTarget.value.category === 'cosmetic') {
-    editor.removeCosmeticType(confirmTarget.value.id, confirmTarget.value.type)
-  } else if (confirmTarget.value.category === 'line') {
-    editor.removeConstraintLine(confirmTarget.value.id, confirmTarget.value.type)
-  } else if (confirmTarget.value.category === 'single_cell') {
-    editor.removeSingleCellConstraint(confirmTarget.value.id, confirmTarget.value.type)
-  } else if (confirmTarget.value.category === 'connector') {
-    editor.removeConnectorConstraint(confirmTarget.value.id, confirmTarget.value.type)
-  } else if (confirmTarget.value.category === 'region') {
-    editor.removeRegionConstraint(confirmTarget.value.id, confirmTarget.value.type)
-  } else if (confirmTarget.value.category === 'outer') {
-    editor.removeOuterClueConstraint(confirmTarget.value.id, confirmTarget.value.type)
+  const { type, category } = confirmTarget.value
+  if (editor.activeTool === type) editor.setActiveTool('digit')
+  if (category === 'global') {
+    const variantTypes = (GLOBAL_VARIANTS[type] ?? []).map(v => v.type)
+    editor.removeGlobalConstraint(type, variantTypes)
+  } else if (category === 'cosmetic') {
+    editor.removeCosmeticType(type)
+  } else if (category === 'line') {
+    editor.removeConstraintLine(type)
+  } else if (category === 'single_cell') {
+    editor.removeSingleCellConstraint(type)
+  } else if (category === 'connector') {
+    editor.removeConnectorConstraint(type)
+  } else if (category === 'region') {
+    editor.removeRegionConstraint(type)
+  } else if (category === 'outer') {
+    editor.removeOuterClueConstraint(type)
   } else {
-    editor.removeConstraint(confirmTarget.value.id)
+    editor.removeConstraint(type)
   }
   confirmId.value = null
 }

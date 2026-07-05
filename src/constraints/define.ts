@@ -37,6 +37,7 @@ export function defineConstraint<const D extends ConstraintDef>(def: D): D {
 export interface LineConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel?: string
   themeLabel?: string
   color: Color
@@ -49,6 +50,7 @@ export function defineLineConstraint<const I extends LineConstraintInput>(
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'line', pickerLabel: input.pickerLabel, pickerGroup: 'lines' },
     filter: { group: 'Lines' },
     icon: { path: mdiChartLineVariant, colorFromLine: true },
@@ -66,6 +68,7 @@ export function defineLineConstraint<const I extends LineConstraintInput>(
 export interface ThermoConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel: string
   themeLabel?: string
   iconPath: string
@@ -80,6 +83,7 @@ export function defineThermoConstraint<const I extends ThermoConstraintInput>(
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'line', pickerLabel: input.pickerLabel, pickerGroup: 'multi_cell' },
     filter: { group: 'Lines', order: input.filterOrder },
     icon: { path: input.iconPath },
@@ -96,6 +100,7 @@ export function defineThermoConstraint<const I extends ThermoConstraintInput>(
 export interface ConnectorConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel?: string
   themeLabel?: string
   icon: ConstraintIconDef
@@ -112,6 +117,7 @@ export function defineConnectorConstraint<const I extends ConnectorConstraintInp
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'connector', pickerLabel: input.pickerLabel, pickerGroup: 'cell_connectors' },
     filter: { group: 'Connectors' },
     icon: input.icon,
@@ -130,6 +136,7 @@ export function defineConnectorConstraint<const I extends ConnectorConstraintInp
 export interface SingleCellConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel: string
   themeLabel?: string
   icon: ConstraintIconDef
@@ -148,6 +155,7 @@ export function defineSingleCellConstraint<const I extends SingleCellConstraintI
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'single_cell', pickerLabel: input.pickerLabel, pickerGroup: 'single_cell' },
     filter: { group: 'Cells' },
     icon: input.icon,
@@ -168,6 +176,7 @@ export function defineSingleCellConstraint<const I extends SingleCellConstraintI
 export interface RegionConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel: string
   themeLabel?: string
   icon: ConstraintIconDef
@@ -185,6 +194,7 @@ export function defineRegionConstraint<const I extends RegionConstraintInput>(
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'region', pickerLabel: input.pickerLabel, pickerGroup: 'multi_cell' },
     filter: { group: 'Cages & Regions' },
     icon: input.icon,
@@ -203,6 +213,7 @@ export function defineRegionConstraint<const I extends RegionConstraintInput>(
 export interface OuterClueConstraintInput {
   type: string
   label: string
+  jsonKey: string
   pickerLabel?: string
   themeLabel?: string
   iconPath: string
@@ -215,6 +226,7 @@ export function defineOuterClueConstraint<const I extends OuterClueConstraintInp
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     toolbox: { category: 'outer', pickerLabel: input.pickerLabel, pickerGroup: 'outer_clues' },
     filter: { group: 'Outer Clues' },
     icon: { path: input.iconPath },
@@ -231,6 +243,10 @@ export function defineOuterClueConstraint<const I extends OuterClueConstraintInp
 export interface GlobalConstraintInput {
   type: string
   label: string
+  // Document group key under `globals`, plus optional custom-value field mapping
+  // (document field → CustomGlobalConstraint type) and the self-toggle name for
+  // groups whose own type doubles as a variant string (disjoint_sets).
+  json: { key: string; customValues?: Readonly<Record<string, string>>; selfToggleKey?: string }
   iconPath: string
   // Categories are archive-filterable by default; `false` opts out (chess — its
   // variants carry the filters instead), a label overrides the chip wording.
@@ -244,6 +260,7 @@ export function defineGlobalConstraint<const I extends GlobalConstraintInput>(
   const def = {
     type: input.type,
     label: input.label,
+    json: input.json,
     toolbox: { category: 'global' },
     filter: input.filter === false
       ? undefined
@@ -258,6 +275,8 @@ export function defineGlobalConstraint<const I extends GlobalConstraintInput>(
 export interface GlobalVariantInput {
   type: string
   label: string
+  // Toggle name inside the parent group's document object (e.g. 'knight').
+  jsonKey: string
   variantOf: string
   excludes?: string
   // Variants filtered individually on the listing pages carry their own chip + icon.
@@ -277,6 +296,7 @@ export function defineGlobalVariant<const I extends GlobalVariantInput>(
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey },
     variantOf: input.variantOf,
     excludes: input.excludes,
     filter: input.filterLabel !== undefined ? { group: 'Global', label: input.filterLabel } : undefined,
@@ -292,6 +312,9 @@ export function defineGlobalVariant<const I extends GlobalVariantInput>(
 export interface CosmeticConstraintInput {
   type: string
   label: string
+  // Document key under `cosmetics` + the sibling presets array key.
+  jsonKey: string
+  presetsKey: string
   iconPath: string
   panelId: ConstraintPanelId
 }
@@ -302,6 +325,7 @@ export function defineCosmeticConstraint<const I extends CosmeticConstraintInput
   const def = {
     type: input.type,
     label: input.label,
+    json: { key: input.jsonKey, presetsKey: input.presetsKey },
     toolbox: { category: 'cosmetic' },
     icon: { path: input.iconPath },
     panel: { id: input.panelId },

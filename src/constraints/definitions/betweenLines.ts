@@ -21,6 +21,7 @@ export const BETWEEN_LINE_STYLE = {
 
 export default defineConstraint({
   type: 'between_lines',
+  json: { key: 'betweenLines' },
   label: 'Between Line',
   toolbox: { category: 'line', pickerLabel: 'Between Lines', pickerGroup: 'lines' },
   filter: { group: 'Lines' },

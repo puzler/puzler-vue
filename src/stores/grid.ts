@@ -17,7 +17,7 @@ function dimensionsForSize(size: number): { width: number; height: number } {
   }
 }
 
-function regionsForSize(size: number): number[][] {
+export function regionsForSize(size: number): number[][] {
   const { height, width } = dimensionsForSize(size)
   const regionsPerRow = size / width
   return Array.from(
@@ -29,7 +29,7 @@ function regionsForSize(size: number): number[][] {
   )
 }
 
-function boxIndexToLabel(index: number): string {
+export function boxIndexToLabel(index: number): string {
   if (index < 9) return String(index + 1)
   const code = 'A'.charCodeAt(0) + (index - 9)
   return code <= 90 ? String.fromCharCode(code) : '?'

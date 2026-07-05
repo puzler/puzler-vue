@@ -64,8 +64,8 @@ export function buildSolverPuzzle(options: { includeSolverState?: boolean } = {}
     singleCellMarks: Object.fromEntries(
       Object.entries(editor.singleCellMarks).map(([type, cells]) => [type, [...cells]]),
     ),
-    connectorDots: { ...editor.connectorDots },
-    outerClues: { ...editor.outerClues },
+    connectorDots: [...editor.connectorDots],
+    outerClues: [...editor.outerClues],
     constraintInstances: editor.cosmeticInstances.map((i) => ({ type: i.type, data: i.data })),
   }
 

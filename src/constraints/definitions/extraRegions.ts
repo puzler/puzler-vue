@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineRegionConstraint({
   type: 'extra_regions',
+  jsonKey: 'extraRegions',
   label: 'Extra Region',
   pickerLabel: 'Extra Regions',
   themeLabel: 'Extra region',

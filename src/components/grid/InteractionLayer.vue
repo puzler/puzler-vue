@@ -316,7 +316,7 @@ function nearestLittleKillerDirection(pos: { row: number; col: number }, event: 
 
 function placeOuterClue(pos: { row: number; col: number }, key: string, event: PointerEvent) {
   if (editor.activeTool === 'little_killers') {
-    if (editor.outerClues[key]?.type === 'little_killers') {
+    if (editor.outerClueAt(key)?.type === 'little_killers') {
       editor.cycleLittleKillerDirection(key)
     } else {
       editor.toggleOuterClue('little_killers', key, nearestLittleKillerDirection(pos, event))
@@ -324,7 +324,7 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
     return
   }
   if (editor.activeTool === 'rossini') {
-    if (editor.outerClues[key]?.type === 'rossini') {
+    if (editor.outerClueAt(key)?.type === 'rossini') {
       editor.cycleRossiniDirection(key)
     } else {
       editor.toggleOuterClue('rossini', key)
@@ -410,7 +410,7 @@ function onPointerDown(event: PointerEvent) {
     }
     const key = outerKey(pos.row, pos.col)
     if (mode === 'select') {
-      editor.selectOuterClue(editor.outerClues[key] ? key : null)
+      editor.selectOuterClue(editor.outerClueAt(key) ? key : null)
     } else {
       placeOuterClue(pos, key, event)
     }

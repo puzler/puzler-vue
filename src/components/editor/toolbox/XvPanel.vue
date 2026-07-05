@@ -14,8 +14,7 @@ const MODES = [
 const BTN = 'aspect-square rounded-lg bg-surface border border-line text-ink-text font-display text-xl font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
 
 const selectedXv = computed(() => {
-  const key = editor.selectedDotKey
-  const dot = key ? editor.connectorDots[key] : null
+  const dot = editor.selectedConnector
   return dot?.type === 'xv' ? dot : null
 })
 

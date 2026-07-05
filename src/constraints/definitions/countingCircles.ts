@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineSingleCellConstraint({
   type: 'counting_circles',
+  jsonKey: 'countingCircles',
   label: 'Counting Circles',
   pickerLabel: 'Counting Circles',
   themeLabel: 'Counting circle',

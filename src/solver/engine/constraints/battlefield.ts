@@ -16,7 +16,8 @@ export default defineModule<BattlefieldSpec>({
   kind: 'battlefield',
   fromEditor: (ctx) => {
     const specs: BattlefieldSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'battlefield' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue

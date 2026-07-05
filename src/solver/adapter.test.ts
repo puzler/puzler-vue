@@ -11,7 +11,7 @@ describe('buildSolverPuzzle', () => {
     // dot.value is a reactive store proxy; if it leaks into the spec, postMessage
     // to the solver worker throws DataCloneError and the UI hangs forever.
     const editor = useEditorStore()
-    editor.connectorDots = { '+r2c2': { type: 'quadruples', value: [1, 2, 3, 4] } }
+    editor.connectorDots = [{ id: 'q1', type: 'quadruples', location: '+r2c2', value: [1, 2, 3, 4] }]
 
     const { puzzle } = buildSolverPuzzle()
     const quad = puzzle.constraints.find((c) => c.kind === 'quadruple') as unknown as { required: number[] }

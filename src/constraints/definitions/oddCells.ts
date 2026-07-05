@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineSingleCellConstraint({
   type: 'odd_cells',
+  jsonKey: 'oddCells',
   label: 'Odd',
   pickerLabel: 'Odd Cells',
   themeLabel: 'Odd cell',

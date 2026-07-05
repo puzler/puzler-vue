@@ -9,6 +9,7 @@ export const CAGE_STYLE = {
 
 export default defineRegionConstraint({
   type: 'killer_cage',
+  jsonKey: 'killerCages',
   label: 'Killer Cage',
   pickerLabel: 'Killer Cages',
   themeLabel: 'Killer cage',

@@ -58,6 +58,14 @@ export function useUndoRedo(applySnapshot?: (snapshot: Record<string, CellSnapsh
     redoStack.value = []
   }
 
+  // Push without executing — for callers whose forward action already ran
+  // (the JSON apply runs its swap inside a try/catch and only records on
+  // success, so a failed hydrate never leaves a poisoned history entry).
+  function record(entry: HistoryEntry): void {
+    undoStack.value = [...undoStack.value, entry]
+    redoStack.value = []
+  }
+
   function undo(): void {
     const stack = undoStack.value
     if (!stack.length) return
@@ -95,5 +103,5 @@ export function useUndoRedo(applySnapshot?: (snapshot: Record<string, CellSnapsh
     redoStack.value = history?.redo ? [...history.redo] : []
   }
 
-  return { canUndo, canRedo, execute, undo, redo, clear, serialize, hydrate }
+  return { canUndo, canRedo, execute, record, undo, redo, clear, serialize, hydrate }
 }

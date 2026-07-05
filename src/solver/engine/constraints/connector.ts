@@ -19,7 +19,8 @@ export default defineModule<ConnectorSpec>({
   kind: 'connector',
   fromEditor: (ctx) => {
     const specs: ConnectorSpec[] = []
-    for (const [key, dot] of Object.entries(ctx.connectorDots)) {
+    for (const dot of ctx.connectorDots) {
+      const key = dot.location
       if (!key.includes('|')) continue
       const [ka, kb] = key.split('|')
       const a = ctx.keyToIndex(ka)

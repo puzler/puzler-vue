@@ -17,7 +17,8 @@ export default defineModule<NumberedRoomsSpec>({
   kind: 'numbered_rooms',
   fromEditor: (ctx) => {
     const specs: NumberedRoomsSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'numbered_rooms' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue

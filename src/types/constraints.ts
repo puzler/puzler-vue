@@ -96,16 +96,29 @@ export type InequalityValue = '<' | '>'
 
 export const QUADRUPLE_MAX_DIGITS = 4
 
-// One connector per location — placing one type where another exists replaces
-// it. Border types share border keys; quadruples live at corner keys, so they
-// never collide with the border types.
+// The value slot shared by all connector types: dots hold a number; XV holds
+// 'X' or 'V'; inequality holds '<' or '>'; quadruples hold up to four digits.
+// null means the default: difference of 1, ratio of 2:1, or an unset
+// XV/inequality (rendered as underscore).
+export type ConnectorValue = number | XvValue | InequalityValue | number[] | null
+
+// The v3 document shape for a connector (location-keyed map value). Still used
+// by the serialization bridge; the store itself holds ConnectorInstance[].
 export interface ConnectorDot {
   type: BorderConnectorType
-  // Dots hold a number; XV holds 'X' or 'V'; inequality holds '<' or '>';
-  // quadruples hold up to four digits sorted ascending. null means the
-  // default: difference of 1, ratio of 2:1, or an unset XV/inequality
-  // (rendered as underscore)
-  value: number | XvValue | InequalityValue | number[] | null
+  value: ConnectorValue
+}
+
+// A placed connector. `location` is the canonical border key (border types) or
+// corner key (quadruples). Instances are ordered: the LAST instance at a
+// location is the topmost one for rendering and selection. UI placement keeps
+// one connector per location; stacks can only be authored via the JSON editor.
+// ids are session-runtime state — regenerated on load, never serialized.
+export interface ConnectorInstance {
+  id: string
+  type: BorderConnectorType
+  location: string
+  value: ConnectorValue
 }
 
 // Canonical key for the border between two orthogonally adjacent cells,
@@ -159,9 +172,22 @@ export type LittleKillerDirection = 'up-left' | 'up-right' | 'down-left' | 'down
 // clue's edge (digits rise into the grid), 'decreasing' points at the edge.
 export type RossiniDirection = 'increasing' | 'decreasing'
 
+// The v3 document shape for an outer clue (location-keyed map value). Still
+// used by the serialization bridge; the store itself holds OuterClueInstance[].
 export interface OuterClue {
   type: OuterClueType
   // null shows as an underscore (unset); rossini clues carry no value
+  value: number | null
+  direction?: LittleKillerDirection
+  rossiniDirection?: RossiniDirection
+}
+
+// A placed outer clue. Same instance model as ConnectorInstance: ordered, last
+// at a location wins, one per location through the UI, ids never serialized.
+export interface OuterClueInstance {
+  id: string
+  type: OuterClueType
+  location: string
   value: number | null
   direction?: LittleKillerDirection
   rossiniDirection?: RossiniDirection

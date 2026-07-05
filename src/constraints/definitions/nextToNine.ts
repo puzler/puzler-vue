@@ -3,6 +3,7 @@ import { defineOuterClueConstraint } from '../define'
 
 export default defineOuterClueConstraint({
   type: 'next_to_nine',
+  jsonKey: 'nextToNine',
   label: 'Next to Nine',
   themeLabel: 'Next-to-nine clue',
   iconPath: mdiNumeric9CircleOutline,

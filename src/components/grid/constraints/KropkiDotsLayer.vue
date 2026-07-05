@@ -25,13 +25,13 @@ interface RenderedDot {
 }
 
 const dots = computed<RenderedDot[]>(() =>
-  Object.entries(editor.connectorDots).flatMap(([key, dot]) => {
+  editor.connectorDots.flatMap((dot) => {
     if ((dot.type !== 'difference_dots' && dot.type !== 'ratio_dots') || Array.isArray(dot.value)) return []
     return [{
-      key,
-      ...borderMidpoint(key),
+      key: dot.id,
+      ...borderMidpoint(dot.location),
       value: dot.value,
-      selected: editor.selectedDotKey === key,
+      selected: editor.selectedConnectorId === dot.id,
       style: dotStyle(dot.type),
     }]
   }),

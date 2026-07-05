@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineConnectorConstraint({
   type: 'xv',
+  jsonKey: 'xv',
   label: 'XV',
   themeLabel: 'XV clue',
   icon: { path: mdiAlphaVCircle },

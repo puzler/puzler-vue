@@ -81,7 +81,7 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
-      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: {}, outerClues: {},
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: [], outerClues: [],
       constraintInstances: [
         { type: 'entropic_lines', data: { cells: ['r0c0', 'r0c1', 'r0c2'] } },
         { type: 'modular_lines', data: { cells: ['r5c0', 'r5c1'] } },
@@ -186,7 +186,7 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
-      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: {}, outerClues: {},
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, connectorDots: [], outerClues: [],
       constraintInstances: [
         { type: 'nabner_lines', data: { cells: ['r0c0', 'r0c1'] } },
         { type: 'nabner_lines', data: { cells: ['r0c1', 'r1c1'] } },
@@ -434,11 +434,11 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
-      variants: new Set(), customGlobals: [], singleCellMarks: {}, outerClues: {}, constraintInstances: [],
-      connectorDots: {
-        'r0c0|r0c1': { type: 'inequality', value: '>' }, // r0c0 > r0c1 -> smaller cell is r0c1
-        'r1c0|r1c1': { type: 'inequality', value: null }, // unset: no spec
-      },
+      variants: new Set(), customGlobals: [], singleCellMarks: {}, outerClues: [], constraintInstances: [],
+      connectorDots: [
+        { id: 'i1', type: 'inequality', location: 'r0c0|r0c1', value: '>' }, // r0c0 > r0c1 -> smaller cell is r0c1
+        { id: 'i2', type: 'inequality', location: 'r1c0|r1c1', value: null }, // unset: no spec
+      ],
     }
     expect(connector.fromEditor(ctx)).toEqual([{ kind: 'connector', relation: 'less', value: 0, a: 1, b: 0 }])
   })

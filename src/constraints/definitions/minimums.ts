@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineSingleCellConstraint({
   type: 'minimums',
+  jsonKey: 'minimums',
   label: 'Minimum',
   pickerLabel: 'Minimums',
   icon: { path: mdiUnfoldLessVertical },

@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineConnectorConstraint({
   type: 'ratio_dots',
+  jsonKey: 'ratioDots',
   label: 'Ratio',
   pickerLabel: 'Ratio Dots',
   themeLabel: 'Ratio dot',

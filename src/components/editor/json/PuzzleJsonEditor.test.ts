@@ -89,7 +89,7 @@ describe('PuzzleJsonEditor', () => {
 
     const doc = JSON.parse(formatPuzzleJson(editor, grid))
     doc.grid = { rows: 6, cols: 6 }
-    doc.givenDigits = { r0c0: 5 }
+    doc.givenDigits = { r1c1: 5 }
     await typeIntoBuffer(JSON.stringify(doc))
 
     await applyButton(wrapper).trigger('click')
@@ -102,11 +102,34 @@ describe('PuzzleJsonEditor', () => {
     expect(cm.setTextCalls.at(-1)).toBe(formatPuzzleJson(editor, grid))
   })
 
-  it('surfaces structural errors from parsePuzzleImport in the footer', async () => {
+  it('surfaces structural errors from parsePuzzleImport in the error panel', async () => {
     const wrapper = render()
     await typeIntoBuffer('{"formatVersion": 3}')
     await applyButton(wrapper).trigger('click')
-    expect(wrapper.text()).toContain('grid dimensions')
+    expect(wrapper.find('[data-testid="apply-errors"]').text()).toContain('grid dimensions')
+    expect(wrapper.text()).toContain('1 problem')
+  })
+
+  it('lists every validation error in full in the scrollable panel', async () => {
+    const wrapper = render()
+    await typeIntoBuffer(JSON.stringify({
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
+      givenDigits: { banana: 1 },
+      constraints: { arrows: [{ bulbCells: ['r2c1'], arrows: ['r2c1', 'r2c2'] }] },
+    }))
+    await applyButton(wrapper).trigger('click')
+    const panel = wrapper.find('[data-testid="apply-errors"]')
+    expect(panel.exists()).toBe(true)
+    // Both errors, complete with path and line, nothing summarized away.
+    expect(panel.text()).toContain('givenDigits.banana')
+    expect(panel.text()).toContain('constraints.arrows[0].arrows')
+    expect(panel.text()).toContain('expected Array<Array<string>>, got Array<string>')
+    expect(panel.text()).toMatch(/L\d+/)
+    expect(wrapper.text()).toContain('2 problems')
+    // Editing clears the panel.
+    await typeIntoBuffer('{}')
+    expect(wrapper.find('[data-testid="apply-errors"]').exists()).toBe(false)
   })
 
   it('reports "No changes" when the document matches the store', async () => {

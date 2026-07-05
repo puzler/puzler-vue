@@ -111,7 +111,7 @@ export function useGridKeyboard() {
     // A selected XV clue captures X/V input, a selected inequality captures
     // </> (comma/period work unshifted). Delete falls through to the generic
     // handler, which routes it to the selected connector.
-    const selectedDot = editor.selectedDotKey ? editor.connectorDots[editor.selectedDotKey] : null
+    const selectedDot = editor.selectedConnector
     if (selectedDot?.type === 'xv') {
       const letter = event.key.toUpperCase()
       if (letter === 'X' || letter === 'V') {
@@ -190,7 +190,7 @@ export function useGridKeyboard() {
 
     // A selected cage or outer clue captures every digit 0-9 with append
     // semantics — no grid-size cap and 0 appends rather than clearing
-    if ((editor.selectedCageId !== null || editor.selectedOuterClueKey !== null) && digit !== null) {
+    if ((editor.selectedCageId !== null || editor.selectedOuterClueId !== null) && digit !== null) {
       event.preventDefault()
       editor.placeDigitForSelection(digit)
       return

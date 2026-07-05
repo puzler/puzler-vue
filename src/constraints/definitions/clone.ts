@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineRegionConstraint({
   type: 'clone',
+  jsonKey: 'clones',
   label: 'Clone',
   pickerLabel: 'Clones',
   icon: { path: mdiCheckboxMultipleBlank },

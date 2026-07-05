@@ -1,4 +1,4 @@
-import type { ConnectorDot, OuterClue, CustomGlobalConstraint } from '@/types/constraints'
+import type { ConnectorInstance, OuterClueInstance, CustomGlobalConstraint } from '@/types/constraints'
 
 // Plain snapshot of the editor-store collections a constraint module needs to
 // produce its specs, plus resolved grid dimensions and a cell-key→index helper.
@@ -21,10 +21,11 @@ export interface AdapterContext {
   customGlobals: CustomGlobalConstraint[]
   // single-cell constraint type → list of cell keys.
   singleCellMarks: Record<string, string[]>
-  // border/corner key → connector dot.
-  connectorDots: Record<string, ConnectorDot>
-  // outer ring key → clue.
-  outerClues: Record<string, OuterClue>
+  // Placed connectors/outer clues, in instance order. Each instance carries its
+  // location key; same-location duplicates (JSON-authored) are independent
+  // constraints to the solver.
+  connectorDots: ConnectorInstance[]
+  outerClues: OuterClueInstance[]
   // Typed constraint instances drawn on the grid (lines, thermos, arrows, cages,
   // extra regions, clones): { type, data } with data shaped per constraint.
   constraintInstances: Array<{ type: string; data: unknown }>

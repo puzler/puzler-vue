@@ -26,6 +26,7 @@ export const LOCKOUT_LINE_STYLE = {
 
 export default defineConstraint({
   type: 'lockout_lines',
+  json: { key: 'lockoutLines' },
   label: 'Lockout Lines',
   toolbox: { category: 'line', pickerGroup: 'lines' },
   filter: { group: 'Lines' },

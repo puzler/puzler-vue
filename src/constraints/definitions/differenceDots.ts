@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineConnectorConstraint({
   type: 'difference_dots',
+  jsonKey: 'differenceDots',
   label: 'Difference',
   pickerLabel: 'Difference Dots',
   themeLabel: 'Difference dot',

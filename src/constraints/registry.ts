@@ -226,6 +226,53 @@ export const GLOBAL_VARIANTS: Record<string, GlobalVariant[]> = Object.fromEntri
   ]),
 )
 
+// ── Derived: document key tables (serialized puzzle format v4) ─────────────────
+//
+// Document-level keys: local constraint and cosmetic types key their sections under
+// `constraints`/`cosmetics`; global CATEGORY types key their group under `globals`.
+// Variant defs are excluded — their json.key is a toggle name inside the group
+// object, not a document key (see GLOBAL_GROUPS_JSON).
+
+export const TYPE_TO_JSON_KEY: ReadonlyMap<string, string> = new Map(
+  ALL.filter((d) => d.json !== undefined && d.toolbox !== undefined).map((d) => [d.type, d.json!.key]),
+)
+
+export const JSON_KEY_TO_TYPE: ReadonlyMap<string, string> = new Map(
+  Array.from(TYPE_TO_JSON_KEY, ([type, key]) => [key, type]),
+)
+
+export function jsonKeyFor(type: string): string | undefined {
+  return TYPE_TO_JSON_KEY.get(type)
+}
+
+// Presets array key for cosmetic kinds (the document sibling of the kind's key).
+export const PRESETS_KEY_BY_TYPE: ReadonlyMap<string, string> = new Map(
+  ALL.filter((d) => d.json?.presetsKey !== undefined).map((d) => [d.type, d.json!.presetsKey!]),
+)
+
+export interface GlobalGroupJson {
+  type: string
+  key: string
+  // Toggle name → variant type string; a self-toggling group (disjoint_sets)
+  // contributes its own type under its selfToggleKey.
+  variants: ReadonlyArray<{ type: string; key: string }>
+  // Document field → CustomGlobalConstraint type (antiKropki.differences etc.).
+  customValues: Readonly<Record<string, string>>
+}
+
+export const GLOBAL_GROUPS_JSON: readonly GlobalGroupJson[] = ALL
+  .filter((d) => d.toolbox?.category === 'global' && d.json !== undefined)
+  .map((g) => ({
+    type: g.type,
+    key: g.json!.key,
+    variants: [
+      ...(g.json!.selfToggleKey !== undefined ? [{ type: g.type, key: g.json!.selfToggleKey }] : []),
+      ...ALL.filter((v) => v.variantOf === g.type && v.json !== undefined)
+        .map((v) => ({ type: v.type, key: v.json!.key })),
+    ],
+    customValues: g.json!.customValues ?? {},
+  }))
+
 // ── Derived: icons ─────────────────────────────────────────────────────────────
 
 export const CONSTRAINT_ICONS: Record<string, ConstraintIcon> = Object.fromEntries(

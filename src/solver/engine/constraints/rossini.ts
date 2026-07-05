@@ -17,7 +17,8 @@ export default defineModule<RossiniSpec>({
   kind: 'rossini',
   fromEditor: (ctx) => {
     const specs: RossiniSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'rossini' || !clue.rossiniDirection) continue
       const pos = parseOuterKey(key)
       if (!pos) continue

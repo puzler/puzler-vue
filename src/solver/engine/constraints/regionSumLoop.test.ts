@@ -17,8 +17,8 @@ function ctxWithLine(cellKeys: string[]): AdapterContext {
     variants: new Set(),
     customGlobals: [],
     singleCellMarks: {},
-    connectorDots: {},
-    outerClues: {},
+    connectorDots: [],
+    outerClues: [],
     constraintInstances: [{ type: 'region_sum', data: { cells: cellKeys } }],
   }
 }

@@ -1,115 +1,169 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { ref } from 'vue'
-import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
-import { serializePuzzle, serializePlayDefinition, deserializePuzzle, hydratePuzzle, boardSnapshot, parsePuzzleImport, PUZZLE_EXPORT_VERSION } from './puzzleExport'
-import type { TextData, ShapeData } from '@/types/constraints'
+import {
+  serializePuzzle, serializePlayDefinition, deserializePuzzle, parsePuzzleImport,
+  PUZZLE_EXPORT_VERSION,
+} from './puzzleExport'
+import type { SerializedPuzzle } from './puzzleExport'
+import { migratePuzzleDocument } from './puzzleMigrate'
 
-describe('serializePuzzle', () => {
+// The document is user-facing (raw JSON editor): 1-indexed cells, one camelCase
+// key per constraint type under `constraints`/`cosmetics`/`globals` (presence =
+// active chip), arrays for placed objects, maps only for per-cell values.
+
+// A store pair populated with one of most constraint shapes; the doc-side
+// expectations below are the pinned v4 encodings of exactly this state.
+function populatedStores() {
+  const editor = useEditorStore()
+  const grid = useGridStore()
+  editor.puzzleName = 'Test Puzzle'
+  editor.givenDigits = { r0c0: 5 }
+  editor.activeTypes = new Set([
+    'odd_cells', 'maximums', 'difference_dots', 'quadruples', 'xv',
+    'x_sums', 'little_killers', 'rossini', 'thermometer', 'killer_cage', 'anti_kropki',
+  ])
+  editor.singleCellMarks = {
+    odd_cells: new Set(['r2c2', 'r1c1']),
+    maximums: new Set(['r3c3']),
+  }
+  editor.connectorDots = [
+    { id: 'd1', type: 'difference_dots', location: 'r0c0|r0c1', value: 3 },
+    { id: 'd2', type: 'quadruples', location: '+r4c4', value: [1, 1, 2] },
+    { id: 'd3', type: 'xv', location: 'r5c5|r5c6', value: 'V' },
+  ]
+  editor.outerClues = [
+    { id: 'c1', type: 'x_sums', location: 'o:r-1c3', value: 15 },
+    { id: 'c2', type: 'little_killers', location: 'o:r-1c-1', value: 30, direction: 'down-right' },
+    { id: 'c3', type: 'rossini', location: 'o:r9c2', value: null, rossiniDirection: 'decreasing' },
+  ]
+  editor.cosmeticInstances = [
+    {
+      id: 't1',
+      type: 'thermometer',
+      data: { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }, { from: 'r0c1', to: 'r1c1' }, { from: 'r0c1', to: 'r0c2' }] },
+    },
+    { id: 'k1', type: 'killer_cage', data: { cells: ['r2c0', 'r2c1'], sum: 10 } },
+  ]
+  editor.activeGlobalVariants = new Set(['nonconsecutive'])
+  editor.customGlobalConstraints = [{ id: 'g1', type: 'anti_diff', value: 4 }]
+  return { editor, grid }
+}
+
+describe('serializePuzzle (format v4)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  function populatedStores() {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    editor.puzzleName = 'Test Puzzle'
-    editor.givenDigits = { r0c0: 5 }
-    editor.singleCellMarks = {
-      odd_cells: new Set(['r2c2', 'r1c1']),
-      maximums: new Set(['r3c3']),
-    }
-    editor.connectorDots = {
-      'r0c0|r0c1': { type: 'difference_dots', value: 3 },
-      '+r4c4': { type: 'quadruples', value: [1, 1, 2] },
-      'r5c5|r5c6': { type: 'xv', value: 'V' },
-    }
-    editor.outerClues = {
-      'o:r-1c3': { type: 'x_sums', value: 15 },
-      'o:r-1c-1': { type: 'little_killers', value: 30, direction: 'down-right' },
-    }
-    editor.activeGlobalVariants = new Set(['knights_move', 'positive_diagonal'])
-    return { editor, grid }
-  }
-
-  it('includes every constraint map with Sets converted to sorted arrays', () => {
+  it('groups constraints by document key with 1-indexed cells', () => {
     const { editor, grid } = populatedStores()
     const data = serializePuzzle(editor, grid)
 
     expect(data.formatVersion).toBe(PUZZLE_EXPORT_VERSION)
-    expect(data.constraints.singleCellMarks).toEqual({
-      odd_cells: ['r1c1', 'r2c2'],
-      maximums: ['r3c3'],
+    expect(data.givenDigits).toEqual({ r1c1: 5 })
+    expect(data.constraints).toEqual({
+      thermometers: [{ bulb: 'r1c1', lines: [['r1c1', 'r1c2', 'r2c2'], ['r1c2', 'r1c3']] }],
+      killerCages: [{ cells: ['r3c1', 'r3c2'], sum: 10 }],
+      differenceDots: [{ cells: ['r1c1', 'r1c2'], value: 3 }],
+      xv: [{ cells: ['r6c6', 'r6c7'], value: 'V' }],
+      quadruples: [{ cells: ['r4c4', 'r4c5', 'r5c4', 'r5c5'], values: [1, 1, 2] }],
+      oddCells: ['r2c2', 'r3c3'],
+      maximums: ['r4c4'],
+      xSums: [{ cell: 'r0c4', value: 15 }],
+      littleKillers: [{ cell: 'r0c0', value: 30, direction: 'down-right' }],
+      rossini: [{ cell: 'r10c3', direction: 'decreasing' }],
     })
-    expect(data.constraints.connectorDots['+r4c4']).toEqual({ type: 'quadruples', value: [1, 1, 2] })
-    expect(data.constraints.outerClues['o:r-1c-1']).toEqual({
-      type: 'little_killers', value: 30, direction: 'down-right',
+    expect(data.globals).toEqual({
+      antiKropki: { white: true, differences: [4] },
     })
-    expect(data.globals.variants).toEqual(['knights_move', 'positive_diagonal'])
+    // No instance/chip UUIDs anywhere in the document.
+    expect(JSON.stringify(data)).not.toMatch(/"id":/)
   })
 
-  it('excludes solver scratch and carries the explicit solution + solve message', () => {
-    const { editor, grid } = populatedStores()
-    editor.solverCellStates = { r8c8: { value: 9, cornerMarks: [], centerMarks: [], color: null, colors: [] } }
-    editor.solution = { r0c0: 5 }
-    editor.solveMessage = 'You found it!'
+  it('keeps active-but-empty chips as empty entries (presence = active)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set(['thermometer', 'odd_cells', 'diagonals', 'cosmetic_line'])
     const data = serializePuzzle(editor, grid)
-    expect('solverCellStates' in data).toBe(false)
-    expect(data.solution).toEqual({ r0c0: 5 })
-    expect(data.meta.solveMessage).toBe('You found it!')
+    expect(data.constraints).toEqual({ thermometers: [], oddCells: [] })
+    expect(data.globals).toEqual({ diagonals: {} })
+    expect((data.cosmetics as Record<string, unknown>).lines).toEqual([])
+    // Presets ship alongside their kind key (the tool needs one to draw with).
+    expect((data.cosmetics as Record<string, unknown>).linePresets).toBeDefined()
   })
 
-  it('round-trips through JSON without loss', () => {
-    const { editor, grid } = populatedStores()
+  it('serializes keys in registry-canonical order regardless of add order', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set(['killer_cage', 'renban', 'thermometer'])
     const data = serializePuzzle(editor, grid)
-    const roundTripped = JSON.parse(JSON.stringify(data))
-    expect(roundTripped).toEqual(data)
+    expect(Object.keys(data.constraints as object)).toEqual(['renbanLines', 'thermometers', 'killerCages'])
   })
 
-  it('omits empty containers and unset fields', () => {
+  it('canonicalizes preset ids to positional slugs and rewrites references', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    editor.givenDigits = { r0c0: 5 }
-    const data = serializePuzzle(editor, grid) as Record<string, unknown>
-    expect('constraints' in data).toBe(false)
-    expect('globals' in data).toBe(false)
-    expect('activeConstraints' in data).toBe(false)
-    expect('solution' in data).toBe(false)
-    expect((data.grid as Record<string, unknown>).customCellRegions).toBeUndefined()
-  })
-
-  it('omits cosmetic presets entirely when the puzzle has no cosmetics', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    editor.givenDigits = { r0c0: 5 }
-    // The store always starts with a default preset per kind; none should leak
-    // into an export that contains no cosmetics.
-    const data = serializePuzzle(editor, grid) as Record<string, unknown>
-    expect('cosmetics' in data).toBe(false)
-  })
-
-  it('ships only the presets for cosmetic kinds the puzzle actually uses', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
+    editor.activeTypes = new Set(['cosmetic_line', 'cell_color'])
+    editor.addLinePreset()
+    const [first, second] = editor.linePresets
     editor.cosmeticInstances = [
-      { id: 'l1', type: 'cosmetic_line', data: { cells: ['r0c0', 'r0c1'], presetId: editor.linePresets[0].id } },
+      { id: 'l1', type: 'cosmetic_line', data: { cells: ['r0c0', 'r0c1'], presetId: second.id } },
     ]
-    const cosmetics = (serializePuzzle(editor, grid) as Record<string, unknown>).cosmetics as Record<string, unknown>
-    expect(cosmetics.linePresets).toBeDefined()
-    expect('shapePresets' in cosmetics).toBe(false)
-    expect('textPresets' in cosmetics).toBe(false)
-    expect('cagePresets' in cosmetics).toBe(false)
-    expect('cellColorPresets' in cosmetics).toBe(false)
+    editor.cosmeticCellColors = { r0c5: editor.cellColorPresets[0].id }
+
+    const cosmetics = serializePuzzle(editor, grid).cosmetics as Record<string, unknown>
+    expect((cosmetics.linePresets as Array<{ id: string }>).map((p) => p.id)).toEqual(['line-1', 'line-2'])
+    expect(cosmetics.lines).toEqual([{ cells: ['r1c1', 'r1c2'], preset: 'line-2' }])
+    expect(cosmetics.cellColors).toEqual({ r1c6: 'color-1' })
+    expect(first.id).not.toBe('line-1') // the store keeps its runtime ids
   })
 
-  it('ships cellColorPresets when cells are colored', () => {
+  it('drops sizeLinked from shape presets (derived on load)', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    editor.cosmeticCellColors = { r0c0: editor.cellColorPresets[0].id }
-    const cosmetics = (serializePuzzle(editor, grid) as Record<string, unknown>).cosmetics as Record<string, unknown>
-    expect(cosmetics.cellColorPresets).toBeDefined()
-    expect('linePresets' in cosmetics).toBe(false)
+    editor.activeTypes = new Set(['shape'])
+    const cosmetics = serializePuzzle(editor, grid).cosmetics as Record<string, unknown>
+    const style = (cosmetics.shapePresets as Array<{ style: Record<string, unknown> }>)[0].style
+    expect('sizeLinked' in style).toBe(false)
+    expect(style.width).toBeDefined()
+  })
+
+  it('serializes regions region-first and omits the standard layout', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.givenDigits = { r0c0: 1 }
+    expect(serializePuzzle(editor, grid).grid.regions).toBeUndefined()
+
+    // A sparse override map that happens to equal the standard layout is
+    // canonicalized away too.
+    grid.setCustomCellRegions({ r0c0: '1' })
+    expect(serializePuzzle(editor, grid).grid.regions).toBeUndefined()
+
+    // Excluding a cell from regions produces the full explicit layout, with
+    // the excluded cell listed nowhere.
+    grid.setCustomCellRegions({ r0c0: null })
+    const regions = serializePuzzle(editor, grid).grid.regions!
+    expect(Object.keys(regions)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    expect(regions['1']).not.toContain('r1c1')
+    expect(regions['1']).toHaveLength(8)
+    expect(regions['2']).toHaveLength(9)
+    expect(regions['2'][0]).toBe('r1c4')
+  })
+
+  it('omits empty sections and unset fields for a bare puzzle', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.givenDigits = { r0c0: 5 }
+    const data = serializePuzzle(editor, grid) as unknown as Record<string, unknown>
+    expect(Object.keys(data).sort()).toEqual(['formatVersion', 'givenDigits', 'grid'])
+  })
+
+  it('round-trips through JSON text without loss', () => {
+    const { editor, grid } = populatedStores()
+    const data = serializePuzzle(editor, grid)
+    expect(JSON.parse(JSON.stringify(data))).toEqual(data)
   })
 })
 
@@ -123,9 +177,9 @@ describe('serializePlayDefinition', () => {
     const grid = useGridStore()
     editor.solution = { r0c0: 5 }
     editor.solveMessage = 'secret clue'
-    const def = serializePlayDefinition(editor, grid) as Record<string, unknown>
-    expect('solution' in def).toBe(false)
-    expect((def.meta as Record<string, unknown> | undefined)?.solveMessage).toBeUndefined()
+    const def = serializePlayDefinition(editor, grid)
+    expect(def.solution).toBeUndefined()
+    expect(def.meta?.solveMessage).toBeUndefined()
   })
 })
 
@@ -135,19 +189,11 @@ describe('deserializePuzzle', () => {
   })
 
   it('round-trips serialize → JSON → deserialize → serialize with no loss', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    grid.setDimensions(9, 9)
-    editor.puzzleName = 'Round Trip'
+    const { editor, grid } = populatedStores()
     editor.puzzleRules = 'Normal sudoku rules.'
     editor.solveMessage = 'The keyword is CIPHER'
     editor.solution = { r0c0: 5, r1c1: 3 }
-    editor.givenDigits = { r0c0: 5, r1c1: 3 }
-    editor.singleCellMarks = { odd_cells: new Set(['r2c2', 'r1c1']) }
-    editor.connectorDots = { 'r0c0|r0c1': { type: 'ratio_dots', value: 2 } }
-    editor.outerClues = { 'o:r-1c3': { type: 'sandwich_sums', value: 12 } }
-    editor.activeGlobalVariants = new Set(['knights_move'])
-    editor.activeConstraints = [{ id: 'a', type: 'thermometer', label: 'Thermo', category: 'line' }]
+    grid.setCustomCellRegions({ r0c0: null })
 
     const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
 
@@ -158,211 +204,171 @@ describe('deserializePuzzle', () => {
 
     expect(editor2.solution).toEqual({ r0c0: 5, r1c1: 3 })
     expect(editor2.solveMessage).toBe('The keyword is CIPHER')
+    expect(editor2.givenDigits).toEqual({ r0c0: 5 })
+    expect(grid2.cellRegionLabelMap.get('r0c0')).toBeNull()
     expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
   })
 
-  it('restores structuredClone-d fields when handed a reactive proxy (import modal path)', () => {
-    // The import modal stores parsed JSON in a ref, so deserialize receives a
-    // reactive proxy. structuredClone() throws DataCloneError on a proxy, which
-    // used to abort the restore after the spread-based fields — dropping
-    // connectorDots, outerClues and cosmetics while keeping givens/constraints.
-    const data = parsePuzzleImport(JSON.stringify({
-      formatVersion: 3,
-      grid: { rows: 8, cols: 8 },
-      givenDigits: { r1c1: 7 },
-      activeConstraints: [{ id: 'x', type: 'xv', label: 'XV', category: 'connector' }],
+  it('rebuilds active chips from key presence, including empty entries', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, {
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
+      constraints: { thermometers: [], oddCells: ['r2c2'] },
+      globals: { chess: { knight: true } },
+    })
+    expect(editor.activeTypes).toEqual(new Set(['thermometer', 'odd_cells', 'chess']))
+    expect(editor.activeGlobalVariants).toEqual(new Set(['knights_move']))
+    expect(editor.singleCellMarks.odd_cells).toEqual(new Set(['r1c1']))
+  })
+
+  it('hydrates stacked same-location connectors from a hand-authored document', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, {
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
       constraints: {
-        connectorDots: { 'r0c0|r0c1': { type: 'xv', value: 'V' }, 'r7c0|r7c1': { type: 'xv', value: 'X' } },
-        outerClues: { 'o:r-1c3': { type: 'x_sums', value: 15 } },
+        differenceDots: [
+          { cells: ['r1c1', 'r1c2'], value: 1 },
+          { cells: ['r1c1', 'r1c2'], value: 2 },
+        ],
+      },
+    })
+    expect(editor.connectorDots).toHaveLength(2)
+    expect(editor.connectorDots.map((d) => d.location)).toEqual(['r0c0|r0c1', 'r0c0|r0c1'])
+    expect(editor.connectorAt('r0c0|r0c1')?.value).toBe(2)
+  })
+
+  it('restores fields when handed a reactive proxy (import modal path)', () => {
+    const data = parsePuzzleImport(JSON.stringify({
+      formatVersion: 4,
+      grid: { rows: 8, cols: 8 },
+      givenDigits: { r2c2: 7 },
+      constraints: {
+        xv: [{ cells: ['r1c1', 'r1c2'], value: 'V' }, { cells: ['r8c1', 'r8c2'], value: 'X' }],
+        xSums: [{ cell: 'r0c4', value: 15 }],
       },
     }))
-    const reactiveData = ref(data) // mirrors the modal wrapping it in a ref
+    const reactiveData = ref(data)
 
     const editor = useEditorStore()
     const grid = useGridStore()
     deserializePuzzle(editor, grid, reactiveData.value)
 
     expect(editor.givenDigits).toEqual({ r1c1: 7 })
-    expect(editor.activeConstraints).toHaveLength(1)
-    expect(Object.keys(editor.connectorDots)).toHaveLength(2)
-    expect(editor.connectorDots['r7c0|r7c1']).toEqual({ type: 'xv', value: 'X' })
-    expect(editor.outerClues['o:r-1c3']).toEqual({ type: 'x_sums', value: 15 })
+    expect(editor.connectorDots).toHaveLength(2)
+    expect(editor.connectorDots.find((d) => d.location === 'r7c0|r7c1')).toMatchObject({ type: 'xv', value: 'X' })
+    expect(editor.outerClues[0]).toMatchObject({ type: 'x_sums', location: 'o:r-1c3', value: 15 })
   })
 
   it('handles a minimal pruned object (only version + grid + givens)', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    deserializePuzzle(editor, grid, { formatVersion: 3, grid: { rows: 9, cols: 9 }, givenDigits: { r0c0: 7 } } as never)
+    deserializePuzzle(editor, grid, { formatVersion: 4, grid: { rows: 9, cols: 9 }, givenDigits: { r1c1: 7 } })
     expect(grid.rows).toBe(9)
     expect(editor.givenDigits).toEqual({ r0c0: 7 })
     expect(editor.solution).toBeNull()
     expect(editor.linePresets.length).toBeGreaterThan(0) // default preset preserved
   })
+})
 
-  it('restores grid dimensions, custom regions, and Set-backed marks', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    grid.setDimensions(6, 6)
-    grid.setCustomCellRegions({ r0c0: 'A', r0c1: 'A' })
-    editor.singleCellMarks = { even_cells: new Set(['r0c0']) }
-    const data = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
-
+describe('migratePuzzleDocument (v3 → v4)', () => {
+  beforeEach(() => {
     setActivePinia(createPinia())
-    const editor2 = useEditorStore()
-    const grid2 = useGridStore()
-    deserializePuzzle(editor2, grid2, data)
-
-    expect(grid2.rows).toBe(6)
-    expect(grid2.customCellRegions).toEqual({ r0c0: 'A', r0c1: 'A' })
-    expect(editor2.singleCellMarks.even_cells).toBeInstanceOf(Set)
-    expect([...editor2.singleCellMarks.even_cells]).toEqual(['r0c0'])
   })
 
-  it('migrates legacy text/shape cosmetics to per-instance pos + content', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    // Legacy shape: presets carried the shared text; instances pinned to a
-    // cell (+ anchor for shapes).
-    deserializePuzzle(editor, grid, {
-      formatVersion: 3,
-      grid: { rows: 9, cols: 9 },
-      cosmetics: {
-        instances: [
-          { id: 't1', type: 'text', data: { cell: 'r0c1', presetId: 'tp' } },
-          { id: 's1', type: 'shape', data: { cell: 'r2c3', anchor: 'top-left', presetId: 'sp' } },
-        ],
-        textPresets: [{ id: 'tp', label: 'T', content: 'X', style: { color: '#333', fontSize: 20, bold: false } }],
-        shapePresets: [{ id: 'sp', label: 'S', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.5, textColor: '#333', textSize: 20 } }],
+  // A realistic v3 export: buckets, location-keyed maps, UUIDs, 0-indexed keys.
+  const V3_DOC = {
+    formatVersion: 3,
+    grid: { rows: 9, cols: 9, customCellRegions: { r0c0: null } },
+    meta: { name: 'Old Puzzle', rules: 'Rules.' },
+    givenDigits: { r0c0: 5 },
+    activeConstraints: [
+      { id: 'u1', type: 'thermometer', label: 'Thermometers', category: 'line' },
+      { id: 'u2', type: 'x_sums', label: 'X-Sums', category: 'outer' },
+      { id: 'u3', type: 'anti_xv', label: 'Anti-XV', category: 'global' },
+      { id: 'u4', type: 'cosmetic_line', label: 'Line', category: 'cosmetic' },
+    ],
+    globals: { variants: ['anti_x'], custom: [{ id: 'u5', type: 'anti_sum', value: 12 }] },
+    constraints: {
+      singleCellMarks: { odd_cells: ['r1c1'] },
+      connectorDots: {
+        'r4c4|r4c5': { type: 'difference_dots', value: 2 },
+        '+r3c3': { type: 'quadruples', value: [1, 2] },
       },
-    } as never)
-
-    const text = editor.cosmeticInstances.find(i => i.id === 't1')!.data as TextData
-    expect(text.pos).toEqual({ x: 1.5, y: 0.5 })  // centre of r0c1
-    expect(text.content).toBe('X')                 // seeded from the old preset content
-    expect(text.cell).toBeUndefined()
-
-    const shape = editor.cosmeticInstances.find(i => i.id === 's1')!.data as ShapeData
-    expect(shape.pos).toEqual({ x: 3, y: 2 })       // top-left corner of r2c3
-    expect(shape.content).toBe('')
-    expect(shape.anchor).toBeUndefined()
-
-    // Legacy single `size` becomes explicit width/height, linked by default.
-    const style = editor.shapePresets[0].style as typeof editor.shapePresets[0]['style'] & { size?: number }
-    expect(style.width).toBe(0.5)
-    expect(style.height).toBe(0.5)
-    expect(style.sizeLinked).toBe(true)
-    expect(style.size).toBeUndefined()
-  })
-
-  it('passes new-format shape presets through unchanged, deriving link state when absent', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    deserializePuzzle(editor, grid, {
-      formatVersion: 3,
-      grid: { rows: 9, cols: 9 },
-      cosmetics: {
-        instances: [],
-        shapePresets: [
-          { id: 'sp1', label: 'S1', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, width: 1.5, height: 0.6, textColor: '#333', textSize: 20 } },
-          { id: 'sp2', label: 'S2', style: { shapeType: 'square', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, width: 0.7, height: 0.7, sizeLinked: false, textColor: '#333', textSize: 20 } },
-        ],
+      outerClues: {
+        'o:r-1c3': { type: 'x_sums', value: 20 },
+        'o:r9c2': { type: 'rossini', value: null, rossiniDirection: 'increasing' },
       },
-    } as never)
+    },
+    cosmetics: {
+      cellColors: { r0c5: 'cp1' },
+      cellColorPresets: [{ id: 'cp1', label: 'Yellow', color: '#fff9c4' }],
+      instances: [
+        { id: 'u6', type: 'thermometer', data: { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }] } },
+        { id: 'u7', type: 'cosmetic_line', data: { cells: ['r6c0', 'r6c1'], presetId: 'lp1' } },
+      ],
+      linePresets: [{ id: 'lp1', label: 'Grey', style: { color: '#777777', strokeWidth: 8, opacity: 1 } }],
+    },
+  } as unknown as SerializedPuzzle
 
-    // Unequal dimensions without a stored flag → unlinked; a stored flag wins.
-    expect(editor.shapePresets[0].style).toMatchObject({ width: 1.5, height: 0.6, sizeLinked: false })
-    expect(editor.shapePresets[1].style).toMatchObject({ width: 0.7, height: 0.7, sizeLinked: false })
+  it('converts a v3 document to the v4 shape', () => {
+    const doc = migratePuzzleDocument(V3_DOC)
+    expect(doc.formatVersion).toBe(4)
+    expect(doc.givenDigits).toEqual({ r1c1: 5 })
+    expect(doc.grid.regions?.['1']).not.toContain('r1c1')
+    expect(doc.constraints).toEqual({
+      thermometers: [{ bulb: 'r1c1', lines: [['r1c1', 'r1c2']] }],
+      differenceDots: [{ cells: ['r5c5', 'r5c6'], value: 2 }],
+      quadruples: [{ cells: ['r3c3', 'r3c4', 'r4c3', 'r4c4'], values: [1, 2] }],
+      oddCells: ['r2c2'],
+      xSums: [{ cell: 'r0c4', value: 20 }],
+      rossini: [{ cell: 'r10c3', direction: 'increasing' }],
+    })
+    expect(doc.globals).toEqual({ antiXv: { x: true, sums: [12] } })
+    const cosmetics = doc.cosmetics as Record<string, unknown>
+    expect(cosmetics.lines).toEqual([{ cells: ['r7c1', 'r7c2'], preset: 'line-1' }])
+    expect(cosmetics.cellColors).toEqual({ r1c6: 'color-1' })
+    expect(JSON.stringify(doc)).not.toMatch(/"id":"u/)
   })
-})
 
-describe('hydratePuzzle', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
+  it('is idempotent: v4 input is returned untouched', () => {
+    const migrated = migratePuzzleDocument(V3_DOC)
+    expect(migratePuzzleDocument(migrated)).toBe(migrated)
   })
 
-  it('hydrating a fresh store reproduces the serialized form (idempotence)', () => {
+  it('hydrates a v3 document transparently (all load paths migrate)', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    grid.setDimensions(6, 6)
-    editor.puzzleName = 'Hydrate Me'
-    editor.givenDigits = { r0c0: 4 }
-    editor.singleCellMarks = { odd_cells: new Set(['r1c1']) }
-    editor.activeGlobalVariants = new Set(['antiking'])
-    const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
-
-    setActivePinia(createPinia())
-    const editor2 = useEditorStore()
-    const grid2 = useGridStore()
-    hydratePuzzle(editor2, grid2, original)
-
-    expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+    deserializePuzzle(editor, grid, V3_DOC)
+    expect(editor.givenDigits).toEqual({ r0c0: 5 })
+    expect(editor.connectorDots.find((d) => d.type === 'difference_dots')?.location).toBe('r4c4|r4c5')
+    expect(editor.outerClues.find((c) => c.type === 'rossini')?.rossiniDirection).toBe('increasing')
+    expect(editor.activeTypes.has('anti_xv')).toBe(true)
+    expect(editor.customGlobalConstraints[0]).toMatchObject({ type: 'anti_sum', value: 12 })
   })
 
-  it('does not clear undo history, while deserializePuzzle does', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    editor.selection = new Set(['r0c0'])
-    editor.setGivenDigitsForSelection(5)
-    expect(editor.canUndo).toBe(true)
-    const data = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
-
-    hydratePuzzle(editor, grid, data)
-    expect(editor.canUndo).toBe(true)
-
-    deserializePuzzle(editor, grid, data)
-    expect(editor.canUndo).toBe(false)
-  })
-})
-
-describe('boardSnapshot', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
-
-  it('returns only the filled cells, omitting empties (never null)', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    grid.setDimensions(2, 2)
-    editor.givenDigits = { r0c0: 1, r0c1: 2, r1c0: 3 } // r1c1 intentionally empty
-    expect(boardSnapshot(editor, grid)).toEqual({ r0c0: 1, r0c1: 2, r1c0: 3 })
-  })
-
-  it('combines givens and solver digits', () => {
-    const editor = useEditorStore()
-    const grid = useGridStore()
-    grid.setDimensions(2, 2)
-    editor.givenDigits = { r0c0: 1, r0c1: 2 }
-    editor.solverCellStates = {
-      r1c0: { value: 3, cornerMarks: [], centerMarks: [], color: null, colors: [] },
-      r1c1: { value: 4, cornerMarks: [], centerMarks: [], color: null, colors: [] },
-    }
-    expect(boardSnapshot(editor, grid)).toEqual({ r0c0: 1, r0c1: 2, r1c0: 3, r1c1: 4 })
-  })
-})
-
-describe('parsePuzzleImport', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
-
-  it('parses a valid export', () => {
-    const data = serializePuzzle(useEditorStore(), useGridStore())
-    expect(parsePuzzleImport(JSON.stringify(data))).toMatchObject({ formatVersion: PUZZLE_EXPORT_VERSION })
-  })
-
-  it('still accepts legacy exports that carried the older `version` field', () => {
-    expect(parsePuzzleImport(JSON.stringify({ version: 2, grid: { rows: 9, cols: 9 } }))).toBeTruthy()
-  })
-
-  it('rejects invalid JSON', () => {
-    expect(() => parsePuzzleImport('not json')).toThrow(/valid JSON/)
-  })
-
-  it('rejects an object without grid dimensions', () => {
-    expect(() => parsePuzzleImport('{"version":3}')).toThrow(/grid/)
-  })
-
-  it('rejects a future format version', () => {
-    expect(() => parsePuzzleImport(JSON.stringify({ version: 999, grid: { rows: 9, cols: 9 } }))).toThrow(/version/)
+  it('migrates legacy v2-era blobs with cell-anchored text and preset size', () => {
+    const legacy = {
+      version: 2,
+      grid: { rows: 9, cols: 9 },
+      activeConstraints: [{ id: 'x', type: 'text', label: 'Text', category: 'cosmetic' }],
+      cosmetics: {
+        instances: [{ id: 't', type: 'text', data: { cell: 'r4c4', anchor: 'top-left', presetId: 'tp1' } }],
+        textPresets: [{ id: 'tp1', label: 'Label', content: 'A', style: { color: '#333333', fontSize: 20, bold: false } }],
+        shapePresets: [{ id: 'sp1', label: 'Circle', style: { shapeType: 'circle', fillColor: 'none', strokeColor: '#333', strokeWidth: 2, size: 0.4, textColor: '#333', textSize: 20 } }],
+      },
+    } as unknown as SerializedPuzzle
+    const doc = migratePuzzleDocument(legacy)
+    const cosmetics = doc.cosmetics as Record<string, unknown>
+    // Legacy cell+anchor resolves to a free position (doc coordinates: cell
+    // r5c5's centre is x 5.5, top-left anchor shifts -0.5 each way).
+    expect(cosmetics.texts).toEqual([{ pos: { x: 5, y: 5 }, content: 'A', preset: 'text-1' }])
+    const shapeStyle = (cosmetics.shapePresets as Array<{ style: Record<string, unknown> }> | undefined)?.[0]?.style
+    // shapePresets only ship when the shape kind is active — legacy blob had
+    // no shape chip, so they are dropped (matching the old preset gating).
+    expect(shapeStyle).toBeUndefined()
   })
 })

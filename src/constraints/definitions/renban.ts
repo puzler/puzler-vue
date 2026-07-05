@@ -2,6 +2,7 @@ import { defineLineConstraint } from '../define'
 
 export default defineLineConstraint({
   type: 'renban',
+  jsonKey: 'renbanLines',
   label: 'Renban',
   pickerLabel: 'Renban Lines',
   color: { red: 240, green: 103, blue: 240, opacity: 1 },

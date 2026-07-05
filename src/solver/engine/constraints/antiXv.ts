@@ -17,7 +17,8 @@ interface AntiXvSpec extends SolverConstraintSpec {
 // XV-clued orthogonal pairs grouped by the sum they force (X = 10, V = 5).
 function cluedPairsBySum(ctx: AdapterContext): Map<number, Array<[number, number]>> {
   const bySum = new Map<number, Array<[number, number]>>()
-  for (const [key, dot] of Object.entries(ctx.connectorDots)) {
+  for (const dot of ctx.connectorDots) {
+    const key = dot.location
     if (dot.type !== 'xv' || !key.includes('|')) continue
     const [ka, kb] = key.split('|')
     const a = ctx.keyToIndex(ka)

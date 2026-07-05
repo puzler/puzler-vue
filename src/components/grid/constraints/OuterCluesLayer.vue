@@ -63,8 +63,8 @@ function rossiniGlyph(pos: { row: number; col: number }, direction: string): str
 }
 
 const clues = computed<RenderedClue[]>(() =>
-  Object.entries(editor.outerClues).flatMap(([key, clue]) => {
-    const pos = parseOuterKey(key)
+  editor.outerClues.flatMap((clue) => {
+    const pos = parseOuterKey(clue.location)
     if (!pos) return []
     const st = cs.textStyle(clue.type)
     const center = outerCellCenter(pos.row, pos.col)
@@ -75,13 +75,13 @@ const clues = computed<RenderedClue[]>(() =>
       ? (clue.rossiniDirection ? rossiniGlyph(pos, clue.rossiniDirection) : '_')
       : clue.value === null ? '_' : String(clue.value)
     return [{
-      key,
+      key: clue.id,
       x: center.x + (arrow?.offset.dx ?? 0),
       y: center.y + (arrow?.offset.dy ?? 0),
       text,
       fontSize: st.size * CELL_SIZE,
       color: st.fontColor,
-      selected: editor.selectedOuterClueKey === key,
+      selected: editor.selectedOuterClueId === clue.id,
       arrowPath: arrow?.path ?? null,
     }]
   }),

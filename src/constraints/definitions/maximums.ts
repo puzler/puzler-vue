@@ -4,6 +4,7 @@ import { greyscale } from '../types'
 
 export default defineSingleCellConstraint({
   type: 'maximums',
+  jsonKey: 'maximums',
   label: 'Maximum',
   pickerLabel: 'Maximums',
   icon: { path: mdiUnfoldMoreVertical },

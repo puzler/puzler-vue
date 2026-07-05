@@ -8,6 +8,7 @@ import { defineGlobalConstraint, defineGlobalVariant } from '../define'
 const chess = defineGlobalConstraint({
   type: 'chess',
   label: 'Chess',
+  json: { key: 'chess' },
   iconPath: mdiChessKing,
   filter: false,
 })
@@ -15,6 +16,7 @@ const chess = defineGlobalConstraint({
 const kingsMove = defineGlobalVariant({
   type: 'kings_move',
   label: "King's move",
+  jsonKey: 'king',
   variantOf: 'chess',
   filterLabel: "King's Move",
   icon: { path: mdiChessKing },
@@ -23,6 +25,7 @@ const kingsMove = defineGlobalVariant({
 const knightsMove = defineGlobalVariant({
   type: 'knights_move',
   label: "Knight's move",
+  jsonKey: 'knight',
   variantOf: 'chess',
   filterLabel: "Knight's Move",
   icon: { path: mdiChessKnight },

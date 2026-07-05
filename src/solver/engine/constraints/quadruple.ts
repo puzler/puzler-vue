@@ -15,7 +15,8 @@ export default defineModule<QuadrupleSpec>({
   kind: 'quadruple',
   fromEditor: (ctx) => {
     const specs: QuadrupleSpec[] = []
-    for (const [key, dot] of Object.entries(ctx.connectorDots)) {
+    for (const dot of ctx.connectorDots) {
+      const key = dot.location
       if (dot.type !== 'quadruples') continue
       const m = key.match(/^\+r(\d+)c(\d+)$/)
       if (!m) continue

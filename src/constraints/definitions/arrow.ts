@@ -17,6 +17,7 @@ export const ARROW_STYLE = {
 
 export default defineConstraint({
   type: 'arrow',
+  json: { key: 'arrows' },
   label: 'Arrow',
   toolbox: { category: 'line', pickerLabel: 'Arrows', pickerGroup: 'multi_cell' },
   filter: { group: 'Lines', order: 3 },

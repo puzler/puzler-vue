@@ -37,8 +37,8 @@ export function useOuterMargins() {
     }
 
     // Existing outer clues hold their side open even when no tool is active.
-    for (const key of Object.keys(editor.outerClues)) {
-      const pos = parseOuterKey(key)
+    for (const clue of editor.outerClues) {
+      const pos = parseOuterKey(clue.location)
       if (!pos) continue
       if (pos.row === -1) m.top = CELL_SIZE
       if (pos.row === grid.rows) m.bottom = CELL_SIZE

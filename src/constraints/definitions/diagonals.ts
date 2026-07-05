@@ -10,6 +10,7 @@ const DIAGONAL_RED = { color: '#f87171', strokeWidth: 2, opacity: 0.85 }
 const diagonals = defineGlobalConstraint({
   type: 'diagonals',
   label: 'Diagonals',
+  json: { key: 'diagonals' },
   iconPath: mdiSquareOffOutline,
   filter: { label: 'Diagonal' },
   layers: ['diagonals'],
@@ -18,6 +19,7 @@ const diagonals = defineGlobalConstraint({
 const positiveDiagonal = defineGlobalVariant({
   type: 'positive_diagonal',
   label: 'Positive diagonal',
+  jsonKey: 'positive',
   variantOf: 'diagonals',
   excludes: 'anti_positive_diagonal',
   theme: { family: 'diagonal', category: 'global' },
@@ -27,6 +29,7 @@ const positiveDiagonal = defineGlobalVariant({
 const negativeDiagonal = defineGlobalVariant({
   type: 'negative_diagonal',
   label: 'Negative diagonal',
+  jsonKey: 'negative',
   variantOf: 'diagonals',
   excludes: 'anti_negative_diagonal',
   theme: { family: 'diagonal', category: 'global' },
@@ -36,6 +39,7 @@ const negativeDiagonal = defineGlobalVariant({
 const antiPositiveDiagonal = defineGlobalVariant({
   type: 'anti_positive_diagonal',
   label: 'Anti-positive diagonal',
+  jsonKey: 'antiPositive',
   variantOf: 'diagonals',
   excludes: 'positive_diagonal',
   theme: { family: 'diagonal', category: 'global' },
@@ -45,6 +49,7 @@ const antiPositiveDiagonal = defineGlobalVariant({
 const antiNegativeDiagonal = defineGlobalVariant({
   type: 'anti_negative_diagonal',
   label: 'Anti-negative diagonal',
+  jsonKey: 'antiNegative',
   variantOf: 'diagonals',
   excludes: 'negative_diagonal',
   theme: { family: 'diagonal', category: 'global' },

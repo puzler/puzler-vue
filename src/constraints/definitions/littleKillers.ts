@@ -3,6 +3,7 @@ import { defineOuterClueConstraint } from '../define'
 
 export default defineOuterClueConstraint({
   type: 'little_killers',
+  jsonKey: 'littleKillers',
   label: 'Little Killer',
   pickerLabel: 'Little Killers',
   themeLabel: 'Little killer',

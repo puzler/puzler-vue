@@ -15,7 +15,8 @@ export default defineModule<XSumSpec>({
   kind: 'x_sum',
   fromEditor: (ctx) => {
     const specs: XSumSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'x_sums' || clue.value == null) continue
       const pos = parseOuterKey(key)
       if (!pos) continue

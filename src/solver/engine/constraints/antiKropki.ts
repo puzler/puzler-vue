@@ -24,7 +24,8 @@ function cluedPairsByValue(
   fallback: number,
 ): Map<number, Array<[number, number]>> {
   const byValue = new Map<number, Array<[number, number]>>()
-  for (const [key, dot] of Object.entries(ctx.connectorDots)) {
+  for (const dot of ctx.connectorDots) {
+    const key = dot.location
     if (dot.type !== dotType || !key.includes('|')) continue
     const [ka, kb] = key.split('|')
     const a = ctx.keyToIndex(ka)

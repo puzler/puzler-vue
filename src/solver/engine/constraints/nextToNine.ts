@@ -16,7 +16,8 @@ export default defineModule<NextToNineSpec>({
   kind: 'next_to_nine',
   fromEditor: (ctx) => {
     const specs: NextToNineSpec[] = []
-    for (const [key, clue] of Object.entries(ctx.outerClues)) {
+    for (const clue of ctx.outerClues) {
+      const key = clue.location
       if (clue.type !== 'next_to_nine' || clue.value == null || typeof clue.value !== 'number') continue
       const digits = String(clue.value).split('').map(Number)
       if (digits.some((d) => d < 1)) continue

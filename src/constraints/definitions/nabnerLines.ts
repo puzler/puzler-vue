@@ -2,6 +2,7 @@ import { defineLineConstraint } from '../define'
 
 export default defineLineConstraint({
   type: 'nabner_lines',
+  jsonKey: 'nabnerLines',
   label: 'Nabner Lines',
   themeLabel: 'Nabner line',
   color: { red: 240, green: 195, blue: 0, opacity: 1 },

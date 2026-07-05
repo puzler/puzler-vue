@@ -40,20 +40,20 @@ const quadruples = computed<RenderedQuadruple[]>(() => {
     3: [{ dx: -dx, dy: -dy }, { dx, dy: -dy }, { dx: 0, dy }],
     4: [{ dx: -dx, dy: -dy }, { dx, dy: -dy }, { dx: -dx, dy }, { dx, dy }],
   }
-  return Object.entries(editor.connectorDots).flatMap(([key, dot]) => {
+  return editor.connectorDots.flatMap((dot) => {
     if (dot.type !== 'quadruples' || !Array.isArray(dot.value)) return []
-    const corner = cornerKeyToRowCol(key)
+    const corner = cornerKeyToRowCol(dot.location)
     if (!corner) return []
     const x = PADDING + corner.col * CELL_SIZE
     const y = PADDING + corner.row * CELL_SIZE
     const layout = layouts[dot.value.length] ?? []
     const sorted = [...dot.value].sort((a, b) => a - b)
     return [{
-      key,
+      key: dot.id,
       x,
       y,
       digits: sorted.map((digit, i) => ({ digit, x: x + layout[i].dx, y: y + layout[i].dy })),
-      selected: editor.selectedDotKey === key,
+      selected: editor.selectedConnectorId === dot.id,
       radius,
       fontSize,
       fill: s.fillColor,

@@ -4,7 +4,7 @@ import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 import {
   TYPE_TO_JSON_KEY, JSON_KEY_TO_TYPE, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
-  toolboxCategory, THERMO_TYPES, GLOBAL_VARIANT_EXCLUSIONS,
+  toolboxCategory, THERMO_TYPES, GLOBAL_VARIANT_EXCLUSIONS, INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
 import { cosmeticPos, DEFAULT_SHAPE_STYLE } from '@/types/constraints'
 import type {
@@ -48,9 +48,10 @@ export interface SerializedPreset {
   id: string
   label: string
   // Styled kinds (lines, shapes, texts, cages) carry `style`; cell color
-  // presets carry a single `color`.
+  // presets carry a single `color` (+ optional fill `opacity`).
   style?: Record<string, unknown>
   color?: string
+  opacity?: number
 }
 
 export interface SerializedPuzzle {
@@ -81,8 +82,13 @@ export interface PuzzleSnapshot {
   variants: Set<string>
   customGlobals: Array<{ type: string; value: number }>
   singleCellMarks: Record<string, string[]>
-  connectorDots: Array<Pick<ConnectorInstance, 'type' | 'location' | 'value'>>
-  outerClues: Array<Pick<OuterClueInstance, 'type' | 'location' | 'value' | 'direction' | 'rossiniDirection'>>
+  // Setter colors for single-cell marks (JSON-editor feature): type → internal
+  // cell key → color field → hex. Marks without colors simply don't appear.
+  singleCellMarkColors: Record<string, Record<string, Record<string, string>>>
+  connectorDots: Array<Pick<ConnectorInstance,
+    'type' | 'location' | 'value' | 'color' | 'fillColor' | 'outlineColor' | 'textColor'>>
+  outerClues: Array<Pick<OuterClueInstance,
+    'type' | 'location' | 'value' | 'direction' | 'rossiniDirection' | 'color' | 'textColor' | 'arrowColor'>>
   instances: Array<{ type: string; data: unknown }>
   cellColors: Record<string, string>
   presets: {
@@ -113,10 +119,15 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
     singleCellMarks: Object.fromEntries(
       Object.entries(editor.singleCellMarks).map(([type, cells]) => [type, Array.from(cells).sort()]),
     ),
-    connectorDots: editor.connectorDots.map((d) => ({ type: d.type, location: d.location, value: toRaw(d.value) })),
+    singleCellMarkColors: toRaw(editor.singleCellMarkColors),
+    connectorDots: editor.connectorDots.map((d) => ({
+      type: d.type, location: d.location, value: toRaw(d.value),
+      color: d.color, fillColor: d.fillColor, outlineColor: d.outlineColor, textColor: d.textColor,
+    })),
     outerClues: editor.outerClues.map((c) => ({
       type: c.type, location: c.location, value: c.value,
       direction: c.direction, rossiniDirection: c.rossiniDirection,
+      color: c.color, textColor: c.textColor, arrowColor: c.arrowColor,
     })),
     instances: editor.cosmeticInstances.map((i) => ({ type: i.type, data: toRaw(i.data) })),
     cellColors: editor.cosmeticCellColors,
@@ -162,7 +173,15 @@ function docShapeStyle(style: ShapeStyle): Record<string, unknown> {
 function docPresets(kind: keyof PuzzleSnapshot['presets'], presets: PuzzleSnapshot['presets'][typeof kind], slugs: SlugMaps): SerializedPreset[] {
   return presets.map((p) => {
     const id = slugs[kind].get(p.id) ?? p.id
-    if (kind === 'cell_color') return { id, label: p.label, color: (p as CellColorPreset).color }
+    if (kind === 'cell_color') {
+      const preset = p as CellColorPreset
+      return {
+        id,
+        label: p.label,
+        color: preset.color,
+        ...(preset.opacity !== undefined ? { opacity: preset.opacity } : {}),
+      }
+    }
     const style = (p as unknown as { style: Record<string, unknown> }).style
     return {
       id,
@@ -172,18 +191,43 @@ function docPresets(kind: keyof PuzzleSnapshot['presets'], presets: PuzzleSnapsh
   })
 }
 
+// The defined subset of an object's per-instance color fields (see
+// INSTANCE_COLOR_FIELDS): what the document carries for a colored instance,
+// and what hydration copies back. Uncolored instances contribute nothing, so
+// documents without setter colors are byte-identical to before.
+function pickDefined(obj: object, fields: readonly string[] | undefined): Record<string, unknown> {
+  const source = obj as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+  for (const field of fields ?? []) {
+    if (source[field] !== undefined) out[field] = source[field]
+  }
+  return out
+}
+
 function docConstraintEntry(snap: PuzzleSnapshot, type: string): unknown {
   const category = toolboxCategory(type)
+  const colorFields = INSTANCE_COLOR_FIELDS.get(type)
   if (category === 'single_cell') {
-    return docCells(snap.singleCellMarks[type] ?? [])
+    // Plain cell string unless the cell carries setter colors, then the
+    // object form { cell, ...colors }.
+    const colors = snap.singleCellMarkColors[type] ?? {}
+    return (snap.singleCellMarks[type] ?? []).map((cell) => {
+      const picked = pickDefined(colors[cell] ?? {}, colorFields)
+      return Object.keys(picked).length ? { cell: docCell(cell), ...picked } : docCell(cell)
+    })
   }
   if (category === 'connector') {
     return snap.connectorDots.filter((d) => d.type === type).map((d) =>
       type === 'quadruples'
-        ? { cells: cornerLocationToDocCells(d.location), values: Array.isArray(d.value) ? [...d.value] : [] }
+        ? {
+            cells: cornerLocationToDocCells(d.location),
+            values: Array.isArray(d.value) ? [...d.value] : [],
+            ...pickDefined(d, colorFields),
+          }
         : {
             cells: borderLocationToDocCells(d.location),
             ...(d.value !== null && !Array.isArray(d.value) ? { value: d.value } : {}),
+            ...pickDefined(d, colorFields),
           })
   }
   if (category === 'outer') {
@@ -195,30 +239,32 @@ function docConstraintEntry(snap: PuzzleSnapshot, type: string): unknown {
       ...(type === 'rossini'
         ? { direction: c.rossiniDirection ?? 'increasing' }
         : c.direction ? { direction: c.direction } : {}),
+      ...pickDefined(c, colorFields),
     }))
   }
   // Instance-based constraints (lines, thermos, arrows, cages, regions, clones).
   return snap.instances.filter((i) => i.type === type).map((i) => {
+    const colors = pickDefined(i.data as Record<string, unknown>, colorFields)
     if (THERMO_TYPES.has(type)) {
       const data = i.data as ThermometerData
-      return { bulb: docCell(data.root), lines: thermoEdgesToLines(data.root, data.edges).map(docCells) }
+      return { bulb: docCell(data.root), lines: thermoEdgesToLines(data.root, data.edges).map(docCells), ...colors }
     }
     if (type === 'arrow') {
       const data = i.data as ArrowData
-      return { bulbCells: docCells(data.bulbCells), arrows: data.arrows.map((p) => docCells(p.cells)) }
+      return { bulbCells: docCells(data.bulbCells), arrows: data.arrows.map((p) => docCells(p.cells)), ...colors }
     }
     if (type === 'killer_cage') {
       const data = i.data as KillerCageData
-      return { cells: docCells(data.cells), ...(data.sum !== null ? { sum: data.sum } : {}) }
+      return { cells: docCells(data.cells), ...(data.sum !== null ? { sum: data.sum } : {}), ...colors }
     }
     if (type === 'extra_regions') {
-      return { cells: docCells((i.data as ExtraRegionData).cells) }
+      return { cells: docCells((i.data as ExtraRegionData).cells), ...colors }
     }
     if (type === 'clone') {
       const data = i.data as CloneData
-      return { cells: docCells(data.cells), copies: data.copies.map((c) => ({ ...c })) }
+      return { cells: docCells(data.cells), copies: data.copies.map((c) => ({ ...c })), ...colors }
     }
-    return { cells: docCells((i.data as ConstraintLineData).cells) }
+    return { cells: docCells((i.data as ConstraintLineData).cells), ...colors }
   })
 }
 
@@ -347,8 +393,33 @@ export function deserializePuzzle(editor: EditorStore, grid: GridStore, input: S
   hydratePuzzle(editor, grid, input)
 }
 
-interface DocConnector { cells?: string[]; value?: ConnectorValue; values?: number[] }
-interface DocOuterClue { cell?: string; value?: number; direction?: string }
+interface DocConnector {
+  cells?: string[]
+  value?: ConnectorValue
+  values?: number[]
+  color?: string
+  fillColor?: string
+  outlineColor?: string
+  textColor?: string
+}
+interface DocOuterClue {
+  cell?: string
+  value?: number
+  direction?: string
+  color?: string
+  textColor?: string
+  arrowColor?: string
+}
+// A single-cell mark entry: the plain cell string, or the object form when
+// the mark carries setter colors.
+interface DocSingleCellMark {
+  cell?: string
+  color?: string
+  backgroundColor?: string
+  chevronColor?: string
+  fillColor?: string
+  outlineColor?: string
+}
 interface DocInstance {
   cells?: string[]
   sum?: number
@@ -361,6 +432,16 @@ interface DocInstance {
   content?: string
   rotation?: number
   preset?: string
+  // Per-instance setter colors (the union across families; INSTANCE_COLOR_FIELDS
+  // says which apply per type).
+  color?: string
+  lineColor?: string
+  bulbFillColor?: string
+  bulbOutlineColor?: string
+  bulbColor?: string
+  arrowColor?: string
+  cageColor?: string
+  textColor?: string
 }
 
 // The hydration half of deserializePuzzle, without the reset. Callers that need
@@ -433,6 +514,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
 
   // Constraint entries route by category; instance ids are regenerated.
   const singleCellMarks: Record<string, Set<string>> = {}
+  const singleCellMarkColors: Record<string, Record<string, Record<string, string>>> = {}
   const connectorDots: ConnectorInstance[] = []
   const outerClues: OuterClueInstance[] = []
   const instances: Array<{ id: string; type: string; data: unknown }> = []
@@ -441,8 +523,22 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
     const type = JSON_KEY_TO_TYPE.get(key)
     if (!type) continue
     const category = toolboxCategory(type)
+    const colorFields = INSTANCE_COLOR_FIELDS.get(type)
     if (category === 'single_cell') {
-      singleCellMarks[type] = new Set(internalCells((entry as string[]) ?? []))
+      const cells = new Set<string>()
+      const colors: Record<string, Record<string, string>> = {}
+      for (const item of (entry as Array<string | DocSingleCellMark>) ?? []) {
+        if (typeof item === 'string') {
+          cells.add(internalCell(item))
+          continue
+        }
+        const cell = internalCell(item.cell ?? '')
+        cells.add(cell)
+        const picked = pickDefined(item as Record<string, unknown>, colorFields)
+        if (Object.keys(picked).length) colors[cell] = picked as Record<string, string>
+      }
+      singleCellMarks[type] = cells
+      if (Object.keys(colors).length) singleCellMarkColors[type] = colors
     } else if (category === 'connector') {
       for (const dot of (entry as DocConnector[]) ?? []) {
         connectorDots.push({
@@ -452,6 +548,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
             ? cornerLocationFromDocCells(dot.cells ?? [])
             : borderLocationFromDocCells(dot.cells ?? []),
           value: type === 'quadruples' ? [...(dot.values ?? [])] : (dot.value ?? null),
+          ...pickDefined(dot, colorFields),
         })
       }
     } else if (category === 'outer') {
@@ -464,11 +561,19 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
           ...(type === 'rossini'
             ? { rossiniDirection: (clue.direction as RossiniDirection) ?? 'increasing' }
             : clue.direction ? { direction: clue.direction as LittleKillerDirection } : {}),
+          ...pickDefined(clue, colorFields),
         })
       }
     } else {
       for (const inst of (entry as DocInstance[]) ?? []) {
-        instances.push({ id: crypto.randomUUID(), type, data: instanceDataFromDoc(type, inst) })
+        instances.push({
+          id: crypto.randomUUID(),
+          type,
+          data: {
+            ...(instanceDataFromDoc(type, inst) as Record<string, unknown>),
+            ...pickDefined(inst, colorFields),
+          },
+        })
       }
     }
   }
@@ -485,6 +590,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   }
 
   editor.singleCellMarks = singleCellMarks
+  editor.singleCellMarkColors = singleCellMarkColors
   editor.connectorDots = connectorDots
   editor.outerClues = outerClues
   editor.cosmeticInstances = instances

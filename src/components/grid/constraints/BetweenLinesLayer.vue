@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellsToPath, cellCenter } from '@/utils/linePath'
 import type { ConstraintLineData } from '@/types/constraints'
-import { useConstraintStyles } from '@/composables/useConstraintStyles'
+import { useConstraintStyles, withColorOverrides, type ResolvedBetweenLine } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
 const cs = useConstraintStyles()
@@ -16,18 +16,27 @@ interface RenderedBetweenLine {
   path: string
   start: { x: number; y: number }
   end: { x: number; y: number }
+  style: ResolvedBetweenLine
 }
 
 const betweenLineInstances = computed<RenderedBetweenLine[]>(() =>
   editor.cosmeticInstances
     .filter(i => i.type === 'between_lines')
     .map(i => {
-      const cells = (i.data as ConstraintLineData).cells
+      const data = i.data as ConstraintLineData
       return {
         id: i.id,
-        path: cellsToPath(cells),
-        start: cellCenter(cells[0]),
-        end: cellCenter(cells[cells.length - 1]),
+        path: cellsToPath(data.cells),
+        start: cellCenter(data.cells[0]),
+        end: cellCenter(data.cells[data.cells.length - 1]),
+        // Per-instance setter colors beat the theme style. The generic
+        // `color` reaches the line and the bulb fill; the bulb outline only
+        // changes via bulbOutlineColor so the bulbs stay legible.
+        style: withColorOverrides(blStyle.value, {
+          lineColor: data.lineColor ?? data.color,
+          circleFill: data.bulbFillColor ?? data.color,
+          circleStrokeColor: data.bulbOutlineColor,
+        }),
       }
     })
     .filter(l => l.path),
@@ -54,8 +63,8 @@ const pendingBetweenLine = computed(() => {
       <path
         :d="bl.path"
         fill="none"
-        :stroke="blStyle.lineColor"
-        :stroke-width="blStyle.lineStrokeWidth"
+        :stroke="bl.style.lineColor"
+        :stroke-width="bl.style.lineStrokeWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
         pointer-events="none"
@@ -63,19 +72,19 @@ const pendingBetweenLine = computed(() => {
       <circle
         :cx="bl.start.x"
         :cy="bl.start.y"
-        :r="blStyle.circleRadius"
-        :fill="blStyle.circleFill"
-        :stroke="blStyle.circleStrokeColor"
-        :stroke-width="blStyle.circleStrokeWidth"
+        :r="bl.style.circleRadius"
+        :fill="bl.style.circleFill"
+        :stroke="bl.style.circleStrokeColor"
+        :stroke-width="bl.style.circleStrokeWidth"
         pointer-events="none"
       />
       <circle
         :cx="bl.end.x"
         :cy="bl.end.y"
-        :r="blStyle.circleRadius"
-        :fill="blStyle.circleFill"
-        :stroke="blStyle.circleStrokeColor"
-        :stroke-width="blStyle.circleStrokeWidth"
+        :r="bl.style.circleRadius"
+        :fill="bl.style.circleFill"
+        :stroke="bl.style.circleStrokeColor"
+        :stroke-width="bl.style.circleStrokeWidth"
         pointer-events="none"
       />
     </g>

@@ -149,10 +149,15 @@ describe('scanHexColors', () => {
     expect(scanHexColors('"#AABBCC"')[0]!.color).toBe('#AABBCC')
   })
 
-  it('ignores none, short hex, alpha hex, and unquoted hex', () => {
+  it('finds quoted 8-digit alpha hex values', () => {
+    const [m] = scanHexColors('"#aabbccdd"')
+    expect(m).toEqual({ from: 0, to: 11, color: '#aabbccdd' })
+  })
+
+  it('ignores none, short hex, 7-digit hex, and unquoted hex', () => {
     expect(scanHexColors('"none"')).toEqual([])
     expect(scanHexColors('"#abc"')).toEqual([])
-    expect(scanHexColors('"#aabbccdd"')).toEqual([])
+    expect(scanHexColors('"#aabbccd"')).toEqual([])
     expect(scanHexColors('#aabbcc')).toEqual([])
   })
 })

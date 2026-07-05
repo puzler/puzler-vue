@@ -12,18 +12,22 @@ const cs = useConstraintStyles()
 const oddStyle = computed(() => cs.shapeStyle('odd_cells'))
 const evenStyle = computed(() => cs.shapeStyle('even_cells'))
 
-interface CellPoint { key: string; x: number; y: number }
+interface CellPoint { key: string; x: number; y: number; fill?: string }
+
+// Per-cell setter colors (JSON-editor feature) beat the theme fill.
+const markColor = (type: string, key: string): string | undefined =>
+  editor.singleCellMarkColors[type]?.[key]?.color
 
 const oddCellPoints = computed<CellPoint[]>(() => {
   const marks = editor.singleCellMarks['odd_cells']
   if (!marks?.size) return []
-  return Array.from(marks).map(key => ({ key, ...cellCenter(key) }))
+  return Array.from(marks).map(key => ({ key, ...cellCenter(key), fill: markColor('odd_cells', key) }))
 })
 
 const evenCellPoints = computed<CellPoint[]>(() => {
   const marks = editor.singleCellMarks['even_cells']
   if (!marks?.size) return []
-  return Array.from(marks).map(key => ({ key, ...cellCenter(key) }))
+  return Array.from(marks).map(key => ({ key, ...cellCenter(key), fill: markColor('even_cells', key) }))
 })
 </script>
 
@@ -35,7 +39,7 @@ const evenCellPoints = computed<CellPoint[]>(() => {
       :cx="cell.x"
       :cy="cell.y"
       :r="oddStyle.width * CELL_SIZE / 2"
-      :fill="oddStyle.fillColor"
+      :fill="cell.fill ?? oddStyle.fillColor"
       pointer-events="none"
     />
 
@@ -46,7 +50,7 @@ const evenCellPoints = computed<CellPoint[]>(() => {
       :y="cell.y - evenStyle.width * CELL_SIZE / 2"
       :width="evenStyle.width * CELL_SIZE"
       :height="evenStyle.width * CELL_SIZE"
-      :fill="evenStyle.fillColor"
+      :fill="cell.fill ?? evenStyle.fillColor"
       pointer-events="none"
     />
   </g>

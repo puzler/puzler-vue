@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import OpacityField from './OpacityField.vue'
 import PresetRow from './PresetRow.vue'
 
 const editor = useEditorStore()
@@ -37,7 +38,7 @@ function onColorInput(event: Event) {
         >
           <span
             class="w-5 h-5 rounded-sm border border-line shrink-0"
-            :style="{ background: preset.color }"
+            :style="{ background: preset.color, opacity: preset.opacity ?? 1 }"
           />
         </PresetRow>
       </div>
@@ -59,6 +60,10 @@ function onColorInput(event: Event) {
           <span class="text-xs text-faint font-mono">{{ editor.activeCellColorPreset.color }}</span>
         </div>
       </div>
+      <OpacityField
+        :value="editor.activeCellColorPreset.opacity"
+        @change="editor.updateActiveCellColorPreset({ opacity: $event })"
+      />
       <p class="text-[11px] text-faint leading-snug">
         Drag to paint · Click a painted cell to erase
       </p>

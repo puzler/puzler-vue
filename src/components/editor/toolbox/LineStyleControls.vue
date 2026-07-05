@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
 import ModeSwitcher from './ModeSwitcher.vue'
+import OpacityField from './OpacityField.vue'
 
 const editor = useEditorStore()
 
@@ -16,11 +17,6 @@ function onColorInput(event: Event) {
 function onWidthChange(event: Event) {
   const raw = Number((event.target as HTMLInputElement).value)
   editor.updateActiveLinePreset({ strokeWidth: Math.max(1, Math.min(30, raw)) })
-}
-
-function onOpacityChange(event: Event) {
-  const raw = Number((event.target as HTMLInputElement).value)
-  editor.updateActiveLinePreset({ opacity: Math.max(0.1, Math.min(1, raw / 100)) })
 }
 </script>
 
@@ -55,20 +51,10 @@ function onOpacityChange(event: Event) {
         <span class="text-xs text-faint">px</span>
       </div>
     </div>
-    <div class="flex flex-col gap-1">
-      <label class="text-xs text-soft">Opacity</label>
-      <div class="flex items-center gap-2">
-        <input
-          type="number"
-          :value="Math.round(editor.activeLinePreset.style.opacity * 100)"
-          min="10"
-          max="100"
-          class="w-16 text-sm px-2 py-1 rounded border border-line focus:outline-none focus:border-action text-center"
-          @change="onOpacityChange"
-        >
-        <span class="text-xs text-faint">%</span>
-      </div>
-    </div>
+    <OpacityField
+      :value="editor.activeLinePreset.style.opacity"
+      @change="editor.updateActiveLinePreset({ opacity: $event })"
+    />
     <ModeSwitcher
       :modes="MODES"
       :active="editor.effectiveLineDrawMode"

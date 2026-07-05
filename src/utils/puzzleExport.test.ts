@@ -372,3 +372,104 @@ describe('migratePuzzleDocument (v3 → v4)', () => {
     expect(shapeStyle).toBeUndefined()
   })
 })
+
+describe('per-instance setter colors (format v4)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  // One colored instance per category; the pinned encoding below is exactly
+  // this state. populatedStores above stays untouched, proving colors are
+  // omitted when unset.
+  function coloredStores() {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set([
+      'renban', 'thermometer', 'killer_cage', 'difference_dots', 'little_killers',
+      'odd_cells', 'maximums', 'clone', 'extra_regions',
+    ])
+    editor.cosmeticInstances = [
+      { id: 'l1', type: 'renban', data: { cells: ['r0c0', 'r1c0'], color: '#ff000080' } },
+      {
+        id: 't1',
+        type: 'thermometer',
+        data: { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }], color: '#123456', bulbColor: '#654321' },
+      },
+      { id: 'k1', type: 'killer_cage', data: { cells: ['r2c0', 'r2c1'], sum: 10, cageColor: '#00ff00', textColor: '#0000ff' } },
+      { id: 'x1', type: 'extra_regions', data: { cells: ['r5c5'], color: '#22222240' } },
+      { id: 'c1', type: 'clone', data: { cells: ['r6c6'], copies: [{ dRow: 1, dCol: 1 }], color: '#abcdef' } },
+    ]
+    editor.connectorDots = [
+      { id: 'd1', type: 'difference_dots', location: 'r0c0|r0c1', value: 3, color: '#ff8800', textColor: '#ffffff' },
+    ]
+    editor.outerClues = [
+      { id: 'o1', type: 'little_killers', location: 'o:r-1c-1', value: 30, direction: 'down-right', arrowColor: '#808080' },
+    ]
+    editor.singleCellMarks = { odd_cells: new Set(['r1c1']), maximums: new Set(['r3c3']) }
+    editor.singleCellMarkColors = {
+      odd_cells: { r1c1: { color: '#99999980' } },
+      maximums: { r3c3: { backgroundColor: '#101010', chevronColor: '#fafafa' } },
+    }
+    return { editor, grid }
+  }
+
+  it('pins the doc encoding: colors ride each instance, plain marks stay strings', () => {
+    const { editor, grid } = coloredStores()
+    const data = serializePuzzle(editor, grid)
+    expect(data.constraints).toEqual({
+      renbanLines: [{ cells: ['r1c1', 'r2c1'], color: '#ff000080' }],
+      thermometers: [{ bulb: 'r1c1', lines: [['r1c1', 'r1c2']], color: '#123456', bulbColor: '#654321' }],
+      differenceDots: [{ cells: ['r1c1', 'r1c2'], value: 3, color: '#ff8800', textColor: '#ffffff' }],
+      oddCells: [{ cell: 'r2c2', color: '#99999980' }],
+      maximums: [{ cell: 'r4c4', backgroundColor: '#101010', chevronColor: '#fafafa' }],
+      killerCages: [{ cells: ['r3c1', 'r3c2'], sum: 10, cageColor: '#00ff00', textColor: '#0000ff' }],
+      extraRegions: [{ cells: ['r6c6'], color: '#22222240' }],
+      clones: [{ cells: ['r7c7'], copies: [{ dRow: 1, dCol: 1 }], color: '#abcdef' }],
+      littleKillers: [{ cell: 'r0c0', value: 30, direction: 'down-right', arrowColor: '#808080' }],
+    })
+  })
+
+  it('round-trips instance colors with no loss', () => {
+    const { editor, grid } = coloredStores()
+    const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, original)
+
+    expect(editor2.singleCellMarkColors).toEqual({
+      odd_cells: { r1c1: { color: '#99999980' } },
+      maximums: { r3c3: { backgroundColor: '#101010', chevronColor: '#fafafa' } },
+    })
+    expect(editor2.connectorDots[0]).toMatchObject({ color: '#ff8800', textColor: '#ffffff' })
+    expect(editor2.outerClues[0]).toMatchObject({ arrowColor: '#808080' })
+    expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
+  })
+
+  it('hydrates mixed plain and colored single-cell entries', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, {
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
+      constraints: { oddCells: ['r1c1', { cell: 'r2c2', color: '#ff0000' }] as unknown as string[] },
+    })
+    expect(editor.singleCellMarks.odd_cells).toEqual(new Set(['r0c0', 'r1c1']))
+    expect(editor.singleCellMarkColors).toEqual({ odd_cells: { r1c1: { color: '#ff0000' } } })
+  })
+
+  it('ignores color fields a type does not accept', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    deserializePuzzle(editor, grid, {
+      formatVersion: 4,
+      grid: { rows: 9, cols: 9 },
+      constraints: { renbanLines: [{ cells: ['r1c1', 'r2c1'], cageColor: '#ff0000' }] },
+    })
+    const data = (editor.cosmeticInstances[0].data ?? {}) as Record<string, unknown>
+    expect(data.cageColor).toBeUndefined()
+    const doc = serializePuzzle(editor, grid)
+    expect((doc.constraints as Record<string, unknown>).renbanLines).toEqual([{ cells: ['r1c1', 'r2c1'] }])
+  })
+})

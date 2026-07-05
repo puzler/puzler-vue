@@ -67,25 +67,67 @@ const chrome = EditorView.theme({
   '.cm-panel.cm-search label': { fontSize: '11px', color: 'var(--color-soft)' },
   '.cm-searchMatch': { backgroundColor: 'var(--color-spark-tint)' },
   '.cm-searchMatch-selected': { backgroundColor: 'var(--color-grid-selection)' },
-  // The inline color-swatch widgets (see colorSwatch.ts).
+  // The inline color-swatch widgets (see colorSwatch.ts). The checkerboard
+  // under the fill makes alpha in 8-digit hex values read as transparency.
   '.cm-color-swatch': {
     display: 'inline-block',
     width: '0.85em',
     height: '0.85em',
+    padding: '0',
     borderRadius: '3px',
     border: '1px solid var(--color-line)',
     verticalAlign: 'middle',
     marginRight: '0.3em',
     cursor: 'pointer',
     overflow: 'hidden',
+    backgroundColor: 'var(--color-surface)',
+    backgroundImage: 'conic-gradient(var(--color-line) 25%, transparent 0 50%, var(--color-line) 0 75%, transparent 0)',
+    backgroundSize: '6px 6px',
   },
-  '.cm-color-swatch input[type="color"]': {
-    width: '200%',
-    height: '200%',
+  '.cm-color-swatch-fill': {
+    display: 'block',
+    width: '100%',
+    height: '100%',
+  },
+  // The color + alpha popover a swatch click opens (see colorSwatch.ts).
+  '.cm-swatch-popover': {
+    position: 'fixed',
+    zIndex: '50',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    padding: '10px',
+    backgroundColor: 'var(--color-surface)',
+    border: '1px solid var(--color-line)',
+    borderRadius: '8px',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+  },
+  '.cm-swatch-popover input[type="color"]': {
+    width: '160px',
+    height: '28px',
     padding: '0',
-    border: 'none',
-    margin: '-50%',
+    border: '1px solid var(--color-line)',
+    borderRadius: '4px',
+    backgroundColor: 'var(--color-surface)',
     cursor: 'pointer',
+  },
+  '.cm-swatch-popover-alpha': {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  '.cm-swatch-popover-alpha input[type="range"]': {
+    flex: '1',
+    minWidth: '0',
+    accentColor: 'var(--color-action)',
+    cursor: 'pointer',
+  },
+  '.cm-swatch-popover-alpha span': {
+    fontSize: '11px',
+    color: 'var(--color-soft)',
+    minWidth: '32px',
+    textAlign: 'right',
+    fontVariantNumeric: 'tabular-nums',
   },
 })
 

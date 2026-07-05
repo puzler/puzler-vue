@@ -28,6 +28,7 @@ interface RenderedClue {
   text: string
   fontSize: number
   color: string
+  arrowColor: string
   selected: boolean
   arrowPath: string | null
 }
@@ -80,7 +81,10 @@ const clues = computed<RenderedClue[]>(() =>
       y: center.y + (arrow?.offset.dy ?? 0),
       text,
       fontSize: st.size * CELL_SIZE,
-      color: st.fontColor,
+      // Per-instance setter colors beat the theme style; the little killer's
+      // textColor/arrowColor beat the generic `color` for their element.
+      color: clue.textColor ?? clue.color ?? st.fontColor,
+      arrowColor: clue.arrowColor ?? clue.color ?? st.fontColor,
       selected: editor.selectedOuterClueId === clue.id,
       arrowPath: arrow?.path ?? null,
     }]
@@ -140,7 +144,7 @@ const separators = computed<Array<{ x1: number; y1: number; x2: number; y2: numb
         v-if="clue.arrowPath"
         :d="clue.arrowPath"
         fill="none"
-        :stroke="clue.color"
+        :stroke="clue.arrowColor"
         stroke-width="1.75"
         stroke-linecap="round"
         stroke-linejoin="round"

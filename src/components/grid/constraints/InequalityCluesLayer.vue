@@ -29,6 +29,7 @@ interface RenderedInequality {
   selected: boolean
   horizontal: boolean
   borderWidth: number
+  color: string
 }
 
 const inequalityClues = computed<RenderedInequality[]>(() =>
@@ -45,6 +46,8 @@ const inequalityClues = computed<RenderedInequality[]>(() =>
       selected: editor.selectedConnectorId === dot.id,
       horizontal,
       borderWidth: (labels.get(a) !== labels.get(b) ? BOX_STROKE : THIN_STROKE) + 1,
+      // Per-instance setter color beats the theme style.
+      color: dot.color ?? ineqColor.value,
     }]
   }),
 )
@@ -82,7 +85,7 @@ const inequalityClues = computed<RenderedInequality[]>(() =>
         text-anchor="middle"
         dominant-baseline="central"
         :dy="clue.glyph === '_' ? '-0.35em' : undefined"
-        :fill="ineqColor"
+        :fill="clue.color"
         :font-size="ineqFontSize"
         font-weight="600"
         :transform="clue.rotate ? `rotate(90 ${clue.x} ${clue.y})` : undefined"

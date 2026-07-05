@@ -30,6 +30,7 @@ interface RenderedXv {
   horizontal: boolean
   // Perpendicular thickness of the backing strip — covers the border stroke plus a small halo.
   borderWidth: number
+  color: string
 }
 
 const xvClues = computed<RenderedXv[]>(() =>
@@ -44,6 +45,8 @@ const xvClues = computed<RenderedXv[]>(() =>
       selected: editor.selectedConnectorId === dot.id,
       horizontal: a.split('c')[0] !== b.split('c')[0],
       borderWidth: (labels.get(a) !== labels.get(b) ? BOX_STROKE : THIN_STROKE) + 1,
+      // Per-instance setter color beats the theme style.
+      color: dot.color ?? xvColor.value,
     }]
   }),
 )
@@ -80,7 +83,7 @@ const xvClues = computed<RenderedXv[]>(() =>
         text-anchor="middle"
         dominant-baseline="central"
         :dy="clue.glyph === '_' ? '-0.35em' : undefined"
-        :fill="xvColor"
+        :fill="clue.color"
         :font-size="xvFontSize"
         font-weight="600"
       >

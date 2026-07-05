@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellsToPath, cellCenter } from '@/utils/linePath'
 import type { ConstraintLineData } from '@/types/constraints'
-import { useConstraintStyles } from '@/composables/useConstraintStyles'
+import { useConstraintStyles, withColorOverrides, type ResolvedBetweenLine } from '@/composables/useConstraintStyles'
 
 const editor = useEditorStore()
 const cs = useConstraintStyles()
@@ -22,18 +22,27 @@ interface RenderedLockoutLine {
   path: string
   start: string
   end: string
+  style: ResolvedBetweenLine
 }
 
 const lockoutLineInstances = computed<RenderedLockoutLine[]>(() =>
   editor.cosmeticInstances
     .filter(i => i.type === 'lockout_lines')
     .map(i => {
-      const cells = (i.data as ConstraintLineData).cells
+      const data = i.data as ConstraintLineData
       return {
         id: i.id,
-        path: cellsToPath(cells),
-        start: diamondPath(cellCenter(cells[0]), loStyle.value.circleRadius),
-        end: diamondPath(cellCenter(cells[cells.length - 1]), loStyle.value.circleRadius),
+        path: cellsToPath(data.cells),
+        start: diamondPath(cellCenter(data.cells[0]), loStyle.value.circleRadius),
+        end: diamondPath(cellCenter(data.cells[data.cells.length - 1]), loStyle.value.circleRadius),
+        // Per-instance setter colors beat the theme style. The generic
+        // `color` reaches the line and the diamond fill; the diamond outline
+        // only changes via bulbOutlineColor so the ends stay legible.
+        style: withColorOverrides(loStyle.value, {
+          lineColor: data.lineColor ?? data.color,
+          circleFill: data.bulbFillColor ?? data.color,
+          circleStrokeColor: data.bulbOutlineColor,
+        }),
       }
     })
     .filter(l => l.path),
@@ -60,24 +69,24 @@ const pendingLockoutLine = computed(() => {
       <path
         :d="lo.path"
         fill="none"
-        :stroke="loStyle.lineColor"
-        :stroke-width="loStyle.lineStrokeWidth"
+        :stroke="lo.style.lineColor"
+        :stroke-width="lo.style.lineStrokeWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
         pointer-events="none"
       />
       <path
         :d="lo.start"
-        :fill="loStyle.circleFill"
-        :stroke="loStyle.circleStrokeColor"
-        :stroke-width="loStyle.circleStrokeWidth"
+        :fill="lo.style.circleFill"
+        :stroke="lo.style.circleStrokeColor"
+        :stroke-width="lo.style.circleStrokeWidth"
         pointer-events="none"
       />
       <path
         :d="lo.end"
-        :fill="loStyle.circleFill"
-        :stroke="loStyle.circleStrokeColor"
-        :stroke-width="loStyle.circleStrokeWidth"
+        :fill="lo.style.circleFill"
+        :stroke="lo.style.circleStrokeColor"
+        :stroke-width="lo.style.circleStrokeWidth"
         pointer-events="none"
       />
     </g>

@@ -273,6 +273,39 @@ export const GLOBAL_GROUPS_JSON: readonly GlobalGroupJson[] = ALL
     customValues: g.json!.customValues ?? {},
   }))
 
+// ── Derived: per-instance color fields (serialized puzzle format v4) ──────────
+//
+// Optional setter colors a local constraint instance may carry in the document
+// (a JSON-editor power feature; there is no panel UI for these). Every local
+// type accepts the generic `color`; multi-element types add specific fields
+// that beat `color` for their element. Consumed by the serializer, hydrator
+// and validator so the field list lives in exactly one place. Render-side
+// precedence — including which elements the generic `color` reaches; it skips
+// contrast-critical ones like dot outlines, value text and min/max chevrons —
+// is applied per element in the layer components via withColorOverrides.
+
+const EXTRA_INSTANCE_COLOR_FIELDS: Record<string, readonly string[]> = {
+  between_lines: ['lineColor', 'bulbFillColor', 'bulbOutlineColor'],
+  lockout_lines: ['lineColor', 'bulbFillColor', 'bulbOutlineColor'],
+  thermometer: ['bulbColor', 'lineColor'],
+  slow_thermometer: ['bulbColor', 'lineColor'],
+  arrow: ['bulbColor', 'arrowColor'],
+  killer_cage: ['cageColor', 'textColor'],
+  difference_dots: ['fillColor', 'outlineColor', 'textColor'],
+  ratio_dots: ['fillColor', 'outlineColor', 'textColor'],
+  quadruples: ['fillColor', 'outlineColor', 'textColor'],
+  little_killers: ['textColor', 'arrowColor'],
+  minimums: ['backgroundColor', 'chevronColor'],
+  maximums: ['backgroundColor', 'chevronColor'],
+  counting_circles: ['fillColor', 'outlineColor'],
+}
+
+export const INSTANCE_COLOR_FIELDS: ReadonlyMap<string, readonly string[]> = new Map(
+  ALL.filter((d) => d.toolbox !== undefined && LOCAL_CATEGORIES.has(d.toolbox.category)).map(
+    (d) => [d.type, ['color', ...(EXTRA_INSTANCE_COLOR_FIELDS[d.type] ?? [])]],
+  ),
+)
+
 // ── Derived: icons ─────────────────────────────────────────────────────────────
 
 export const CONSTRAINT_ICONS: Record<string, ConstraintIcon> = Object.fromEntries(

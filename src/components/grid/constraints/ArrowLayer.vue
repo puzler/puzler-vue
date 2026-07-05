@@ -67,6 +67,8 @@ interface RenderedArrowInstance {
   bulbPath: string | null
   linePaths: string[]
   headPaths: string[]
+  lineColor: string
+  bulbColor: string
 }
 
 function renderInstance(id: string, data: ArrowData): RenderedArrowInstance {
@@ -76,6 +78,10 @@ function renderInstance(id: string, data: ArrowData): RenderedArrowInstance {
     bulbPath: data.bulbCells.length > 1 ? cellsToPath(data.bulbCells) : null,
     linePaths: data.arrows.map(p => arrowLinePath(p.cells)),
     headPaths: data.arrows.map(p => arrowHeadPath(p.cells)).filter((p): p is string => p !== null),
+    // Per-instance setter colors beat the theme style; specific beats the
+    // generic `color`.
+    lineColor: data.arrowColor ?? data.color ?? arrowColor.value,
+    bulbColor: data.bulbColor ?? data.color ?? arrowColor.value,
   }
 }
 
@@ -110,7 +116,7 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :key="`line-${i}`"
         :d="line"
         fill="none"
-        :stroke="arrowColor"
+        :stroke="inst.lineColor"
         :stroke-width="ARROW_STYLE.lineWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -120,7 +126,7 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :key="`head-${i}`"
         :d="head"
         fill="none"
-        :stroke="arrowColor"
+        :stroke="inst.lineColor"
         :stroke-width="ARROW_STYLE.lineWidth"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -134,14 +140,14 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :cy="inst.bulbCircle.y"
         :r="ARROW_STYLE.bulbRadius"
         :style="{ fill: 'var(--color-grid-cell)' }"
-        :stroke="arrowColor"
+        :stroke="inst.bulbColor"
         :stroke-width="ARROW_STYLE.outlineWidth"
       />
       <template v-if="inst.bulbPath">
         <path
           :d="inst.bulbPath"
           fill="none"
-          :stroke="arrowColor"
+          :stroke="inst.bulbColor"
           :stroke-width="BULB_OUTER"
           stroke-linecap="round"
           stroke-linejoin="round"

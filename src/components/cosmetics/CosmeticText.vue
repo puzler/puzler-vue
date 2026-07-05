@@ -51,6 +51,7 @@ const halfW = computed(() => Math.max(props.textStyle.fontSize, (props.text.leng
       text-anchor="middle"
       dominant-baseline="central"
       :fill="textStyle.color"
+      :fill-opacity="textStyle.opacity ?? 1"
       :font-size="textStyle.fontSize"
       :font-weight="textStyle.bold ? 'bold' : 'normal'"
       pointer-events="none"

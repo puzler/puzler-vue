@@ -20,10 +20,15 @@ const cs = useConstraintStyles()
 const cageStyle = computed(() => cs.cageStyle())
 
 // Constraint cages use the fixed CAGE_STYLE; cosmetic cages take their
-// colors from the preset they were drawn with
-function cosmeticCageColors(presetId: string): { cage: string; text: string } {
+// colors (and opacities) from the preset they were drawn with
+function cosmeticCageColors(presetId: string): { cage: string; text: string; cageOpacity: number; textOpacity: number } {
   const style = editor.cagePresets.find(p => p.id === presetId)?.style
-  return { cage: style?.cageColor ?? cageStyle.value.color, text: style?.textColor ?? cageStyle.value.textColor }
+  return {
+    cage: style?.cageColor ?? cageStyle.value.color,
+    text: style?.textColor ?? cageStyle.value.textColor,
+    cageOpacity: style?.cageOpacity ?? 1,
+    textOpacity: style?.textOpacity ?? 1,
+  }
 }
 
 function outlinePaths(cells: string[]): string[] {
@@ -49,6 +54,8 @@ interface RenderedCage {
   selected: boolean
   cageColor: string
   textColor: string
+  cageOpacity: number
+  textOpacity: number
 }
 
 const cages = computed<RenderedCage[]>(() =>
@@ -56,9 +63,15 @@ const cages = computed<RenderedCage[]>(() =>
     .filter(i => i.type === 'killer_cage' || i.type === 'cosmetic_cage')
     .map(i => {
       const data = i.data as KillerCageData
+      // Constraint cages: per-instance setter colors beat the theme style.
       const colors = i.type === 'cosmetic_cage'
         ? cosmeticCageColors((i.data as CosmeticCageData).presetId)
-        : { cage: cageStyle.value.color, text: cageStyle.value.textColor }
+        : {
+            cage: data.cageColor ?? data.color ?? cageStyle.value.color,
+            text: data.textColor ?? data.color ?? cageStyle.value.textColor,
+            cageOpacity: 1,
+            textOpacity: 1,
+          }
       return {
         id: i.id,
         paths: outlinePaths(data.cells),
@@ -67,6 +80,8 @@ const cages = computed<RenderedCage[]>(() =>
         selected: editor.selectedCageId === i.id,
         cageColor: colors.cage,
         textColor: colors.text,
+        cageOpacity: colors.cageOpacity,
+        textOpacity: colors.textOpacity,
       }
     }),
 )
@@ -108,10 +123,12 @@ const pendingPaths = computed<string[]>(() =>
         :d="p"
         fill="none"
         :stroke="cage.cageColor"
+        :stroke-opacity="cage.cageOpacity"
         stroke-width="1.25"
         stroke-dasharray="5 3"
         stroke-linejoin="round"
       />
+      <!-- Element opacity (not fill-opacity) so the white halo fades with the text. -->
       <text
         v-if="cage.sum !== null"
         :x="cage.sumPos.x"
@@ -119,6 +136,7 @@ const pendingPaths = computed<string[]>(() =>
         text-anchor="start"
         dominant-baseline="hanging"
         :fill="cage.textColor"
+        :opacity="cage.textOpacity"
         :font-size="SUM_FONT_SIZE"
         font-weight="600"
         paint-order="stroke"

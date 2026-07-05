@@ -100,7 +100,7 @@ describe('validatePuzzle errors (functionally broken)', () => {
     expect(errors.map((e) => `${e.path}: ${e.message}`).sort()).toEqual([
       'constraints.arrows[0].arrows: expected Array<Array<string>>, got Array<number>',
       'constraints.killerCages[0].cells: expected Array<string>, got Array<number>',
-      'constraints.oddCells: expected Array<string>, got Array<boolean>',
+      'constraints.oddCells: expected Array<string | object>, got Array<boolean>',
     ])
   })
 
@@ -190,5 +190,64 @@ describe('validatePuzzle warnings (weird but allowed)', () => {
       },
     }))
     expect(result).toEqual({ errors: [], warnings: [] })
+  })
+})
+
+describe('validatePuzzle instance colors and opacity', () => {
+  it('accepts 6 and 8 digit hex instance colors silently', () => {
+    const result = validatePuzzle(doc({
+      constraints: {
+        killerCages: [{ cells: ['r1c1', 'r1c2'], sum: 10, color: '#00ff00', textColor: '#00ff0080' }],
+        renbanLines: [{ cells: ['r2c1', 'r2c2'], color: '#abcdef12' }],
+        oddCells: [{ cell: 'r3c3', color: '#12345678' }],
+        differenceDots: [{ cells: ['r4c1', 'r4c2'], color: '#ffffff' }],
+        xSums: [{ cell: 'r0c4', value: 12, color: '#333333' }],
+      },
+    }))
+    expect(result.errors).toHaveLength(0)
+    expect(result.warnings).toHaveLength(0)
+  })
+
+  it('warns on non-hex instance colors but does not block', () => {
+    const { errors, warnings } = validatePuzzle(doc({
+      constraints: {
+        killerCages: [{ cells: ['r1c1'], cageColor: 'rebeccapurple' }],
+        maximums: [{ cell: 'r2c2', chevronColor: 'not-a-color' }],
+      },
+    }))
+    expect(errors).toHaveLength(0)
+    expect(paths(warnings)).toEqual([
+      'constraints.killerCages[0].cageColor',
+      'constraints.maximums[0].chevronColor',
+    ])
+    expect(warnings[0].message).toContain('6 or 8 digit hex color')
+  })
+
+  it('rejects a colored single-cell entry with a malformed cell', () => {
+    const { errors } = validatePuzzle(doc({
+      constraints: { oddCells: [{ cell: 'banana', color: '#ff0000' }] },
+    }))
+    expect(paths(errors)).toEqual(['constraints.oddCells[0].cell'])
+  })
+
+  it('still catches duplicate cells across plain and colored entries', () => {
+    const { warnings } = validatePuzzle(doc({
+      constraints: { evenCells: ['r1c1', { cell: 'r1c1', color: '#ff0000' }] },
+    }))
+    expect(paths(warnings)).toEqual(['constraints.evenCells'])
+  })
+
+  it('warns on out-of-range preset opacity values', () => {
+    const { warnings } = validatePuzzle(doc({
+      cosmetics: {
+        shapePresets: [{ id: 's1', label: 'S', style: { fillOpacity: 1.5 } }],
+        cellColorPresets: [{ id: 'c1', label: 'C', color: '#fff9c4', opacity: -0.2 }],
+      },
+    }))
+    expect(paths(warnings)).toEqual([
+      'cosmetics.shapePresets[0].style.fillOpacity',
+      'cosmetics.cellColorPresets[0].opacity',
+    ])
+    expect(warnings[0].message).toContain('0-1 opacity range')
   })
 })

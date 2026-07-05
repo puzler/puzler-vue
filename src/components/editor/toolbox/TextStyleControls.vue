@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
 import CosmeticPlacementControls from './CosmeticPlacementControls.vue'
+import OpacityField from './OpacityField.vue'
 
 const editor = useEditorStore()
 
@@ -42,6 +43,11 @@ function onRotationChange(event: Event) {
         <span class="text-xs text-faint font-mono">{{ editor.activeTextPreset.style.color }}</span>
       </div>
     </div>
+
+    <OpacityField
+      :value="editor.activeTextPreset.style.opacity"
+      @change="editor.updateActiveTextPresetStyle({ opacity: $event })"
+    />
 
     <div class="flex flex-col gap-1">
       <label class="text-xs text-soft">Font size</label>

@@ -43,14 +43,23 @@ function translatedRects(cells: string[], dRow: number, dCol: number, color: str
 const EXTRA_REGION_INSET = 4
 const EXTRA_REGION_CORNER = 3
 
-const extraRegionPaths = computed<string[]>(() =>
+interface ExtraRegionPath { d: string; color: string }
+
+const extraRegionPaths = computed<ExtraRegionPath[]>(() =>
   editor.cosmeticInstances
     .filter(i => i.type === 'extra_regions')
-    .map(i => computeInsetOutlinePaths(
-      new Set((i.data as ExtraRegionData).cells),
-      { edgeInset: () => EXTRA_REGION_INSET, cornerRadius: EXTRA_REGION_CORNER },
-    ).join(' '))
-    .filter(d => d !== ''),
+    .map(i => {
+      const data = i.data as ExtraRegionData
+      return {
+        d: computeInsetOutlinePaths(
+          new Set(data.cells),
+          { edgeInset: () => EXTRA_REGION_INSET, cornerRadius: EXTRA_REGION_CORNER },
+        ).join(' '),
+        // Per-instance setter color beats the theme fill.
+        color: data.color ?? extraRegionColor.value,
+      }
+    })
+    .filter(p => p.d !== ''),
 )
 
 const cloneRects = computed<ColorRect[]>(() =>
@@ -58,9 +67,10 @@ const cloneRects = computed<ColorRect[]>(() =>
     .filter(i => i.type === 'clone')
     .flatMap(i => {
       const data = i.data as CloneData
+      const color = data.color ?? cloneColor.value
       return [
-        ...data.cells.map(c => cellRect(c, cloneColor.value)),
-        ...data.copies.flatMap(off => translatedRects(data.cells, off.dRow, off.dCol, cloneColor.value)),
+        ...data.cells.map(c => cellRect(c, color)),
+        ...data.copies.flatMap(off => translatedRects(data.cells, off.dRow, off.dCol, color)),
       ]
     }),
 )
@@ -100,10 +110,10 @@ const cloneDragRects = computed<ColorRect[]>(() => {
       :opacity="r.opacity"
     />
     <path
-      v-for="(d, i) in extraRegionPaths"
+      v-for="(p, i) in extraRegionPaths"
       :key="`er-${i}`"
-      :d="d"
-      :fill="extraRegionColor"
+      :d="p.d"
+      :fill="p.color"
       fill-rule="evenodd"
     />
   </g>

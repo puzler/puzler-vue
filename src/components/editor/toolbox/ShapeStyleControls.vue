@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
 import CosmeticPlacementControls from './CosmeticPlacementControls.vue'
+import OpacityField from './OpacityField.vue'
 import ShapeSizeControls from './ShapeSizeControls.vue'
 import ShapeTextControls from './ShapeTextControls.vue'
 import ShapeTypePicker from './ShapeTypePicker.vue'
@@ -61,6 +62,12 @@ function onRotationChange(event: Event) {
       </div>
     </div>
 
+    <OpacityField
+      label="Fill opacity"
+      :value="editor.activeShapePreset.style.fillOpacity"
+      @change="editor.updateActiveShapePreset({ fillOpacity: $event })"
+    />
+
     <div class="flex flex-col gap-1">
       <label class="text-xs text-soft">Stroke</label>
       <div class="flex items-center gap-2">
@@ -73,6 +80,12 @@ function onRotationChange(event: Event) {
         <span class="text-xs text-faint font-mono">{{ editor.activeShapePreset.style.strokeColor }}</span>
       </div>
     </div>
+
+    <OpacityField
+      label="Stroke opacity"
+      :value="editor.activeShapePreset.style.strokeOpacity"
+      @change="editor.updateActiveShapePreset({ strokeOpacity: $event })"
+    />
 
     <div class="flex flex-col gap-1">
       <label class="text-xs text-soft">Stroke width</label>

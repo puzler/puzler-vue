@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   resolveLineStyle, resolveShapeStyle, resolveTextStyle,
   resolveCellBgColor, resolveCageStyle, resolveBetweenLineStyle, resolveMinMaxStyle,
-  resolveThermoStyle, resolveArrowStyle,
+  resolveThermoStyle, resolveArrowStyle, withColorOverrides,
 } from './useConstraintStyles'
 import {
   CONSTRAINT_LINE_STYLES, BETWEEN_LINE_STYLE, THERMO_STYLE, ARROW_STYLE,
@@ -122,5 +122,41 @@ describe('useConstraintStyles — thermometer + arrow', () => {
     expect(resolveThermoStyle({ color: '#ff0000' }, true)).toEqual({ ...THERMO_STYLE, color: '#ff0000' })
     expect(resolveThermoStyle({ color: '#ff0000' }, false)).toEqual(THERMO_STYLE)
     expect(resolveArrowStyle({ color: '#00ff00' }, true).color).toBe('#00ff00')
+  })
+})
+
+describe('withColorOverrides — per-instance setter colors', () => {
+  it('replaces only the keys with defined values', () => {
+    const base = { color: '#aaaaaa', strokeWidth: 12, bulbRadius: 18 }
+    const r = withColorOverrides(base, { color: '#ff0000' })
+    expect(r).toEqual({ color: '#ff0000', strokeWidth: 12, bulbRadius: 18 })
+  })
+
+  it('skips undefined entries entirely', () => {
+    const base = { color: '#aaaaaa', textColor: '#000000' }
+    const r = withColorOverrides(base, { color: undefined, textColor: '#123456' })
+    expect(r).toEqual({ color: '#aaaaaa', textColor: '#123456' })
+  })
+
+  it('returns the base object untouched when nothing is overridden', () => {
+    const base = { color: '#aaaaaa' }
+    const r = withColorOverrides(base, { color: undefined })
+    expect(r).toBe(base)
+    expect(base.color).toBe('#aaaaaa')
+  })
+
+  it('never mutates the base when overriding', () => {
+    const base = { color: '#aaaaaa', textColor: '#000000' }
+    const r = withColorOverrides(base, { color: '#ff0000' })
+    expect(base).toEqual({ color: '#aaaaaa', textColor: '#000000' })
+    expect(r).not.toBe(base)
+  })
+
+  it('applies on top of a gated-off resolved style, so instance colors beat the gate', () => {
+    // enableCustomStyles=false returns the built-in default; instance colors
+    // still land because they are applied after resolution, not through it.
+    const gated = resolveThermoStyle({ color: '#123456' }, false)
+    const r = withColorOverrides(gated, { color: '#ff0000' })
+    expect(r.color).toBe('#ff0000')
   })
 })

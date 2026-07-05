@@ -17,72 +17,220 @@ import type { LittleKillerDirection, RossiniDirection, XvValue, InequalityValue,
 // GENERATED puzzle-schema.json, so it validates the full pipeline — adding a
 // constraint type means: registry `json.key`, a line here, `npm run
 // schema:puzzle`).
+//
+// Per-instance setter colors: every local constraint instance accepts an
+// optional `color` (6 or 8 digit hex; 8 = alpha); multi-element types add
+// specific fields that beat `color` for their element. The canonical field
+// list is INSTANCE_COLOR_FIELDS in the constraint registry.
 
 // ── Per-shape document forms ─────────────────────────────────────────────────
 
 export interface LineDoc {
   cells: string[]
+  /**
+   * Paints this instance. 6 or 8 digit hex; 8 adds transparency.
+   * @example "#8b2be2"
+   * @example "#8b2be280"
+   */
+  color?: string
+}
+
+export interface BetweenLineDoc {
+  cells: string[]
+  /**
+   * Paints the line and the end bulbs' fill. The bulb outline keeps its
+   * default unless bulbOutlineColor is set. 6 or 8 digit hex.
+   * @example "#8b2be2"
+   */
+  color?: string
+  /** Recolors just the line stroke. */
+  lineColor?: string
+  /** Recolors just the end bulbs'/diamonds' fill. */
+  bulbFillColor?: string
+  /** Recolors just the end bulbs'/diamonds' outline. */
+  bulbOutlineColor?: string
 }
 
 export interface ThermometerDoc {
   bulb: string
   // Each line is a cell path starting at the bulb or at a branch point.
   lines: string[][]
+  /**
+   * Paints the bulb and the tube. 6 or 8 digit hex; 8 adds transparency.
+   * @example "#2b7de2"
+   */
+  color?: string
+  /** Recolors just the bulb. */
+  bulbColor?: string
+  /** Recolors just the tube. */
+  lineColor?: string
 }
 
 export interface ArrowDoc {
   bulbCells: string[]
   arrows: string[][]
+  /**
+   * Paints the bulb ring and the arrows. 6 or 8 digit hex.
+   * @example "#2b7de2"
+   */
+  color?: string
+  /** Recolors just the bulb ring. */
+  bulbColor?: string
+  /** Recolors just the arrow shafts and heads. */
+  arrowColor?: string
 }
 
 export interface KillerCageDoc {
   cells: string[]
   sum?: number
+  /**
+   * Paints the cage outline and the sum text. 6 or 8 digit hex.
+   * @example "#0a8a4a"
+   */
+  color?: string
+  /** Recolors just the dashed cage outline. */
+  cageColor?: string
+  /** Recolors just the sum text. */
+  textColor?: string
 }
 
 export interface CloneDoc {
   cells: string[]
   copies: Array<{ dRow: number; dCol: number }>
+  /**
+   * Tints the original and copy cells. 6 or 8 digit hex.
+   * @example "#cccccc80"
+   */
+  color?: string
 }
 
 export interface DotDoc {
   // Exactly two orthogonally adjacent cells.
   cells: string[]
   value?: number
+  /**
+   * Recolors the dot fill; outline and value text keep their defaults unless
+   * outlineColor/textColor are set. 6 or 8 digit hex.
+   * @example "#e2a72b"
+   */
+  color?: string
+  /** Recolors just the dot fill. */
+  fillColor?: string
+  /** Recolors just the dot outline. */
+  outlineColor?: string
+  /** Recolors just the value text. */
+  textColor?: string
 }
 
 export interface XvDoc {
   cells: string[]
   value?: XvValue
+  /**
+   * Recolors the glyph. 6 or 8 digit hex.
+   * @example "#333333"
+   */
+  color?: string
 }
 
 export interface InequalityDoc {
   cells: string[]
   value?: InequalityValue
+  /** Recolors the sign. 6 or 8 digit hex. */
+  color?: string
 }
 
 export interface QuadrupleDoc {
   // The 2×2 block of cells sharing the corner, in reading order.
   cells: string[]
   values: number[]
+  /**
+   * Recolors the circle fill; outline and digits keep their defaults unless
+   * outlineColor/textColor are set. 6 or 8 digit hex.
+   * @example "#f5f5dc"
+   */
+  color?: string
+  /** Recolors just the circle fill. */
+  fillColor?: string
+  /** Recolors just the circle outline. */
+  outlineColor?: string
+  /** Recolors just the digits. */
+  textColor?: string
 }
 
 export interface OuterClueDoc {
   // A ring cell: r0/r{rows+1} rows or c0/c{cols+1} columns.
   cell: string
   value?: number
+  /**
+   * Recolors the clue text. 6 or 8 digit hex.
+   * @example "#555555"
+   */
+  color?: string
 }
 
 export interface LittleKillerDoc {
   cell: string
   value?: number
   direction?: LittleKillerDirection
+  /**
+   * Paints the clue text and the diagonal arrow. 6 or 8 digit hex.
+   * @example "#555555"
+   */
+  color?: string
+  /** Recolors just the clue text. */
+  textColor?: string
+  /** Recolors just the diagonal arrow. */
+  arrowColor?: string
 }
 
 export interface RossiniDoc {
   cell: string
   direction?: RossiniDirection
+  /** Recolors the arrow. 6 or 8 digit hex. */
+  color?: string
 }
+
+// ── Single-cell marks ────────────────────────────────────────────────────────
+// A mark is the plain cell key, or the object form to carry setter colors.
+
+export interface CellMarkDoc {
+  cell: string
+  /**
+   * Paints the mark. 6 or 8 digit hex; 8 adds transparency.
+   * @example "#b0b0b080"
+   */
+  color?: string
+}
+
+export interface MinMaxMarkDoc {
+  cell: string
+  /**
+   * Tints the cell background; the chevrons keep their default unless
+   * chevronColor is set. 6 or 8 digit hex.
+   * @example "#e0f0ff"
+   */
+  color?: string
+  /** Tints just the cell background. */
+  backgroundColor?: string
+  /** Recolors just the chevrons. */
+  chevronColor?: string
+}
+
+export interface CountingCircleMarkDoc {
+  cell: string
+  /**
+   * Recolors the circle fill; the outline keeps its default unless
+   * outlineColor is set. 6 or 8 digit hex.
+   * @example "#ffd70080"
+   */
+  color?: string
+  /** Recolors just the circle fill. */
+  fillColor?: string
+  /** Recolors just the circle outline. */
+  outlineColor?: string
+}
+
+// ── Cosmetics ────────────────────────────────────────────────────────────────
 
 export interface CosmeticLineDoc {
   cells: string[]
@@ -110,6 +258,43 @@ export interface StyledPresetDoc {
   style: Record<string, unknown>
 }
 
+export interface LinePresetDoc {
+  id: string
+  label?: string
+  style: {
+    color: string
+    strokeWidth: number
+    /** 0 (invisible) to 1 (opaque). */
+    opacity?: number
+  }
+}
+
+export interface TextPresetDoc {
+  id: string
+  label?: string
+  style: {
+    color: string
+    fontSize: number
+    bold?: boolean
+    rotation?: number
+    /** Text opacity, 0 (invisible) to 1 (opaque). */
+    opacity?: number
+  }
+}
+
+export interface CagePresetDoc {
+  id: string
+  label?: string
+  style: {
+    cageColor: string
+    textColor: string
+    /** Cage outline opacity, 0 (invisible) to 1 (opaque). */
+    cageOpacity?: number
+    /** Sum text opacity, 0 (invisible) to 1 (opaque). */
+    textOpacity?: number
+  }
+}
+
 export interface ShapePresetDoc {
   id: string
   label?: string
@@ -123,6 +308,12 @@ export interface ShapePresetDoc {
     rotation?: number
     textColor: string
     textSize: number
+    /** Fill opacity, 0 (invisible) to 1 (opaque). */
+    fillOpacity?: number
+    /** Outline opacity, 0 (invisible) to 1 (opaque). */
+    strokeOpacity?: number
+    /** Inner-text opacity, 0 (invisible) to 1 (opaque). */
+    textOpacity?: number
   }
 }
 
@@ -130,6 +321,8 @@ export interface ColorPresetDoc {
   id: string
   label?: string
   color: string
+  /** Cell fill opacity, 0 (invisible) to 1 (opaque). */
+  opacity?: number
 }
 
 // ── The document ─────────────────────────────────────────────────────────────
@@ -168,8 +361,8 @@ export interface SerializedPuzzleSchema {
     modularLines?: LineDoc[]
     nabnerLines?: LineDoc[]
     zipperLines?: LineDoc[]
-    betweenLines?: LineDoc[]
-    lockoutLines?: LineDoc[]
+    betweenLines?: BetweenLineDoc[]
+    lockoutLines?: BetweenLineDoc[]
     thermometers?: ThermometerDoc[]
     slowThermometers?: ThermometerDoc[]
     arrows?: ArrowDoc[]
@@ -178,13 +371,13 @@ export interface SerializedPuzzleSchema {
     xv?: XvDoc[]
     inequalities?: InequalityDoc[]
     quadruples?: QuadrupleDoc[]
-    oddCells?: string[]
-    evenCells?: string[]
-    minimums?: string[]
-    maximums?: string[]
-    countingCircles?: string[]
-    rowIndexCells?: string[]
-    colIndexCells?: string[]
+    oddCells?: Array<string | CellMarkDoc>
+    evenCells?: Array<string | CellMarkDoc>
+    minimums?: Array<string | MinMaxMarkDoc>
+    maximums?: Array<string | MinMaxMarkDoc>
+    countingCircles?: Array<string | CountingCircleMarkDoc>
+    rowIndexCells?: Array<string | CellMarkDoc>
+    colIndexCells?: Array<string | CellMarkDoc>
     killerCages?: KillerCageDoc[]
     extraRegions?: LineDoc[]
     clones?: CloneDoc[]
@@ -199,15 +392,15 @@ export interface SerializedPuzzleSchema {
   }
   cosmetics?: {
     lines?: CosmeticLineDoc[]
-    linePresets?: StyledPresetDoc[]
+    linePresets?: LinePresetDoc[]
     cellColors?: Record<string, string>
     cellColorPresets?: ColorPresetDoc[]
     shapes?: FreeCosmeticDoc[]
     shapePresets?: ShapePresetDoc[]
     texts?: FreeCosmeticDoc[]
-    textPresets?: StyledPresetDoc[]
+    textPresets?: TextPresetDoc[]
     cages?: CosmeticCageDoc[]
-    cagePresets?: StyledPresetDoc[]
+    cagePresets?: CagePresetDoc[]
   }
 }
 

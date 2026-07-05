@@ -119,6 +119,8 @@ function snapshotFromV3(doc: V3Document): PuzzleSnapshot {
     singleCellMarks: Object.fromEntries(
       Object.entries(constraints.singleCellMarks ?? {}).map(([type, cells]) => [type, [...cells].sort()]),
     ),
+    // Per-instance setter colors did not exist before v4.
+    singleCellMarkColors: {},
     connectorDots,
     outerClues,
     instances,

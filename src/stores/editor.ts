@@ -110,6 +110,11 @@ export const useEditorStore = defineStore('editor', () => {
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   const singleCellMarks = ref<Record<string, Set<string>>>({})
+  // Setter colors for single-cell marks, authored only through the raw JSON
+  // editor: type → cell key → color field → hex. Sparse — marks without
+  // colors have no entry. Pruned alongside mark removal so a re-marked cell
+  // never resurfaces stale colors.
+  const singleCellMarkColors = ref<Record<string, Record<string, Record<string, string>>>>({})
   // Ordered instance list; the LAST instance at a location is topmost. The UI
   // keeps one connector per location — stacks arrive only via the JSON editor.
   const connectorDots = ref<ConnectorInstance[]>([])
@@ -138,7 +143,7 @@ export const useEditorStore = defineStore('editor', () => {
   // public names, so panels/serialization are untouched.
   const cosmeticCellColors = ref<Record<string, string>>({})  // cell key → preset id
 
-  const colorPresets = usePresetCollection<CellColorPreset, Partial<Pick<CellColorPreset, 'label' | 'color'>>>(
+  const colorPresets = usePresetCollection<CellColorPreset, Partial<Pick<CellColorPreset, 'label' | 'color' | 'opacity'>>>(
     'Color', () => ({ color: DEFAULT_CELL_COLOR }), (p, patch) => ({ ...p, ...patch }),
   )
   const pendingBrushCells = ref<string[]>([])
@@ -1453,6 +1458,7 @@ export const useEditorStore = defineStore('editor', () => {
     keyboardModeOverride.value = null
     cosmeticInstances.value = []
     singleCellMarks.value = {}
+    singleCellMarkColors.value = {}
     connectorDots.value = []
     selectedConnectorId.value = null
     selectedCageId.value = null
@@ -1491,6 +1497,24 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Single cell constraints ───────────────────────────────────────────────
 
+  // Drops any setter colors for the given (type, cell) pairs; returns the
+  // input object untouched when nothing matched, so callers can skip writes.
+  function pruneMarkColors(
+    colors: Record<string, Record<string, Record<string, string>>>,
+    pairs: ReadonlyArray<readonly [string, string]>,
+  ): Record<string, Record<string, Record<string, string>>> {
+    let out = colors
+    for (const [type, cell] of pairs) {
+      if (!out[type]?.[cell]) continue
+      if (out === colors) out = { ...colors }
+      const forType = { ...out[type] }
+      delete forType[cell]
+      if (Object.keys(forType).length) out[type] = forType
+      else delete out[type]
+    }
+    return out
+  }
+
   function toggleSingleCellMark(type: string, cellKey: string) {
     const prev = singleCellMarks.value[type] ?? new Set<string>()
     const next = new Set(prev)
@@ -1505,16 +1529,26 @@ export const useEditorStore = defineStore('editor', () => {
     const nextExcluded = prevExcluded ? new Set(prevExcluded) : null
     if (nextExcluded) nextExcluded.delete(cellKey)
 
+    // Colors follow their mark: the removed cell (or its exclusion-pair
+    // partner's cell) loses any JSON-authored colors.
+    const prevColors = singleCellMarkColors.value
+    const nextColors = pruneMarkColors(prevColors, [
+      ...(next.has(cellKey) ? [] : [[type, cellKey] as const]),
+      ...(excludedType ? [[excludedType, cellKey] as const] : []),
+    ])
+
     execute({
       execute: () => {
         const update = { ...singleCellMarks.value, [type]: next }
         if (excludedType && nextExcluded) update[excludedType] = nextExcluded
         singleCellMarks.value = update
+        if (nextColors !== prevColors) singleCellMarkColors.value = nextColors
       },
       undo: () => {
         const update = { ...singleCellMarks.value, [type]: prev }
         if (excludedType && prevExcluded) update[excludedType] = prevExcluded
         singleCellMarks.value = update
+        if (nextColors !== prevColors) singleCellMarkColors.value = prevColors
       },
     })
   }
@@ -1522,16 +1556,25 @@ export const useEditorStore = defineStore('editor', () => {
   function removeSingleCellConstraint(type: string) {
     if (!activeTypes.value.has(type)) return
     const prevMarks = singleCellMarks.value[type] ?? new Set<string>()
+    const prevColors = singleCellMarkColors.value[type]
     execute({
       execute: () => {
         dropActiveType(type)
         const next = { ...singleCellMarks.value }
         delete next[type]
         singleCellMarks.value = next
+        if (prevColors) {
+          const nextColors = { ...singleCellMarkColors.value }
+          delete nextColors[type]
+          singleCellMarkColors.value = nextColors
+        }
       },
       undo: () => {
         addActiveType(type)
         singleCellMarks.value = { ...singleCellMarks.value, [type]: prevMarks }
+        if (prevColors) {
+          singleCellMarkColors.value = { ...singleCellMarkColors.value, [type]: prevColors }
+        }
       },
     })
   }
@@ -2227,6 +2270,7 @@ export const useEditorStore = defineStore('editor', () => {
     resetPuzzleState,
     jsonPanelOpen,
     singleCellMarks,
+    singleCellMarkColors,
     toggleSingleCellMark,
     removeSingleCellConstraint,
     connectorDots,

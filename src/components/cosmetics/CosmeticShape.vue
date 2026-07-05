@@ -50,7 +50,9 @@ const ry = computed(() => (CELL_SIZE / 2) * props.shapeStyle.height)
       :rx="rx"
       :ry="ry"
       :fill="shapeStyle.fillColor"
+      :fill-opacity="shapeStyle.fillOpacity ?? 1"
       :stroke="shapeStyle.strokeColor"
+      :stroke-opacity="shapeStyle.strokeOpacity ?? 1"
       :stroke-width="shapeStyle.strokeWidth"
     />
     <rect
@@ -60,14 +62,18 @@ const ry = computed(() => (CELL_SIZE / 2) * props.shapeStyle.height)
       :width="rx * 2"
       :height="ry * 2"
       :fill="shapeStyle.fillColor"
+      :fill-opacity="shapeStyle.fillOpacity ?? 1"
       :stroke="shapeStyle.strokeColor"
+      :stroke-opacity="shapeStyle.strokeOpacity ?? 1"
       :stroke-width="shapeStyle.strokeWidth"
     />
     <polygon
       v-else-if="shapeStyle.shapeType === 'diamond'"
       :points="`${center.cx},${center.cy - ry} ${center.cx + rx},${center.cy} ${center.cx},${center.cy + ry} ${center.cx - rx},${center.cy}`"
       :fill="shapeStyle.fillColor"
+      :fill-opacity="shapeStyle.fillOpacity ?? 1"
       :stroke="shapeStyle.strokeColor"
+      :stroke-opacity="shapeStyle.strokeOpacity ?? 1"
       :stroke-width="shapeStyle.strokeWidth"
     />
     <text
@@ -77,6 +83,7 @@ const ry = computed(() => (CELL_SIZE / 2) * props.shapeStyle.height)
       text-anchor="middle"
       dominant-baseline="central"
       :fill="shapeStyle.textColor"
+      :fill-opacity="shapeStyle.textOpacity ?? 1"
       :font-size="shapeStyle.textSize"
     >
       {{ content }}

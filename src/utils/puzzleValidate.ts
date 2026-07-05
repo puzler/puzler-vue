@@ -1,6 +1,7 @@
 import {
   JSON_KEY_TO_TYPE, TYPE_TO_JSON_KEY, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
   toolboxCategory, THERMO_TYPES, SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS,
+  INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
 import { QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN } from '@/types/constraints'
 import type { SerializedPuzzle } from './puzzleExport'
@@ -23,7 +24,7 @@ export interface PuzzleValidation {
 }
 
 const CELL_RE = /^r(-?\d+)c(-?\d+)$/
-const HEX_RE = /^#[0-9a-fA-F]{6}$/
+const HEX_RE = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/
 
 interface Ctx {
   rows: number
@@ -96,7 +97,22 @@ function checkColor(ctx: Ctx, value: unknown, path: string, allowNone = false): 
   if (typeof value !== 'string') return
   if (allowNone && value === 'none') return
   if (!HEX_RE.test(value)) {
-    ctx.warnings.push({ path, message: `"${value}" is not a 6-digit hex color` })
+    ctx.warnings.push({ path, message: `"${value}" is not a 6 or 8 digit hex color` })
+  }
+}
+
+function checkOpacity(ctx: Ctx, value: unknown, path: string): void {
+  if (typeof value === 'number' && (value < 0 || value > 1)) {
+    ctx.warnings.push({ path, message: `${value} is outside the 0-1 opacity range` })
+  }
+}
+
+// Per-instance setter colors (JSON-editor feature): every field the type
+// accepts per INSTANCE_COLOR_FIELDS is checked; unknown color-ish fields are
+// left alone (they fall out on re-serialize).
+function checkInstanceColors(ctx: Ctx, type: string, e: DocRecord, p: string): void {
+  for (const field of INSTANCE_COLOR_FIELDS.get(type) ?? []) {
+    checkColor(ctx, e[field], `${p}.${field}`)
   }
 }
 
@@ -247,6 +263,7 @@ function validateConnector(ctx: Ctx, type: string, entries: DocRecord[], path: s
       ctx.warnings.push({ path: p, message: `another connector (${prior}) already sits between ${cells.join(' and ')}; both will be kept, stacked` })
     }
     seenBorders.set(location, TYPE_TO_JSON_KEY.get(type) ?? type)
+    checkInstanceColors(ctx, type, e, p)
   })
 }
 
@@ -273,6 +290,7 @@ function validateOuterClue(ctx: Ctx, type: string, entries: DocRecord[], path: s
       ctx.warnings.push({ path: p, message: `another outer clue (${prior}) is already at ${e.cell as string}; both will be kept, stacked` })
     }
     seenCells.set(e.cell as string, TYPE_TO_JSON_KEY.get(type) ?? type)
+    checkInstanceColors(ctx, type, e, p)
   })
 }
 
@@ -299,6 +317,7 @@ function checkCellPathList(ctx: Ctx, value: unknown, path: string): value is unk
 }
 
 function validateInstanceEntry(ctx: Ctx, type: string, e: DocRecord, p: string): void {
+  checkInstanceColors(ctx, type, e, p)
   if (THERMO_TYPES.has(type)) {
     checkCell(ctx, e.bulb, `${p}.bulb`)
     if (!checkCellPathList(ctx, e.lines, `${p}.lines`)) return
@@ -361,6 +380,40 @@ function validateInstanceEntry(ctx: Ctx, type: string, e: DocRecord, p: string):
   }
 }
 
+// A single-cell entry is the plain cell string, or { cell, ...colors } when
+// the mark carries setter colors. Returns the parsed cell set for the
+// exclusion-pair check, or null when the entry isn't even an array.
+function validateSingleCellMarks(ctx: Ctx, type: string, entry: unknown, path: string): Set<string> | null {
+  if (!Array.isArray(entry)) {
+    ctx.errors.push({ path, message: 'expected Array<string | object>' })
+    return null
+  }
+  // Same collapse rule as checkCellArray: wrong element TYPES become one
+  // mismatch at the array; per-element errors are for semantic problems.
+  const wellTyped = (item: unknown) =>
+    typeof item === 'string' || (typeof item === 'object' && item !== null && !Array.isArray(item))
+  if (entry.length > 0 && !entry.every(wellTyped)) {
+    ctx.errors.push({ path, message: `expected Array<string | object>, got ${describeType(entry)}` })
+    return null
+  }
+  const cells: string[] = []
+  entry.forEach((item, i) => {
+    if (typeof item === 'string') {
+      checkCell(ctx, item, `${path}[${i}]`)
+      cells.push(item)
+      return
+    }
+    const rec = item as DocRecord
+    checkCell(ctx, rec.cell, `${path}[${i}].cell`)
+    if (typeof rec.cell === 'string') cells.push(rec.cell)
+    checkInstanceColors(ctx, type, rec, `${path}[${i}]`)
+  })
+  if (new Set(cells).size !== cells.length) {
+    ctx.warnings.push({ path, message: 'lists the same cell more than once' })
+  }
+  return new Set(cells)
+}
+
 function validateConstraints(ctx: Ctx, doc: SerializedPuzzle): void {
   const constraints = doc.constraints as Record<string, unknown> | undefined
   if (constraints === undefined) return
@@ -381,9 +434,8 @@ function validateConstraints(ctx: Ctx, doc: SerializedPuzzle): void {
       continue
     }
     if (category === 'single_cell') {
-      if (!checkCellArray(ctx, entry, path)) continue
-      warnDuplicateCells(ctx, entry as string[], path)
-      singleCellsByType.set(type, new Set(entry as string[]))
+      const cells = validateSingleCellMarks(ctx, type, entry, path)
+      if (cells) singleCellsByType.set(type, cells)
       continue
     }
     const entries = asRecordArray(ctx, entry, path)
@@ -430,14 +482,18 @@ function validateCosmetics(ctx: Ctx, doc: SerializedPuzzle): void {
       if (new Set(ids).size !== ids.length) {
         ctx.warnings.push({ path, message: 'contains duplicate preset ids' })
       }
-      ;(entry as Array<{ style?: Record<string, unknown>; color?: unknown }>).forEach((preset, i) => {
+      ;(entry as Array<{ style?: Record<string, unknown>; color?: unknown; opacity?: unknown }>).forEach((preset, i) => {
         checkColor(ctx, preset.color, `${path}[${i}].color`)
+        checkOpacity(ctx, preset.opacity, `${path}[${i}].opacity`)
         const style = preset.style ?? {}
         checkColor(ctx, style.color, `${path}[${i}].style.color`)
         checkColor(ctx, style.fillColor, `${path}[${i}].style.fillColor`, true)
         checkColor(ctx, style.strokeColor, `${path}[${i}].style.strokeColor`)
         checkColor(ctx, style.textColor, `${path}[${i}].style.textColor`)
         checkColor(ctx, style.cageColor, `${path}[${i}].style.cageColor`)
+        for (const field of ['opacity', 'fillOpacity', 'strokeOpacity', 'textOpacity', 'cageOpacity'] as const) {
+          checkOpacity(ctx, style[field], `${path}[${i}].style.${field}`)
+        }
         for (const field of ['width', 'height', 'strokeWidth', 'fontSize', 'textSize'] as const) {
           const value = style[field]
           if (typeof value === 'number' && value <= 0 && (field === 'width' || field === 'height')) {

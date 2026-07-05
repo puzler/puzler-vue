@@ -27,12 +27,21 @@ interface RenderedDot {
 const dots = computed<RenderedDot[]>(() =>
   editor.connectorDots.flatMap((dot) => {
     if ((dot.type !== 'difference_dots' && dot.type !== 'ratio_dots') || Array.isArray(dot.value)) return []
+    const base = dotStyle(dot.type)
     return [{
       key: dot.id,
       ...borderMidpoint(dot.location),
       value: dot.value,
       selected: editor.selectedConnectorId === dot.id,
-      style: dotStyle(dot.type),
+      // Per-instance setter colors beat the theme style. The generic `color`
+      // reaches the fill only; outline and value text keep their defaults so
+      // the value stays legible.
+      style: {
+        ...base,
+        fill: dot.fillColor ?? dot.color ?? base.fill,
+        stroke: dot.outlineColor ?? base.stroke,
+        text: dot.textColor ?? base.text,
+      },
     }]
   }),
 )

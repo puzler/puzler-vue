@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
 import { useConstraintStyles } from '@/composables/useConstraintStyles'
+import { haloFor } from '@/utils/theme'
 
 const editor = useEditorStore()
 const cs = useConstraintStyles()
@@ -17,7 +18,7 @@ const MM_REACH  = CELL_SIZE * 0.44   // ~28
 const MM_DEPTH  = CELL_SIZE * 0.05   // ~3
 const MM_SPREAD = CELL_SIZE * 0.125  //  8
 
-interface MinMaxPath { key: string; path: string }
+interface MinMaxPath { key: string; path: string; stroke: string; halo: string }
 
 type Side = 'top' | 'right' | 'bottom' | 'left'
 const SIDES: Array<{ side: Side; dr: number; dc: number }> = [
@@ -46,14 +47,23 @@ function minMaxChevronPath(cx: number, cy: number, side: Side, type: 'minimums' 
 function computeMinMaxPaths(type: 'minimums' | 'maximums'): MinMaxPath[] {
   const marks = editor.singleCellMarks[type]
   if (!marks?.size) return []
+  const style = type === 'minimums' ? minStyle.value : maxStyle.value
   const result: MinMaxPath[] = []
   for (const key of marks) {
+    // Per-cell setter colors: the generic `color` tints the background only
+    // (drawn by GridBackground); chevrons change via chevronColor. When the
+    // effective background differs from the theme's, the halo is re-derived
+    // so the chevron stays legible, mirroring resolveMinMaxStyle.
+    const colors = editor.singleCellMarkColors[type]?.[key]
+    const bg = colors?.backgroundColor ?? colors?.color
+    const stroke = colors?.chevronColor ?? style.chevronColor
+    const halo = bg ? haloFor(bg) : style.halo
     const { row, col } = keyToRowCol(key)
     const cx = PADDING + col * CELL_SIZE + CELL_SIZE / 2
     const cy = PADDING + row * CELL_SIZE + CELL_SIZE / 2
     for (const { side, dr, dc } of SIDES) {
       if (marks.has(`r${row + dr}c${col + dc}`)) continue
-      result.push({ key: `${type}-${key}-${side}`, path: minMaxChevronPath(cx, cy, side, type) })
+      result.push({ key: `${type}-${key}-${side}`, path: minMaxChevronPath(cx, cy, side, type), stroke, halo })
     }
   }
   return result
@@ -71,7 +81,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="`${ind.key}-bg`"
       :d="ind.path"
       fill="none"
-      :stroke="minStyle.halo"
+      :stroke="ind.halo"
       stroke-width="6"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -82,7 +92,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="`${ind.key}-bg`"
       :d="ind.path"
       fill="none"
-      :stroke="maxStyle.halo"
+      :stroke="ind.halo"
       stroke-width="6"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -94,7 +104,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="ind.key"
       :d="ind.path"
       fill="none"
-      :stroke="minStyle.chevronColor"
+      :stroke="ind.stroke"
       stroke-width="4"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -105,7 +115,7 @@ const maximumPaths = computed<MinMaxPath[]>(() => computeMinMaxPaths('maximums')
       :key="ind.key"
       :d="ind.path"
       fill="none"
-      :stroke="maxStyle.chevronColor"
+      :stroke="ind.stroke"
       stroke-width="4"
       stroke-linecap="round"
       stroke-linejoin="round"

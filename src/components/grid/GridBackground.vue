@@ -49,19 +49,29 @@ const cellColorRects = computed<ColorRect[]>(() => {
   const m = editor.cosmeticCellColors
   const presets = editor.cellColorPresets
   return Object.entries(m).flatMap(([cell, presetId]) => {
-    const color = presets.find(p => p.id === presetId)?.color
-    if (!color) return []
+    const preset = presets.find(p => p.id === presetId)
+    if (!preset) return []
     const match = cell.match(/r(\d+)c(\d+)/)!
-    return [{ x: PADDING + Number(match[2]) * CELL_SIZE, y: PADDING + Number(match[1]) * CELL_SIZE, color }]
+    return [{
+      x: PADDING + Number(match[2]) * CELL_SIZE,
+      y: PADDING + Number(match[1]) * CELL_SIZE,
+      color: preset.color,
+      opacity: preset.opacity,
+    }]
   })
 })
 
 const pendingColorRects = computed<ColorRect[]>(() => {
-  const color = editor.activeCellColorPreset?.color
-  if (!color) return []
+  const preset = editor.activeCellColorPreset
+  if (!preset) return []
   return editor.pendingBrushCells.flatMap(cell => {
     const match = cell.match(/r(\d+)c(\d+)/)!
-    return [{ x: PADDING + Number(match[2]) * CELL_SIZE, y: PADDING + Number(match[1]) * CELL_SIZE, color, opacity: 0.55 }]
+    return [{
+      x: PADDING + Number(match[2]) * CELL_SIZE,
+      y: PADDING + Number(match[1]) * CELL_SIZE,
+      color: preset.color,
+      opacity: 0.55 * (preset.opacity ?? 1),
+    }]
   })
 })
 
@@ -107,12 +117,21 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
     const isIndexType = type === 'row_index_cells' || type === 'col_index_cells'
     for (const key of marks) {
       if (isIndexType && rowColOverlap.has(key)) continue
-      pushRect(key, color)
+      // Per-cell setter colors beat the theme tint (min/max: backgroundColor
+      // beats the generic `color` for the tint).
+      const cellColors = editor.singleCellMarkColors[type]?.[key]
+      pushRect(key, cellColors?.backgroundColor ?? cellColors?.color ?? color)
     }
   }
   const overlapColor = CELL_BACKGROUND_COLORS['row_col_index_cells']
   if (overlapColor) {
-    for (const key of rowColOverlap) pushRect(key, cs.cellBgColor('row_col_index_cells'))
+    for (const key of rowColOverlap) {
+      // A cell that is both a row and column index: a setter color on either
+      // mark (row first) beats the combined theme tint.
+      const setterColor = editor.singleCellMarkColors['row_index_cells']?.[key]?.color
+        ?? editor.singleCellMarkColors['col_index_cells']?.[key]?.color
+      pushRect(key, setterColor ?? cs.cellBgColor('row_col_index_cells'))
+    }
   }
   return result
 })
@@ -144,6 +163,7 @@ const singleCellBgRects = computed<ColorRect[]>(() => {
       :width="CELL_SIZE"
       :height="CELL_SIZE"
       :fill="cr.color"
+      :opacity="cr.opacity"
     />
     <rect
       v-for="(cr, i) in pendingColorRects"

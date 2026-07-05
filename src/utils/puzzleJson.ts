@@ -117,18 +117,17 @@ export function lineForIssuePath(text: string, path: string): number | null {
   return line
 }
 
-// A quoted 6-digit hex color in JSON text; from/to span the quotes so callers
-// can place widgets beside the value or rewrite just its interior.
+// A quoted 6- or 8-digit hex color in JSON text; from/to span the quotes so
+// callers can place widgets beside the value or rewrite just its interior.
 export interface HexColorMatch {
   from: number
   to: number
   color: string
 }
 
-// Finds "#rrggbb" string values for the inline color-swatch widgets. Only the
-// 6-digit form: the native color input can't represent #rgb or #rrggbbaa, and
-// values like "none" are simply left undecorated.
-const HEX_COLOR_RE = /"(#[0-9a-fA-F]{6})"/g
+// Finds "#rrggbb" and "#rrggbbaa" string values for the inline color-swatch
+// widgets. Shorthand #rgb and values like "none" are simply left undecorated.
+const HEX_COLOR_RE = /"(#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?)"/g
 
 export function scanHexColors(text: string, offset = 0): HexColorMatch[] {
   const matches: HexColorMatch[] = []

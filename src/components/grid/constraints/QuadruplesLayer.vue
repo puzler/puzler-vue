@@ -56,9 +56,12 @@ const quadruples = computed<RenderedQuadruple[]>(() => {
       selected: editor.selectedConnectorId === dot.id,
       radius,
       fontSize,
-      fill: s.fillColor,
-      stroke: s.outlineColor,
-      text: s.textColor,
+      // Per-instance setter colors beat the theme style. The generic `color`
+      // reaches the fill only; outline and digits keep their defaults so the
+      // digits stay legible.
+      fill: dot.fillColor ?? dot.color ?? s.fillColor,
+      stroke: dot.outlineColor ?? s.outlineColor,
+      text: dot.textColor ?? s.textColor,
     }]
   })
 })

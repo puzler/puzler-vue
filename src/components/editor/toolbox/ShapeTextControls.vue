@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import OpacityField from './OpacityField.vue'
 
 // Style of the optional text rendered inside a shape (the per-object text is
 // edited via CosmeticPlacementControls; this sets its colour and size).
@@ -29,6 +30,12 @@ function onTextSizeChange(event: Event) {
         <span class="text-xs text-faint font-mono">{{ editor.activeShapePreset.style.textColor }}</span>
       </div>
     </div>
+
+    <OpacityField
+      label="Text opacity"
+      :value="editor.activeShapePreset.style.textOpacity"
+      @change="editor.updateActiveShapePreset({ textOpacity: $event })"
+    />
 
     <div class="flex flex-col gap-1">
       <label class="text-xs text-soft">Text size</label>

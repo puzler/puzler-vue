@@ -4,7 +4,7 @@ import { useEditorStore } from '@/stores/editor'
 import { cellsToPath } from '@/utils/linePath'
 import { CONSTRAINT_LINE_TYPES } from '@/types/constraints'
 import type { ConstraintLineData } from '@/types/constraints'
-import { useConstraintStyles, type ResolvedLineStyle, type LineKey } from '@/composables/useConstraintStyles'
+import { useConstraintStyles, withColorOverrides, type ResolvedLineStyle, type LineKey } from '@/composables/useConstraintStyles'
 
 // Constraint lines (renban, whispers, palindrome, region sum) plus the pending line
 // being drawn, styled through the theme resolver (default ⊕ active-theme override,
@@ -21,11 +21,15 @@ interface RenderedLine { id: string; path: string; style: ResolvedLineStyle }
 const constraintLines = computed<RenderedLine[]>(() =>
   editor.cosmeticInstances
     .filter(i => isLineTool(i.type))
-    .map(i => ({
-      id: i.id,
-      path: cellsToPath((i.data as ConstraintLineData).cells),
-      style: cs.lineStyle(i.type as LineKey),
-    })),
+    .map(i => {
+      const data = i.data as ConstraintLineData
+      return {
+        id: i.id,
+        path: cellsToPath(data.cells),
+        // Per-instance setter color beats the theme-resolved style.
+        style: withColorOverrides(cs.lineStyle(i.type as LineKey), { color: data.color }),
+      }
+    }),
 )
 
 const pendingPath = computed(() => isLineTool(editor.activeTool) ? cellsToPath(editor.pendingLineCells) : null)

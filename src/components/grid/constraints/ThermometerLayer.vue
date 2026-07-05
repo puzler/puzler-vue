@@ -52,7 +52,8 @@ function bbox(cells: string[], bulbRadius: number, strokeWidth: number) {
 interface RenderedThermo {
   id: string
   hollow: boolean
-  color: string
+  lineColor: string
+  bulbColor: string
   bulbRadius: number
   strokeWidth: number
   bulb: { x: number; y: number }
@@ -72,7 +73,10 @@ const thermoInstances = computed<RenderedThermo[]>(() =>
       return {
         id: i.id,
         hollow,
-        color: style.color,
+        // Per-instance setter colors beat the theme style; specific beats
+        // the generic `color`.
+        lineColor: data.lineColor ?? data.color ?? style.color,
+        bulbColor: data.bulbColor ?? data.color ?? style.color,
         bulbRadius: style.bulbRadius,
         strokeWidth: style.strokeWidth,
         bulb: cellCenter(data.root),
@@ -124,7 +128,8 @@ const pendingEdgePaths = computed(() => (pendingThermoPath.value ? [pendingTherm
       <HollowThermo
         v-if="thermo.hollow"
         :mask-id="`thermo-hollow-${thermo.id}`"
-        :color="thermo.color"
+        :color="thermo.lineColor"
+        :bulb-color="thermo.bulbColor"
         :bulb-radius="thermo.bulbRadius"
         :stroke-width="thermo.strokeWidth"
         :outline-width="OUTLINE_WIDTH"
@@ -135,22 +140,22 @@ const pendingEdgePaths = computed(() => (pendingThermoPath.value ? [pendingTherm
 
       <!-- Filled (regular thermo) -->
       <template v-else>
-        <circle
-          :cx="thermo.bulb.x"
-          :cy="thermo.bulb.y"
-          :r="thermo.bulbRadius"
-          :fill="thermo.color"
-          pointer-events="none"
-        />
         <path
           v-for="(edgePath, idx) in thermo.edgePaths"
           :key="idx"
           :d="edgePath"
           fill="none"
-          :stroke="thermo.color"
+          :stroke="thermo.lineColor"
           :stroke-width="thermo.strokeWidth"
           stroke-linecap="round"
           stroke-linejoin="round"
+          pointer-events="none"
+        />
+        <circle
+          :cx="thermo.bulb.x"
+          :cy="thermo.bulb.y"
+          :r="thermo.bulbRadius"
+          :fill="thermo.bulbColor"
           pointer-events="none"
         />
       </template>

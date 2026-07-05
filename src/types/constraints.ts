@@ -52,10 +52,25 @@ export interface CosmeticPos {
 // two of space.
 export const MAX_COSMETIC_TEXT_LEN = 12
 
+// ── Per-instance setter colors ───────────────────────────────────────────────
+//
+// Local constraint instances may carry optional colors set through the raw
+// JSON editor (no panel UI). 6- or 8-digit hex; a specific per-element field
+// beats the generic `color` for its element. The canonical per-type field
+// list is INSTANCE_COLOR_FIELDS in the constraint registry; render-side
+// precedence lives in the layer components via withColorOverrides.
+
 // ── Constraint lines ─────────────────────────────────────────────────────────
 
 export interface ConstraintLineData {
   cells: string[]
+  color?: string
+  // Between/lockout lines only: their end bulbs/diamonds color separately
+  // from the line stroke. `color` reaches the line and the bulb fill; the
+  // bulb outline only changes via bulbOutlineColor.
+  lineColor?: string
+  bulbFillColor?: string
+  bulbOutlineColor?: string
 }
 
 // Thermo-like tools share the same {root, edges} data shape and draw/branch
@@ -70,6 +85,9 @@ export interface ThermoEdge {
 export interface ThermometerData {
   root: string
   edges: ThermoEdge[]
+  color?: string
+  bulbColor?: string
+  lineColor?: string
 }
 
 // ── Arrows ────────────────────────────────────────────────────────────────────
@@ -83,6 +101,9 @@ export interface ArrowPath {
 export interface ArrowData {
   bulbCells: string[]
   arrows: ArrowPath[]
+  color?: string
+  bulbColor?: string
+  arrowColor?: string
 }
 
 // ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
@@ -119,6 +140,12 @@ export interface ConnectorInstance {
   type: BorderConnectorType
   location: string
   value: ConnectorValue
+  // `color` reaches the fill only; outline and value text stay legible unless
+  // their specific fields are set.
+  color?: string
+  fillColor?: string
+  outlineColor?: string
+  textColor?: string
 }
 
 // Canonical key for the border between two orthogonally adjacent cells,
@@ -149,10 +176,14 @@ export function cornerKeyToRowCol(key: string): { row: number; col: number } | n
 export interface KillerCageData {
   cells: string[]
   sum: number | null
+  color?: string
+  cageColor?: string
+  textColor?: string
 }
 
 export interface ExtraRegionData {
   cells: string[]
+  color?: string
 }
 
 // Copies are stored as translations of the original cells, which keeps every
@@ -160,6 +191,7 @@ export interface ExtraRegionData {
 export interface CloneData {
   cells: string[]
   copies: Array<{ dRow: number; dCol: number }>
+  color?: string
 }
 
 // ── Outer clues ───────────────────────────────────────────────────────────────
@@ -191,6 +223,10 @@ export interface OuterClueInstance {
   value: number | null
   direction?: LittleKillerDirection
   rossiniDirection?: RossiniDirection
+  color?: string
+  // Little killers only: clue text and diagonal arrow color separately.
+  textColor?: string
+  arrowColor?: string
 }
 
 // Key for a clue cell in the ring outside the grid: row may be -1 or `rows`,
@@ -240,6 +276,7 @@ export interface CellColorPreset {
   id: string
   label: string
   color: string
+  opacity?: number // 0-1; absent renders as 1 (older documents)
 }
 
 export const DEFAULT_CELL_COLOR = '#fff9c4'
@@ -259,6 +296,10 @@ export interface ShapeStyle {
   rotation?: number   // degrees, clockwise; seeds newly placed objects
   textColor: string   // colour of the optional text rendered inside the shape
   textSize: number    // font size (SVG units) of the inner text
+  // Per-color opacities, 0-1; absent renders as 1 (older documents).
+  fillOpacity?: number
+  strokeOpacity?: number
+  textOpacity?: number
 }
 
 export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
@@ -326,6 +367,9 @@ export function cosmeticPos(data: { pos?: CosmeticPos; cell?: string; anchor?: S
 export interface CageCosmeticStyle {
   cageColor: string
   textColor: string
+  // Per-color opacities, 0-1; absent renders as 1 (older documents).
+  cageOpacity?: number
+  textOpacity?: number
 }
 
 export const DEFAULT_CAGE_COSMETIC_STYLE: CageCosmeticStyle = {
@@ -352,6 +396,7 @@ export interface TextStyle {
   fontSize: number  // SVG units
   bold: boolean
   rotation?: number // degrees, clockwise; seeds newly placed objects
+  opacity?: number  // 0-1; absent renders as 1 (older documents)
 }
 
 export const DEFAULT_TEXT_STYLE: TextStyle = {

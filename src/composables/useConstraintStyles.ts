@@ -213,6 +213,28 @@ export function resolveArrowStyle(override?: ConstraintStyleOverride, enabled = 
   return { ...ARROW_STYLE, color: override.color ?? ARROW_STYLE.color }
 }
 
+// ── Per-instance setter colors ──────────────────────────────────────────────────
+//
+// Optional colors carried on a constraint instance (set via the raw JSON editor)
+// beat the theme-resolved style: instance > theme override > built-in default.
+// Deliberately NOT gated by enableCustomStyles — like cosmetics, a deliberately
+// colored instance keeps its color under any solver theme. Callers compute each
+// element's value (specific field ?? generic `color`, with the generic skipping
+// contrast-critical elements) and pass only the style keys to replace; undefined
+// entries leave the base value in place.
+export function withColorOverrides<T extends object>(
+  base: T,
+  overrides: Partial<Record<Extract<keyof T, string>, string | undefined>>,
+): T {
+  let out: T | null = null
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined) continue
+    if (!out) out = { ...base }
+    ;(out as Record<string, unknown>)[key] = value
+  }
+  return out ?? base
+}
+
 // ── Editor support: the DEFAULT value of each editable field ────────────────────
 //
 // The override-field names the per-constraint editor edits, and the DEFAULT value of each — i.e.

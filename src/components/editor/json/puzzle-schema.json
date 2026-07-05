@@ -5,6 +5,10 @@
     "ArrowDoc": {
       "additionalProperties": false,
       "properties": {
+        "arrowColor": {
+          "description": "Recolors just the arrow shafts and heads.",
+          "type": "string"
+        },
         "arrows": {
           "items": {
             "items": {
@@ -19,11 +23,115 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "bulbColor": {
+          "description": "Recolors just the bulb ring.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Paints the bulb ring and the arrows. 6 or 8 digit hex.",
+          "examples": [
+            "#2b7de2"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "bulbCells",
         "arrows"
+      ],
+      "type": "object"
+    },
+    "BetweenLineDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "bulbFillColor": {
+          "description": "Recolors just the end bulbs'/diamonds' fill.",
+          "type": "string"
+        },
+        "bulbOutlineColor": {
+          "description": "Recolors just the end bulbs'/diamonds' outline.",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "color": {
+          "description": "Paints the line and the end bulbs' fill. The bulb outline keeps its default unless bulbOutlineColor is set. 6 or 8 digit hex.",
+          "examples": [
+            "#8b2be2"
+          ],
+          "type": "string"
+        },
+        "lineColor": {
+          "description": "Recolors just the line stroke.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "type": "object"
+    },
+    "CagePresetDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "additionalProperties": false,
+          "properties": {
+            "cageColor": {
+              "type": "string"
+            },
+            "cageOpacity": {
+              "description": "Cage outline opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
+            },
+            "textColor": {
+              "type": "string"
+            },
+            "textOpacity": {
+              "description": "Sum text opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
+            }
+          },
+          "required": [
+            "cageColor",
+            "textColor"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "style"
+      ],
+      "type": "object"
+    },
+    "CellMarkDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "color": {
+          "description": "Paints the mark. 6 or 8 digit hex; 8 adds transparency.",
+          "examples": [
+            "#b0b0b080"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "cell"
       ],
       "type": "object"
     },
@@ -35,6 +143,13 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "color": {
+          "description": "Tints the original and copy cells. 6 or 8 digit hex.",
+          "examples": [
+            "#cccccc80"
+          ],
+          "type": "string"
         },
         "copies": {
           "items": {
@@ -73,6 +188,10 @@
         },
         "label": {
           "type": "string"
+        },
+        "opacity": {
+          "description": "Cell fill opacity, 0 (invisible) to 1 (opaque).",
+          "type": "number"
         }
       },
       "required": [
@@ -120,6 +239,33 @@
       ],
       "type": "object"
     },
+    "CountingCircleMarkDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "color": {
+          "description": "Recolors the circle fill; the outline keeps its default unless outlineColor is set. 6 or 8 digit hex.",
+          "examples": [
+            "#ffd70080"
+          ],
+          "type": "string"
+        },
+        "fillColor": {
+          "description": "Recolors just the circle fill.",
+          "type": "string"
+        },
+        "outlineColor": {
+          "description": "Recolors just the circle outline.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cell"
+      ],
+      "type": "object"
+    },
     "DotDoc": {
       "additionalProperties": false,
       "properties": {
@@ -128,6 +274,25 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "color": {
+          "description": "Recolors the dot fill; outline and value text keep their defaults unless outlineColor/textColor are set. 6 or 8 digit hex.",
+          "examples": [
+            "#e2a72b"
+          ],
+          "type": "string"
+        },
+        "fillColor": {
+          "description": "Recolors just the dot fill.",
+          "type": "string"
+        },
+        "outlineColor": {
+          "description": "Recolors just the dot outline.",
+          "type": "string"
+        },
+        "textColor": {
+          "description": "Recolors just the value text.",
+          "type": "string"
         },
         "value": {
           "type": "number"
@@ -181,6 +346,10 @@
           },
           "type": "array"
         },
+        "color": {
+          "description": "Recolors the sign. 6 or 8 digit hex.",
+          "type": "string"
+        },
         "value": {
           "$ref": "#/definitions/InequalityValue"
         }
@@ -200,14 +369,29 @@
     "KillerCageDoc": {
       "additionalProperties": false,
       "properties": {
+        "cageColor": {
+          "description": "Recolors just the dashed cage outline.",
+          "type": "string"
+        },
         "cells": {
           "items": {
             "type": "string"
           },
           "type": "array"
         },
+        "color": {
+          "description": "Paints the cage outline and the sum text. 6 or 8 digit hex.",
+          "examples": [
+            "#0a8a4a"
+          ],
+          "type": "string"
+        },
         "sum": {
           "type": "number"
+        },
+        "textColor": {
+          "description": "Recolors just the sum text.",
+          "type": "string"
         }
       },
       "required": [
@@ -223,10 +407,54 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "color": {
+          "description": "Paints this instance. 6 or 8 digit hex; 8 adds transparency.",
+          "examples": [
+            "#8b2be2",
+            "#8b2be280"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "cells"
+      ],
+      "type": "object"
+    },
+    "LinePresetDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "type": "string"
+            },
+            "opacity": {
+              "description": "0 (invisible) to 1 (opaque).",
+              "type": "number"
+            },
+            "strokeWidth": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "color",
+            "strokeWidth"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "style"
       ],
       "type": "object"
     },
@@ -242,14 +470,56 @@
     "LittleKillerDoc": {
       "additionalProperties": false,
       "properties": {
+        "arrowColor": {
+          "description": "Recolors just the diagonal arrow.",
+          "type": "string"
+        },
         "cell": {
+          "type": "string"
+        },
+        "color": {
+          "description": "Paints the clue text and the diagonal arrow. 6 or 8 digit hex.",
+          "examples": [
+            "#555555"
+          ],
           "type": "string"
         },
         "direction": {
           "$ref": "#/definitions/LittleKillerDirection"
         },
+        "textColor": {
+          "description": "Recolors just the clue text.",
+          "type": "string"
+        },
         "value": {
           "type": "number"
+        }
+      },
+      "required": [
+        "cell"
+      ],
+      "type": "object"
+    },
+    "MinMaxMarkDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "backgroundColor": {
+          "description": "Tints just the cell background.",
+          "type": "string"
+        },
+        "cell": {
+          "type": "string"
+        },
+        "chevronColor": {
+          "description": "Recolors just the chevrons.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Tints the cell background; the chevrons keep their default unless chevronColor is set. 6 or 8 digit hex.",
+          "examples": [
+            "#e0f0ff"
+          ],
+          "type": "string"
         }
       },
       "required": [
@@ -261,6 +531,13 @@
       "additionalProperties": false,
       "properties": {
         "cell": {
+          "type": "string"
+        },
+        "color": {
+          "description": "Recolors the clue text. 6 or 8 digit hex.",
+          "examples": [
+            "#555555"
+          ],
           "type": "string"
         },
         "value": {
@@ -280,6 +557,25 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "color": {
+          "description": "Recolors the circle fill; outline and digits keep their defaults unless outlineColor/textColor are set. 6 or 8 digit hex.",
+          "examples": [
+            "#f5f5dc"
+          ],
+          "type": "string"
+        },
+        "fillColor": {
+          "description": "Recolors just the circle fill.",
+          "type": "string"
+        },
+        "outlineColor": {
+          "description": "Recolors just the circle outline.",
+          "type": "string"
+        },
+        "textColor": {
+          "description": "Recolors just the digits.",
+          "type": "string"
         },
         "values": {
           "items": {
@@ -305,6 +601,10 @@
       "additionalProperties": false,
       "properties": {
         "cell": {
+          "type": "string"
+        },
+        "color": {
+          "description": "Recolors the arrow. 6 or 8 digit hex.",
           "type": "string"
         },
         "direction": {
@@ -336,7 +636,7 @@
             },
             "betweenLines": {
               "items": {
-                "$ref": "#/definitions/LineDoc"
+                "$ref": "#/definitions/BetweenLineDoc"
               },
               "type": "array"
             },
@@ -348,13 +648,27 @@
             },
             "colIndexCells": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CellMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
             "countingCircles": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CountingCircleMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -378,7 +692,14 @@
             },
             "evenCells": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CellMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -414,19 +735,33 @@
             },
             "lockoutLines": {
               "items": {
-                "$ref": "#/definitions/LineDoc"
+                "$ref": "#/definitions/BetweenLineDoc"
               },
               "type": "array"
             },
             "maximums": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/MinMaxMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
             "minimums": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/MinMaxMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -456,7 +791,14 @@
             },
             "oddCells": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CellMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -498,7 +840,14 @@
             },
             "rowIndexCells": {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CellMarkDoc"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -552,7 +901,7 @@
           "properties": {
             "cagePresets": {
               "items": {
-                "$ref": "#/definitions/StyledPresetDoc"
+                "$ref": "#/definitions/CagePresetDoc"
               },
               "type": "array"
             },
@@ -576,7 +925,7 @@
             },
             "linePresets": {
               "items": {
-                "$ref": "#/definitions/StyledPresetDoc"
+                "$ref": "#/definitions/LinePresetDoc"
               },
               "type": "array"
             },
@@ -600,7 +949,7 @@
             },
             "textPresets": {
               "items": {
-                "$ref": "#/definitions/StyledPresetDoc"
+                "$ref": "#/definitions/TextPresetDoc"
               },
               "type": "array"
             },
@@ -787,6 +1136,10 @@
             "fillColor": {
               "type": "string"
             },
+            "fillOpacity": {
+              "description": "Fill opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
+            },
             "height": {
               "type": "number"
             },
@@ -799,11 +1152,19 @@
             "strokeColor": {
               "type": "string"
             },
+            "strokeOpacity": {
+              "description": "Outline opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
+            },
             "strokeWidth": {
               "type": "number"
             },
             "textColor": {
               "type": "string"
+            },
+            "textOpacity": {
+              "description": "Inner-text opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
             },
             "textSize": {
               "type": "number"
@@ -839,7 +1200,7 @@
       ],
       "type": "string"
     },
-    "StyledPresetDoc": {
+    "TextPresetDoc": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -849,7 +1210,29 @@
           "type": "string"
         },
         "style": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "properties": {
+            "bold": {
+              "type": "boolean"
+            },
+            "color": {
+              "type": "string"
+            },
+            "fontSize": {
+              "type": "number"
+            },
+            "opacity": {
+              "description": "Text opacity, 0 (invisible) to 1 (opaque).",
+              "type": "number"
+            },
+            "rotation": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "color",
+            "fontSize"
+          ],
           "type": "object"
         }
       },
@@ -863,6 +1246,21 @@
       "additionalProperties": false,
       "properties": {
         "bulb": {
+          "type": "string"
+        },
+        "bulbColor": {
+          "description": "Recolors just the bulb.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Paints the bulb and the tube. 6 or 8 digit hex; 8 adds transparency.",
+          "examples": [
+            "#2b7de2"
+          ],
+          "type": "string"
+        },
+        "lineColor": {
+          "description": "Recolors just the tube.",
           "type": "string"
         },
         "lines": {
@@ -889,6 +1287,13 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "color": {
+          "description": "Recolors the glyph. 6 or 8 digit hex.",
+          "examples": [
+            "#333333"
+          ],
+          "type": "string"
         },
         "value": {
           "$ref": "#/definitions/XvValue"

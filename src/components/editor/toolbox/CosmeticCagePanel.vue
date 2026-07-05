@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
+import CageStyleControls from './CageStyleControls.vue'
 import ModeSwitcher from './ModeSwitcher.vue'
 import NumpadPanel from '../NumpadPanel.vue'
 import PresetRow from './PresetRow.vue'
@@ -10,14 +11,6 @@ const MODES = [
   { key: 'place', label: 'Place' },
   { key: 'select', label: 'Select' },
 ]
-
-function onCageColorInput(event: Event) {
-  editor.updateActiveCagePreset({ cageColor: (event.target as HTMLInputElement).value })
-}
-
-function onTextColorInput(event: Event) {
-  editor.updateActiveCagePreset({ textColor: (event.target as HTMLInputElement).value })
-}
 </script>
 
 <template>
@@ -84,30 +77,7 @@ function onTextColorInput(event: Event) {
         :active="editor.effectiveConnectorMode"
         @select="editor.setConnectorMode($event as 'place' | 'select')"
       />
-      <div class="flex flex-col gap-1">
-        <label class="text-xs text-soft">Cage color</label>
-        <div class="flex items-center gap-2">
-          <input
-            type="color"
-            :value="editor.activeCagePreset.style.cageColor"
-            class="w-8 h-8 rounded cursor-pointer border border-line p-0.5"
-            @input="onCageColorInput"
-          >
-          <span class="text-xs text-faint font-mono">{{ editor.activeCagePreset.style.cageColor }}</span>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1">
-        <label class="text-xs text-soft">Clue color</label>
-        <div class="flex items-center gap-2">
-          <input
-            type="color"
-            :value="editor.activeCagePreset.style.textColor"
-            class="w-8 h-8 rounded cursor-pointer border border-line p-0.5"
-            @input="onTextColorInput"
-          >
-          <span class="text-xs text-faint font-mono">{{ editor.activeCagePreset.style.textColor }}</span>
-        </div>
-      </div>
+      <CageStyleControls />
       <!-- 0 passes through: cage clues append digits with no maximum -->
       <NumpadPanel
         @digit="editor.placeDigitForSelection($event)"

@@ -23,10 +23,16 @@ import { linter, lintGutter } from '@codemirror/lint'
 import { json, jsonLanguage, jsonParseLinter } from '@codemirror/lang-json'
 import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 import { jsonCompletion, jsonSchemaHover, stateExtensions } from 'codemirror-json-schema'
+import { disableErrorLogging } from 'best-effort-json-parser'
 import type { JSONSchema7 } from 'json-schema'
 import { puzlerJsonTheme } from './cmTheme'
 import { colorSwatchExtension } from './colorSwatch'
 import puzzleSchema from './puzzle-schema.json'
+
+// codemirror-json-schema runs best-effort-json-parser on every keystroke to
+// keep schema pointers usable mid-edit; its console.error chatter about
+// incomplete JSON ("parsed json with extra tokens") is expected, not a bug.
+disableErrorLogging()
 
 export interface CodeMirrorJsonOptions {
   initialText: string

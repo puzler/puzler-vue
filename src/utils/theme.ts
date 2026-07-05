@@ -46,7 +46,7 @@ export const CHROME_TOKEN_KEYS = [
 export const GRID_TOKEN_KEYS = [
   'grid-canvas', 'grid-cell', 'grid-line-thin', 'grid-line-box',
   'grid-digit-given', 'grid-digit-input', 'grid-pencil', 'grid-pencil-seen',
-  'grid-selection', 'grid-error', 'grid-seen',
+  'grid-selection', 'grid-error', 'grid-seen', 'grid-fog',
 ] as const
 
 export type ChromeTokenKey = (typeof CHROME_TOKEN_KEYS)[number]

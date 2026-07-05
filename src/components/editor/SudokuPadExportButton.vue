@@ -24,7 +24,9 @@ let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
 // Request a SudokuPad link for the current puzzle. Records any fidelity
 // warnings; returns null (and sets error) on failure, e.g. a non-square grid.
-// The solution is embedded per the author's account setting (defaults on).
+// The solution is embedded per the author's account setting (defaults on);
+// fog puzzles always embed it, since SudokuPad needs it to clear the fog
+// (the backend enforces this too).
 async function requestLink(): Promise<string | null> {
   error.value = null
   warnings.value = []
@@ -34,7 +36,9 @@ async function requestLink(): Promise<string | null> {
       variables: {
         definition: serializePlayDefinition(editor, grid),
         solution: editor.solution,
-        includeSolution: auth.user?.puzzlePreferences?.includeSolutionInSudokupadExport ?? true,
+        includeSolution: editor.fogEnabled
+          ? true
+          : (auth.user?.puzzlePreferences?.includeSolutionInSudokupadExport ?? true),
       },
     })
     const result = data?.exportSudokupadLink
@@ -138,6 +142,12 @@ const LINK = 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6
       </button>
     </div>
 
+    <p
+      v-if="editor.fogEnabled"
+      class="text-xs text-soft"
+    >
+      Fog puzzles always include the solution, since SudokuPad needs it to clear the fog.
+    </p>
     <p
       v-if="error"
       class="text-xs text-red-600"

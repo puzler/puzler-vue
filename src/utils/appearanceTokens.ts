@@ -41,6 +41,7 @@ export const GRID_TOKENS: AppearanceTokenMeta<GridTokenKey>[] = [
   { key: 'grid-selection', label: 'Selection', default: '#F0A93B' },
   { key: 'grid-error', label: 'Error highlight', default: '#ef4444' },
   { key: 'grid-seen', label: 'Seen highlight', default: '#334155' },
+  { key: 'grid-fog', label: 'Fog cover', default: '#A3A3A3' },
 ]
 
 export const CHROME_DEFAULTS: Record<ChromeTokenKey, string> =

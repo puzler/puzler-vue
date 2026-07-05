@@ -25,6 +25,7 @@ import ExtraRegionsPanel from '@/components/editor/toolbox/ExtraRegionsPanel.vue
 import ClonePanel from '@/components/editor/toolbox/ClonePanel.vue'
 import OuterCluePanel from '@/components/editor/toolbox/OuterCluePanel.vue'
 import GlobalConstraintPanel from '@/components/editor/toolbox/GlobalConstraintPanel.vue'
+import FogPanel from '@/components/editor/toolbox/FogPanel.vue'
 import CosmeticLinePanel from '@/components/editor/toolbox/CosmeticLinePanel.vue'
 import CellColorPanel from '@/components/editor/toolbox/CellColorPanel.vue'
 import ShapePanel from '@/components/editor/toolbox/ShapePanel.vue'
@@ -45,6 +46,7 @@ export const PANEL_COMPONENTS: Record<ConstraintPanelId, Component> = {
   clone:         ClonePanel,
   outer_clue:    OuterCluePanel,
   global:        GlobalConstraintPanel,
+  fog:           FogPanel,
   cosmetic_line: CosmeticLinePanel,
   cell_color:    CellColorPanel,
   shape:         ShapePanel,

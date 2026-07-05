@@ -185,3 +185,54 @@ describe('computeSelectAllSame — constraint fallback', () => {
     expect(computeSelectAllSame('r0c0', c)).toEqual(new Set(['r0c0', 'r8c8']))
   })
 })
+
+// Fog puzzles: double-click must never reveal hidden information. Fogged
+// givens read as empty, and the constraint fallback is off entirely.
+describe('computeSelectAllSame — fog of war', () => {
+  it('ignores fogged givens when scanning for matches', () => {
+    const c = ctx({
+      givenDigits: { r0c0: 5, r8c8: 5 },
+      solverCellStates: { r1c1: cell({ value: 5 }) },
+      fog: new Set(['r8c8']), // r8c8's given 5 is hidden
+    })
+    expect(computeSelectAllSame('r0c0', c)).toEqual(new Set(['r0c0', 'r1c1']))
+  })
+
+  it('treats a clicked fogged given cell as empty (no match, no leak)', () => {
+    const c = ctx({
+      givenDigits: { r4c4: 5, r0c0: 5 },
+      fog: new Set(['r4c4']),
+    })
+    expect(computeSelectAllSame('r4c4', c)).toEqual(new Set())
+  })
+
+  it('still matches solver-entered digits (they render above the fog)', () => {
+    const c = ctx({
+      solverCellStates: { r4c4: cell({ value: 7 }), r6c6: cell({ value: 7 }) },
+      fog: new Set(['r4c4', 'r6c6']),
+    })
+    expect(computeSelectAllSame('r4c4', c)).toEqual(new Set(['r4c4', 'r6c6']))
+  })
+
+  it('disables the whole constraint fallback for fog puzzles, even on visible cells', () => {
+    const thermo: CosmeticInstance = {
+      id: 't',
+      type: 'thermometer',
+      data: { root: 'r0c0', edges: [{ from: 'r0c0', to: 'r0c1' }] },
+    }
+    const c = ctx({
+      singleCellMarks: { odd_cells: new Set(['r0c0', 'r8c8']) },
+      cosmeticInstances: [thermo],
+      fog: new Set(['r8c8']), // r0c0 itself is revealed
+    })
+    expect(computeSelectAllSame('r0c0', c)).toEqual(new Set())
+  })
+
+  it('keeps the fallback in setting mode (fog context is not passed there)', () => {
+    const c = ctx({
+      mode: 'setting',
+      singleCellMarks: { odd_cells: new Set(['r0c0', 'r8c8']) },
+    })
+    expect(computeSelectAllSame('r0c0', c)).toEqual(new Set(['r0c0', 'r8c8']))
+  })
+})

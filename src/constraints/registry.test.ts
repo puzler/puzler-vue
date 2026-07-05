@@ -21,8 +21,8 @@ describe('constraint registry derivations', () => {
     expect(CONNECTOR_DOT_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots']))
     expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))
     expect(OUTER_CLUE_TYPES).toEqual(new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers', 'numbered_rooms', 'battlefield', 'next_to_nine', 'rossini']))
-    expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'counting_circles', 'row_index_cells', 'col_index_cells']))
-    expect(LOCAL_TOOL_TYPES.size).toBe(37)
+    expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'counting_circles', 'row_index_cells', 'col_index_cells', 'fog_lights']))
+    expect(LOCAL_TOOL_TYPES.size).toBe(38)
     expect(LOCAL_TOOL_TYPES.has('killer_cage')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('diagonals')).toBe(false)
     expect(LOCAL_TOOL_TYPES.has('cosmetic_line')).toBe(false)
@@ -44,7 +44,7 @@ describe('constraint registry derivations', () => {
   })
 
   it('derives global variants per category, in def order', () => {
-    expect(Object.keys(GLOBAL_VARIANTS)).toEqual(['diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets'])
+    expect(Object.keys(GLOBAL_VARIANTS)).toEqual(['diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets', 'fog'])
     expect(GLOBAL_VARIANTS.diagonals.map(v => v.type)).toEqual([
       'positive_diagonal', 'negative_diagonal', 'anti_positive_diagonal', 'anti_negative_diagonal',
     ])
@@ -94,8 +94,9 @@ describe('constraint registry derivations', () => {
     ])
     const global = CONSTRAINT_FILTER_GROUPS[5].options
     expect(global.map(o => o.value)).toEqual([
-      'diagonals', 'kings_move', 'knights_move', 'anti_kropki', 'anti_xv', 'disjoint_sets',
+      'diagonals', 'kings_move', 'knights_move', 'anti_kropki', 'anti_xv', 'disjoint_sets', 'fog',
     ])
+    expect(global[6].label).toBe('Fog of War')
     expect(global[1].label).toBe("King's Move")
   })
 
@@ -112,7 +113,7 @@ describe('constraint registry derivations', () => {
 
   it('derives sidebar picker options for global and cosmetic categories', () => {
     expect(pickerOptionsFor('global').map(o => o.label)).toEqual([
-      'Diagonals', 'Chess', 'Anti-Kropki', 'Anti-XV', 'Disjoint Sets',
+      'Diagonals', 'Chess', 'Anti-Kropki', 'Anti-XV', 'Disjoint Sets', 'Fog of War',
     ])
     expect(pickerOptionsFor('cosmetic').map(o => o.label)).toEqual([
       'Line', 'Cell color', 'Shape', 'Text', 'Cage',
@@ -125,6 +126,8 @@ describe('constraint registry derivations', () => {
     expect(toolboxCategory('kings_move')).toBeUndefined()
     expect(panelForTool('slow_thermometer')).toMatchObject({ id: 'thermo', props: { title: 'Slow Thermometers' } })
     expect(panelForTool('diagonals')?.id).toBe('global')
+    expect(panelForTool('fog')?.id).toBe('fog')
+    expect(panelForTool('fog_lights')?.id).toBe('fog')
     expect(panelForTool('digit')).toBeUndefined()
   })
 
@@ -201,6 +204,8 @@ describe('constraint registry derivations', () => {
       anti_kropki: 'antiKropki',
       anti_xv: 'antiXv',
       disjoint_sets: 'disjointSets',
+      fog: 'fog',
+      fog_lights: 'fogLights',
       cosmetic_line: 'lines',
       cell_color: 'cellColors',
       shape: 'shapes',
@@ -260,6 +265,12 @@ describe('constraint registry derivations', () => {
         type: 'disjoint_sets',
         key: 'disjointSets',
         variants: [{ type: 'disjoint_sets', key: 'enabled' }],
+        customValues: {},
+      },
+      {
+        type: 'fog',
+        key: 'fog',
+        variants: [{ type: 'fog', key: 'enabled' }],
         customValues: {},
       },
     ])

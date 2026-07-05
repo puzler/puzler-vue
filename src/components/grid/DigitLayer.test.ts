@@ -23,6 +23,7 @@ describe('DigitLayer', () => {
   const render = (props: {
     givenDigits?: Record<string, number>
     cellStates?: Record<string, CellState>
+    foggedCells?: Set<string>
   }) =>
     mount(DigitLayer, {
       props: { givenDigits: {}, ...props },
@@ -59,5 +60,33 @@ describe('DigitLayer', () => {
     // Only the entered value should render; marks are suppressed.
     expect(w.findAll('text')).toHaveLength(1)
     expect(w.get('text.digit-input').text()).toBe('8')
+  })
+
+  it('renders pencil marks in a fogged given cell, hides them once revealed', () => {
+    const props = {
+      givenDigits: { r0c0: 5 },
+      cellStates: { r0c0: cell({ cornerMarks: [1, 2], centerMarks: [3] }) },
+    }
+    // Fogged: the given is hidden, so the solver's marks show.
+    const fogged = render({ ...props, foggedCells: new Set(['r0c0']) })
+    expect(fogged.find('text.digit-given').exists()).toBe(false)
+    expect(fogged.findAll('text')).toHaveLength(2 + 1) // corner texts + center text
+    // Revealed: the given takes precedence and the marks disappear.
+    const revealed = render({ ...props, foggedCells: new Set() })
+    expect(revealed.get('text.digit-given').text()).toBe('5')
+    expect(revealed.findAll('text')).toHaveLength(1)
+  })
+
+  it('hides fogged givens but keeps solver entries above the fog', () => {
+    const w = render({
+      givenDigits: { r0c0: 5, r8c8: 9 },
+      cellStates: { r4c4: cell({ value: 7 }) },
+      foggedCells: new Set(['r0c0', 'r4c4']),
+    })
+    // The fogged given disappears; the revealed given and the solver-entered
+    // digit (even in a fogged cell) both render.
+    expect(w.findAll('text.digit-given')).toHaveLength(1)
+    expect(w.get('text.digit-given').text()).toBe('9')
+    expect(w.get('text.digit-input').text()).toBe('7')
   })
 })

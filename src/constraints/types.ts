@@ -133,7 +133,7 @@ export type ConstraintPanelId =
   | 'line_tool' | 'thermo' | 'arrow'
   | 'single_cell' | 'kropki_dots' | 'xv' | 'quadruples' | 'inequality'
   | 'killer_cage' | 'extra_regions' | 'clone'
-  | 'outer_clue' | 'global'
+  | 'outer_clue' | 'global' | 'fog'
   | 'cosmetic_line' | 'cell_color' | 'shape' | 'text' | 'cosmetic_cage'
 
 export interface ConstraintPanelRef {

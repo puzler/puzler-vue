@@ -13,11 +13,20 @@ export interface SelectAllContext {
   solverCellStates: Record<string, CellState>
   singleCellMarks: Record<string, Set<string>>
   cosmeticInstances: CosmeticInstance[]
+  // Present only while solving a Fog of War puzzle: the currently fogged
+  // cells. Givens hidden under fog never match, and the constraint-membership
+  // fallback is disabled entirely — every family can leak hidden information
+  // (odd/even marks, clone/palindrome partner positions, thermo lengths).
+  fog?: ReadonlySet<string> | null
 }
 
-// A given digit takes priority over a solver-placed value (givens are immutable).
+// A given digit takes priority over a solver-placed value (givens are
+// immutable) — unless it is hidden under fog, in which case the cell reads as
+// whatever the solver entered (nothing, for a given cell).
 function resolvedValue(key: string, ctx: SelectAllContext): number | null {
-  return ctx.givenDigits[key] ?? ctx.solverCellStates[key]?.value ?? null
+  const given = ctx.givenDigits[key]
+  if (given !== undefined && !ctx.fog?.has(key)) return given
+  return ctx.solverCellStates[key]?.value ?? null
 }
 
 function arraysEqual(a: readonly (number | string)[], b: readonly (number | string)[]): boolean {
@@ -197,6 +206,9 @@ function constraintFallback(key: string, ctx: SelectAllContext): Set<string> {
  * (given digits) applies. If the cell holds no content, fall back to constraint
  * membership (odd/even, clone, palindrome, thermometer). Returns an empty set
  * when nothing matches — the caller should leave the selection untouched.
+ *
+ * Fog puzzles (ctx.fog set): only visible content matches — fogged givens
+ * read as empty, and the constraint fallback is skipped outright.
  */
 export function computeSelectAllSame(key: string, ctx: SelectAllContext): Set<string> {
   const layers: SolverInputMode[] = ctx.mode === 'solving'
@@ -209,5 +221,6 @@ export function computeSelectAllSame(key: string, ctx: SelectAllContext): Set<st
     if (match) return match
   }
 
+  if (ctx.fog) return new Set()
   return constraintFallback(key, ctx)
 }

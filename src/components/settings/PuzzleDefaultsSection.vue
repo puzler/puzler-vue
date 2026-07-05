@@ -29,7 +29,7 @@ const TOGGLES = [
   {
     key: 'includeSolutionInSudokupadExport',
     label: 'Include the solution in SudokuPad links',
-    hint: 'Embeds the solution so SudokuPad can check solves, for your published puzzles and your own exports. Turn off to share without revealing the answer.',
+    hint: 'Embeds the solution so SudokuPad can check solves, for your published puzzles and your own exports. Turn off to share without revealing the answer. Fog of War puzzles always include the solution, since SudokuPad needs it to clear the fog.',
   },
   {
     key: 'commentsRequireSolveDefault',

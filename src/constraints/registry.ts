@@ -97,6 +97,7 @@ import chess from './definitions/chess'
 import antiKropki from './definitions/antiKropki'
 import antiXv from './definitions/antiXv'
 import disjointSets from './definitions/disjointSets'
+import fog from './definitions/fog'
 // Cosmetics
 import cosmeticLine from './definitions/cosmeticLine'
 import cellColor from './definitions/cellColor'
@@ -147,6 +148,7 @@ const DEFS = [
   ...antiKropki,
   ...antiXv,
   disjointSets,
+  ...fog,
   cosmeticLine,
   cellColor,
   shape,

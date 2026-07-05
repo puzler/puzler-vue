@@ -64,7 +64,8 @@ const confirmTarget = computed(() =>
 )
 
 const localConstraints = computed(() =>
-  editor.activeConstraints.filter(c => c.category !== 'global' && c.category !== 'cosmetic'),
+  // fog_lights is managed through the Fog of War panel, not as its own chip.
+  editor.activeConstraints.filter(c => c.category !== 'global' && c.category !== 'cosmetic' && c.type !== 'fog_lights'),
 )
 
 function constraintsFor(key: string) {
@@ -88,7 +89,11 @@ function handleRemoveConfirm() {
   if (!confirmTarget.value) return
   const { type, category } = confirmTarget.value
   if (editor.activeTool === type) editor.setActiveTool('digit')
-  if (category === 'global') {
+  if (type === 'fog') {
+    // Fog also owns the lights tool and its placed marks.
+    if (editor.activeTool === 'fog_lights') editor.setActiveTool('digit')
+    editor.removeFogConstraint()
+  } else if (category === 'global') {
     const variantTypes = (GLOBAL_VARIANTS[type] ?? []).map(v => v.type)
     editor.removeGlobalConstraint(type, variantTypes)
   } else if (category === 'cosmetic') {

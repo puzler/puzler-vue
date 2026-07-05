@@ -8,6 +8,7 @@ import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import type { CellState, SolverInputMode } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
+import { fogCellHash, computeFoggedCells } from '@/utils/fog'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
@@ -109,6 +110,12 @@ export const useEditorStore = defineStore('editor', () => {
   const pendingCloneDrag = ref<{ instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null>(null)
   const activeGlobalVariants = ref<Set<string>>(new Set())
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
+  // Fog of War verification data for published play: per-cell solution hashes
+  // and their salt (the published version's solutionHash), set by the player
+  // view on load. Absent in the editor — there, ANY solver-entered digit
+  // clears fog, so setters can work progressively before a solution exists.
+  const fogCellHashes = ref<Record<string, string> | null>(null)
+  const fogHashSalt = ref<string | null>(null)
   const singleCellMarks = ref<Record<string, Set<string>>>({})
   // Setter colors for single-cell marks, authored only through the raw JSON
   // editor: type → cell key → color field → hex. Sparse — marks without
@@ -253,15 +260,62 @@ export const useEditorStore = defineStore('editor', () => {
     return { seesRC }
   })
 
+  // ── Fog of War (derived, never persisted) ─────────────────────────────────
+
+  const fogEnabled = computed(() => activeGlobalVariants.value.has('fog'))
+  const fogLightCells = computed<Set<string>>(() => singleCellMarks.value['fog_lights'] ?? new Set())
+
+  // Cells whose solver-entered digit clears fog. With published hashes only a
+  // correct digit counts; without them (the editor) every solver digit counts,
+  // so setters can work progressively before a solution exists. Givens never
+  // clear fog.
+  const fogVerifiedCells = computed<Set<string>>(() => {
+    const verified = new Set<string>()
+    if (!fogEnabled.value) return verified
+    const hashes = fogCellHashes.value
+    const salt = fogHashSalt.value
+    for (const [key, state] of Object.entries(solverCellStates.value)) {
+      const digit = state?.value ?? null
+      if (digit === null || digit === undefined || givenDigits.value[key] !== undefined) continue
+      if (hashes && salt) {
+        if (hashes[key] === fogCellHash(salt, key, digit)) verified.add(key)
+      } else {
+        verified.add(key)
+      }
+    }
+    return verified
+  })
+
+  // The currently fogged cells: everything minus lights minus the 3x3
+  // neighborhood of each verified digit. Drives the opaque fog fill, hidden
+  // givens and conflict gating; the setting-mode faint overlay renders from
+  // fogLightCells alone.
+  const foggedCells = computed<Set<string>>(() => {
+    if (!fogEnabled.value) return new Set<string>()
+    const gridStore = useGridStore()
+    return computeFoggedCells({
+      rows: gridStore.rows,
+      cols: gridStore.cols,
+      lights: fogLightCells.value,
+      verified: fogVerifiedCells.value,
+    })
+  })
+
   // Filled cells (givens or committed solver values) with their coordinates. Shared
   // by conflict checking and pencil-mark checking.
   const filledDigitCells = computed<Array<{ key: string; row: number; col: number; digit: number }>>(() => {
     const gridStore = useGridStore()
+    // Fogged givens are invisible to the solver, so they must not feed conflict
+    // tints or seen-digit checks — either would leak what hides under the fog.
+    // Solver-entered digits always count; they render above the fog.
+    const fogged = fogEnabled.value && mode.value === 'solving' ? foggedCells.value : null
     const out: Array<{ key: string; row: number; col: number; digit: number }> = []
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
-        const digit = givenDigits.value[key] ?? solverCellStates.value[key]?.value ?? null
+        const given = givenDigits.value[key]
+        if (given !== undefined && fogged?.has(key)) continue
+        const digit = given ?? solverCellStates.value[key]?.value ?? null
         if (digit !== null) out.push({ key, row: r, col: c, digit })
       }
     }
@@ -489,6 +543,15 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  // A given blocks pencil marks only while the solver can see it: a given
+  // hidden under fog reads as an empty cell, so marks are allowed there (they
+  // hide again once the fog clears and the given takes precedence). Digit
+  // PLACEMENT stays blocked on every given cell, fogged or not — a given cell
+  // can never hold a solver value.
+  function givenBlocksMarks(key: string): boolean {
+    return givenDigits.value[key] !== undefined && !foggedCells.value.has(key)
+  }
+
   function setSolverValueForSelection(digit: number | null) {
     const keys = Array.from(selection.value).filter((k) => givenDigits.value[k] === undefined)
     if (!keys.length) return
@@ -502,7 +565,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function toggleCornerMarkForSelection(digit: number) {
     const keys = Array.from(selection.value).filter(
-      (k) => givenDigits.value[k] === undefined && !solverCellStates.value[k]?.value,
+      (k) => !givenBlocksMarks(k) && !solverCellStates.value[k]?.value,
     )
     if (!keys.length) return
     const before = snapshotCells(keys)
@@ -519,7 +582,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function toggleCenterMarkForSelection(digit: number) {
     const keys = Array.from(selection.value).filter(
-      (k) => givenDigits.value[k] === undefined && !solverCellStates.value[k]?.value,
+      (k) => !givenBlocksMarks(k) && !solverCellStates.value[k]?.value,
     )
     if (!keys.length) return
     const before = snapshotCells(keys)
@@ -643,7 +706,9 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function deleteSolverContentForSelection() {
-    const keys = Array.from(selection.value).filter((k) => givenDigits.value[k] === undefined)
+    // givenBlocksMarks (not the raw given check) so marks placed in a
+    // fogged-given cell can be deleted again. Values never exist there.
+    const keys = Array.from(selection.value).filter((k) => !givenBlocksMarks(k))
     if (!keys.length) return
 
     // Step 1: clear placed digits, preserving marks
@@ -778,6 +843,43 @@ export const useEditorStore = defineStore('editor', () => {
       undo: () => {
         addActiveType(type)
         activeGlobalVariants.value = prevVariants
+      },
+    })
+  }
+
+  // Removing the Fog of War chip drops the global toggle, the lights tool and
+  // every placed light in one undoable step.
+  function removeFogConstraint() {
+    if (!activeTypes.value.has('fog')) return
+    const prevTypes = new Set(activeTypes.value)
+    const nextTypes = new Set(prevTypes)
+    nextTypes.delete('fog')
+    nextTypes.delete('fog_lights')
+    const prevVariants = new Set(activeGlobalVariants.value)
+    const nextVariants = new Set(prevVariants)
+    nextVariants.delete('fog')
+    const prevMarks = singleCellMarks.value['fog_lights']
+    const prevColors = singleCellMarkColors.value['fog_lights']
+    execute({
+      execute: () => {
+        activeTypes.value = nextTypes
+        activeGlobalVariants.value = nextVariants
+        if (prevMarks) {
+          const next = { ...singleCellMarks.value }
+          delete next['fog_lights']
+          singleCellMarks.value = next
+        }
+        if (prevColors) {
+          const next = { ...singleCellMarkColors.value }
+          delete next['fog_lights']
+          singleCellMarkColors.value = next
+        }
+      },
+      undo: () => {
+        activeTypes.value = prevTypes
+        activeGlobalVariants.value = prevVariants
+        if (prevMarks) singleCellMarks.value = { ...singleCellMarks.value, fog_lights: prevMarks }
+        if (prevColors) singleCellMarkColors.value = { ...singleCellMarkColors.value, fog_lights: prevColors }
       },
     })
   }
@@ -1481,6 +1583,8 @@ export const useEditorStore = defineStore('editor', () => {
     pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
     customGlobalConstraints.value = []
+    fogCellHashes.value = null
+    fogHashSalt.value = null
     linePresetsC.reset()
     cosmeticCellColors.value = {}
     pendingBrushCells.value = []
@@ -2144,6 +2248,13 @@ export const useEditorStore = defineStore('editor', () => {
     removeGlobalConstraint,
     activeGlobalVariants,
     toggleGlobalVariant,
+    fogCellHashes,
+    fogHashSalt,
+    fogEnabled,
+    fogLightCells,
+    fogVerifiedCells,
+    foggedCells,
+    removeFogConstraint,
     customGlobalConstraints,
     addCustomGlobalConstraint,
     removeCustomGlobalConstraint,

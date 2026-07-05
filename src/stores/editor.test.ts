@@ -579,3 +579,175 @@ describe('outer clue instances', () => {
     expect(editor.selectedOuterClueId).toBe('b')
   })
 })
+
+// Fog of War: derived fog state (verified cells, fogged set), the anti-leak
+// gating of fogged givens, and the chip-removal action.
+describe('fog of war', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function cell(value: number) {
+    return { value, cornerMarks: [], centerMarks: [], color: null, colors: [] }
+  }
+
+  function enableFog() {
+    const editor = useEditorStore()
+    editor.activeTypes = new Set(['fog'])
+    editor.activeGlobalVariants = new Set(['fog'])
+    return editor
+  }
+
+  it('is fully derived: everything fogged minus lights minus 3x3 around solver digits', () => {
+    const editor = enableFog()
+    editor.singleCellMarks = { fog_lights: new Set(['r8c8']) }
+    editor.solverCellStates = { r4c4: cell(5) }
+    const fogged = editor.foggedCells
+    expect(fogged.has('r8c8')).toBe(false) // light
+    expect(fogged.has('r3c3')).toBe(false) // neighborhood of the digit
+    expect(fogged.has('r4c4')).toBe(false)
+    expect(fogged.has('r0c0')).toBe(true)
+    expect(fogged.size).toBe(81 - 9 - 1)
+  })
+
+  it('is empty when fog is not enabled', () => {
+    const editor = useEditorStore()
+    editor.solverCellStates = { r4c4: cell(5) }
+    expect(editor.foggedCells.size).toBe(0)
+  })
+
+  it('editor path: any solver digit verifies, givens never do', () => {
+    const editor = enableFog()
+    editor.givenDigits = { r0c0: 1 }
+    editor.solverCellStates = { r4c4: cell(5) }
+    expect(editor.fogVerifiedCells).toEqual(new Set(['r4c4']))
+  })
+
+  it('hash path: only a digit matching its cell hash verifies', () => {
+    const editor = enableFog()
+    editor.fogHashSalt = 'testsalt'
+    // Pinned digest of "testsalt:r0c0:5" (see utils/fog.test.ts).
+    editor.fogCellHashes = {
+      r0c0: '615efe3ec691469e20c5bf7f6f6b8e29ad9193ffb0f9dc8c9da83b91dfca33bc',
+    }
+    editor.solverCellStates = { r0c0: cell(4), r1c1: cell(9) }
+    expect(editor.fogVerifiedCells.size).toBe(0)
+    editor.solverCellStates = { r0c0: cell(5), r1c1: cell(9) }
+    expect(editor.fogVerifiedCells).toEqual(new Set(['r0c0']))
+  })
+
+  it('re-fogs when a digit is deleted or undone', () => {
+    const editor = enableFog()
+    editor.selection = new Set(['r4c4'])
+    editor.mode = 'solving'
+    editor.placeDigitForSelection(5)
+    expect(editor.foggedCells.has('r3c3')).toBe(false)
+    editor.undo()
+    expect(editor.foggedCells.has('r3c3')).toBe(true)
+    editor.redo()
+    expect(editor.foggedCells.has('r3c3')).toBe(false)
+    editor.placeDigitForSelection(null)
+    expect(editor.foggedCells.has('r3c3')).toBe(true)
+  })
+
+  it('excludes fogged givens from conflict checks in solving mode only', () => {
+    const editor = enableFog()
+    // A hidden given 5 and a solver-entered 5 in the same row: while solving,
+    // the hidden given must not paint a conflict (that would leak it).
+    editor.givenDigits = { r0c0: 5 }
+    editor.fogHashSalt = 'salt'
+    editor.fogCellHashes = { r0c0: 'nope' } // nothing verifies -> all fogged
+    editor.solverCellStates = { r0c5: cell(5) }
+    editor.mode = 'solving'
+    expect(editor.errorCells.size).toBe(0)
+    // The setter still sees the conflict as an authoring aid.
+    editor.mode = 'setting'
+    expect(editor.errorCells).toEqual(new Set(['r0c0', 'r0c5']))
+  })
+
+  it('removeFogConstraint drops the chip, toggle and lights in one undoable step', () => {
+    const editor = enableFog()
+    editor.activeTypes = new Set(['fog', 'fog_lights', 'renban'])
+    editor.singleCellMarks = { fog_lights: new Set(['r1c1']), odd_cells: new Set(['r2c2']) }
+    editor.removeFogConstraint()
+    expect(editor.activeTypes).toEqual(new Set(['renban']))
+    expect(editor.fogEnabled).toBe(false)
+    expect(editor.singleCellMarks.fog_lights).toBeUndefined()
+    expect(editor.singleCellMarks.odd_cells).toEqual(new Set(['r2c2']))
+    editor.undo()
+    expect(editor.activeTypes).toEqual(new Set(['fog', 'fog_lights', 'renban']))
+    expect(editor.fogEnabled).toBe(true)
+    expect(editor.singleCellMarks.fog_lights).toEqual(new Set(['r1c1']))
+  })
+
+  it('reset clears the fog hash refs', () => {
+    const editor = useEditorStore()
+    editor.fogCellHashes = { r0c0: 'x' }
+    editor.fogHashSalt = 's'
+    editor.reset()
+    expect(editor.fogCellHashes).toBeNull()
+    expect(editor.fogHashSalt).toBeNull()
+  })
+})
+
+// Fogged givens accept pencil marks (the cell reads as empty to the solver);
+// digit placement stays blocked, and visible givens block everything.
+describe('fog of war - marks in fogged given cells', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function fogWithGiven() {
+    const editor = useEditorStore()
+    editor.activeTypes = new Set(['fog'])
+    editor.activeGlobalVariants = new Set(['fog'])
+    editor.mode = 'solving'
+    // Hashes present (published play): nothing verifies, so everything stays fogged.
+    editor.fogHashSalt = 'salt'
+    editor.fogCellHashes = { r0c0: 'nope' }
+    editor.givenDigits = { r0c0: 5 }
+    return editor
+  }
+
+  it('allows corner and center marks in a fogged given cell', () => {
+    const editor = fogWithGiven()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(3)
+    editor.toggleCenterMarkForSelection(7)
+    expect(editor.solverCellStates.r0c0.cornerMarks).toEqual([3])
+    expect(editor.solverCellStates.r0c0.centerMarks).toEqual([7])
+  })
+
+  it('still blocks digit placement in a fogged given cell', () => {
+    const editor = fogWithGiven()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(9)
+    expect(editor.solverCellStates.r0c0?.value ?? null).toBeNull()
+  })
+
+  it('deletes marks from a fogged given cell', () => {
+    const editor = fogWithGiven()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(3)
+    editor.deleteSolverContentForSelection()
+    expect(editor.solverCellStates.r0c0?.cornerMarks ?? []).toEqual([])
+  })
+
+  it('blocks marks once the given cell is revealed', () => {
+    const editor = fogWithGiven()
+    // A light on the given cell reveals it from the start.
+    editor.singleCellMarks = { fog_lights: new Set(['r0c0']) }
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(3)
+    expect(editor.solverCellStates.r0c0?.cornerMarks ?? []).toEqual([])
+  })
+
+  it('blocks marks on given cells as before when fog is off', () => {
+    const editor = useEditorStore()
+    editor.mode = 'solving'
+    editor.givenDigits = { r0c0: 5 }
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCenterMarkForSelection(2)
+    expect(editor.solverCellStates.r0c0?.centerMarks ?? []).toEqual([])
+  })
+})

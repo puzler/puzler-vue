@@ -3,6 +3,8 @@ import { shallowMount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import SudokuGrid from './SudokuGrid.vue'
 import InteractionLayer from './InteractionLayer.vue'
+import FogLayer from './FogLayer.vue'
+import { useEditorStore } from '@/stores/editor'
 
 // Regression guard for the grid's input layer.
 //
@@ -35,5 +37,44 @@ describe('SudokuGrid interactivity', () => {
 
   it('drops the interaction layer only when `interactive` is explicitly false (static thumbnail)', () => {
     expect(render({ interactive: false }).findComponent(InteractionLayer).exists()).toBe(false)
+  })
+})
+
+// Fog variant selection: the interactive setter view gets the faint overlay;
+// solving mode and EVERY static render get opaque fog. A static render falling
+// back to faint would leak hidden constraints on thumbnails/previews.
+describe('SudokuGrid fog variant', () => {
+  function renderWithFog(props: Record<string, unknown> = {}, setup?: (editor: ReturnType<typeof useEditorStore>) => void) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const editor = useEditorStore()
+    editor.activeGlobalVariants = new Set(['fog'])
+    setup?.(editor)
+    const w = shallowMount(SudokuGrid, {
+      props: { mode: 'edit', givenDigits: {}, selection: new Set<string>(), ...props },
+      global: { plugins: [pinia] },
+    })
+    return w
+  }
+
+  it('renders no fog layer when fog is disabled', () => {
+    setActivePinia(createPinia())
+    expect(render().findComponent(FogLayer).exists()).toBe(false)
+  })
+
+  it('renders the faint variant in the interactive setter view', () => {
+    const fog = renderWithFog().findComponent(FogLayer)
+    expect(fog.props('variant')).toBe('faint')
+  })
+
+  it('renders the opaque variant in solving mode', () => {
+    const fog = renderWithFog({}, (editor) => { editor.mode = 'solving' }).findComponent(FogLayer)
+    expect(fog.props('variant')).toBe('opaque')
+    expect(fog.props('maskId')).toBeTruthy()
+  })
+
+  it('renders the opaque variant for static renders even in setting mode', () => {
+    const fog = renderWithFog({ interactive: false }).findComponent(FogLayer)
+    expect(fog.props('variant')).toBe('opaque')
   })
 })

@@ -44,7 +44,7 @@ describe('normalizeTheme', () => {
       basePresetId: 'dark',
       appearance: {
         chrome: { ink: '#101010', bogusToken: '#fff' },
-        grid: { 'grid-cell': '#222', notAGridToken: '#000' },
+        grid: { 'grid-cell': '#222', 'grid-fog': '#909090', notAGridToken: '#000' },
       },
       constraints: {
         german_whispers: { color: '#ff0000', strokeWidth: 999 },
@@ -56,7 +56,7 @@ describe('normalizeTheme', () => {
     expect(t.name).toBe('My Theme')
     expect(t.basePresetId).toBe('dark')
     expect(t.appearance.chrome).toEqual({ ink: '#101010' })
-    expect(t.appearance.grid).toEqual({ 'grid-cell': '#222' })
+    expect(t.appearance.grid).toEqual({ 'grid-cell': '#222', 'grid-fog': '#909090' })
     expect(t.constraints.german_whispers).toEqual({ color: '#ff0000', strokeWidth: 24 }) // clamped on load
     expect('not_a_constraint' in t.constraints).toBe(false)
   })

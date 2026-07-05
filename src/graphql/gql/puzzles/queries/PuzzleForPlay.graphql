@@ -18,6 +18,7 @@ query PuzzleForPlay($id: ID!) {
       id
       definition
       solutionHash
+      fogCellHashes
     }
   }
 }

@@ -530,7 +530,7 @@ export type PuzzleByTokenForPlayQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleByTokenForPlayQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null, fogCellHashes: unknown } | null } | null };
 
 export type PuzzleDescriptionQueryVariables = Exact<{
   id: string | number;
@@ -558,7 +558,7 @@ export type PuzzleForPlayQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null } | null };
+export type PuzzleForPlayQuery = { puzzle: { id: string, title: string, authorName: string | null, isFavorited: boolean, favoriteCount: number, myRating: { stars: number | null, difficultyVote: number | null } | null, author: { id: string, username: string, displayName: string }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null, fogCellHashes: unknown } | null } | null };
 
 export type PuzzleGridSizesQueryVariables = Exact<{ [key: string]: never; }>;
 

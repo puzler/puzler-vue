@@ -350,6 +350,7 @@ export interface SerializedPuzzleSchema {
     antiKropki?: { white?: boolean; black?: boolean; differences?: number[]; ratios?: number[] }
     antiXv?: { x?: boolean; v?: boolean; sums?: number[] }
     disjointSets?: { enabled?: boolean }
+    fog?: { enabled?: boolean }
   }
   constraints?: {
     renbanLines?: LineDoc[]
@@ -378,6 +379,7 @@ export interface SerializedPuzzleSchema {
     countingCircles?: Array<string | CountingCircleMarkDoc>
     rowIndexCells?: Array<string | CellMarkDoc>
     colIndexCells?: Array<string | CellMarkDoc>
+    fogLights?: Array<string | CellMarkDoc>
     killerCages?: KillerCageDoc[]
     extraRegions?: LineDoc[]
     clones?: CloneDoc[]

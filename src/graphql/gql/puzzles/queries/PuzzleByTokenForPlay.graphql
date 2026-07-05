@@ -18,6 +18,7 @@ query PuzzleByTokenForPlay($token: String!) {
       id
       definition
       solutionHash
+      fogCellHashes
     }
   }
 }

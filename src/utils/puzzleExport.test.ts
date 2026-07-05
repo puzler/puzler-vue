@@ -94,6 +94,25 @@ describe('serializePuzzle (format v4)', () => {
     expect((data.cosmetics as Record<string, unknown>).linePresets).toBeDefined()
   })
 
+  it('round-trips fog: the global toggle and light cells', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set(['fog', 'fog_lights'])
+    editor.activeGlobalVariants = new Set(['fog'])
+    editor.singleCellMarks = { fog_lights: new Set(['r0c0', 'r4c4']) }
+    const data = serializePuzzle(editor, grid)
+    expect(data.globals).toEqual({ fog: { enabled: true } })
+    expect((data.constraints as Record<string, unknown>).fogLights).toEqual(['r1c1', 'r5c5'])
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(editor2.fogEnabled).toBe(true)
+    expect(editor2.fogLightCells).toEqual(new Set(['r0c0', 'r4c4']))
+    expect(serializePuzzle(editor2, grid2)).toEqual(data)
+  })
+
   it('serializes keys in registry-canonical order regardless of add order', () => {
     const editor = useEditorStore()
     const grid = useGridStore()

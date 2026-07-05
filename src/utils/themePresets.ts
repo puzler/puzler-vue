@@ -66,6 +66,8 @@ const LIGHT: Theme = {
       'grid-selection': '#F59E0B',
       'grid-error': '#EF4444',
       'grid-seen': '#475569',
+      // Cool slate mist: lighter than the cell lines so they stay visible above the fog.
+      'grid-fog': '#C3CEDC',
     },
   },
   // White cells mean the constraint defaults (tuned for the original white grid) all read well,
@@ -111,6 +113,9 @@ const DARK: Theme = {
       'grid-error': '#F87171',
       'grid-seen': '#94A3B8',
       // grid-selection stays the default amber, which reads well on dark.
+      // Fog sits lighter than the dark cells so it reads as mist, not shadow;
+      // the light region borders still carry the structure above it.
+      'grid-fog': '#4A5568',
     },
   },
   // Lighten the constraints that default to black/dark ink so they stay legible on dark cells
@@ -183,6 +188,8 @@ const HIGH_CONTRAST: Theme = {
       'grid-selection': '#F08C00',
       'grid-error': '#D40000',
       'grid-seen': '#000000',
+      // Strong grey against the white cells; grey thin lines and black box lines both stay legible.
+      'grid-fog': '#C0C0C0',
     },
   },
   // High contrast DARKENS each constraint's own colour for legibility on white — it does NOT

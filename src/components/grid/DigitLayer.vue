@@ -10,6 +10,9 @@ import type { CellState } from '@/types/grid'
 const props = defineProps<{
   givenDigits: Record<string, number>
   cellStates?: Record<string, CellState>
+  // Fog of War: givens in these cells are hidden (they sit under the fog);
+  // solver-entered content always renders, above the fog.
+  foggedCells?: Set<string>
 }>()
 
 const grid = useGridStore()
@@ -103,6 +106,13 @@ interface CenterMarkEntry {
   marks: Array<{ digit: number; fill: string; weight: string }>
 }
 
+// A given only asserts itself while the solver can see it: hidden under fog
+// it neither renders nor suppresses the solver's own pencil marks. Once the
+// fog clears, the given takes precedence again and any marks disappear.
+function givenVisible(key: string): boolean {
+  return props.givenDigits[key] !== undefined && !props.foggedCells?.has(key)
+}
+
 const mainDigits = computed<DigitEntry[]>(() => {
   const out: DigitEntry[] = []
   for (let r = 0; r < grid.rows; r++) {
@@ -111,6 +121,7 @@ const mainDigits = computed<DigitEntry[]>(() => {
       const cx = PADDING + c * CELL_SIZE + CELL_SIZE / 2
       const cy = PADDING + r * CELL_SIZE + CELL_SIZE / 2
       if (props.givenDigits[key] !== undefined) {
+        if (!givenVisible(key)) continue
         out.push({ key: `g-${key}`, x: cx, y: cy, digit: props.givenDigits[key], isGiven: true })
       } else if (props.cellStates?.[key]?.value != null) {
         out.push({ key: `e-${key}`, x: cx, y: cy, digit: props.cellStates[key].value!, isGiven: false })
@@ -127,7 +138,7 @@ const cornerMarks = computed<CornerMarkEntry[]>(() => {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
       const state = props.cellStates[key]
-      if (!state?.cornerMarks.length || state.value != null || props.givenDigits[key] !== undefined) continue
+      if (!state?.cornerMarks.length || state.value != null || givenVisible(key)) continue
       const cellX = PADDING + c * CELL_SIZE
       const cellY = PADDING + r * CELL_SIZE
       const digits = [...state.cornerMarks].sort((a, b) => a - b)
@@ -161,7 +172,7 @@ const centerMarks = computed<CenterMarkEntry[]>(() => {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
       const state = props.cellStates[key]
-      if (!state?.centerMarks.length || state.value != null || props.givenDigits[key] !== undefined) continue
+      if (!state?.centerMarks.length || state.value != null || givenVisible(key)) continue
       const cx = PADDING + c * CELL_SIZE + CELL_SIZE / 2
       const cy = PADDING + r * CELL_SIZE + CELL_SIZE / 2
       out.push({

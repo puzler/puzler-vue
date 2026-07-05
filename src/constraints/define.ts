@@ -252,6 +252,8 @@ export interface GlobalConstraintInput {
   // variants carry the filters instead), a label overrides the chip wording.
   filter?: false | { label?: string }
   layers?: readonly ConstraintLayerId[]
+  // Groups with controls beyond variant checkboxes (fog) bring their own panel.
+  panelId?: ConstraintPanelId
 }
 
 export function defineGlobalConstraint<const I extends GlobalConstraintInput>(
@@ -267,7 +269,7 @@ export function defineGlobalConstraint<const I extends GlobalConstraintInput>(
       : { group: 'Global', label: typeof input.filter === 'object' ? input.filter.label : undefined },
     icon: { path: input.iconPath },
     layers: input.layers,
-    panel: { id: 'global' },
+    panel: { id: input.panelId ?? 'global' },
   } as const satisfies ConstraintDef
   return def as ConstraintDef & { type: I['type'] }
 }

@@ -386,6 +386,10 @@ function onDoubleClick(event: MouseEvent) {
     solverCellStates: editor.solverCellStates,
     singleCellMarks: editor.singleCellMarks,
     cosmeticInstances: editor.cosmeticInstances,
+    // Fog puzzles: match only visible content so double-click can't reveal
+    // hidden givens or constraint layouts. In setting mode the author sees
+    // everything, so the full matching applies.
+    fog: editor.fogEnabled && editor.mode === 'solving' ? editor.foggedCells : null,
   })
   if (match.size === 0) return
   const additive = event.ctrlKey || event.metaKey || event.shiftKey || editor.multiSelectMode

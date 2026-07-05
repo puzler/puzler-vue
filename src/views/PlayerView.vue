@@ -312,6 +312,10 @@ async function loadPuzzle() {
     myRating.value = puzzle.myRating ?? null
     solutionHash.value = puzzle.publishedVersion.solutionHash ?? null
     deserializePuzzle(editor, grid, puzzle.publishedVersion.definition as SerializedPuzzle)
+    // Fog of War verification data (present only when the puzzle uses fog).
+    // Set after deserializePuzzle — editor.reset() clears these refs.
+    editor.fogCellHashes = (puzzle.publishedVersion.fogCellHashes as Record<string, string> | null) ?? null
+    editor.fogHashSalt = solutionHash.value
     editor.setMode('solving')
     // Resume saved progress if any (restores the board, history, and timer);
     // otherwise begin() starts the clock fresh. It owns the timer from here, so

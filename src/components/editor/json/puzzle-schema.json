@@ -709,6 +709,19 @@
               },
               "type": "array"
             },
+            "fogLights": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/CellMarkDoc"
+                  }
+                ]
+              },
+              "type": "array"
+            },
             "germanWhispers": {
               "items": {
                 "$ref": "#/definitions/LineDoc"
@@ -1047,6 +1060,15 @@
               "type": "object"
             },
             "disjointSets": {
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "fog": {
               "additionalProperties": false,
               "properties": {
                 "enabled": {

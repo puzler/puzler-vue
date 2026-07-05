@@ -2269,6 +2269,8 @@ export type PuzzleVersion = {
   definition: Scalars['JSON']['output'];
   /** Author label, or the 'v{version_number}' fallback */
   displayName: Scalars['String']['output'];
+  /** Per-cell solution hashes for client-side fog clearing; present only when the puzzle uses Fog of War */
+  fogCellHashes?: Maybe<Scalars['JSON']['output']>;
   /** Unique version ID */
   id: Scalars['ID']['output'];
   /** Whether this is the puzzle's currently published version */

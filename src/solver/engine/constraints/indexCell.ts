@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAnyVisible } from './fogPolicies'
 import { IndexCellConstraint } from './shared'
 import { rowOf, colOf, cellAt } from '../geometry'
 
@@ -35,4 +36,6 @@ export default defineModule<IndexCellSpec>({
     return specs
   },
   build: (_board, spec) => new IndexCellConstraint('Index Cell', spec.cell, spec.cells, spec.indexedValue),
+  // Single-cell glyph: fully known once its cell is clear.
+  fogPolicy: whenAnyVisible((spec) => [spec.cell]),
 })

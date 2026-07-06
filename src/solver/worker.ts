@@ -72,7 +72,10 @@ function handle(command: SolverCommand): void {
       return post({ result: 'truecandidates', candidates: result.candidates, counts: result.counts })
     }
     case 'step': {
-      const { board, valid } = buildBoard(command.puzzle, { logPropagation: true })
+      // respectFog: a step reasons only from what the player can currently see.
+      // Reveals are picked up next command — the main thread applies the step's
+      // placements and sends a refreshed fog.verified.
+      const { board, valid } = buildBoard(command.puzzle, { logPropagation: true, respectFog: true })
       const givenCells = new Set(command.puzzle.givens.map((g) => g.cell))
       if (!valid) {
         return post({ result: 'step', desc: 'Board is invalid', changed: false, values: [], candidates: [] })
@@ -97,7 +100,10 @@ function handle(command: SolverCommand): void {
       return post({ result: 'step', desc, changed: step.changed, ...state })
     }
     case 'logicalsolve': {
-      const { board, valid } = buildBoard(command.puzzle, { logPropagation: true })
+      // respectFog: starts from the fog state the puzzle carries (lights-only —
+      // a solve resets the board to the givens) and reveals between steps via
+      // the gate's sync hook as its own deductions verify.
+      const { board, valid, fogGate } = buildBoard(command.puzzle, { logPropagation: true, respectFog: true })
       const givenCells = new Set(command.puzzle.givens.map((g) => g.cell))
       if (!valid) {
         return post({ result: 'logicalsolve', desc: ['Board is invalid'], changed: false, values: [], candidates: [] })
@@ -107,7 +113,8 @@ function handle(command: SolverCommand): void {
       // initial candidate fill anyway.
       const propagated = describePropagation(board)
       if (propagated && lines.length === 0) lines.push(propagated)
-      const solve = logicalSolve(board, command.options?.techniques ?? {})
+      const hooks = fogGate ? { afterStep: (b: Board) => fogGate.sync(b) } : undefined
+      const solve = logicalSolve(board, command.options?.techniques ?? {}, hooks)
       lines.push(...solve.desc)
       const state = solverState(board, givenCells)
       return post({

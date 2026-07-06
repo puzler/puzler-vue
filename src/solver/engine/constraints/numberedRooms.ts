@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { IndexCellConstraint } from './shared'
 import { parseOuterKey, outerLine } from './outerHelpers'
 
@@ -28,4 +29,6 @@ export default defineModule<NumberedRoomsSpec>({
     return specs
   },
   build: (_board, spec) => new IndexCellConstraint('Numbered rooms', spec.line[0], spec.line, spec.target),
+  // Outside clue: the glyph sits beyond the grid edge, never fogged.
+  fogPolicy: ALWAYS,
 })

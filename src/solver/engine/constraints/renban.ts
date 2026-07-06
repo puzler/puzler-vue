@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { RenbanConstraint } from './lineConstraints'
 import { lineCellGroups, mergeConnectedGroups } from './lineHelpers'
 
@@ -16,4 +17,7 @@ export default defineModule<RenbanSpec>({
   fromEditor: (ctx) =>
     mergeConnectedGroups(lineCellGroups(ctx, 'renban')).map((cells) => ({ kind: 'renban' as const, cells })),
   build: (_board, spec) => new RenbanConstraint(spec.cells),
+  // Merged branched arms lose path order, so visible-fragment contiguity is not
+  // recoverable from the spec; nothing partial is sound until specs carry paths.
+  fogPolicy: whenAllVisible((spec) => spec.cells),
 })

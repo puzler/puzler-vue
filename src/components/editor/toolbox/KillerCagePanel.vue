@@ -2,12 +2,19 @@
 import { useEditorStore } from '@/stores/editor'
 import ModeSwitcher from './ModeSwitcher.vue'
 import NumpadPanel from '../NumpadPanel.vue'
+import FogSolverHelpersSection from './FogSolverHelpersSection.vue'
 
 const editor = useEditorStore()
 
 const MODES = [
   { key: 'place', label: 'Place' },
   { key: 'select', label: 'Select' },
+]
+
+// The editor only draws connected cages, so connectivity is assumed by the fog
+// solver; this opt-out is for JSON-authored disconnected cages.
+const HELPER_OPTIONS = [
+  { key: 'cagesMaybeDisconnected' as const, label: "Don't assume cage cells are connected" },
 ]
 </script>
 
@@ -36,6 +43,8 @@ const MODES = [
       <p class="text-[11px] text-soft leading-snug text-center">
         Type digits to build the sum · Backspace removes the last digit · cages without a sum are allowed
       </p>
+
+      <FogSolverHelpersSection :options="HELPER_OPTIONS" />
     </div>
   </div>
 </template>

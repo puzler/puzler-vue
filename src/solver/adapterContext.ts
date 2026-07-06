@@ -1,4 +1,4 @@
-import type { ConnectorInstance, OuterClueInstance, CustomGlobalConstraint } from '@/types/constraints'
+import type { ConnectorInstance, OuterClueInstance, CustomGlobalConstraint, FogSolverHelpers } from '@/types/constraints'
 
 // Plain snapshot of the editor-store collections a constraint module needs to
 // produce its specs, plus resolved grid dimensions and a cell-key→index helper.
@@ -19,6 +19,9 @@ export interface AdapterContext {
   // Global variant types currently active (e.g. 'knights_move', 'nonconsecutive').
   variants: Set<string>
   customGlobals: CustomGlobalConstraint[]
+  // Setter-declared rules-text facts for the fog solver; modules stamp the
+  // relevant flags onto their specs so fog projections can exploit them.
+  fogSolverHelpers: FogSolverHelpers
   // single-cell constraint type → list of cell keys.
   singleCellMarks: Record<string, string[]>
   // Placed connectors/outer clues, in instance order. Each instance carries its

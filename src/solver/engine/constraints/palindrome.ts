@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 import { lineCellGroups, mirrorPairs } from './lineHelpers'
 
@@ -15,4 +16,6 @@ export default defineModule<PalindromeSpec>({
   fromEditor: (ctx) => lineCellGroups(ctx, 'palindrome').map((cells) => ({ kind: 'palindrome' as const, cells })),
   build: (_board, spec) =>
     new ForbiddenPairsConstraint('Palindrome', mirrorPairs(spec.cells), (a, b) => a !== b),
+  // Mirror pairing needs the full length; no partial fact is sound.
+  fogPolicy: whenAllVisible((spec) => spec.cells),
 })

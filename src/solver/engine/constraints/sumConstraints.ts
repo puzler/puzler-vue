@@ -125,6 +125,48 @@ export class SumConstraint extends Constraint {
   }
 }
 
+// A group of cells whose total is at most `max`. Fog-of-war form of a killer
+// cage: the revealed component holding the sum label of a cage that continues
+// into fog — every hidden cell contributes at least 1, so the visible cells sum
+// to at most the clue minus one per known-hidden cell. Upper bound only; the
+// component's all-different half is a separate constraint.
+export class SumAtMostConstraint extends Constraint {
+  private cells: number[]
+  private max: number
+  private involved: Set<number>
+
+  constructor(cells: number[], max: number, name = 'Killer cage') {
+    super(name)
+    this.cells = cells
+    this.max = max
+    this.involved = new Set(cells)
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    let sum = 0
+    let empties = 0
+    for (const c of this.cells) {
+      const v = placed(board, c)
+      if (v === 0) empties += 1
+      else sum += v
+    }
+    // Smallest reachable total must stay within the bound.
+    return sum + empties <= this.max
+  }
+
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    const cleared: number[] = []
+    if (sumRangePrune(board, this.cells, 0, this.max, cleared)) {
+      desc.push(`${this.name} exceeds its visible total`)
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push(this.name)
+    return ConstraintResult.CHANGED
+  }
+}
+
 // X-sum: the first N cells from the edge sum to the target, where N is the digit
 // in the cell nearest the edge.
 export class XSumConstraint extends Constraint {

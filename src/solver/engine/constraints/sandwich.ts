@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { SandwichConstraint } from './sumConstraints'
 import { parseOuterKey, outerLine } from './outerHelpers'
 
@@ -26,4 +27,6 @@ export default defineModule<SandwichSpec>({
     return specs
   },
   build: (_board, spec) => new SandwichConstraint(spec.line, spec.target),
+  // Outside clue: the glyph sits beyond the grid edge, never fogged.
+  fogPolicy: ALWAYS,
 })

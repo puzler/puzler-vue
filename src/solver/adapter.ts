@@ -16,7 +16,13 @@ export interface AdapterResult {
 // and collects every constraint module's specs. With includeSolverState, also
 // carries the current solver scratch (placed digits + center marks) so logical
 // stepping continues from the grid instead of restarting from the givens.
-export function buildSolverPuzzle(options: { includeSolverState?: boolean } = {}): AdapterResult {
+// With respectFog (logical step/solve on a fog puzzle), attaches the fog
+// descriptor so the worker can withhold hidden clues: a step carries the
+// current reveal state, while a solve (which resets the board to the givens)
+// resets fog to lights-only and replays reveals through its own deductions.
+export function buildSolverPuzzle(
+  options: { includeSolverState?: boolean; respectFog?: boolean } = {},
+): AdapterResult {
   const editor = useEditorStore()
   const grid = useGridStore()
 
@@ -53,6 +59,16 @@ export function buildSolverPuzzle(options: { includeSolverState?: boolean } = {}
 
   const indexToKey = (cell: number): string => `r${Math.floor(cell / size)}c${cell % size}`
 
+  let fog: SolverPuzzle['fog']
+  if (options.respectFog && editor.fogEnabled) {
+    const toIndices = (keys: Iterable<string>) =>
+      [...keys].map(keyToIndex).filter((i) => i >= 0)
+    fog = {
+      lights: toIndices(editor.fogLightCells),
+      verified: options.includeSolverState ? toIndices(editor.fogVerifiedCells) : [],
+    }
+  }
+
   const ctx: AdapterContext = {
     size,
     rows: grid.rows,
@@ -61,6 +77,7 @@ export function buildSolverPuzzle(options: { includeSolverState?: boolean } = {}
     regionOfCell: (cell) => grid.cellRegionLabelMap.get(indexToKey(cell)) ?? null,
     variants: new Set(editor.activeGlobalVariants),
     customGlobals: [...editor.customGlobalConstraints],
+    fogSolverHelpers: { ...editor.fogSolverHelpers },
     singleCellMarks: Object.fromEntries(
       Object.entries(editor.singleCellMarks).map(([type, cells]) => [type, [...cells]]),
     ),
@@ -70,7 +87,7 @@ export function buildSolverPuzzle(options: { includeSolverState?: boolean } = {}
   }
 
   return {
-    puzzle: { size, regions, givens, placed, centerMarks, constraints: collectSpecs(ctx) },
+    puzzle: { size, regions, givens, placed, centerMarks, constraints: collectSpecs(ctx), fog },
     supported: true,
   }
 }

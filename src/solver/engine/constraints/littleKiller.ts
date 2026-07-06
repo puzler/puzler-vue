@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { SumConstraint } from './sumConstraints'
 import { parseOuterKey, diagonalLine } from './outerHelpers'
 
@@ -26,4 +27,6 @@ export default defineModule<LittleKillerSpec>({
     return specs
   },
   build: (_board, spec) => new SumConstraint(spec.cells, spec.target, false, 'Little killer'),
+  // Outside clue: the glyph sits beyond the grid edge, never fogged.
+  fogPolicy: ALWAYS,
 })

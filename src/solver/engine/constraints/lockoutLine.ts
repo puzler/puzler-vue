@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { LockoutLineConstraint } from './lineConstraints'
 import { lineCellGroups } from './lineHelpers'
 
@@ -15,4 +16,7 @@ export default defineModule<LockoutSpec>({
   kind: 'lockout_line',
   fromEditor: (ctx) => lineCellGroups(ctx, 'lockout_lines').map((cells) => ({ kind: 'lockout_line' as const, cells })),
   build: (_board, spec) => new LockoutLineConstraint(spec.cells),
+  // The endpoint diamonds pair only once the whole chain is visible (two
+  // visible diamonds might belong to different lines), which is full visibility.
+  fogPolicy: whenAllVisible((spec) => spec.cells),
 })

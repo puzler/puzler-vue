@@ -396,6 +396,73 @@ export class ArrowConstraint extends Constraint {
   }
 }
 
+// Fog-of-war form of an arrow: the bulb is visible and a prefix of one shaft is
+// visible but the shaft continues into fog, so at least one shaft cell is
+// hidden. Every shaft cell is at least 1, hence bulb ≥ Σ(prefix) + 1. Named
+// "Arrow" in the readout — the player sees an arrow, just not all of it.
+export class ArrowPrefixConstraint extends Constraint {
+  private bulb: number[]
+  private prefix: number[]
+  private involved: Set<number>
+
+  constructor(bulb: number[], prefix: number[]) {
+    super('Arrow')
+    this.bulb = bulb
+    this.prefix = prefix
+    this.involved = new Set([...bulb, ...prefix])
+  }
+
+  enforce(board: Board, cell: number) {
+    if (!this.involved.has(cell)) return true
+    if (!this.bulb.every((c) => board.isGiven(c))) return true
+    let target = 0
+    for (const c of this.bulb) target = target * 10 + placed(board, c)
+    let sum = 0
+    let empties = 0
+    for (const c of this.prefix) {
+      const v = placed(board, c)
+      if (v === 0) empties += 1
+      else sum += v
+    }
+    // The prefix's smallest reachable sum plus one hidden cell must fit.
+    return sum + empties + 1 <= target
+  }
+
+  // Range pruning only (multi-cell pill bulbs read as base-10 numbers, which
+  // the plain bounds don't model — they contribute nothing, like ArrowConstraint).
+  logicStep(board: Board, desc: string[]): ConstraintResult {
+    if (this.bulb.length !== 1 || this.prefix.length === 0) return ConstraintResult.UNCHANGED
+    const bulbCell = this.bulb[0]
+
+    // Narrow the bulb: it exceeds the visible prefix by at least the one hidden cell.
+    let prefixMin = 0
+    for (const c of this.prefix) prefixMin += minValue(board.candidateMask(c))
+    let keepBulb = 0
+    for (const v of valuesList(board.candidateMask(bulbCell))) {
+      if (v >= prefixMin + 1) keepBulb |= valueBit(v)
+    }
+    if (keepBulb !== board.candidateMask(bulbCell)) {
+      if (board.keepMask(bulbCell, keepBulb) === ConstraintResult.INVALID) {
+        desc.push('Arrow bulb has no candidates')
+        return ConstraintResult.INVALID
+      }
+      desc.push('Arrow bulb')
+      return ConstraintResult.CHANGED
+    }
+
+    // Narrow the prefix cells back from the bulb's ceiling.
+    const cleared: number[] = []
+    const bMax = maxValue(board.candidateMask(bulbCell))
+    if (sumRangePrune(board, this.prefix, 0, bMax - 1, cleared)) {
+      desc.push('Arrow shaft cannot fit under the bulb')
+      return ConstraintResult.INVALID
+    }
+    if (cleared.length === 0) return ConstraintResult.UNCHANGED
+    desc.push('Arrow shaft')
+    return ConstraintResult.CHANGED
+  }
+}
+
 // Region sum line: each segment of the line within a single region holds the
 // same sum. Enforced as overlapping feasible-sum ranges across all segments.
 export class RegionSumLineConstraint extends Constraint {

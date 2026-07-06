@@ -10,7 +10,7 @@ import { cosmeticPos, DEFAULT_SHAPE_STYLE } from '@/types/constraints'
 import type {
   ThermometerData, ArrowData, KillerCageData, ExtraRegionData, CloneData,
   ConstraintLineData, CosmeticLineData, TextData, ShapeData, CosmeticCageData,
-  ConnectorInstance, OuterClueInstance, ConnectorValue,
+  ConnectorInstance, OuterClueInstance, ConnectorValue, FogSolverHelpers,
   LinePreset, ShapePreset, TextPreset, CellColorPreset, CagePreset, ShapeStyle,
   OuterClueType, BorderConnectorType, LittleKillerDirection, RossiniDirection,
 } from '@/types/constraints'
@@ -54,6 +54,13 @@ export interface SerializedPreset {
   opacity?: number
 }
 
+// Setter-declared rules-text facts for the fog solver, grouped by constraint
+// family. Only-true keys serialize; the section is omitted when empty.
+export interface SerializedSolverHelpers {
+  arrows?: { singleCellBulbs?: boolean; noCrossings?: boolean; oneArrowPerBulb?: boolean }
+  killerCages?: { maybeDisconnected?: boolean }
+}
+
 export interface SerializedPuzzle {
   formatVersion: number
   grid: { rows: number; cols: number; regions?: Record<string, string[]> }
@@ -63,6 +70,7 @@ export interface SerializedPuzzle {
   globals?: Record<string, Record<string, boolean | number[]>>
   constraints?: Record<string, unknown>
   cosmetics?: Record<string, unknown>
+  solverHelpers?: SerializedSolverHelpers
 }
 
 // ── Store-shaped snapshot ────────────────────────────────────────────────────
@@ -81,6 +89,7 @@ export interface PuzzleSnapshot {
   activeTypes: Set<string>
   variants: Set<string>
   customGlobals: Array<{ type: string; value: number }>
+  fogSolverHelpers: FogSolverHelpers
   singleCellMarks: Record<string, string[]>
   // Setter colors for single-cell marks (JSON-editor feature): type → internal
   // cell key → color field → hex. Marks without colors simply don't appear.
@@ -116,6 +125,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
     activeTypes: new Set(editor.activeTypes),
     variants: new Set(editor.activeGlobalVariants),
     customGlobals: editor.customGlobalConstraints.map((c) => ({ type: c.type, value: c.value })),
+    fogSolverHelpers: { ...editor.fogSolverHelpers },
     singleCellMarks: Object.fromEntries(
       Object.entries(editor.singleCellMarks).map(([type, cells]) => [type, Array.from(cells).sort()]),
     ),
@@ -353,6 +363,7 @@ export function buildDocument(snap: PuzzleSnapshot): SerializedPuzzle {
 
   const meta = dropEmpty({ ...snap.meta })
   const regions = regionsToDoc(snap.customCellRegions, snap.rows, snap.cols)
+  const solverHelpers = solverHelpersDoc(snap.fogSolverHelpers)
   const doc: SerializedPuzzle = {
     formatVersion: PUZZLE_EXPORT_VERSION,
     grid: { rows: snap.rows, cols: snap.cols, ...(regions ? { regions } : {}) },
@@ -362,8 +373,24 @@ export function buildDocument(snap: PuzzleSnapshot): SerializedPuzzle {
     ...(Object.keys(globals).length ? { globals } : {}),
     ...(Object.keys(constraints).length ? { constraints } : {}),
     ...(Object.keys(cosmetics).length ? { cosmetics } : {}),
+    ...(solverHelpers ? { solverHelpers } : {}),
   }
   return doc
+}
+
+// Only-true keys, grouped by constraint family; null when nothing is declared.
+function solverHelpersDoc(h: FogSolverHelpers): SerializedSolverHelpers | null {
+  const arrows = {
+    ...(h.arrowSingleCellBulbs ? { singleCellBulbs: true } : {}),
+    ...(h.arrowNoCrossings ? { noCrossings: true } : {}),
+    ...(h.arrowOneArrowPerBulb ? { oneArrowPerBulb: true } : {}),
+  }
+  const killerCages = h.cagesMaybeDisconnected ? { maybeDisconnected: true } : {}
+  const doc: SerializedSolverHelpers = {
+    ...(Object.keys(arrows).length ? { arrows } : {}),
+    ...(Object.keys(killerCages).length ? { killerCages } : {}),
+  }
+  return Object.keys(doc).length ? doc : null
 }
 
 function dropEmpty(obj: Record<string, unknown>): Record<string, unknown> {
@@ -511,6 +538,14 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   editor.activeTypes = activeTypes
   editor.activeGlobalVariants = variants
   editor.customGlobalConstraints = customs
+
+  const helperDoc = data.solverHelpers ?? {}
+  editor.fogSolverHelpers = {
+    ...(helperDoc.arrows?.singleCellBulbs ? { arrowSingleCellBulbs: true } : {}),
+    ...(helperDoc.arrows?.noCrossings ? { arrowNoCrossings: true } : {}),
+    ...(helperDoc.arrows?.oneArrowPerBulb ? { arrowOneArrowPerBulb: true } : {}),
+    ...(helperDoc.killerCages?.maybeDisconnected ? { cagesMaybeDisconnected: true } : {}),
+  }
 
   // Constraint entries route by category; instance ids are regenerated.
   const singleCellMarks: Record<string, Set<string>> = {}

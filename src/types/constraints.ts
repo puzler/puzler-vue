@@ -106,6 +106,24 @@ export interface ArrowData {
   arrowColor?: string
 }
 
+// Setter-declared rules-text facts the fog-of-war solver may exploit — things
+// a player learns from the rules, not from any grid glyph (e.g. "arrows do not
+// overlap or cross"). Declarations, not constraints: they change no puzzle
+// semantics outside the solver's fog projections. Only-true keys serialize
+// (top-level `solverHelpers` in the puzzle document).
+export interface FogSolverHelpers {
+  // Every arrow bulb is exactly one cell (arrows sum to a single digit).
+  arrowSingleCellBulbs?: boolean
+  // No two arrows share a cell, except possibly coinciding arrowhead tips; a
+  // shaft never passes through a bulb.
+  arrowNoCrossings?: boolean
+  // Every bulb has exactly one shaft (declaration only; no deduction yet).
+  arrowOneArrowPerBulb?: boolean
+  // Opt-out: do NOT assume killer cage cells are orthogonally connected (the
+  // editor only produces connected cages, but the JSON editor can break that).
+  cagesMaybeDisconnected?: boolean
+}
+
 // ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
 
 export type ConnectorDotType = 'difference_dots' | 'ratio_dots'

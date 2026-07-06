@@ -404,6 +404,23 @@ export interface SerializedPuzzleSchema {
     cages?: CosmeticCageDoc[]
     cagePresets?: CagePresetDoc[]
   }
+  // Setter-declared rules-text facts the fog-of-war solver may exploit —
+  // declarations about the puzzle's construction, not constraints. They change
+  // nothing outside the solver's fog reasoning. Only meaningful with fog.
+  solverHelpers?: {
+    arrows?: {
+      /** Every arrow bulb is exactly one cell (arrows sum to a single digit). */
+      singleCellBulbs?: boolean
+      /** No two arrows share a cell (arrowhead tips may still coincide). */
+      noCrossings?: boolean
+      /** Every bulb has exactly one arrow (declaration only; no deduction yet). */
+      oneArrowPerBulb?: boolean
+    }
+    killerCages?: {
+      /** Opt-out: do NOT assume cage cells are orthogonally connected. */
+      maybeDisconnected?: boolean
+    }
+  }
 }
 
 // Compile-time drift guards against the real export's top level. The

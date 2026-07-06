@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 import { movePairs } from '../geometry'
 
@@ -24,4 +25,6 @@ export default defineModule<ChessSpec>({
       (a, b) => a === b,
       false, // same-value relation — weak links already cover it
     ),
+  // Rules-level variant: the player knows it from the rules, not a grid glyph.
+  fogPolicy: ALWAYS,
 })

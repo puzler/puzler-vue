@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAnyVisible } from './fogPolicies'
 import { CellMaskConstraint } from './shared'
 import { valueBit } from '../bitmask'
 
@@ -29,4 +30,6 @@ export default defineModule<CellMaskSpec>({
     return specs.filter((s) => s.cell >= 0)
   },
   build: (_board, spec) => new CellMaskConstraint('Cell Mask', spec.cell, spec.mask),
+  // Single-cell glyph: fully known once its cell is clear.
+  fogPolicy: whenAnyVisible((spec) => [spec.cell]),
 })

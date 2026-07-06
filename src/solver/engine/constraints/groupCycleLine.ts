@@ -16,6 +16,12 @@ interface GroupCycleSpec extends SolverConstraintSpec {
   kind: 'group_cycle_line'
   cells: number[]
   partition: 'thirds' | 'mod3'
+  // Fog projection: the pair subsets currently knowable, and whether the
+  // whole-class constraint applies (full line visible). Absent = derive all
+  // pairs from `cells` and include the whole-class constraint.
+  near?: Array<[number, number]>
+  far?: Array<[number, number]>
+  full?: boolean
 }
 
 const LABEL = { thirds: 'Entropic line', mod3: 'Modular line' } as const
@@ -35,11 +41,34 @@ export default defineModule<GroupCycleSpec>({
   build: (board, spec) => {
     const name = LABEL[spec.partition]
     const group = groupFn(spec.partition, board)
-    const near = [...pairsAtDistance(spec.cells, 1), ...pairsAtDistance(spec.cells, 2)]
-    const far = pairsAtDistance(spec.cells, 3)
-    const out: Constraint[] = [new ForbiddenPairsConstraint(name, near, (a, b) => group(a) === group(b))]
+    const near = spec.near ?? [...pairsAtDistance(spec.cells, 1), ...pairsAtDistance(spec.cells, 2)]
+    const far = spec.far ?? pairsAtDistance(spec.cells, 3)
+    const out: Constraint[] = []
+    if (near.length) out.push(new ForbiddenPairsConstraint(name, near, (a, b) => group(a) === group(b)))
     if (far.length) out.push(new ForbiddenPairsConstraint(name, far, (a, b) => group(a) !== group(b)))
-    out.push(new GroupCycleConstraint(name, spec.cells, group))
+    if (spec.full ?? true) out.push(new GroupCycleConstraint(name, spec.cells, group))
     return out
+  },
+  // Pair knowledge under fog is distance-local: an adjacent (d1) pair shows
+  // once either cell is visible (the line visibly exits toward the neighbour);
+  // a d2 pair needs its middle cell visible (a fog gap of unknown length breaks
+  // distance knowledge otherwise); a d3 same-group pair needs both middles.
+  // The whole-class constraint reasons over the entire line, so it needs full
+  // visibility.
+  fogPolicy: {
+    fog: 'cells',
+    project: (spec, view) => {
+      if (view.allVisible(spec.cells)) return [spec]
+      const cells = spec.cells
+      const near = [
+        ...pairsAtDistance(cells, 1).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b)),
+        ...pairsAtDistance(cells, 2).filter((_, i) => !view.isFogged(cells[i + 1])),
+      ]
+      const far = pairsAtDistance(cells, 3).filter(
+        (_, i) => !view.isFogged(cells[i + 1]) && !view.isFogged(cells[i + 2]),
+      )
+      if (near.length === 0 && far.length === 0) return []
+      return [{ ...spec, near, far, full: false }]
+    },
   },
 })

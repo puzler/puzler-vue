@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { XSumConstraint } from './sumConstraints'
 import { parseOuterKey, outerLine } from './outerHelpers'
 
@@ -26,4 +27,6 @@ export default defineModule<XSumSpec>({
     return specs
   },
   build: (_board, spec) => new XSumConstraint(spec.line, spec.target),
+  // Outside clue: the glyph sits beyond the grid edge, never fogged.
+  fogPolicy: ALWAYS,
 })

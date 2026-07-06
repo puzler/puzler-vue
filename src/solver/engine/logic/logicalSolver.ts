@@ -34,10 +34,17 @@ export function describePropagation(board: Board): string | null {
   if (!log || log.length === 0) return null
   const bySource = new Map<string, string[]>()
   for (const { cell, value, source } of log) {
+    // Skip eliminations on cells that finished the build committed (givens and
+    // placed digits — buildBoard commits nothing else). They are invisible (the
+    // cell just shows its digit) and, unlike eliminations on open cells, they
+    // never come back as center marks — so each rebuild would re-log the exact
+    // same entries and the step readout would repeat them forever.
+    if (board.isGiven(cell)) continue
     let parts = bySource.get(source)
     if (!parts) bySource.set(source, (parts = []))
     parts.push(`${nameOf(cell, board.size)}≠${value}`)
   }
+  if (bySource.size === 0) return null
   return [...bySource.entries()]
     .map(([source, parts]) => `${source} propagation → ${parts.join(', ')}`)
     .join(' · ')
@@ -119,9 +126,16 @@ export interface SolveResult {
   solved: boolean
 }
 
+export interface SolveHooks {
+  // Runs after every applied step (never mid-technique, so between-steps state
+  // like a fog reveal can't interleave inside a scan); returned lines join the
+  // readout. Used by the fog gate to reveal as the solve places digits.
+  afterStep?: (board: Board) => { lines: string[]; invalid: boolean }
+}
+
 // Apply logical steps until solved, stuck, or contradicted, collecting the
 // description of every step taken.
-export function logicalSolve(board: Board, techniques: TechniqueOptions = {}): SolveResult {
+export function logicalSolve(board: Board, techniques: TechniqueOptions = {}, hooks?: SolveHooks): SolveResult {
   const desc: string[] = []
   let changed = false
   for (;;) {
@@ -134,6 +148,14 @@ export function logicalSolve(board: Board, techniques: TechniqueOptions = {}): S
     desc.push(step.desc)
     changed = true
     if (step.solved) return { desc, changed, invalid: false, solved: true }
+    if (hooks?.afterStep) {
+      const after = hooks.afterStep(board)
+      desc.push(...after.lines)
+      if (after.invalid) {
+        desc.push('Board is invalid')
+        return { desc, changed, invalid: true, solved: false }
+      }
+    }
   }
   if (desc.length === 0) desc.push('No logical steps')
   return { desc, changed, invalid: false, solved: board.isSolved() }

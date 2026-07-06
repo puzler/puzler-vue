@@ -251,3 +251,62 @@ describe('validatePuzzle instance colors and opacity', () => {
     expect(warnings[0].message).toContain('0-1 opacity range')
   })
 })
+
+describe('validatePuzzle solver helpers (declarations vs geometry)', () => {
+  const arrows = [
+    { bulbCells: ['r2c2', 'r2c3'], arrows: [{ cells: ['r2c2', 'r3c3', 'r4c4'] }, { cells: ['r2c2', 'r1c3'] }] },
+  ]
+
+  it('warns when single-cell bulbs are declared over a multi-cell bulb', () => {
+    const { warnings } = validatePuzzle(doc({
+      constraints: { arrows },
+      solverHelpers: { arrows: { singleCellBulbs: true } },
+    }))
+    expect(paths(warnings)).toContain('solverHelpers.arrows.singleCellBulbs')
+  })
+
+  it('warns when one-arrow-per-bulb is declared over a branched bulb', () => {
+    const { warnings } = validatePuzzle(doc({
+      constraints: { arrows },
+      solverHelpers: { arrows: { oneArrowPerBulb: true } },
+    }))
+    expect(paths(warnings)).toContain('solverHelpers.arrows.oneArrowPerBulb')
+  })
+
+  it('warns when no-crossings is declared over arrows sharing a non-tip cell', () => {
+    const crossing = [
+      { bulbCells: ['r1c1'], arrows: [{ cells: ['r1c1', 'r2c2', 'r3c3'] }] },
+      { bulbCells: ['r5c5'], arrows: [{ cells: ['r5c5', 'r4c4', 'r2c2'] }] },
+    ]
+    const { warnings } = validatePuzzle(doc({
+      constraints: { arrows: crossing },
+      solverHelpers: { arrows: { noCrossings: true } },
+    }))
+    expect(paths(warnings)).toContain('solverHelpers.arrows.noCrossings')
+  })
+
+  it('allows no-crossings when only arrowhead tips coincide', () => {
+    const tips = [
+      { bulbCells: ['r1c1'], arrows: [{ cells: ['r1c1', 'r2c2', 'r3c3'] }] },
+      { bulbCells: ['r5c5'], arrows: [{ cells: ['r5c5', 'r4c4', 'r3c3'] }] },
+    ]
+    const { warnings } = validatePuzzle(doc({
+      constraints: { arrows: tips },
+      solverHelpers: { arrows: { noCrossings: true } },
+    }))
+    expect(paths(warnings)).not.toContain('solverHelpers.arrows.noCrossings')
+  })
+
+  it('accepts truthful declarations silently and flags unknown helper groups', () => {
+    const clean = validatePuzzle(doc({
+      constraints: { arrows: [{ bulbCells: ['r1c1'], arrows: [{ cells: ['r1c1', 'r2c2'] }] }] },
+      solverHelpers: { arrows: { singleCellBulbs: true, noCrossings: true, oneArrowPerBulb: true } },
+    }))
+    expect(paths(clean.warnings).filter((p) => p.startsWith('solverHelpers'))).toEqual([])
+
+    const unknown = validatePuzzle(doc({
+      solverHelpers: { arrows: {}, thermometers: {} } as never,
+    }))
+    expect(paths(unknown.warnings)).toContain('solverHelpers.thermometers')
+  })
+})

@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 
 // Clone: each copy of the region (a translation) holds the same digits as the
@@ -34,4 +35,6 @@ export default defineModule<CloneSpec>({
     return specs
   },
   build: (_board, spec) => new ForbiddenPairsConstraint('Clone', spec.pairs, (a, b) => a !== b),
+  // Cell correspondence requires both full congruent shapes; no partial fact.
+  fogPolicy: whenAllVisible((spec) => spec.pairs.flat()),
 })

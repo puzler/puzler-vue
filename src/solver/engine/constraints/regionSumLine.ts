@@ -1,6 +1,7 @@
 import type { SolverConstraintSpec } from '../../types'
 import type { AdapterContext } from '../../adapterContext'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { RegionSumLineConstraint } from './lineConstraints'
 import { lineCellGroups, groupConnectedPaths } from './lineHelpers'
 
@@ -59,4 +60,7 @@ export default defineModule<RegionSumSpec>({
       segments: component.flatMap((path) => segmentByRegion(ctx, path)),
     })),
   build: (_board, spec) => new RegionSumLineConstraint(spec.segments),
+  // Segments are flattened in the spec, so visible-fragment contiguity is not
+  // recoverable; nothing partial is sound until specs carry paths.
+  fogPolicy: whenAllVisible((spec) => spec.segments.flat()),
 })

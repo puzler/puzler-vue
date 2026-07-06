@@ -18,6 +18,7 @@ import type {
   CustomGlobalConstraint,
   ConnectorInstance, BorderConnectorType, XvValue, InequalityValue,
   ArrowData, KillerCageData, ExtraRegionData, CloneData,
+  FogSolverHelpers,
   OuterClueInstance, OuterClueType,
   CagePreset, CageCosmeticStyle, CosmeticCageData,
 } from '@/types/constraints'
@@ -116,6 +117,9 @@ export const useEditorStore = defineStore('editor', () => {
   // clears fog, so setters can work progressively before a solution exists.
   const fogCellHashes = ref<Record<string, string> | null>(null)
   const fogHashSalt = ref<string | null>(null)
+  // Setter-declared rules-text facts for the fog solver (see FogSolverHelpers).
+  // Toggled from the constraint tool panels while fog is enabled.
+  const fogSolverHelpers = ref<FogSolverHelpers>({})
   const singleCellMarks = ref<Record<string, Set<string>>>({})
   // Setter colors for single-cell marks, authored only through the raw JSON
   // editor: type → cell key → color field → hex. Sparse — marks without
@@ -287,9 +291,8 @@ export const useEditorStore = defineStore('editor', () => {
   })
 
   // The currently fogged cells: everything minus lights minus the 3x3
-  // neighborhood of each verified digit. Drives the opaque fog fill, hidden
-  // givens and conflict gating; the setting-mode faint overlay renders from
-  // fogLightCells alone.
+  // neighborhood of each verified digit. Drives both fog overlays (opaque in
+  // solving mode, faint in setting mode), hidden givens and conflict gating.
   const foggedCells = computed<Set<string>>(() => {
     if (!fogEnabled.value) return new Set<string>()
     const gridStore = useGridStore()
@@ -828,6 +831,17 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => { activeGlobalVariants.value = next },
       undo: () => { activeGlobalVariants.value = prev },
+    })
+  }
+
+  function toggleFogSolverHelper(key: keyof FogSolverHelpers) {
+    const prev = { ...fogSolverHelpers.value }
+    const next = { ...prev }
+    if (next[key]) delete next[key]
+    else next[key] = true
+    execute({
+      execute: () => { fogSolverHelpers.value = next },
+      undo: () => { fogSolverHelpers.value = prev },
     })
   }
 
@@ -1585,6 +1599,7 @@ export const useEditorStore = defineStore('editor', () => {
     customGlobalConstraints.value = []
     fogCellHashes.value = null
     fogHashSalt.value = null
+    fogSolverHelpers.value = {}
     linePresetsC.reset()
     cosmeticCellColors.value = {}
     pendingBrushCells.value = []
@@ -2248,8 +2263,10 @@ export const useEditorStore = defineStore('editor', () => {
     removeGlobalConstraint,
     activeGlobalVariants,
     toggleGlobalVariant,
+    toggleFogSolverHelper,
     fogCellHashes,
     fogHashSalt,
+    fogSolverHelpers,
     fogEnabled,
     fogLightCells,
     fogVerifiedCells,

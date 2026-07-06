@@ -113,6 +113,41 @@ describe('serializePuzzle (format v4)', () => {
     expect(serializePuzzle(editor2, grid2)).toEqual(data)
   })
 
+  it('round-trips fog solver helpers as an only-true top-level section', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.fogSolverHelpers = { arrowSingleCellBulbs: true, arrowNoCrossings: true, cagesMaybeDisconnected: true }
+    const data = serializePuzzle(editor, grid)
+    expect(data.solverHelpers).toEqual({
+      arrows: { singleCellBulbs: true, noCrossings: true },
+      killerCages: { maybeDisconnected: true },
+    })
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(editor2.fogSolverHelpers).toEqual({
+      arrowSingleCellBulbs: true,
+      arrowNoCrossings: true,
+      cagesMaybeDisconnected: true,
+    })
+    expect(serializePuzzle(editor2, grid2)).toEqual(data)
+  })
+
+  it('omits the solver helpers section when nothing is declared', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    const data = serializePuzzle(editor, grid)
+    expect('solverHelpers' in data).toBe(false)
+
+    setActivePinia(createPinia())
+    const editor2 = useEditorStore()
+    const grid2 = useGridStore()
+    deserializePuzzle(editor2, grid2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(editor2.fogSolverHelpers).toEqual({})
+  })
+
   it('serializes keys in registry-canonical order regardless of add order', () => {
     const editor = useEditorStore()
     const grid = useGridStore()

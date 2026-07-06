@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAnyVisible } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 import { orthogonalNeighbours } from '../geometry'
 
@@ -33,4 +34,7 @@ export default defineModule<MinMaxSpec>({
         : (a: number, b: number) => a <= b // cell must be above the neighbour
     return new ForbiddenPairsConstraint(spec.mode === 'min' ? 'Minimum' : 'Maximum', pairs, forbidden)
   },
+  // Single-cell glyph: fully known once its cell is clear (fogged neighbours
+  // included — the player can see which cells the visible glyph compares to).
+  fogPolicy: whenAnyVisible((spec) => [spec.cell]),
 })

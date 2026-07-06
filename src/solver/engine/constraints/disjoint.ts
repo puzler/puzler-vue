@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { AllDifferentConstraint } from './shared'
 import { standardBoxes } from '../geometry'
 
@@ -24,4 +25,6 @@ export default defineModule<DisjointSpec>({
     return specs
   },
   build: (_board, spec) => new AllDifferentConstraint('Disjoint Set', spec.cells),
+  // Rules-level variant: the player knows it from the rules, not a grid glyph.
+  fogPolicy: ALWAYS,
 })

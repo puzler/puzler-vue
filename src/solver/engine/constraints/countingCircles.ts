@@ -4,6 +4,7 @@ import { Constraint, ConstraintResult } from '../constraint'
 import { valueBit } from '../bitmask'
 import { placed } from './lineConstraints'
 import { defineModule } from './module'
+import { WHEN_NO_FOG } from './fogPolicies'
 
 // Counting circles: the digit in a circle counts how many circles hold that
 // digit, so each digit appears in exactly its own number of circles or in none.
@@ -104,4 +105,7 @@ export default defineModule<CountingCirclesSpec>({
     return cells.length ? [{ kind: 'counting_circles', cells }] : []
   },
   build: (_board, spec) => new CountingCirclesConstraint(spec.cells),
+  // The count is global and a fogged cell could hide another circle, so nothing
+  // is sound until the whole grid is clear.
+  fogPolicy: WHEN_NO_FOG,
 })

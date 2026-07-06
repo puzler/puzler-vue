@@ -5,9 +5,10 @@ import FogLayer from './FogLayer.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 
-// FogLayer paints the fog cover. Faint = the initial fog state (all cells
-// minus lights) plus a bulb glyph per light; opaque = the live derived fog
-// set plus the reveal clip path SudokuGrid applies to constraint layers.
+// FogLayer paints the fog cover. Both variants render the live derived fog
+// set (lights + solver-digit clears) so setting and solving modes agree on
+// what reads as cleared; faint adds a bulb glyph per light, opaque adds the
+// reveal mask SudokuGrid applies to constraint layers.
 
 let pinia: ReturnType<typeof createPinia>
 
@@ -51,11 +52,13 @@ describe('FogLayer', () => {
     expect(w.findAll('rect.grid-fog')).toHaveLength(16 - 2)
   })
 
-  it('faint: ignores solver digits (it shows the initial fog state)', () => {
+  it('faint: reflects solver-digit clears, so mode flips keep cleared cells cleared', () => {
     const editor = useEditorStore()
+    // A digit placed while testing in solving mode clears its 3x3 (editor
+    // path: every solver digit verifies); the setting-mode tint must agree.
     editor.solverCellStates = { r1c1: cell(5) }
     const w = render({ variant: 'faint' })
-    expect(w.findAll('rect.grid-fog')).toHaveLength(16)
+    expect(w.findAll('rect.grid-fog')).toHaveLength(16 - 9)
   })
 
   it('opaque: covers exactly the derived fog set at full opacity', () => {

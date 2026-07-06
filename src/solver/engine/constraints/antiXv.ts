@@ -12,6 +12,9 @@ interface AntiXvSpec extends SolverConstraintSpec {
   kind: 'anti_xv'
   sum: number
   exempt: Array<[number, number]>
+  // Fog projection: the borders currently judgeable (either cell visible).
+  // Absent = every orthogonal border.
+  pairs?: Array<[number, number]>
 }
 
 // XV-clued orthogonal pairs grouped by the sum they force (X = 10, V = 5).
@@ -49,7 +52,19 @@ export default defineModule<AntiXvSpec>({
   build: (board, spec) =>
     new ForbiddenPairsConstraint(
       'Anti-XV',
-      excludePairs(orthogonalPairs(board.size), spec.exempt ?? []),
+      excludePairs(spec.pairs ?? orthogonalPairs(board.size), spec.exempt ?? []),
       (a, b) => a + b === spec.sum,
     ),
+  // Negative constraint: the absence of a clue is the information, and a fogged
+  // border could hide one. A border is judgeable once either of its two cells
+  // is visible (a clue there would show, at least in half), so project down to
+  // exactly those borders.
+  fogPolicy: {
+    fog: 'cells',
+    project: (spec, view) => {
+      if (!view.anyFog) return [spec]
+      const pairs = orthogonalPairs(view.size).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
+      return pairs.length > 0 ? [{ ...spec, pairs }] : []
+    },
+  },
 })

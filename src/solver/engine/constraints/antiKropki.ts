@@ -14,6 +14,9 @@ interface AntiKropkiSpec extends SolverConstraintSpec {
   relation: 'diff' | 'ratio'
   value: number
   exempt: Array<[number, number]>
+  // Fog projection: the borders currently judgeable (either cell visible).
+  // Absent = every orthogonal border.
+  pairs?: Array<[number, number]>
 }
 
 // Dot-clued orthogonal pairs of one type (difference/ratio) grouped by their
@@ -65,8 +68,20 @@ export default defineModule<AntiKropkiSpec>({
         : (a: number, b: number) => a === spec.value * b || b === spec.value * a
     return new ForbiddenPairsConstraint(
       'Anti-Kropki',
-      excludePairs(orthogonalPairs(board.size), spec.exempt ?? []),
+      excludePairs(spec.pairs ?? orthogonalPairs(board.size), spec.exempt ?? []),
       forbidden,
     )
+  },
+  // Negative constraint: the absence of a dot is the information, and a fogged
+  // border could hide one. A border is judgeable once either of its two cells
+  // is visible (a dot there would show, at least in half), so project down to
+  // exactly those borders.
+  fogPolicy: {
+    fog: 'cells',
+    project: (spec, view) => {
+      if (!view.anyFog) return [spec]
+      const pairs = orthogonalPairs(view.size).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
+      return pairs.length > 0 ? [{ ...spec, pairs }] : []
+    },
   },
 })

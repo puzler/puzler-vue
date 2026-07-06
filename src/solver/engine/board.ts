@@ -305,6 +305,44 @@ export class Board {
     return true
   }
 
+  // Swap superseded constraints for upgraded ones mid-solve (fog reveals). The
+  // upgrades imply everything the retired ones ever contributed, so eliminations
+  // and weak links already made stay sound. Re-runs init to a fixpoint (inits
+  // are fixpoint-idempotent by design), then re-fires weak links from committed
+  // cells — links seeded after a commit never fire on their own — and re-checks
+  // the added constraints' enforce against every committed cell. Returns false
+  // on any contradiction.
+  swapConstraints(remove: ReadonlySet<Constraint>, add: Constraint[]): boolean {
+    if (remove.size > 0) this.constraints = this.constraints.filter((c) => !remove.has(c))
+    this.constraints.push(...add)
+    if (!this.initConstraints()) return false
+    if (!this.refireCommittedLinks()) return false
+    for (let cell = 0; cell < this.numCells; cell += 1) {
+      if (!this.isGiven(cell)) continue
+      const value = minValue(this.candidateMask(cell))
+      for (const constraint of add) {
+        if (!constraint.enforce(this, cell, value)) return false
+      }
+    }
+    return true
+  }
+
+  // Fire every committed cell's weak links again. Idempotent: links that fired
+  // at commit time cleared their targets already, so only late-seeded links do
+  // anything. Returns false if an elimination empties a cell.
+  private refireCommittedLinks(): boolean {
+    for (let cell = 0; cell < this.numCells; cell += 1) {
+      if (!this.isGiven(cell)) continue
+      const candidate = this.candidateIndex(cell, minValue(this.candidateMask(cell)))
+      for (const other of this.weakLinks[candidate]) {
+        if (!this.clearCandidate(this.cellFromCandidate(other), this.valueFromCandidate(other))) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+
   // Snapshot of remaining candidates per cell, row-major.
   candidatesPerCell(): number[][] {
     const out: number[][] = []

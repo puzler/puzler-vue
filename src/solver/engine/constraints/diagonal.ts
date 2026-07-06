@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { AllDifferentConstraint, MatchingSetsConstraint } from './shared'
 import { mainDiagonalCells, antiDiagonalCells, standardBoxes } from '../geometry'
 
@@ -59,4 +60,6 @@ export default defineModule<DiagonalSpec>({
     spec.mode === 'matching_sets'
       ? new MatchingSetsConstraint('Diagonal', spec.segments ?? diagonalSegments(spec.cells, board.size) ?? [])
       : new AllDifferentConstraint('Diagonal', spec.cells),
+  // Rules-level variant: the player knows it from the rules, not a grid glyph.
+  fogPolicy: ALWAYS,
 })

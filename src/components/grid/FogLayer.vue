@@ -2,16 +2,18 @@
 import { computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
-import { CELL_SIZE, PADDING, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { CELL_SIZE, PADDING, keyToRowCol } from '@/composables/useGrid'
 import { mdiLightbulbOnOutline } from '@mdi/js'
 
 // Module-level sequence for per-instance SVG filter ids.
 let fogSoftSeq = 0
 
-// Fog of War overlay. Two render positions in SudokuGrid share this component:
-// - faint (setting mode): a light tint over every non-light cell, drawn above
-//   all content so the setter sees the fog coverage without losing the grid,
-//   plus a bulb glyph marking each light.
+// Fog of War overlay. Two render positions in SudokuGrid share this component,
+// both painting the LIVE derived fog set (lights + solver-digit clears), so
+// flipping between modes never changes what reads as cleared:
+// - faint (setting mode): a light tint over the fogged cells, drawn above all
+//   content so the setter sees the current fog coverage without losing the
+//   grid, plus a bulb glyph marking each light.
 // - opaque (solving mode + static renders): full-strength cover over the
 //   currently fogged cells, drawn below solver entries, selection and grid
 //   lines but above givens, constraint graphics and cosmetics.
@@ -45,21 +47,11 @@ function rectFor(key: string): Rect {
   return { x: PADDING + col * CELL_SIZE, y: PADDING + row * CELL_SIZE }
 }
 
-// faint = the initial fog state (all cells minus lights); opaque = the live
-// derived fog set.
-const fogRects = computed<Rect[]>(() => {
-  if (props.variant === 'opaque') {
-    return Array.from(editor.foggedCells, rectFor)
-  }
-  const lights = editor.fogLightCells
-  const out: Rect[] = []
-  for (let r = 0; r < grid.rows; r++) {
-    for (let c = 0; c < grid.cols; c++) {
-      if (!lights.has(cellKey(r, c))) out.push({ x: PADDING + c * CELL_SIZE, y: PADDING + r * CELL_SIZE })
-    }
-  }
-  return out
-})
+// Both variants render the live derived fog set, so digits placed while
+// testing in solving mode keep their cleared area visible after flipping back
+// to setting mode. With no solver digits this is exactly "all cells minus
+// lights" — the puzzle's starting fog.
+const fogRects = computed<Rect[]>(() => Array.from(editor.foggedCells, rectFor))
 
 // White base for the mask, comfortably covering the viewBox (outer clues and
 // outside-the-grid cosmetics stay fully visible).

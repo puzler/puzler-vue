@@ -23,6 +23,14 @@ export interface SolverPuzzle {
   // continues from in-progress candidates. Omitted for a fresh solve.
   centerMarks?: Array<{ cell: number; values: number[] }>
   constraints: SolverConstraintSpec[]
+  // Present only when the solver should respect fog of war (logical step/solve
+  // on a fog puzzle; oracle commands never send it). Cell indices, row-major.
+  // `lights` are the always-clear fog-light cells; `verified` are the cells
+  // whose digits the main thread accepted as correct (hash-verified in
+  // published play). A step continues from the grid so it carries the current
+  // reveal state; a logical solve resets the board to the givens, so it sends
+  // verified: [] and replays reveals through its own deductions.
+  fog?: { lights: number[]; verified: number[] }
 }
 
 // Which optional logical techniques to run, beyond the always-on core (singles +

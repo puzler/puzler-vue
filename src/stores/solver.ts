@@ -171,8 +171,13 @@ export const useSolverStore = defineStore('solver', () => {
 
   // Build the puzzle and start a command; reports the read-out and guards
   // unsupported grids. Returns false if the run could not start.
-  function start(command: SolverCommand, message: string, run: (puzzle: ReturnType<typeof buildSolverPuzzle>['puzzle']) => void): boolean {
-    const { puzzle, supported, reason } = buildSolverPuzzle()
+  function start(
+    command: SolverCommand,
+    message: string,
+    run: (puzzle: ReturnType<typeof buildSolverPuzzle>['puzzle']) => void,
+    buildOptions?: Parameters<typeof buildSolverPuzzle>[0],
+  ): boolean {
+    const { puzzle, supported, reason } = buildSolverPuzzle(buildOptions)
     if (!supported) {
       display.value = [reason ?? 'This grid is not supported by the solver']
       return false
@@ -188,16 +193,22 @@ export const useSolverStore = defineStore('solver', () => {
     start('solve', 'Solving…', (puzzle) => client.solve(puzzle, { random: true }))
   }
   function runLogicalSolve() {
-    start('logical-solve', 'Logical solving…', (puzzle) =>
-      client.logicalSolve(puzzle, { techniques: { ...techniques } }),
+    // respectFog: on a fog puzzle the solve resets to the givens, so fog resets
+    // with it (lights-only) and reveals replay through the solve's deductions.
+    start(
+      'logical-solve',
+      'Logical solving…',
+      (puzzle) => client.logicalSolve(puzzle, { techniques: { ...techniques } }),
+      { respectFog: true },
     )
   }
   function runCount() {
     start('count', 'Counting solutions…', (puzzle) => client.count(puzzle, { maxSolutions: SOLUTION_COUNT_CAP }))
   }
   // Continues from the current grid state and appends to the running log.
+  // respectFog: on a fog puzzle the step reasons only from the current reveal.
   function runLogicalStep() {
-    const { puzzle, supported, reason } = buildSolverPuzzle({ includeSolverState: true })
+    const { puzzle, supported, reason } = buildSolverPuzzle({ includeSolverState: true, respectFog: true })
     if (!supported) {
       display.value = [reason ?? 'This grid is not supported by the solver']
       return

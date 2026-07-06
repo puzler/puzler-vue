@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { ALWAYS } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 import { parseOuterKey, outerLine } from './outerHelpers'
 
@@ -35,4 +36,6 @@ export default defineModule<RossiniSpec>({
       : (a: number, b: number) => a <= b
     return new ForbiddenPairsConstraint('Rossini', pairs, forbidden)
   },
+  // Outside clue: the glyph sits beyond the grid edge, never fogged.
+  fogPolicy: ALWAYS,
 })

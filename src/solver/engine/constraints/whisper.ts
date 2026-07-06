@@ -9,6 +9,9 @@ interface WhisperSpec extends SolverConstraintSpec {
   kind: 'whisper'
   cells: number[]
   threshold: number
+  // Fog projection: the adjacent pairs currently knowable (either cell
+  // visible). Absent = every adjacent pair of the line.
+  pairs?: Array<[number, number]>
 }
 
 export default defineModule<WhisperSpec>({
@@ -24,5 +27,20 @@ export default defineModule<WhisperSpec>({
     return specs
   },
   build: (_board, spec) =>
-    new ForbiddenPairsConstraint('Whisper', adjacentPairs(spec.cells), (a, b) => Math.abs(a - b) < spec.threshold),
+    new ForbiddenPairsConstraint(
+      'Whisper',
+      spec.pairs ?? adjacentPairs(spec.cells),
+      (a, b) => Math.abs(a - b) < spec.threshold,
+    ),
+  // The rule is pair-local and instance-independent: a visible cell shows its
+  // line exiting toward a neighbour, so the pair is knowable once either cell
+  // is visible — whichever line the fragment belongs to.
+  fogPolicy: {
+    fog: 'cells',
+    project: (spec, view) => {
+      if (view.allVisible(spec.cells)) return [spec]
+      const pairs = adjacentPairs(spec.cells).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
+      return pairs.length > 0 ? [{ ...spec, pairs }] : []
+    },
+  },
 })

@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { bulbChainEdges } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 
 // Thermometer: digits strictly increase from the bulb along each branch. Stored
@@ -29,4 +30,15 @@ export default defineModule<ThermometerSpec>({
   },
   build: (_board, spec) =>
     new ForbiddenPairsConstraint('Thermometer', spec.edges, (a, b) => a >= b),
+  // An edge's direction is knowable only along a chain of visible cells from a
+  // visible bulb; orphan fragments beyond a fog gap contribute nothing (their
+  // direction — even their instance — is unknowable).
+  fogPolicy: {
+    fog: 'cells',
+    project: (spec, view) => {
+      if (view.allVisible(spec.edges.flat())) return [spec]
+      const edges = bulbChainEdges(spec.edges, view)
+      return edges.length > 0 ? [{ ...spec, edges }] : []
+    },
+  },
 })

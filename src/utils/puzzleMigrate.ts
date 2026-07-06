@@ -116,6 +116,8 @@ function snapshotFromV3(doc: V3Document): PuzzleSnapshot {
     activeTypes: new Set((doc.activeConstraints ?? []).map((c) => c.type)),
     variants: new Set(globals.variants ?? []),
     customGlobals: (globals.custom ?? []).map((c) => ({ type: c.type, value: c.value })),
+    // Fog solver helpers did not exist before v4.
+    fogSolverHelpers: {},
     singleCellMarks: Object.fromEntries(
       Object.entries(constraints.singleCellMarks ?? {}).map(([type, cells]) => [type, [...cells].sort()]),
     ),

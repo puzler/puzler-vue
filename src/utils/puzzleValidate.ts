@@ -531,7 +531,73 @@ function validateCosmetics(ctx: Ctx, doc: SerializedPuzzle): void {
   }
 }
 
-const TOP_LEVEL_KEYS = new Set(['formatVersion', 'grid', 'meta', 'solution', 'givenDigits', 'globals', 'constraints', 'cosmetics'])
+const TOP_LEVEL_KEYS = new Set(['formatVersion', 'grid', 'meta', 'solution', 'givenDigits', 'globals', 'constraints', 'cosmetics', 'solverHelpers'])
+
+// Solver helpers are setter DECLARATIONS about the puzzle's construction; a
+// declaration the geometry contradicts would let the fog solver deduce wrongly,
+// so each conflict is a warning (weird choice, not functionally broken).
+function validateSolverHelpers(ctx: Ctx, doc: SerializedPuzzle): void {
+  const helpers = doc.solverHelpers
+  if (helpers === undefined) return
+  if (typeof helpers !== 'object' || helpers === null || Array.isArray(helpers)) {
+    ctx.errors.push({ path: 'solverHelpers', message: `expected an object, got ${describeType(helpers)}` })
+    return
+  }
+  for (const key of Object.keys(helpers)) {
+    if (key !== 'arrows' && key !== 'killerCages') {
+      ctx.warnings.push({ path: `solverHelpers.${key}`, message: `Unknown helper group "${key}" will be removed` })
+    }
+  }
+  const arrows = helpers.arrows
+  if (!arrows) return
+  const docs = (doc.constraints?.arrows ?? []) as Array<{ bulbCells?: unknown[]; arrows?: Array<{ cells?: unknown[] }> }>
+  if (!Array.isArray(docs)) return
+  if (arrows.singleCellBulbs && docs.some((a) => Array.isArray(a?.bulbCells) && a.bulbCells.length > 1)) {
+    ctx.warnings.push({
+      path: 'solverHelpers.arrows.singleCellBulbs',
+      message: 'declares single-cell bulbs, but an arrow has a multi-cell bulb',
+    })
+  }
+  if (arrows.oneArrowPerBulb && docs.some((a) => Array.isArray(a?.arrows) && a.arrows.length > 1)) {
+    ctx.warnings.push({
+      path: 'solverHelpers.arrows.oneArrowPerBulb',
+      message: 'declares one arrow per bulb, but a bulb has multiple arrows',
+    })
+  }
+  if (arrows.noCrossings) {
+    // Any cell used by two arrows' bulbs/shafts conflicts, except a shared
+    // arrowhead: the LAST cell of both of its arrows.
+    const seen = new Map<string, 'body' | 'tip'>()
+    let conflict = false
+    for (const arrow of docs) {
+      if (conflict) break
+      const body = new Set<string>((Array.isArray(arrow?.bulbCells) ? arrow.bulbCells : []).filter((c): c is string => typeof c === 'string'))
+      const tips = new Set<string>()
+      for (const path of Array.isArray(arrow?.arrows) ? arrow.arrows : []) {
+        const cells = (Array.isArray(path?.cells) ? path.cells : []).filter((c): c is string => typeof c === 'string')
+        // cells[0] anchors on the bulb/another arrow of the SAME instance.
+        for (const cell of cells.slice(1, -1)) { tips.delete(cell); body.add(cell) }
+        const tip = cells[cells.length - 1]
+        if (tip !== undefined && cells.length > 1 && !body.has(tip)) tips.add(tip)
+      }
+      for (const cell of body) {
+        if (seen.has(cell)) { conflict = true; break }
+      }
+      for (const cell of tips) {
+        if (seen.get(cell) === 'body') { conflict = true; break }
+      }
+      if (conflict) break
+      for (const cell of body) seen.set(cell, 'body')
+      for (const cell of tips) if (!seen.has(cell)) seen.set(cell, 'tip')
+    }
+    if (conflict) {
+      ctx.warnings.push({
+        path: 'solverHelpers.arrows.noCrossings',
+        message: 'declares no crossings, but two arrows share a non-tip cell',
+      })
+    }
+  }
+}
 
 export function validatePuzzle(doc: SerializedPuzzle): PuzzleValidation {
   const ctx: Ctx = {
@@ -554,5 +620,6 @@ export function validatePuzzle(doc: SerializedPuzzle): PuzzleValidation {
   validateGlobals(ctx, doc)
   validateConstraints(ctx, doc)
   validateCosmetics(ctx, doc)
+  validateSolverHelpers(ctx, doc)
   return { errors: ctx.errors, warnings: ctx.warnings }
 }

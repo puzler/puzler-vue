@@ -1135,6 +1135,40 @@
               "type": "null"
             }
           ]
+        },
+        "solverHelpers": {
+          "additionalProperties": false,
+          "properties": {
+            "arrows": {
+              "additionalProperties": false,
+              "properties": {
+                "noCrossings": {
+                  "description": "No two arrows share a cell (arrowhead tips may still coincide).",
+                  "type": "boolean"
+                },
+                "oneArrowPerBulb": {
+                  "description": "Every bulb has exactly one arrow (declaration only; no deduction yet).",
+                  "type": "boolean"
+                },
+                "singleCellBulbs": {
+                  "description": "Every arrow bulb is exactly one cell (arrows sum to a single digit).",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "killerCages": {
+              "additionalProperties": false,
+              "properties": {
+                "maybeDisconnected": {
+                  "description": "Opt-out: do NOT assume cage cells are orthogonally connected.",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
         }
       },
       "required": [

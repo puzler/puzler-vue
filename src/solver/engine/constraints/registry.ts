@@ -2,7 +2,7 @@ import type { Board } from '../board'
 import type { Constraint } from '../constraint'
 import type { SolverConstraintSpec } from '../../types'
 import type { AdapterContext } from '../../adapterContext'
-import type { ConstraintModule } from './module'
+import type { ConstraintModule, FogView } from './module'
 
 // Phase 5 — globals & single-cell.
 import diagonal from './diagonal'
@@ -30,6 +30,10 @@ import groupCycleLine from './groupCycleLine'
 import nabnerLine from './nabnerLine'
 import zipperLine from './zipperLine'
 import lockoutLine from './lockoutLine'
+
+// Internal kinds — produced only by fog projections, never by the adapter.
+import sumAtMost from './sumAtMost'
+import arrowPrefix from './arrowPrefix'
 
 // Phase 7 — cages, regions & outer clues.
 import killerCage from './killerCage'
@@ -83,6 +87,8 @@ export const MODULES: ConstraintModule[] = [
   battlefield,
   nextToNine,
   rossini,
+  sumAtMost,
+  arrowPrefix,
 ]
 
 const BY_KIND = new Map<string, ConstraintModule>(MODULES.map((m) => [m.kind, m]))
@@ -92,15 +98,25 @@ export function collectSpecs(ctx: AdapterContext): SolverConstraintSpec[] {
   return MODULES.flatMap((m) => m.fromEditor(ctx))
 }
 
+// Worker: what a player could currently know of a spec under fog, as buildable
+// specs — [spec] itself for never-fogged clues, [] while hidden, or weakened
+// projections while partially revealed. Unknown kinds pass through untouched
+// (buildConstraints skips them anyway).
+export function projectSpec(spec: SolverConstraintSpec, view: FogView): SolverConstraintSpec[] {
+  const module = BY_KIND.get(spec.kind)
+  if (!module) return [spec]
+  return module.fogPolicy.fog === 'always' ? [spec] : module.fogPolicy.project(spec, view)
+}
+
+// Worker: construct engine constraints for one spec (unknown kinds build nothing).
+export function buildSpec(board: Board, spec: SolverConstraintSpec): Constraint[] {
+  const module = BY_KIND.get(spec.kind)
+  if (!module) return []
+  const built = module.build(board, spec)
+  return Array.isArray(built) ? built : [built]
+}
+
 // Worker: construct engine constraints for a list of specs.
 export function buildConstraints(board: Board, specs: SolverConstraintSpec[]): Constraint[] {
-  const out: Constraint[] = []
-  for (const spec of specs) {
-    const module = BY_KIND.get(spec.kind)
-    if (!module) continue
-    const built = module.build(board, spec)
-    if (Array.isArray(built)) out.push(...built)
-    else out.push(built)
-  }
-  return out
+  return specs.flatMap((spec) => buildSpec(board, spec))
 }

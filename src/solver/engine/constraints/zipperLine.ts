@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { ZipperLineConstraint } from './lineConstraints'
 import { lineCellGroups } from './lineHelpers'
 
@@ -15,4 +16,6 @@ export default defineModule<ZipperSpec>({
   kind: 'zipper_line',
   fromEditor: (ctx) => lineCellGroups(ctx, 'zipper_lines').map((cells) => ({ kind: 'zipper_line' as const, cells })),
   build: (_board, spec) => new ZipperLineConstraint(spec.cells),
+  // Symmetric pairing needs the full length; no partial fact is sound.
+  fogPolicy: whenAllVisible((spec) => spec.cells),
 })

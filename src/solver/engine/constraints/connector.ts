@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAnyVisible } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
 
 // Border connectors between two orthogonally adjacent cells: difference dots
@@ -52,4 +53,7 @@ export default defineModule<ConnectorSpec>({
             : (a: number, b: number) => a + b !== v
     return new ForbiddenPairsConstraint('Connector', [[spec.a, spec.b]], forbidden)
   },
+  // A connector is always exactly the two cells its glyph sits between, so a
+  // half-revealed glyph is fully determined: visible once either endpoint is.
+  fogPolicy: whenAnyVisible((spec) => [spec.a, spec.b]),
 })

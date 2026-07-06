@@ -1,5 +1,6 @@
 import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
+import { whenAllVisible } from './fogPolicies'
 import { BetweenLineConstraint } from './lineConstraints'
 import { lineCellGroups } from './lineHelpers'
 
@@ -14,4 +15,7 @@ export default defineModule<BetweenSpec>({
   kind: 'between_line',
   fromEditor: (ctx) => lineCellGroups(ctx, 'between_lines').map((cells) => ({ kind: 'between_line' as const, cells })),
   build: (_board, spec) => new BetweenLineConstraint(spec.cells),
+  // The endpoint bulbs and full extent are needed; two visible bulbs might even
+  // belong to different lines, so no partial fact is sound.
+  fogPolicy: whenAllVisible((spec) => spec.cells),
 })

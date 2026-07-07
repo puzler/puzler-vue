@@ -102,7 +102,11 @@ export interface ArrowData {
   bulbCells: string[]
   arrows: ArrowPath[]
   color?: string
-  bulbColor?: string
+  // The bulb interior is transparent by default; bulbFillColor paints it.
+  // bulbStrokeColor recolors just the bulb outline (the generic `color`
+  // reaches the outline and the arrows, not the fill).
+  bulbFillColor?: string
+  bulbStrokeColor?: string
   arrowColor?: string
 }
 

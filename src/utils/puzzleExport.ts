@@ -465,6 +465,7 @@ interface DocInstance {
   lineColor?: string
   bulbFillColor?: string
   bulbOutlineColor?: string
+  bulbStrokeColor?: string
   bulbColor?: string
   arrowColor?: string
   cageColor?: string

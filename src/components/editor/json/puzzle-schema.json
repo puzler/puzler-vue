@@ -24,12 +24,16 @@
           },
           "type": "array"
         },
-        "bulbColor": {
-          "description": "Recolors just the bulb ring.",
+        "bulbFillColor": {
+          "description": "Fills the bulb interior (transparent by default).",
+          "type": "string"
+        },
+        "bulbStrokeColor": {
+          "description": "Recolors just the bulb outline.",
           "type": "string"
         },
         "color": {
-          "description": "Paints the bulb ring and the arrows. 6 or 8 digit hex.",
+          "description": "Paints the bulb outline and the arrows. The bulb interior stays transparent unless bulbFillColor is set. 6 or 8 digit hex.",
           "examples": [
             "#2b7de2"
           ],

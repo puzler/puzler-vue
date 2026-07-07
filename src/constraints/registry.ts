@@ -291,7 +291,7 @@ const EXTRA_INSTANCE_COLOR_FIELDS: Record<string, readonly string[]> = {
   lockout_lines: ['lineColor', 'bulbFillColor', 'bulbOutlineColor'],
   thermometer: ['bulbColor', 'lineColor'],
   slow_thermometer: ['bulbColor', 'lineColor'],
-  arrow: ['bulbColor', 'arrowColor'],
+  arrow: ['bulbFillColor', 'bulbStrokeColor', 'arrowColor'],
   killer_cage: ['cageColor', 'textColor'],
   difference_dots: ['fillColor', 'outlineColor', 'textColor'],
   ratio_dots: ['fillColor', 'outlineColor', 'textColor'],

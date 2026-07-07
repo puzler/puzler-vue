@@ -70,12 +70,15 @@ export interface ArrowDoc {
   bulbCells: string[]
   arrows: string[][]
   /**
-   * Paints the bulb ring and the arrows. 6 or 8 digit hex.
+   * Paints the bulb outline and the arrows. The bulb interior stays
+   * transparent unless bulbFillColor is set. 6 or 8 digit hex.
    * @example "#2b7de2"
    */
   color?: string
-  /** Recolors just the bulb ring. */
-  bulbColor?: string
+  /** Fills the bulb interior (transparent by default). */
+  bulbFillColor?: string
+  /** Recolors just the bulb outline. */
+  bulbStrokeColor?: string
   /** Recolors just the arrow shafts and heads. */
   arrowColor?: string
 }

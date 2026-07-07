@@ -37,6 +37,7 @@ const props = withDefaults(defineProps<{
   // input layer so the grid is purely visual. Defaults to interactive.
   interactive?: boolean
 }>(), {
+  cellStates: () => ({}),
   interactive: true,
 })
 

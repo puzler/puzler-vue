@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { useSolverStore, type TechniqueToggles } from '@/stores/solver'
+import { SET_EQUIVALENCE_MIN, SET_EQUIVALENCE_MAX } from '@/utils/solverSettings'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import InfoDot from '@/components/editor/InfoDot.vue'
 
 const solver = useSolverStore()
 defineEmits<{ close: [] }>()
+
+const SET_EQUIVALENCE_DEPTHS = Array.from(
+  { length: SET_EQUIVALENCE_MAX - SET_EQUIVALENCE_MIN + 1 },
+  (_, i) => SET_EQUIVALENCE_MIN + i,
+)
 
 interface ToggleRow {
   label: string
@@ -73,10 +80,6 @@ const GROUPS: Array<{ title: string; rows: ToggleRow[] }> = [
 ]
 
 const CHECK = 'flex items-center gap-2.5 text-sm text-ink-text select-none cursor-pointer'
-const INFO =
-  'w-[15px] h-[15px] shrink-0 rounded-full border border-line text-faint text-[10px] leading-none flex items-center justify-center hover:border-action hover:text-action transition-colors'
-const TOOLTIP =
-  'hidden group-hover:block group-focus-within:block absolute right-0 top-full mt-1.5 w-56 max-w-[calc(100vw-3rem)] bg-surface border border-line rounded-lg shadow-lg p-2.5 text-[11px] text-soft leading-snug z-20'
 </script>
 
 <template>
@@ -121,17 +124,50 @@ const TOOLTIP =
               >
               {{ row.label }}
             </label>
-            <span class="relative group inline-flex">
-              <button
-                type="button"
-                :class="INFO"
-                :aria-label="`About ${row.label}`"
-              >
-                ?
-              </button>
-              <span :class="TOOLTIP">{{ row.hint }}</span>
-            </span>
+            <InfoDot :label="row.label">
+              {{ row.hint }}
+            </InfoDot>
           </div>
+        </div>
+        <div
+          v-if="group.title === 'Techniques'"
+          class="flex items-center justify-between gap-2"
+        >
+          <div class="flex items-center gap-3">
+            <label :class="CHECK">
+              <input
+                type="checkbox"
+                class="accent-action"
+                :checked="solver.techniques.setEquivalence"
+                @change="solver.setTechnique('setEquivalence', ($event.target as HTMLInputElement).checked)"
+              >
+              Set equivalence
+            </label>
+            <label
+              class="flex items-center gap-1.5 text-sm text-soft select-none"
+              for="set-equivalence-depth"
+            >
+              depth
+              <select
+                id="set-equivalence-depth"
+                class="rounded-md border border-line bg-surface text-ink-text text-sm px-1.5 py-0.5 accent-action disabled:opacity-50"
+                :value="solver.setEquivalenceMaxHouses"
+                :disabled="!solver.techniques.setEquivalence"
+                @change="solver.setSetEquivalenceMaxHouses(Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option
+                  v-for="depth in SET_EQUIVALENCE_DEPTHS"
+                  :key="depth"
+                  :value="depth"
+                >
+                  {{ depth }}
+                </option>
+              </select>
+            </label>
+          </div>
+          <InfoDot label="set equivalence">
+            Equal-size sets of rows, columns and regions hold the same digits, so the cells one set covers that the other does not must match. Depth sets how many houses each set may combine (higher finds more but is slower). Key for irregular grids.
+          </InfoDot>
         </div>
       </section>
     </div>

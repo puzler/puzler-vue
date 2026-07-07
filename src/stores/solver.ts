@@ -41,15 +41,22 @@ export const useSolverStore = defineStore('solver', () => {
   const showLogicalCandidates = ref(persisted.showLogicalCandidates)
   // Individually toggleable logical techniques (replaces the old difficulty tiers).
   const techniques = reactive<TechniqueToggles>({ ...persisted.techniques })
+  // Numeric depth for set equivalence (how many houses per collection), kept
+  // beside the boolean toggles since it isn't one.
+  const setEquivalenceMaxHouses = ref(persisted.setEquivalenceMaxHouses)
   watch(
     () => ({
       showCandidateCounts: showCandidateCounts.value,
       showLogicalCandidates: showLogicalCandidates.value,
       techniques: { ...techniques },
+      setEquivalenceMaxHouses: setEquivalenceMaxHouses.value,
     }),
     (settings) => saveSolverSettings(settings),
     { deep: true },
   )
+  // The full technique-options bag sent to the worker: the toggles plus the
+  // set-equivalence depth.
+  const techniqueOptions = () => ({ ...techniques, setEquivalenceMaxHouses: setEquivalenceMaxHouses.value })
   // Panel chrome: the section can be collapsed (header only) and, when open,
   // expanded to fill the whole left toolbar for an easier read of the output.
   // Collapsed by default so it stays out of the way until opened.
@@ -198,7 +205,7 @@ export const useSolverStore = defineStore('solver', () => {
     start(
       'logical-solve',
       'Logical solving…',
-      (puzzle) => client.logicalSolve(puzzle, { techniques: { ...techniques } }),
+      (puzzle) => client.logicalSolve(puzzle, { techniques: techniqueOptions() }),
       { respectFog: true },
     )
   }
@@ -216,7 +223,7 @@ export const useSolverStore = defineStore('solver', () => {
     if (!lastWasStep) display.value = []
     lastWasStep = true
     currentCommand.value = 'logical-step'
-    client.step(puzzle, { techniques: { ...techniques } })
+    client.step(puzzle, { techniques: techniqueOptions() })
   }
   function runTrueCandidates(auto = false) {
     // Count up to 11 per candidate so the UI can distinguish the 5–10 bucket
@@ -227,7 +234,7 @@ export const useSolverStore = defineStore('solver', () => {
       client.trueCandidates(puzzle, {
         maxSolutionsPerCandidate: showCandidateCounts.value ? 11 : 1,
         logical: showLogicalCandidates.value,
-        techniques: { ...techniques },
+        techniques: techniqueOptions(),
       }),
     )
   }
@@ -311,6 +318,11 @@ export const useSolverStore = defineStore('solver', () => {
     if (autoTrueCandidates.value) runTrueCandidates(true)
   }
 
+  function setSetEquivalenceMaxHouses(value: number) {
+    setEquivalenceMaxHouses.value = value
+    if (autoTrueCandidates.value) runTrueCandidates(true)
+  }
+
   function togglePanelCollapsed() {
     panelCollapsed.value = !panelCollapsed.value
     if (panelCollapsed.value) panelExpanded.value = false
@@ -342,8 +354,10 @@ export const useSolverStore = defineStore('solver', () => {
     redCandidates,
     showLogicalCandidates,
     techniques,
+    setEquivalenceMaxHouses,
     setShowCandidateCounts,
     setShowLogicalCandidates,
     setTechnique,
+    setSetEquivalenceMaxHouses,
   }
 })

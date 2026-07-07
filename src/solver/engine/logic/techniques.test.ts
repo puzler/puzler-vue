@@ -4,8 +4,40 @@ import { buildBoard } from '../buildBoard'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
 import { standardBoxes } from '../geometry'
-import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, forcedTwinElimination, sumCounting, parityCounting, fish, xyWing } from './techniques'
+import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, forcedTwinElimination, sumCounting, setEquivalence, parityCounting, fish, xyWing } from './techniques'
 import { logicalSolve } from './logicalSolver'
+
+// Cell index from an "r4c1" reference (1-indexed rows/cols, 9x9).
+function rc(ref: string): number {
+  const m = /^r(\d+)c(\d+)$/.exec(ref) as RegExpExecArray
+  return (Number(m[1]) - 1) * 9 + (Number(m[2]) - 1)
+}
+
+// Rows + columns + a jigsaw of nine irregular regions (each a list of cell refs).
+function irregularRegions(jigsaw: string[][]): number[][] {
+  const regions: number[][] = []
+  for (let i = 0; i < 9; i += 1) {
+    const row: number[] = []
+    const col: number[] = []
+    for (let j = 0; j < 9; j += 1) {
+      row.push(i * 9 + j)
+      col.push(j * 9 + i)
+    }
+    regions.push(row, col)
+  }
+  for (const region of jigsaw) regions.push(region.map(rc))
+  return regions
+}
+
+// Run set equivalence to a fixpoint; returns whether any step reported a contradiction.
+function runSetEquivalence(board: Board, depth = 3): boolean {
+  for (let i = 0; i < 60; i += 1) {
+    const step = setEquivalence(board, depth)
+    if (!step) return false
+    if (step.invalid) return true
+  }
+  return false
+}
 
 function vanillaRegions(): number[][] {
   const regions: number[][] = []
@@ -335,5 +367,100 @@ describe('sum counting (region sum arithmetic)', () => {
     const on = make()
     logicalSolve(on, { sumCounting: true, parity: false })
     expect(candidates(on, 40)).toEqual([5])
+  })
+})
+
+// Irregular region layout for the two user examples (region label → cell refs).
+const JIGSAW_1 = [
+  ['r1c1', 'r1c2', 'r1c3', 'r2c1', 'r2c3', 'r3c1', 'r3c2', 'r3c3', 'r4c1'],
+  ['r1c4', 'r1c5', 'r2c4', 'r2c5', 'r2c6', 'r3c4', 'r3c5', 'r3c6', 'r4c6'],
+  ['r1c6', 'r1c7', 'r1c8', 'r1c9', 'r2c7', 'r2c9', 'r3c7', 'r3c8', 'r3c9'],
+  ['r4c2', 'r4c3', 'r4c4', 'r5c1', 'r5c2', 'r5c3', 'r6c1', 'r6c2', 'r6c3'],
+  ['r4c7', 'r4c8', 'r4c9', 'r5c7', 'r5c8', 'r5c9', 'r6c6', 'r6c7', 'r6c8'],
+  ['r6c4', 'r7c4', 'r7c5', 'r7c6', 'r8c4', 'r8c5', 'r8c6', 'r9c5', 'r9c6'],
+  ['r7c1', 'r7c2', 'r7c3', 'r8c1', 'r8c3', 'r9c1', 'r9c2', 'r9c3', 'r9c4'],
+  ['r6c9', 'r7c7', 'r7c8', 'r7c9', 'r8c7', 'r8c9', 'r9c7', 'r9c8', 'r9c9'],
+  ['r2c2', 'r2c8', 'r4c5', 'r5c4', 'r5c5', 'r5c6', 'r6c5', 'r8c2', 'r8c8'],
+]
+
+const JIGSAW_2 = [
+  ['r1c1', 'r1c2', 'r2c1', 'r2c2', 'r2c3', 'r3c1', 'r3c2', 'r3c3', 'r4c1'],
+  ['r1c3', 'r1c4', 'r1c5', 'r2c4', 'r2c5', 'r2c6', 'r3c4', 'r3c5', 'r3c6'],
+  ['r1c6', 'r1c7', 'r1c8', 'r1c9', 'r2c7', 'r2c8', 'r2c9', 'r3c7', 'r3c8'],
+  ['r4c2', 'r4c3', 'r5c1', 'r5c2', 'r5c3', 'r6c1', 'r6c2', 'r6c3', 'r7c1'],
+  ['r4c4', 'r4c5', 'r4c6', 'r5c4', 'r5c5', 'r5c6', 'r6c4', 'r6c5', 'r6c6'],
+  ['r3c9', 'r4c7', 'r4c8', 'r4c9', 'r5c7', 'r5c8', 'r5c9', 'r6c7', 'r6c8'],
+  ['r7c2', 'r7c3', 'r8c1', 'r8c2', 'r8c3', 'r9c1', 'r9c2', 'r9c3', 'r9c4'],
+  ['r7c4', 'r7c5', 'r7c6', 'r8c4', 'r8c5', 'r8c6', 'r9c5', 'r9c6', 'r9c7'],
+  ['r6c9', 'r7c7', 'r7c8', 'r7c9', 'r8c7', 'r8c8', 'r8c9', 'r9c8', 'r9c9'],
+]
+
+describe('set equivalence (SET / irregular innie-outie)', () => {
+  it('matches leftover cells of overlapping regions and rows (example 1)', () => {
+    // Regions 1,2,3 vs rows 1,2,3 cancel to {r2c2,r2c8} = {r4c1,r4c6}; the givens
+    // 2 and 1 lock r4c1/r4c6 to a 1/2 pair.
+    const givens = [
+      { cell: rc('r2c8'), value: 1 },
+      { cell: rc('r2c2'), value: 2 },
+      { cell: rc('r8c2'), value: 3 },
+      { cell: rc('r8c8'), value: 4 },
+    ]
+    const board = buildBoard({ size: 9, regions: irregularRegions(JIGSAW_1), givens, constraints: [] }).board
+    runSetEquivalence(board, 3)
+    expect(candidates(board, rc('r4c1'))).toEqual([1, 2])
+    expect(candidates(board, rc('r4c6'))).toEqual([1, 2])
+  })
+
+  it('propagates a single-cell equality (example 2)', () => {
+    // Regions 1,2,3 vs rows 1,2,3 cancel to {r3c9} = {r4c1}; the V-pair pins r4c1
+    // to {1,2,3,4} (modelled directly), so r3c9 follows.
+    const board = buildBoard({ size: 9, regions: irregularRegions(JIGSAW_2), givens: [], constraints: [] }).board
+    setCandidates(board, rc('r4c1'), [1, 2, 3, 4])
+    runSetEquivalence(board, 3)
+    expect(candidates(board, rc('r3c9'))).toEqual([1, 2, 3, 4])
+  })
+
+  it('reports a contradiction when the two sides cannot match', () => {
+    // r4c1 = 5 makes the {r4c1,r4c6} = {1,2} leftover unsatisfiable.
+    const givens = [
+      { cell: rc('r2c8'), value: 1 },
+      { cell: rc('r2c2'), value: 2 },
+      { cell: rc('r4c1'), value: 5 },
+    ]
+    const board = buildBoard({ size: 9, regions: irregularRegions(JIGSAW_1), givens, constraints: [] }).board
+    expect(runSetEquivalence(board, 3)).toBe(true)
+  })
+
+  it('does nothing on a vanilla grid and honours the toggle and depth', () => {
+    const vanilla = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints: [] }).board
+    expect(setEquivalence(vanilla, 3)).toBeNull()
+
+    const givens = [
+      { cell: rc('r2c8'), value: 1 },
+      { cell: rc('r2c2'), value: 2 },
+      { cell: rc('r8c2'), value: 3 },
+      { cell: rc('r8c8'), value: 4 },
+    ]
+    const make = () => buildBoard({ size: 9, regions: irregularRegions(JIGSAW_1), givens, constraints: [] }).board
+    const core = { subsets: false, lockedCandidates: false, weakLinkForcing: false, sumCounting: false, parity: false, fish: false, wings: false }
+
+    // Off: only singles + constraint propagation run, which can't reach the pair.
+    const off = make()
+    logicalSolve(off, { ...core, setEquivalence: false })
+    expect(candidates(off, rc('r4c1')).length).toBeGreaterThan(2)
+
+    // On: the technique pins the pair.
+    const on = make()
+    logicalSolve(on, { ...core, setEquivalence: true })
+    expect(candidates(on, rc('r4c1'))).toEqual([1, 2])
+
+    // The k=3 set is out of reach at depth 2.
+    const shallow = make()
+    runSetEquivalence(shallow, 2)
+    expect(candidates(shallow, rc('r4c1'))).not.toEqual([1, 2])
+
+    const deep = make()
+    runSetEquivalence(deep, 3)
+    expect(candidates(deep, rc('r4c1'))).toEqual([1, 2])
   })
 })

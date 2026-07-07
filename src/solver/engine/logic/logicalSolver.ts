@@ -13,6 +13,7 @@ import {
   weakLinkCellForcing,
   forcedTwinElimination,
   sumCounting,
+  setEquivalence,
   parityCounting,
   fish,
   xyWing,
@@ -86,6 +87,8 @@ function pipeline(board: Board, techniques: TechniqueOptions = {}): Array<() => 
     steps.push(() => forcedTwinElimination(board))
   }
   if (on(techniques.sumCounting)) steps.push(() => sumCounting(board))
+  // Opt-in (defaults OFF): a heavier, niche search, so omitted means off.
+  if (techniques.setEquivalence) steps.push(() => setEquivalence(board, techniques.setEquivalenceMaxHouses ?? 3))
   if (on(techniques.parity)) steps.push(() => parityCounting(board))
   if (on(techniques.fish)) for (const n of [2, 3]) steps.push(() => fish(board, n))
   if (on(techniques.wings)) steps.push(() => xyWing(board))

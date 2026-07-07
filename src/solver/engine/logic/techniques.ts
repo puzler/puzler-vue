@@ -2,7 +2,7 @@ import { type Board, LogicResult } from '../board'
 import { ConstraintResult } from '../constraint'
 import { popcount, valueBit, valuesList, minValue, isSingle } from '../bitmask'
 import { cellName } from '../geometry'
-import { clearSeenByForcedGroup, sumRangePrune, sumCombinationPrune } from '../constraints/sumGroup'
+import { clearSeenByForcedGroup, sumRangePrune, sumCombinationPrune, COMBINATION_NODE_BUDGET } from '../constraints/sumGroup'
 
 // A technique returns a human-readable description of the deduction it made, or
 // null if it didn't apply. `invalid` marks a contradiction (a cell was emptied).
@@ -479,6 +479,24 @@ function allCoRegioned(cells: number[], cellRegions: number[][]): boolean {
   return true
 }
 
+// Complete houses split by family: rows (one shared row), columns (one shared
+// column), and blocks (everything else — boxes and custom irregular regions).
+// Rows are pairwise disjoint, as are columns; blocks are pairwise disjoint too
+// (a cell lives in one box / one custom region).
+function houseFamilies(board: Board): { rows: number[][]; cols: number[][]; blocks: number[][] } {
+  const size = board.size
+  const rows: number[][] = []
+  const cols: number[][] = []
+  const blocks: number[][] = []
+  for (const region of board.regions) {
+    if (region.length !== size) continue
+    if (new Set(region.map((c) => Math.floor(c / size))).size === 1) rows.push(region)
+    else if (new Set(region.map((c) => c % size)).size === 1) cols.push(region)
+    else blocks.push(region)
+  }
+  return { rows, cols, blocks }
+}
+
 // The bread and butter of killer-style solving, generalised: a set of complete
 // houses has a known total (k · 1+…+size), and exact-sum clues (cages, pinned
 // x-sum windows, arrow shafts under a given bulb, …) measure part of it. Clues
@@ -509,17 +527,7 @@ export function sumCounting(board: Board): Elimination | null {
   const cellRegions: number[][] = Array.from({ length: board.numCells }, () => [])
   board.regions.forEach((region, index) => region.forEach((c) => cellRegions[c].push(index)))
 
-  // Complete houses by family. Rows are pairwise disjoint, as are columns;
-  // "others" (boxes, extra regions) are checked for disjointness per union.
-  const rowHouses: number[][] = []
-  const colHouses: number[][] = []
-  const otherHouses: number[][] = []
-  for (const region of board.regions) {
-    if (region.length !== size) continue
-    if (new Set(region.map((c) => Math.floor(c / size))).size === 1) rowHouses.push(region)
-    else if (new Set(region.map((c) => c % size)).size === 1) colHouses.push(region)
-    else otherHouses.push(region)
-  }
+  const { rows: rowHouses, cols: colHouses, blocks: otherHouses } = houseFamilies(board)
 
   const regionTotal = (size * (size + 1)) / 2
   let result: Elimination | null = null
@@ -612,6 +620,173 @@ export function sumCounting(board: Board): Elimination | null {
       if (family.length < k) continue
       if (forEachCombination(family, k, evaluate)) return result
     }
+  }
+  return null
+}
+
+// ── Set equivalence (SET — irregular innie/outie) ────────────────────────────
+
+// Distinct unplaced leftover cells per side above which the multiset-equality
+// prune stops being a readable, useful step.
+const SET_LEFTOVER_LIMIT = 4
+
+// Two collections of k complete houses each hold every digit exactly k times, so
+// their digit multisets are equal; cancelling the cells they physically share
+// leaves the leftover cells on each side holding the same multiset — Set
+// Equivalence Theory, the workhorse of irregular-region sudoku. We anchor one
+// collection A on the blocks (boxes / custom regions) and greedily match it with
+// the best-overlapping rows, columns, or a mix, then prune when the leftover on
+// each side is small. Overlap is counted with multiplicity: a cell in two chosen
+// houses of a collection contributes its digit twice, so a cell inside one block
+// and two matched lines nets to the line side. This is why mixed row+column
+// matches are handled by net coefficients, not a plain set difference.
+export function setEquivalence(board: Board, maxHouses = 3): Elimination | null {
+  const { rows, cols, blocks } = houseFamilies(board)
+  if (blocks.length === 0) return null
+  const depth = Math.min(maxHouses, blocks.length)
+  const size = board.size
+
+  let result: Elimination | null = null
+
+  // Best B: the k pool houses overlapping A's cells most. For pairwise-disjoint
+  // pools (rows-only, columns-only) this is the leftover-minimiser exactly; for
+  // the mixed line pool it is a sound heuristic.
+  const bestMatch = (cellsA: Set<number>, pool: number[][], k: number): number[][] => {
+    const scored = pool
+      .map((house) => ({ house, overlap: house.reduce((n, c) => n + (cellsA.has(c) ? 1 : 0), 0) }))
+      .filter((s) => s.overlap > 0)
+      .sort((a, b) => b.overlap - a.overlap)
+    return scored.length < k ? [] : scored.slice(0, k).map((s) => s.house)
+  }
+
+  // Prune the leftover of a matched (A, B) so the two sides' digit multisets can
+  // agree; sets `result` on any change or contradiction and returns true.
+  const evaluate = (A: number[][], B: number[][]): boolean => {
+    const net = new Map<number, number>()
+    for (const house of A) for (const c of house) net.set(c, (net.get(c) ?? 0) + 1)
+    for (const house of B) for (const c of house) net.set(c, (net.get(c) ?? 0) - 1)
+
+    // known[d] = (plus givens of d) − (minus givens of d); unplaced cells become
+    // DFS variables carrying their net coefficient.
+    const known = new Array<number>(size + 1).fill(0)
+    const plus: number[] = []
+    const minus: number[] = []
+    const coeff = new Map<number, number>()
+    for (const [c, n] of net) {
+      if (n === 0) continue
+      if (board.isGiven(c)) known[minValue(board.candidateMask(c))] += n
+      else {
+        coeff.set(c, n)
+        ;(n > 0 ? plus : minus).push(c)
+      }
+    }
+    // Σ net = 0 (|A| = |B|), so a nonzero leftover has both signs. Skip a leftover
+    // too big to read as a step.
+    if (plus.length > SET_LEFTOVER_LIMIT || minus.length > SET_LEFTOVER_LIMIT) return false
+    const anyKnown = known.some((x) => x !== 0)
+    const anyReduced = [...plus, ...minus].some((c) => popcount(board.candidateMask(c)) < size)
+    // Prune only when there is fixed information to carry across: a placed cell in
+    // the leftover, or one side collapsed to a single cell (a one-cell innie /
+    // outie). Two loose multi-cell groups whose digits are still open constrain
+    // nothing, so skip that search — it is what makes a givenless irregular grid
+    // churn on every step without ever pruning.
+    if (!anyKnown && !anyReduced) return false
+    if (!anyKnown && Math.min(plus.length, minus.length) > 1) return false
+
+    const cells = [...plus, ...minus]
+    const n = cells.length
+    const balance = known.slice()
+    const allowed = new Array<number>(n).fill(0)
+    let nodes = 0
+    let bailed = false
+
+    // A partial balance is salvageable only if the remaining coefficient budget
+    // can cancel every over-/under-represented digit.
+    const remPlus = new Array<number>(n + 1).fill(0)
+    const remMinus = new Array<number>(n + 1).fill(0)
+    for (let i = n - 1; i >= 0; i -= 1) {
+      const w = coeff.get(cells[i]) as number
+      remPlus[i] = remPlus[i + 1] + (w > 0 ? w : 0)
+      remMinus[i] = remMinus[i + 1] + (w < 0 ? -w : 0)
+    }
+
+    const assigned: number[] = []
+    const recurse = (i: number): boolean => {
+      if (bailed) return false
+      if ((nodes += 1) > COMBINATION_NODE_BUDGET) { bailed = true; return false }
+      if (i === n) {
+        if (balance.some((x) => x !== 0)) return false
+        for (let q = 0; q < n; q += 1) allowed[q] |= valueBit(assigned[q])
+        return true
+      }
+      let over = 0
+      let under = 0
+      for (let d = 1; d <= size; d += 1) {
+        if (balance[d] > 0) over += balance[d]
+        else if (balance[d] < 0) under -= balance[d]
+      }
+      if (over > remMinus[i] || under > remPlus[i]) return false
+      const cell = cells[i]
+      const w = coeff.get(cell) as number
+      let found = false
+      for (const v of valuesList(board.candidateMask(cell))) {
+        let blocked = false
+        for (let q = 0; q < i; q += 1) {
+          if (board.weakLinks[board.candidateIndex(cell, v)].has(board.candidateIndex(cells[q], assigned[q]))) {
+            blocked = true
+            break
+          }
+        }
+        if (blocked) continue
+        assigned[i] = v
+        balance[v] += w
+        if (recurse(i + 1)) found = true
+        balance[v] -= w
+      }
+      return found
+    }
+
+    const feasible = recurse(0)
+    if (bailed) return false
+    // Name every leftover cell (placed or not) so the step reads as the match it
+    // is, e.g. "R4C1, R4C6 match R2C2, R2C8".
+    const plusAll: number[] = []
+    const minusAll: number[] = []
+    for (const [c, n] of net) (n > 0 ? plusAll : n < 0 ? minusAll : []).push(c)
+    const nameA = regionSetName(board, A)
+    const nameB = regionSetName(board, B)
+    const label = `${plusAll.map((c) => cellName(c, size)).join(', ')} match ${minusAll.map((c) => cellName(c, size)).join(', ')}`
+    if (!feasible) {
+      result = { desc: `Set equivalence between ${nameA} and ${nameB}: ${label} is impossible`, invalid: true }
+      return true
+    }
+    const cleared: number[] = []
+    for (let q = 0; q < n; q += 1) {
+      if ((board.candidateMask(cells[q]) & ~allowed[q]) === 0) continue
+      if (board.keepMask(cells[q], allowed[q]) === ConstraintResult.INVALID) {
+        result = { desc: `Set equivalence between ${nameA} and ${nameB} empties ${cellName(cells[q], size)}`, invalid: true }
+        return true
+      }
+      cleared.push(cells[q])
+    }
+    if (cleared.length) {
+      result = { desc: `Set equivalence between ${nameA} and ${nameB}: ${label}` }
+      return true
+    }
+    return false
+  }
+
+  const pools = [rows, cols, [...rows, ...cols]]
+  for (let k = 1; k <= depth; k += 1) {
+    if (forEachCombination(blocks, k, (A) => {
+      const cellsA = new Set<number>()
+      for (const house of A) for (const c of house) cellsA.add(c)
+      for (const pool of pools) {
+        const B = bestMatch(cellsA, pool, k)
+        if (B.length === k && evaluate(A, B)) return true
+      }
+      return false
+    })) return result
   }
   return null
 }

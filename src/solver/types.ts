@@ -41,10 +41,14 @@ export interface TechniqueOptions {
   lockedCandidates?: boolean // pointing/claiming, incl. knight/king sight-lines
   weakLinkForcing?: boolean // linked pairs + single-cell forcing on the weak-link graph
   sumCounting?: boolean // region sum arithmetic against cage/clue totals (innies & outies)
+  setEquivalence?: boolean // digit-multiset equality between house collections (SET)
   parity?: boolean // GF(2) parity counting
   fish?: boolean // X-Wing, Swordfish
   wings?: boolean // XY-Wing
   contradictionCheck?: boolean // depth-1 trial elimination (opt-in)
+  // How many houses each set-equivalence collection may combine (not a toggle —
+  // a numeric depth). Higher finds more sets but is slower. Defaults to 3.
+  setEquivalenceMaxHouses?: number
 }
 
 export type SolverCommand =

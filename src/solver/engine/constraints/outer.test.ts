@@ -71,6 +71,60 @@ describe('cage, region & outer-clue constraints', () => {
     expect(valid(puzzle([[0, 3], [1, 1], [2, 2]], [xsum]))).toBe(true) // 3+1+2 = 6
   })
 
+  it('x-sum prunes lengths whose distinct-digit minimum overshoots the clue', () => {
+    // Clue 20: N distinct digits led by N sum to at least N + 1+2+…+(N-1), which
+    // passes 20 from N = 6 on; small N fail on the high side (1, 2) leaving {3,4,5}.
+    const xsum20 = { kind: 'x_sum', line: ROW0, target: 20 }
+    const twenty = buildBoard(puzzle([], [xsum20]))
+    twenty.board.bruteForceLogic()
+    expect(twenty.board.candidatesPerCell()[0]).toEqual([3, 4, 5])
+    // Clue 16: 5 fails too (four distinct non-5 digits can't sum to 11), leaving {3,4}.
+    const xsum16 = { kind: 'x_sum', line: ROW0, target: 16 }
+    const sixteen = buildBoard(puzzle([], [xsum16]))
+    sixteen.board.bruteForceLogic()
+    expect(sixteen.board.candidatesPerCell()[0]).toEqual([3, 4])
+    // Clue 35: an 8 in front needs 1+2+…+8 = 36 already; a 9 sums the full 45.
+    const xsum35 = { kind: 'x_sum', line: ROW0, target: 35 }
+    const thirtyFive = buildBoard(puzzle([], [xsum35]))
+    thirtyFive.board.bruteForceLogic()
+    expect(thirtyFive.board.candidatesPerCell()[0]).toEqual([5, 6, 7])
+  })
+
+  it('x-sum keeps pruning lengths that fall short of the clue', () => {
+    // Clue 40 needs a long window: six distinct non-6 digits max out at 33.
+    const xsum = { kind: 'x_sum', line: ROW0, target: 40 }
+    const { board } = buildBoard(puzzle([], [xsum]))
+    board.bruteForceLogic()
+    expect(board.candidatesPerCell()[0]).toEqual([7, 8])
+  })
+
+  it('x-sum prunes window cells across the viable lengths before the length is known', () => {
+    // Clue 6: either 2+4 or 3+1+2, so the second cell is one of {1,2,4}; the third
+    // cell sits outside the length-2 window, so it stays open.
+    const xsum = { kind: 'x_sum', line: ROW0, target: 6 }
+    const { board } = buildBoard(puzzle([], [xsum]))
+    board.bruteForceLogic()
+    const cands = board.candidatesPerCell()
+    expect(cands[0]).toEqual([2, 3])
+    expect(cands[1]).toEqual([1, 2, 4])
+    expect(cands[2]).toContain(9)
+  })
+
+  it('x-sum clears digits its window forces from the rest of the line', () => {
+    // A 4 in front of a 28 clue forces the window remainder to {7,8,9}; the other
+    // row cells can hold none of those.
+    const xsum = { kind: 'x_sum', line: ROW0, target: 28 }
+    const { board } = buildBoard(puzzle([[0, 4]], [xsum]))
+    board.bruteForceLogic()
+    const cands = board.candidatesPerCell()
+    for (const c of [1, 2, 3]) expect(cands[c]).toEqual([7, 8, 9])
+    for (const c of [4, 5, 6, 7, 8]) {
+      expect(cands[c]).not.toContain(7)
+      expect(cands[c]).not.toContain(8)
+      expect(cands[c]).not.toContain(9)
+    }
+  })
+
   it('numbered rooms puts the clue at the position the first digit names', () => {
     const rooms = { kind: 'numbered_rooms', line: ROW0, target: 7 }
     // r0c0 = 3 ⇒ the third cell holds the clue digit.

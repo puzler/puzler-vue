@@ -2,7 +2,7 @@ import { type Board, LogicResult } from '../board'
 import { ConstraintResult } from '../constraint'
 import { popcount, valueBit, valuesList, minValue, isSingle } from '../bitmask'
 import { cellName } from '../geometry'
-import { clearSeenByForcedGroup } from '../constraints/sumGroup'
+import { clearSeenByForcedGroup, sumRangePrune, sumCombinationPrune } from '../constraints/sumGroup'
 
 // A technique returns a human-readable description of the deduction it made, or
 // null if it didn't apply. `invalid` marks a contradiction (a cell was emptied).
@@ -13,14 +13,38 @@ export interface Elimination {
 
 const SUBSET_NAME = ['', 'single', 'pair', 'triple', 'quad']
 
-// Name a region for descriptions: a shared row / column, else "a region".
+// Name a region for descriptions: a shared row / column, a box (any full
+// rectangle — distinct cells spanning r rows × c cols fill it exactly when
+// r·c matches the cell count), else "a region".
 function regionName(board: Board, region: number[]): string {
   const size = board.size
   const rows = new Set(region.map((c) => Math.floor(c / size)))
   const cols = new Set(region.map((c) => c % size))
   if (rows.size === 1) return `row ${[...rows][0] + 1}`
   if (cols.size === 1) return `column ${[...cols][0] + 1}`
+  if (rows.size * cols.size === region.length) return 'a box'
   return 'a region'
+}
+
+// Name a same-family set of complete regions ("row 3", "rows 1,2", "columns 4-6",
+// "a box", "2 regions").
+function regionSetName(board: Board, regions: number[][]): string {
+  if (regions.length === 1) return regionName(board, regions[0])
+  const size = board.size
+  const soleIndex = (region: number[], of: (c: number) => number): number => {
+    const set = new Set(region.map(of))
+    return set.size === 1 ? ([...set][0] as number) : -1
+  }
+  for (const [label, of] of [
+    ['rows', (c: number) => Math.floor(c / size)],
+    ['columns', (c: number) => c % size],
+  ] as Array<[string, (c: number) => number]>) {
+    const indices = regions.map((r) => soleIndex(r, of))
+    if (indices.every((i) => i >= 0)) {
+      return `${label} ${indices.map((i) => i + 1).sort((a, b) => a - b).join(',')}`
+    }
+  }
+  return `${regions.length} regions`
 }
 
 // Candidates removed since the `before` snapshot of board.cells, grouped by the
@@ -429,6 +453,164 @@ export function forcedTwinElimination(board: Board): Elimination | null {
           desc: `${cellName(cell, board.size)} = ${value} forces ${cellName(group[0], board.size)} and ${cellName(group[1], board.size)} to both be ${w}`,
         }
       }
+    }
+  }
+  return null
+}
+
+// ── Sum counting (region sum arithmetic — innies & outies) ───────────────────
+
+// Leftover-group ceiling: a relation pinning more cells than this is neither a
+// readable single step nor much of a prune.
+const SUM_COUNTING_GROUP_LIMIT = 4
+// How many same-family houses may be combined into one union.
+const SUM_COUNTING_SET_LIMIT = 4
+
+// Every pair of `cells` shares a region, so the group is all-different and the
+// distinct-combination prune is sound on it.
+function allCoRegioned(cells: number[], cellRegions: number[][]): boolean {
+  for (let i = 0; i < cells.length; i += 1) {
+    for (let j = i + 1; j < cells.length; j += 1) {
+      const a = cellRegions[cells[i]]
+      const b = cellRegions[cells[j]]
+      if (!a.some((r) => b.includes(r))) return false
+    }
+  }
+  return true
+}
+
+// The bread and butter of killer-style solving, generalised: a set of complete
+// houses has a known total (k · 1+…+size), and exact-sum clues (cages, pinned
+// x-sum windows, arrow shafts under a given bulb, …) measure part of it. Clues
+// fully inside the union leave leftover cells with a known total (innies); clues
+// that tile the union and overhang leave the overhang with a known total
+// (outies). Small leftover groups are pruned to that total — a lone cell resolves
+// outright (two 20-cages tiling a box minus its centre force the centre to 5).
+// Unions are same-family (rows, columns, or disjoint boxes/regions) so the total
+// is a plain sum with no double counting.
+export function sumCounting(board: Board): Elimination | null {
+  const size = board.size
+  // Exact-sum facts, normalised to unplaced cells: committed cells subtract from
+  // the clue total, and a fully placed clue carries no information.
+  const clues: Array<{ cells: number[]; sum: number }> = []
+  for (const constraint of board.constraints) {
+    for (const clue of constraint.sumClues(board)) {
+      let sum = clue.sum
+      const cells: number[] = []
+      for (const c of clue.cells) {
+        if (board.isGiven(c)) sum -= minValue(board.candidateMask(c))
+        else cells.push(c)
+      }
+      if (cells.length) clues.push({ cells, sum })
+    }
+  }
+  if (clues.length === 0) return null
+
+  const cellRegions: number[][] = Array.from({ length: board.numCells }, () => [])
+  board.regions.forEach((region, index) => region.forEach((c) => cellRegions[c].push(index)))
+
+  // Complete houses by family. Rows are pairwise disjoint, as are columns;
+  // "others" (boxes, extra regions) are checked for disjointness per union.
+  const rowHouses: number[][] = []
+  const colHouses: number[][] = []
+  const otherHouses: number[][] = []
+  for (const region of board.regions) {
+    if (region.length !== size) continue
+    if (new Set(region.map((c) => Math.floor(c / size))).size === 1) rowHouses.push(region)
+    else if (new Set(region.map((c) => c % size)).size === 1) colHouses.push(region)
+    else otherHouses.push(region)
+  }
+
+  const regionTotal = (size * (size + 1)) / 2
+  let result: Elimination | null = null
+
+  // Prune `group` to sum exactly `t`; sets `result` and returns true when
+  // something changed (or the arithmetic is contradictory).
+  const applySum = (group: number[], t: number, combo: number[][]): boolean => {
+    const cleared: number[] = []
+    const names = group.map((c) => cellName(c, size)).join(', ')
+    const setName = regionSetName(board, combo)
+    if (
+      sumRangePrune(board, group, t, t, cleared) ||
+      (allCoRegioned(group, cellRegions) && sumCombinationPrune(board, group, t, cleared).invalid)
+    ) {
+      result = { desc: `Sum counting in ${setName}: ${names} can't total ${t}`, invalid: true }
+      return true
+    }
+    if (cleared.length) {
+      result = { desc: `Sum counting in ${setName}: ${names} total${group.length === 1 ? 's' : ''} ${t}` }
+      return true
+    }
+    return false
+  }
+
+  const evaluate = (combo: number[][]): boolean => {
+    const seen = new Set<number>()
+    const unplaced = new Set<number>()
+    let target = combo.length * regionTotal
+    for (const region of combo) {
+      for (const c of region) {
+        if (seen.has(c)) return false // overlapping houses don't sum cleanly
+        seen.add(c)
+        if (board.isGiven(c)) target -= minValue(board.candidateMask(c))
+        else unplaced.add(c)
+      }
+    }
+    if (unplaced.size === 0) return false
+
+    // Innies: clues fully inside the union measure all but the leftover cells.
+    {
+      const covered = new Set<number>()
+      let clueSum = 0
+      let used = 0
+      for (const clue of clues) {
+        if (!clue.cells.every((c) => unplaced.has(c))) continue
+        if (clue.cells.some((c) => covered.has(c))) continue // overlapping clue: use one
+        for (const c of clue.cells) covered.add(c)
+        clueSum += clue.sum
+        used += 1
+      }
+      if (used > 0) {
+        const leftover = [...unplaced].filter((c) => !covered.has(c))
+        const t = target - clueSum
+        if (leftover.length === 0) {
+          if (t !== 0) {
+            result = { desc: `Sum counting: clue totals in ${regionSetName(board, combo)} don't balance`, invalid: true }
+            return true
+          }
+        } else if (leftover.length <= SUM_COUNTING_GROUP_LIMIT && applySum(leftover, t, combo)) {
+          return true
+        }
+      }
+    }
+
+    // Outies: clues tiling the union exactly overhang it by a known total.
+    {
+      const covered = new Set<number>()
+      let clueSum = 0
+      let disjoint = true
+      for (const clue of clues) {
+        if (!clue.cells.some((c) => unplaced.has(c))) continue
+        for (const c of clue.cells) {
+          if (covered.has(c)) disjoint = false
+          covered.add(c)
+        }
+        clueSum += clue.sum
+      }
+      if (disjoint && covered.size > 0 && [...unplaced].every((c) => covered.has(c))) {
+        const overhang = [...covered].filter((c) => !unplaced.has(c))
+        if (overhang.length >= 1 && overhang.length <= SUM_COUNTING_GROUP_LIMIT) {
+          if (applySum(overhang, clueSum - target, combo)) return true
+        }
+      }
+    }
+    return false
+  }
+
+  for (let k = 1; k <= SUM_COUNTING_SET_LIMIT; k += 1) {
+    for (const family of [rowHouses, colHouses, otherHouses]) {
+      if (family.length < k) continue
+      if (forEachCombination(family, k, evaluate)) return result
     }
   }
   return null

@@ -40,6 +40,7 @@ export interface TechniqueOptions {
   subsets?: boolean // naked & hidden pairs/triples/quads
   lockedCandidates?: boolean // pointing/claiming, incl. knight/king sight-lines
   weakLinkForcing?: boolean // linked pairs + single-cell forcing on the weak-link graph
+  sumCounting?: boolean // region sum arithmetic against cage/clue totals (innies & outies)
   parity?: boolean // GF(2) parity counting
   fish?: boolean // X-Wing, Swordfish
   wings?: boolean // XY-Wing

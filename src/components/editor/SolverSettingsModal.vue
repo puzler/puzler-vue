@@ -20,6 +20,11 @@ const TECHNIQUES: Array<{ key: keyof TechniqueToggles; label: string; hint: stri
     label: 'Forced eliminations',
     hint: "Rules out a digit when placing it would leave a cell it sees with no options, or force two cells that can't match into the same digit. Counts cells seen through the puzzle's special rules, not just rows, columns and boxes.",
   },
+  {
+    key: 'sumCounting',
+    label: 'Sum counting',
+    hint: 'Cage and clue totals set against complete rows, columns and boxes: the leftover cells inside (or poking out of) the houses have a known total. Innies and outies.',
+  },
   { key: 'parity', label: 'Parity counting', hint: 'Odd/even balance from houses, arrows and cages.' },
   {
     key: 'fish',

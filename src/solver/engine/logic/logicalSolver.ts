@@ -12,6 +12,7 @@ import {
   nakedPairLinks,
   weakLinkCellForcing,
   forcedTwinElimination,
+  sumCounting,
   parityCounting,
   fish,
   xyWing,
@@ -84,6 +85,7 @@ function pipeline(board: Board, techniques: TechniqueOptions = {}): Array<() => 
     steps.push(() => weakLinkCellForcing(board))
     steps.push(() => forcedTwinElimination(board))
   }
+  if (on(techniques.sumCounting)) steps.push(() => sumCounting(board))
   if (on(techniques.parity)) steps.push(() => parityCounting(board))
   if (on(techniques.fish)) for (const n of [2, 3]) steps.push(() => fish(board, n))
   if (on(techniques.wings)) steps.push(() => xyWing(board))

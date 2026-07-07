@@ -298,6 +298,13 @@ export class ArrowConstraint extends Constraint {
     return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: [this.bulb[0], ...shaft], rhs: 0 }))
   }
 
+  // With a single-cell bulb committed, each shaft is an exact-sum group.
+  sumClues(board: Board) {
+    if (this.bulb.length !== 1 || !board.isGiven(this.bulb[0])) return []
+    const target = placed(board, this.bulb[0])
+    return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: shaft, sum: target }))
+  }
+
   enforce(board: Board, cell: number) {
     if (!this.involved.has(cell)) return true
     if (!this.bulb.every((c) => board.isGiven(c))) return true

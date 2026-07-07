@@ -45,4 +45,12 @@ export abstract class Constraint {
   parityClues(_board: Board): Array<{ cells: number[]; rhs: number }> {
     return []
   }
+
+  // Exact-sum groups this constraint implies in the current board state: the
+  // cells total `sum` in every solution (a killer cage, a pinned x-sum window, an
+  // arrow shaft under a given bulb, …). Consumed by the sum-counting technique.
+  // Empty by default.
+  sumClues(_board: Board): Array<{ cells: number[]; sum: number }> {
+    return []
+  }
 }

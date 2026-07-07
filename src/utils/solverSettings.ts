@@ -20,6 +20,7 @@ const DEFAULT_TECHNIQUES: TechniqueToggles = {
   subsets: true,
   lockedCandidates: true,
   weakLinkForcing: true,
+  sumCounting: true,
   parity: true,
   fish: true,
   wings: true,

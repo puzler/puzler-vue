@@ -9,6 +9,7 @@ import {
   sumCombinationPrune,
   cellsCrossLinked,
   clearSeenByForcedGroup,
+  distinctSumAllowed,
 } from './sumGroup'
 
 // Shared: keep `cell` to `keep`, recording a contradiction or a cleared cell.
@@ -75,6 +76,10 @@ export class SumConstraint extends Constraint {
   // The cells sum to a fixed target, so Σ parity(cell) = target mod 2.
   parityClues() {
     return [{ cells: this.cells, rhs: this.target % 2 }]
+  }
+
+  sumClues() {
+    return [{ cells: this.cells, sum: this.target }]
   }
 
   logicStep(board: Board, desc: string[]): ConstraintResult {
@@ -173,6 +178,7 @@ export class XSumConstraint extends Constraint {
   private line: number[]
   private target: number
   private involved: Set<number>
+  private seeded = false
 
   constructor(line: number[], target: number) {
     super('X-Sum')
@@ -189,22 +195,54 @@ export class XSumConstraint extends Constraint {
     return sumInRange(board, this.line.slice(0, n), this.target)
   }
 
+  // Once the length is pinned, the window is an exact-sum group.
+  sumClues(board: Board) {
+    const firstMask = board.candidateMask(this.line[0])
+    if (popcount(firstMask) !== 1) return []
+    return [{ cells: this.line.slice(0, minValue(firstMask)), sum: this.target }]
+  }
+
+  // Seed weak links from the static structure: under length N the window is N
+  // distinct digits starting with N summing to the target, so a first-cell N is
+  // incompatible with any window digit outside that scenario's combinations (a
+  // 20 clue with a 3 in front forces the next two cells into {8,9}).
+  init(board: Board): ConstraintResult {
+    if (this.seeded) return ConstraintResult.UNCHANGED
+    this.seeded = true
+    const first = this.line[0]
+    const full = (1 << board.size) - 1
+    for (let n = 1; n <= Math.min(board.size, this.line.length); n += 1) {
+      const masks = [valueBit(n)]
+      for (let i = 1; i < n; i += 1) masks.push(full)
+      const scenario = distinctSumAllowed(masks, this.target)
+      if (!scenario.feasible) continue // logicStep clears the length itself
+      for (let i = 1; i < n; i += 1) {
+        for (const v of valuesList(full & ~scenario.allowed[i])) {
+          board.addWeakLink(board.candidateIndex(first, n), board.candidateIndex(this.line[i], v))
+        }
+      }
+    }
+    return ConstraintResult.UNCHANGED
+  }
+
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const first = this.line[0]
     const cleared: number[] = []
-    // Viable lengths N: the first N cells can reach the target (line cells are
-    // distinct, but a sound range check suffices to prune obviously-bad N).
+    // Viable lengths N: the first N cells hold distinct digits (they share a row
+    // or column) starting with N and summing to the target — the value-set DP
+    // checks each candidate length exactly against current candidates, and its
+    // per-position allowed masks feed the window pruning below.
     const firstMask = board.candidateMask(first)
     let keepFirst = 0
+    const scenarios = new Map<number, number[]>() // viable N -> allowed mask per window position
     for (const n of valuesList(firstMask)) {
       if (n > this.line.length) continue
-      let lo = n
-      let hi = n
-      for (let i = 1; i < n; i += 1) {
-        lo += minValue(board.candidateMask(this.line[i]))
-        hi += maxValue(board.candidateMask(this.line[i]))
-      }
-      if (this.target >= lo && this.target <= hi) keepFirst |= valueBit(n)
+      const masks = [valueBit(n)]
+      for (let i = 1; i < n; i += 1) masks.push(board.candidateMask(this.line[i]))
+      const dp = distinctSumAllowed(masks, this.target)
+      if (!dp.feasible) continue
+      keepFirst |= valueBit(n)
+      scenarios.set(n, dp.allowed)
     }
     if (keepFirst === 0) {
       desc.push('X-sum has no valid length')
@@ -214,16 +252,33 @@ export class XSumConstraint extends Constraint {
       desc.push('X-sum has no valid length')
       return ConstraintResult.INVALID
     }
-    // Once the length is fixed, the window sums to the target with distinct digits.
+    // A line cell keeps only values workable in some viable length: inside that
+    // length's window the scenario's allowed mask, outside it anything. Cells at
+    // or past the largest viable length are never constrained.
+    const maxN = maxValue(keepFirst)
+    for (let i = 1; i < maxN; i += 1) {
+      let keep = 0
+      for (const [n, allowed] of scenarios) {
+        keep |= i < n ? allowed[i] : board.candidateMask(this.line[i])
+      }
+      if (applyKeep(board, this.line[i], keep, cleared)) {
+        desc.push('X-sum empties a cell')
+        return ConstraintResult.INVALID
+      }
+    }
+    // Once the length is fixed, the weak-link-aware prune sees cross-cell
+    // relationships the value-set DP can't, and its forced values must live in
+    // the window, so cells seeing the whole window can't hold them.
     const fixed = board.candidateMask(first)
     if (popcount(fixed) === 1) {
       const window = this.line.slice(0, minValue(fixed))
-      if (sumRangePrune(board, window, this.target, this.target, cleared)) {
-        desc.push('X-sum is unreachable')
+      const combo = sumCombinationPrune(board, window, this.target, cleared)
+      if (combo.invalid) {
+        desc.push('X-sum has no valid combination')
         return ConstraintResult.INVALID
       }
-      if (sumCombinationPrune(board, window, this.target, cleared).invalid) {
-        desc.push('X-sum has no valid combination')
+      if (clearSeenByForcedGroup(board, window, combo.required, cleared)) {
+        desc.push('X-sum forces a value with nowhere to go')
         return ConstraintResult.INVALID
       }
     }
@@ -305,6 +360,18 @@ export class SandwichConstraint extends Constraint {
     const lo = Math.min(p1, pHigh)
     const hi = Math.max(p1, pHigh)
     return sumInRange(board, this.line.slice(lo + 1, hi), this.target)
+  }
+
+  // Once both crusts are pinned, the cells between them are an exact-sum group.
+  sumClues(board: Board) {
+    const oneHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(1)) !== 0)
+    const sizeHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(board.size)) !== 0)
+    if (oneHomes.length !== 1 || sizeHomes.length !== 1) return []
+    const i = this.line.indexOf(oneHomes[0])
+    const j = this.line.indexOf(sizeHomes[0])
+    const between = this.line.slice(Math.min(i, j) + 1, Math.max(i, j))
+    if (between.length === 0) return []
+    return [{ cells: between, sum: this.target }]
   }
 
   logicStep(board: Board, desc: string[]): ConstraintResult {

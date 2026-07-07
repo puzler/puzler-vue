@@ -4,7 +4,7 @@ import { buildBoard } from '../buildBoard'
 import type { Board } from '../board'
 import { valueBit, valuesList } from '../bitmask'
 import { standardBoxes } from '../geometry'
-import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, forcedTwinElimination, parityCounting, fish, xyWing } from './techniques'
+import { nakedSubset, hiddenSubset, lockedCandidates, nakedPairLinks, weakLinkCellForcing, forcedTwinElimination, sumCounting, parityCounting, fish, xyWing } from './techniques'
 import { logicalSolve } from './logicalSolver'
 
 function vanillaRegions(): number[][] {
@@ -243,5 +243,97 @@ describe('standard sudoku techniques', () => {
     logicalSolve(withWings, { wings: true })
     expect(candidates(withoutWings, 40)).toContain(3) // no other technique clears it
     expect(candidates(withWings, 40)).not.toContain(3) // XY-Wing clears it
+  })
+})
+
+describe('sum counting (region sum arithmetic)', () => {
+  it('resolves the cell two cages leave uncovered in a box (innie)', () => {
+    // Two 20-cages tile box 5 except its centre: r4c4 = 45 - 40 = 5.
+    const constraints = [
+      { kind: 'killer_cage', cells: [30, 31, 32, 39], sum: 20 },
+      { kind: 'killer_cage', cells: [41, 48, 49, 50], sum: 20 },
+    ]
+    const board = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints }).board
+    const result = sumCounting(board)
+    expect(result).not.toBeNull()
+    expect(result!.desc).toContain('a box')
+    expect(candidates(board, 40)).toEqual([5])
+  })
+
+  it('pins the cells cages leave uncovered across two columns (multi-house innie)', () => {
+    // 6x6: three cages totalling 39 inside columns 1-2, which sum to 2·21 = 42,
+    // so the two uncovered cells r1c1/r1c2 total 3 — a 1/2 pair.
+    const regions: number[][] = []
+    for (let r = 0; r < 6; r += 1) {
+      const row: number[] = []
+      const col: number[] = []
+      for (let c = 0; c < 6; c += 1) {
+        row.push(r * 6 + c)
+        col.push(c * 6 + r)
+      }
+      regions.push(row, col)
+    }
+    for (const box of standardBoxes(6) as number[][]) regions.push(box)
+    const constraints = [
+      { kind: 'killer_cage', cells: [6, 7, 13], sum: 11 }, // r2c1, r2c2, r3c2
+      { kind: 'killer_cage', cells: [24, 30, 31], sum: 13 }, // r5c1, r6c1, r6c2
+      { kind: 'killer_cage', cells: [12, 18, 19, 25], sum: 15 }, // r3c1, r4c1, r4c2, r5c2
+    ]
+    const board = buildBoard({ size: 6, regions, givens: [], constraints }).board
+    // Single-house steps (box innies here) come first; iterate to the fixpoint.
+    const descs: string[] = []
+    for (let step = sumCounting(board); step; step = sumCounting(board)) descs.push(step.desc)
+    expect(descs.some((d) => d.includes('columns 1,2'))).toBe(true)
+    expect(candidates(board, 0)).toEqual([1, 2])
+    expect(candidates(board, 1)).toEqual([1, 2])
+  })
+
+  it('resolves the overhang when cages tile a box and poke out (outie)', () => {
+    // Two cages cover all of box 1 plus r1c4; their totals overshoot the box's 45
+    // by the overhang: r1c4 = 20 + 28 - 45 = 3.
+    const constraints = [
+      { kind: 'killer_cage', cells: [0, 1, 2, 9, 10], sum: 20 },
+      { kind: 'killer_cage', cells: [11, 18, 19, 20, 3], sum: 28 },
+    ]
+    const board = buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints }).board
+    const result = sumCounting(board)
+    expect(result).not.toBeNull()
+    expect(candidates(board, 3)).toEqual([3])
+  })
+
+  it('uses a pinned x-sum window as a clue (row complement)', () => {
+    // Row 8 9 6 . . 7 . . 5 with a 20 clue from the right: the window (last five
+    // cells) is an exact-sum fact, so the row's one uncovered unplaced cell is
+    // 45 - 20 - (8+9+6) = 2.
+    const line = [8, 7, 6, 5, 4, 3, 2, 1, 0]
+    const constraints = [{ kind: 'x_sum', line, target: 20 }]
+    const givens = [
+      { cell: 0, value: 8 },
+      { cell: 1, value: 9 },
+      { cell: 2, value: 6 },
+      { cell: 5, value: 7 },
+      { cell: 8, value: 5 },
+    ]
+    const board = buildBoard({ size: 9, regions: vanillaRegions(), givens, constraints }).board
+    const result = sumCounting(board)
+    expect(result).not.toBeNull()
+    expect(candidates(board, 3)).toEqual([2])
+  })
+
+  it('does nothing without sum clues, and respects its toggle', () => {
+    expect(sumCounting(emptyBoard())).toBeNull()
+
+    const cages = [
+      { kind: 'killer_cage', cells: [30, 31, 32, 39], sum: 20 },
+      { kind: 'killer_cage', cells: [41, 48, 49, 50], sum: 20 },
+    ]
+    const make = () =>
+      buildBoard({ size: 9, regions: vanillaRegions(), givens: [], constraints: cages }).board
+    const off = make()
+    logicalSolve(off, { sumCounting: false, parity: false, contradictionCheck: false })
+    expect(candidates(off, 40).length).toBeGreaterThan(1) // nothing else resolves the centre
+    const on = make()
+    logicalSolve(on, { sumCounting: true, parity: false })
+    expect(candidates(on, 40)).toEqual([5])
   })
 })

@@ -87,8 +87,26 @@ export function sumCombinationDistinct(
   target: number,
   cleared: number[],
 ): { invalid: boolean; required: number } {
-  const n = cells.length
   const masks = cells.map((c) => board.candidateMask(c))
+  const dp = distinctSumAllowed(masks, target)
+  if (!dp.feasible) return { invalid: true, required: 0 }
+  for (let p = 0; p < cells.length; p += 1) {
+    if ((masks[p] & ~dp.allowed[p]) === 0) continue
+    if (board.keepMask(cells[p], dp.allowed[p]) === ConstraintResult.INVALID) return { invalid: true, required: 0 }
+    cleared.push(cells[p])
+  }
+  return { invalid: false, required: dp.required }
+}
+
+// The DP core of sumCombinationDistinct over plain candidate masks, with no board
+// access: per-position allowed values and the forced-value intersection for a group
+// of distinct digits hitting the target. Lets callers pose hypothetical groups (an
+// X-sum window under each candidate length) without touching real candidates.
+export function distinctSumAllowed(
+  masks: number[],
+  target: number,
+): { feasible: boolean; allowed: number[]; required: number } {
+  const n = masks.length
 
   // forward(used): can the cells from position popcount(used) onward take distinct
   // values (not in `used`, each a candidate of its cell) so the total reaches the
@@ -109,7 +127,7 @@ export function sumCombinationDistinct(
     memo.set(used, ok)
     return ok
   }
-  if (!forward(0)) return { invalid: true, required: 0 }
+  if (!forward(0)) return { feasible: false, allowed: new Array<number>(n).fill(0), required: 0 }
 
   // Forward sweep over reachable, still-completable value-sets, one position at a
   // time. Each level holds the value-sets a valid prefix can have placed; a value
@@ -139,12 +157,7 @@ export function sumCombinationDistinct(
   for (const combo of level) required &= combo
   if (required === -1) required = 0
 
-  for (let p = 0; p < n; p += 1) {
-    if ((masks[p] & ~allowed[p]) === 0) continue
-    if (board.keepMask(cells[p], allowed[p]) === ConstraintResult.INVALID) return { invalid: true, required: 0 }
-    cleared.push(cells[p])
-  }
-  return { invalid: false, required }
+  return { feasible: true, allowed, required }
 }
 
 // Weak-link-aware combination prune: like sumCombinationDistinct, but it also

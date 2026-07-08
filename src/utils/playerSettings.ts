@@ -23,6 +23,9 @@ export interface PlayerSettings {
   // Collaboration
   enableCollaborationMode: boolean
   hideShareToken: boolean
+  // Available tools
+  enableLineTool: boolean
+  enableLetterTool: boolean
 }
 
 const KEY = 'puzler:player-settings'
@@ -39,6 +42,8 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   highlightConflictingPencilmarks: false,
   enableCollaborationMode: false,
   hideShareToken: false,
+  enableLineTool: false,
+  enableLetterTool: false,
 }
 
 // Merge an arbitrary (possibly partial / server-sourced) object over the

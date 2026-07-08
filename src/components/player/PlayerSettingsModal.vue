@@ -61,6 +61,13 @@ const groups: { title: string; items: Item[] }[] = [
     ],
   },
   {
+    title: 'Available Tools',
+    items: [
+      ps('enableLineTool', 'Line tool', 'Draw lines and X/O marks on the grid while solving'),
+      ps('enableLetterTool', 'Letter tool', 'Numpad toggle to enter letters instead of digits'),
+    ],
+  },
+  {
     title: 'Collaboration',
     items: [
       ps('enableCollaborationMode', 'Enable collaboration mode', 'Share an in-progress puzzle and solve together in real time'),

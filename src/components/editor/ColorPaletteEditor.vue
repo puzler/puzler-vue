@@ -57,6 +57,8 @@ watch(() => palette.pageIndex, () => { selected.value = 0 })
   <BaseModal
     size="md"
     card-class="p-6 gap-4"
+    :dim-backdrop="false"
+    draggable
     @close="emit('close')"
   >
     <div class="flex items-center justify-between">

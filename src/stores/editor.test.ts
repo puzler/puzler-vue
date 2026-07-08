@@ -929,3 +929,105 @@ describe('pen tool', () => {
     expect(editor.effectiveInputMode).toBe('line')
   })
 })
+
+// ── Letter tool ───────────────────────────────────────────────────────────────
+describe('letter tool', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  function solvingEditor() {
+    const editor = useEditorStore()
+    usePlayerSettingsStore().settings.enableLetterTool = true
+    editor.setMode('solving')
+    return editor
+  }
+
+  it('places letters as values, corner marks and center marks', () => {
+    const editor = solvingEditor()
+    editor.selection = new Set(['r0c0'])
+    editor.placeLetterForSelection('A')
+    expect(editor.solverCellStates['r0c0'].value).toBe('A')
+    editor.placeLetterForSelection('B') // overwrite like a digit
+    expect(editor.solverCellStates['r0c0'].value).toBe('B')
+
+    editor.selection = new Set(['r1c1'])
+    editor.setInputMode('corner')
+    editor.placeLetterForSelection('C')
+    editor.placeLetterForSelection('A')
+    expect(editor.solverCellStates['r1c1'].cornerMarks).toEqual(['A', 'C'])
+
+    editor.setInputMode('center')
+    editor.placeLetterForSelection('Z')
+    expect(editor.solverCellStates['r1c1'].centerMarks).toEqual(['Z'])
+  })
+
+  it('mixed digit + letter marks sort digits first', () => {
+    const editor = solvingEditor()
+    editor.selection = new Set(['r2c2'])
+    editor.setInputMode('corner')
+    editor.placeLetterForSelection('B')
+    editor.toggleCornerMarkForSelection(5)
+    editor.toggleCornerMarkForSelection(2)
+    expect(editor.solverCellStates['r2c2'].cornerMarks).toEqual([2, 5, 'B'])
+  })
+
+  it('falls back to placing a value from color and line modes', () => {
+    const editor = solvingEditor()
+    editor.selection = new Set(['r3c3'])
+    editor.setInputMode('color')
+    editor.placeLetterForSelection('E')
+    expect(editor.solverCellStates['r3c3'].value).toBe('E')
+    expect(editor.solverCellStates['r3c3'].colors).toEqual([])
+  })
+
+  it('letters conflict like digits and feed seen-mark checks', () => {
+    const editor = solvingEditor()
+    editor.selection = new Set(['r0c0'])
+    editor.placeLetterForSelection('A')
+    editor.selection = new Set(['r0c5'])
+    editor.placeLetterForSelection('A') // same row -> conflict
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+    expect(editor.errorCells.has('r0c5')).toBe(true)
+    expect(editor.seenDigitsByCell.get('r0c3')?.has('A')).toBe(true)
+    // A different letter does not conflict.
+    editor.selection = new Set(['r0c5'])
+    editor.placeLetterForSelection('B')
+    expect(editor.errorCells.size).toBe(0)
+  })
+
+  it('letters never verify against fog hashes (fog stays put)', () => {
+    const editor = solvingEditor()
+    editor.activeGlobalVariants = new Set(['fog'])
+    editor.fogHashSalt = 'salt'
+    editor.fogCellHashes = { r0c0: 'some-hash' }
+    editor.selection = new Set(['r0c0'])
+    editor.placeLetterForSelection('A')
+    expect(editor.fogVerifiedCells.has('r0c0')).toBe(false)
+  })
+
+  it('disabling the tool in settings reverts letter mode', async () => {
+    const editor = solvingEditor()
+    editor.setLetterMode(true)
+    expect(editor.letterModeActive).toBe(true)
+    await nextTick()
+    usePlayerSettingsStore().settings.enableLetterTool = false
+    await nextTick()
+    expect(editor.letterMode).toBe(false)
+  })
+
+  it('letterModeActive requires the setting even while letterMode is on', () => {
+    const editor = useEditorStore()
+    editor.setLetterMode(true)
+    expect(editor.letterMode).toBe(true)
+    expect(editor.letterModeActive).toBe(false) // tool disabled in settings
+  })
+
+  it('resetPuzzleState clears letter mode', () => {
+    const editor = solvingEditor()
+    editor.setLetterMode(true)
+    editor.resetPuzzleState()
+    expect(editor.letterMode).toBe(false)
+  })
+})

@@ -1,5 +1,5 @@
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
-import type { CellState, SolverInputMode } from '@/types/grid'
+import type { CellState, CellValue, SolverInputMode } from '@/types/grid'
 import type { CosmeticInstance, CloneData, ThermometerData, ConstraintLineData } from '@/types/constraints'
 
 // Everything `computeSelectAllSame` needs, as plain data — no Pinia, so the
@@ -23,7 +23,7 @@ export interface SelectAllContext {
 // A given digit takes priority over a solver-placed value (givens are
 // immutable) — unless it is hidden under fog, in which case the cell reads as
 // whatever the solver entered (nothing, for a given cell).
-function resolvedValue(key: string, ctx: SelectAllContext): number | null {
+function resolvedValue(key: string, ctx: SelectAllContext): CellValue | null {
   const given = ctx.givenDigits[key]
   if (given !== undefined && !ctx.fog?.has(key)) return given
   return ctx.solverCellStates[key]?.value ?? null

@@ -5,7 +5,8 @@ import { useEditorStore } from '@/stores/editor'
 import { useSolverStore } from '@/stores/solver'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
-import type { CellState } from '@/types/grid'
+import { compareCellValues } from '@/utils/cellValues'
+import type { CellState, CellValue } from '@/types/grid'
 
 const props = defineProps<{
   givenDigits: Record<string, number>
@@ -26,7 +27,7 @@ const showConflictMarks = computed(() => editor.mode !== 'solving' || player.set
 
 // A pencil mark's colour: red when it conflicts with a seen digit (if enabled),
 // otherwise the normal indigo. Shared by corner and (as a fallback) centre marks.
-function seenMarkFill(cell: string, digit: number): string {
+function seenMarkFill(cell: string, digit: CellValue): string {
   return showConflictMarks.value && editor.seenDigitsByCell.get(cell)?.has(digit) ? MARK_SEEN : MARK_NORMAL
 }
 
@@ -42,13 +43,19 @@ const COUNT_2_4 = '#2563eb'  // bright blue
 const COUNT_5_10 = '#60a5fa' // faded blue
 const COUNT_MANY = '#9ca3af' // grey: more than 10 solutions
 
-function countFor(cell: string, digit: number): number | undefined {
+// Solver-worker diagnostics only exist for digits; letters fall through.
+function countFor(cell: string, digit: CellValue): number | undefined {
+  if (typeof digit !== 'number') return undefined
   return solver.showCandidateCounts ? solver.candidateCounts[cell]?.[digit] : undefined
 }
 
-function centerMarkFill(cell: string, digit: number): string {
+function centerMarkFill(cell: string, digit: CellValue): string {
   // Logical-candidate diagnostic: irreducible-but-impossible candidates are red.
-  if (solver.showLogicalCandidates && solver.redCandidates[cell]?.includes(digit)) return MARK_SEEN
+  if (
+    typeof digit === 'number' &&
+    solver.showLogicalCandidates &&
+    solver.redCandidates[cell]?.includes(digit)
+  ) return MARK_SEEN
   const count = countFor(cell, digit)
   if (count !== undefined) {
     if (count === 1) return COUNT_1
@@ -60,7 +67,7 @@ function centerMarkFill(cell: string, digit: number): string {
 }
 
 // Bold the unique-completing candidate so it stands out clearly from the blues.
-function centerMarkWeight(cell: string, digit: number): string {
+function centerMarkWeight(cell: string, digit: CellValue): string {
   return countFor(cell, digit) === 1 ? '700' : '400'
 }
 
@@ -85,7 +92,7 @@ interface DigitEntry {
   key: string
   x: number
   y: number
-  digit: number
+  digit: CellValue
   isGiven: boolean
 }
 
@@ -93,7 +100,7 @@ interface CornerMarkEntry {
   key: string
   x: number
   y: number
-  digit: number
+  digit: CellValue
   anchor: string
   baseline: string
   fill: string
@@ -103,7 +110,7 @@ interface CenterMarkEntry {
   key: string
   x: number
   y: number
-  marks: Array<{ digit: number; fill: string; weight: string }>
+  marks: Array<{ digit: CellValue; fill: string; weight: string }>
 }
 
 // A given only asserts itself while the solver can see it: hidden under fog
@@ -141,7 +148,7 @@ const cornerMarks = computed<CornerMarkEntry[]>(() => {
       if (!state?.cornerMarks.length || state.value != null || givenVisible(key)) continue
       const cellX = PADDING + c * CELL_SIZE
       const cellY = PADDING + r * CELL_SIZE
-      const digits = [...state.cornerMarks].sort((a, b) => a - b)
+      const digits = [...state.cornerMarks].sort(compareCellValues)
       const n = Math.min(digits.length, MARK_SLOTS.length)
       // Take the first n slots by priority, then sort them by reading order
       const active = MARK_SLOTS.slice(0, n)

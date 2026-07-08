@@ -67,6 +67,7 @@ function minimalSnapshot(savedAt: number, cells = 0): SolveSnapshot {
       inputMode: 'digit',
       palettePage: 0,
       pen: { segments: {}, cellMarks: {}, edgeMarks: {} },
+      letterMode: false,
     },
   }
 }
@@ -332,5 +333,60 @@ describe('pen state in snapshots', () => {
     const snap = normalizeSnapshot(JSON.parse(JSON.stringify(raw)))
     expect(snap).not.toBeNull()
     expect(snap!.progress.pen).toEqual({ segments: {}, cellMarks: {}, edgeMarks: {} })
+  })
+})
+
+// ── Letter-tool persistence ───────────────────────────────────────────────────
+describe('letters in snapshots', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('letters survive normalizeCell (values and marks); garbage is dropped', () => {
+    const snap = normalizeSnapshot({
+      cellState: {
+        r0c0: { value: 'A', cornerMarks: ['B', 2, 'bad', null], centerMarks: [3, 'Z'] },
+        r0c1: { value: 'lowercase' }, // not a single capital -> dropped
+      },
+      progress: { schemaVersion: SOLVE_SCHEMA_VERSION },
+    })
+    expect(snap?.cellState.r0c0.value).toBe('A')
+    expect(snap?.cellState.r0c0.cornerMarks).toEqual(['B', 2])
+    expect(snap?.cellState.r0c0.centerMarks).toEqual([3, 'Z'])
+    expect(snap?.cellState.r0c1.value).toBeNull()
+  })
+
+  it('letterMode round-trips and defaults to false on legacy snapshots', () => {
+    const raw = minimalSnapshot(10, 0)
+    raw.progress.letterMode = true
+    const snap = normalizeSnapshot(JSON.parse(JSON.stringify(raw)))
+    expect(snap?.progress.letterMode).toBe(true)
+    const legacy = minimalSnapshot(10, 0) as unknown as { progress: Record<string, unknown> }
+    delete legacy.progress.letterMode
+    expect(normalizeSnapshot(JSON.parse(JSON.stringify(legacy)))?.progress.letterMode).toBe(false)
+  })
+
+  it('the collaboration relay preserves letter cells', () => {
+    const local: Record<string, CellState> = {}
+    const incoming = {
+      r0c0: { value: 'A', cornerMarks: [], centerMarks: [], color: null, colors: [] },
+    }
+    const result = applyCellDiff(local, {}, incoming)
+    expect(result.cells.r0c0.value).toBe('A')
+  })
+
+  it('serializeSession round-trips letter cells and letterMode through the editor', () => {
+    const e1 = useEditorStore()
+    e1.setMode('solving')
+    e1.selection = new Set(['r0c0'])
+    e1.setSolverValueForSelection('Q')
+    e1.letterMode = true
+    const snap = JSON.parse(JSON.stringify(serializeSession(e1, makeFakeTimer(), useColorPaletteStore(), null)))
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    applySession(e2, makeFakeTimer(), useColorPaletteStore(), snap)
+    expect(e2.solverCellStates['r0c0'].value).toBe('Q')
+    expect(e2.letterMode).toBe(true)
   })
 })

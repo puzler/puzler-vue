@@ -700,12 +700,14 @@ function cosmeticDataFromDoc(kind: string, inst: DocInstance): unknown {
   }
 }
 
-// The map of currently-filled cells (givens plus solver-entered digits), empty
+// The map of currently-filled cells (givens plus solver-entered values), empty
 // cells omitted. Used both to capture the author's solution and to check a
 // player's board against the solution hash — so variants that intentionally
 // leave cells blank work: the solution simply doesn't include those cells.
-export function boardSnapshot(editor: EditorStore, grid: GridStore): Record<string, number> {
-  const board: Record<string, number> = {}
+// Letter-tool letters ride through like any wrong digit: they hash and submit
+// as-is, and can never match a numeric solution.
+export function boardSnapshot(editor: EditorStore, grid: GridStore): Record<string, number | string> {
+  const board: Record<string, number | string> = {}
   for (let r = 0; r < grid.rows; r++) {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)

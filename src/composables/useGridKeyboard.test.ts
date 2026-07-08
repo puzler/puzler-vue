@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
-import { mount } from '@vue/test-utils'
+import { mount, enableAutoUnmount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
@@ -9,7 +9,11 @@ import { pushModal } from '@/components/ui/modalStack'
 import { useGridKeyboard } from './useGridKeyboard'
 
 // Mounts a throwaway host so the composable's onMounted registers its window
-// listeners; tests then dispatch real KeyboardEvents on window.
+// listeners; tests then dispatch real KeyboardEvents on window. Hosts unmount
+// after each test — without this, every prior test's listener (bound to its
+// own stale pinia) keeps firing on the shared window and pollutes later tests.
+enableAutoUnmount(afterEach)
+
 function mountHost() {
   const Host = defineComponent({
     setup() {
@@ -304,5 +308,78 @@ describe('line tool keyboard', () => {
     press('Shift', { shiftKey: true })
     expect(editor.keyboardModeOverride).toBeNull()
     expect(editor.effectiveInputMode).toBe('line')
+  })
+})
+
+// ── Letter tool keys ──────────────────────────────────────────────────────────
+describe('letter tool keyboard', () => {
+  let editor: ReturnType<typeof useEditorStore>
+  let player: ReturnType<typeof usePlayerSettingsStore>
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    editor = useEditorStore()
+    player = usePlayerSettingsStore()
+    useGridStore()
+    mountHost()
+    editor.setMode('solving')
+    player.settings.enableLetterTool = true
+  })
+
+  it("'/' toggles letter mode only while the tool is enabled", () => {
+    press('/')
+    expect(editor.letterMode).toBe(true)
+    press('/')
+    expect(editor.letterMode).toBe(false)
+    player.settings.enableLetterTool = false
+    press('/')
+    expect(editor.letterMode).toBe(false)
+  })
+
+  it('captures bound letter keys as input while letter mode is on', () => {
+    editor.setLetterMode(true)
+    editor.selectCell('r0c0')
+    press('z', { code: 'KeyZ' }) // normally the digit-mode key
+    expect(editor.solverCellStates['r0c0'].value).toBe('Z')
+    expect(editor.inputMode).toBe('digit') // mode did NOT switch
+    press('w', { code: 'KeyW' }) // normally navigation
+    expect(editor.solverCellStates['r0c0'].value).toBe('W')
+    expect([...editor.selection]).toEqual(['r0c0']) // selection did NOT move
+  })
+
+  it('Shift+letter corner-marks, mirroring Shift+digit', () => {
+    editor.setLetterMode(true)
+    editor.selectCell('r1c1')
+    press('Q', { code: 'KeyQ', shiftKey: true })
+    expect(editor.solverCellStates['r1c1'].cornerMarks).toEqual(['Q'])
+  })
+
+  it('Ctrl/Cmd chords still work in letter mode (undo, not a letter)', () => {
+    editor.setLetterMode(true)
+    editor.selectCell('r0c0')
+    press('a', { code: 'KeyA' })
+    expect(editor.solverCellStates['r0c0'].value).toBe('A')
+    press('z', { code: 'KeyZ', ctrlKey: true })
+    expect(editor.solverCellStates['r0c0']).toBeUndefined() // undone
+  })
+
+  it('digits, arrows and Backspace keep their meaning in letter mode', () => {
+    editor.setLetterMode(true)
+    editor.selectCell('r0c0')
+    press('5', { code: 'Digit5' })
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+    press('ArrowRight')
+    expect([...editor.selection]).toEqual(['r0c1'])
+    press('a', { code: 'KeyA' })
+    press('Backspace')
+    // Deletion is staged: the first Backspace clears the value, keeping marks.
+    expect(editor.solverCellStates['r0c1'].value).toBeNull()
+  })
+
+  it('letters type normally only when letter mode is ON', () => {
+    editor.selectCell('r0c0')
+    press('q', { code: 'KeyQ' }) // letter mode off -> unbound key, no input
+    expect(editor.solverCellStates['r0c0']).toBeUndefined()
   })
 })

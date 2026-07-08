@@ -8,7 +8,8 @@ import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import { segmentKey, EMPTY_PEN_STATE, isEmptyPenState } from '@/utils/pen'
-import type { CellState, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
+import { sortMarks } from '@/utils/cellValues'
+import type { CellState, CellValue, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { fogCellHash, computeFoggedCells } from '@/utils/fog'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
@@ -89,6 +90,13 @@ export const useEditorStore = defineStore('editor', () => {
     lattice: 'center' | 'corner'
     pass: 'draw' | 'erase' | null
   } | null>(null)
+  // ── Letter tool ────────────────────────────────────────────────────────────
+  // Numpad-level toggle: while on (and the tool is enabled in settings), the
+  // digit keys become A-J and every unmodified keyboard letter is grid input.
+  const letterMode = ref(false)
+  const letterModeActive = computed(
+    () => letterMode.value && usePlayerSettingsStore().settings.enableLetterTool,
+  )
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
   const pendingBranchThermoId = ref<string | null>(null)
@@ -218,6 +226,14 @@ export const useEditorStore = defineStore('editor', () => {
       if (!on && inputMode.value === 'line') setInputMode('digit')
     },
   )
+
+  // Same for the letter tool: disabling it reverts the numpad to numbers.
+  watch(
+    () => usePlayerSettingsStore().settings.enableLetterTool,
+    (on) => {
+      if (!on) letterMode.value = false
+    },
+  )
   const { canUndo, canRedo, execute, record, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
 
   const hasSelection = computed(() => selection.value.size > 0)
@@ -312,7 +328,8 @@ export const useEditorStore = defineStore('editor', () => {
       const digit = state?.value ?? null
       if (digit === null || digit === undefined || givenDigits.value[key] !== undefined) continue
       if (hashes && salt) {
-        if (hashes[key] === fogCellHash(salt, key, digit)) verified.add(key)
+        // Letters can never match a published solution hash — fog stays put.
+        if (typeof digit === 'number' && hashes[key] === fogCellHash(salt, key, digit)) verified.add(key)
       } else {
         verified.add(key)
       }
@@ -336,13 +353,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   // Filled cells (givens or committed solver values) with their coordinates. Shared
   // by conflict checking and pencil-mark checking.
-  const filledDigitCells = computed<Array<{ key: string; row: number; col: number; digit: number }>>(() => {
+  // `digit` may be a Letter-tool letter: letters conflict like digits (two A's
+  // in a row tint red) and feed seen-mark checks the same way.
+  const filledDigitCells = computed<Array<{ key: string; row: number; col: number; digit: CellValue }>>(() => {
     const gridStore = useGridStore()
     // Fogged givens are invisible to the solver, so they must not feed conflict
     // tints or seen-digit checks — either would leak what hides under the fog.
     // Solver-entered digits always count; they render above the fog.
     const fogged = fogEnabled.value && mode.value === 'solving' ? foggedCells.value : null
-    const out: Array<{ key: string; row: number; col: number; digit: number }> = []
+    const out: Array<{ key: string; row: number; col: number; digit: CellValue }> = []
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
@@ -357,15 +376,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   // For each cell: the set of full digits it can see (variant-aware), used by the
   // optional "highlight conflicting pencil marks" aid.
-  const seenDigitsByCell = computed<Map<string, Set<number>>>(() => {
+  const seenDigitsByCell = computed<Map<string, Set<CellValue>>>(() => {
     const gridStore = useGridStore()
     const { seesRC } = cellVisibility.value
     const filled = filledDigitCells.value
-    const result = new Map<string, Set<number>>()
+    const result = new Map<string, Set<CellValue>>()
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
-        const seen = new Set<number>()
+        const seen = new Set<CellValue>()
         for (const f of filled) {
           if (f.key === key) continue
           if (seesRC(key, r, c, f.key, f.row, f.col)) seen.add(f.digit)
@@ -405,7 +424,7 @@ export const useEditorStore = defineStore('editor', () => {
   const errorCells = computed<Set<string>>(() => {
     const { seesRC } = cellVisibility.value
     const errors = new Set<string>()
-    const byDigit = new Map<number, Array<{ key: string; row: number; col: number }>>()
+    const byDigit = new Map<CellValue, Array<{ key: string; row: number; col: number }>>()
     for (const f of filledDigitCells.value) {
       let group = byDigit.get(f.digit)
       if (!group) byDigit.set(f.digit, (group = []))
@@ -611,7 +630,7 @@ export const useEditorStore = defineStore('editor', () => {
     return givenDigits.value[key] !== undefined && !foggedCells.value.has(key)
   }
 
-  function setSolverValueForSelection(digit: number | null) {
+  function setSolverValueForSelection(digit: CellValue | null) {
     const keys = Array.from(selection.value).filter((k) => givenDigits.value[k] === undefined)
     if (!keys.length) return
     const before = snapshotCells(keys)
@@ -622,7 +641,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute({ kind: 'solverDiff', before, after })
   }
 
-  function toggleCornerMarkForSelection(digit: number) {
+  function toggleCornerMarkForSelection(digit: CellValue) {
     const keys = Array.from(selection.value).filter(
       (k) => !givenBlocksMarks(k) && !solverCellStates.value[k]?.value,
     )
@@ -633,13 +652,13 @@ export const useEditorStore = defineStore('editor', () => {
       const cur = before[k] ?? blankCell()
       const marks = cur.cornerMarks.includes(digit)
         ? cur.cornerMarks.filter((m) => m !== digit)
-        : [...cur.cornerMarks, digit].sort((a, b) => a - b)
+        : sortMarks([...cur.cornerMarks, digit])
       after[k] = { ...cur, cornerMarks: marks }
     }
     execute({ kind: 'solverDiff', before, after })
   }
 
-  function toggleCenterMarkForSelection(digit: number) {
+  function toggleCenterMarkForSelection(digit: CellValue) {
     const keys = Array.from(selection.value).filter(
       (k) => !givenBlocksMarks(k) && !solverCellStates.value[k]?.value,
     )
@@ -650,10 +669,25 @@ export const useEditorStore = defineStore('editor', () => {
       const cur = before[k] ?? blankCell()
       const marks = cur.centerMarks.includes(digit)
         ? cur.centerMarks.filter((m) => m !== digit)
-        : [...cur.centerMarks, digit].sort((a, b) => a - b)
+        : sortMarks([...cur.centerMarks, digit])
       after[k] = { ...cur, centerMarks: marks }
     }
     execute({ kind: 'solverDiff', before, after })
+  }
+
+  function setLetterMode(v: boolean) {
+    letterMode.value = v
+  }
+
+  // Letter input routes like digit input, but letters have no meaning in color
+  // or line mode — those fall back to placing a full value.
+  function placeLetterForSelection(letter: string, modeOverride?: SolverInputMode) {
+    if (mode.value !== 'solving') return
+    let effective = modeOverride ?? effectiveInputMode.value
+    if (effective === 'color' || effective === 'line') effective = 'digit'
+    if (effective === 'digit') setSolverValueForSelection(letter)
+    else if (effective === 'corner') toggleCornerMarkForSelection(letter)
+    else if (effective === 'center') toggleCenterMarkForSelection(letter)
   }
 
   function setInputMode(m: SolverInputMode) {
@@ -1762,6 +1796,7 @@ export const useEditorStore = defineStore('editor', () => {
     penTarget.value = 'centers'
     penColorIndex.value = 1
     pendingPenStroke.value = null
+    letterMode.value = false
     cosmeticInstances.value = []
     singleCellMarks.value = {}
     singleCellMarkColors.value = {}
@@ -2449,6 +2484,10 @@ export const useEditorStore = defineStore('editor', () => {
     penColorIndex,
     penColorKey,
     pendingPenStroke,
+    letterMode,
+    letterModeActive,
+    setLetterMode,
+    placeLetterForSelection,
     setPenTarget,
     setPenColorIndex,
     beginPenStroke,

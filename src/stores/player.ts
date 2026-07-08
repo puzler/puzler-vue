@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUndoRedo } from '@/composables/useUndoRedo'
+import { compareCellValues } from '@/utils/cellValues'
 import type { CellState } from '@/types/grid'
 
 export type InputMode = 'normal' | 'corner' | 'center' | 'color'
@@ -71,7 +72,7 @@ export const usePlayerStore = defineStore('player', () => {
       const idx = cell.cornerMarks.indexOf(digit)
       if (idx === -1) {
         cell.cornerMarks.push(digit)
-        cell.cornerMarks.sort((a, b) => a - b)
+        cell.cornerMarks.sort(compareCellValues)
       } else {
         cell.cornerMarks.splice(idx, 1)
       }
@@ -83,7 +84,7 @@ export const usePlayerStore = defineStore('player', () => {
       const idx = cell.centerMarks.indexOf(digit)
       if (idx === -1) {
         cell.centerMarks.push(digit)
-        cell.centerMarks.sort((a, b) => a - b)
+        cell.centerMarks.sort(compareCellValues)
       } else {
         cell.centerMarks.splice(idx, 1)
       }

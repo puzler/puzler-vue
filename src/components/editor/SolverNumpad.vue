@@ -2,24 +2,21 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useColorPaletteStore } from '@/stores/colorPalette'
+import { LETTER_LABELS } from '@/utils/cellValues'
 import SolverNumpadControls from './SolverNumpadControls.vue'
 import NumpadModeKeys from './NumpadModeKeys.vue'
+import NumpadBottomRow from './NumpadBottomRow.vue'
 import NumpadExtraToolsBar from './NumpadExtraToolsBar.vue'
 import NumpadExtraToolsRail from './NumpadExtraToolsRail.vue'
 import NumpadColorBar from './NumpadColorBar.vue'
-import type { PenTarget } from '@/types/grid'
 
 const editor = useEditorStore()
 const palette = useColorPaletteStore()
 
 const isColor = computed(() => editor.effectiveInputMode === 'color')
 const isLine = computed(() => editor.effectiveInputMode === 'line')
-
-const PEN_TARGETS: { value: PenTarget; label: string }[] = [
-  { value: 'centers', label: 'Centers' },
-  { value: 'edges', label: 'Edges' },
-  { value: 'both', label: 'Centers & Edges' },
-]
+// Letter mode relabels the keys A-J only where letters can be placed.
+const letterKeys = computed(() => editor.letterModeActive && !isColor.value && !isLine.value)
 
 const KEY = 'relative flex p-1 aspect-square rounded-lg bg-surface border border-line text-ink-text font-display font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors'
 
@@ -69,6 +66,7 @@ function lineSwatchStyle(index: number): Record<string, string> {
 
 function onDigitKey(n: number) {
   if (isLine.value) editor.setPenColorIndex(n)
+  else if (letterKeys.value) editor.placeLetterForSelection(LETTER_LABELS[n])
   else editor.placeDigitForSelection(n)
 }
 </script>
@@ -107,7 +105,7 @@ function onDigitKey(n: number) {
           <span
             v-else
             :class="['transition-all duration-150', digitClass(n)]"
-          >{{ n }}</span>
+          >{{ letterKeys ? LETTER_LABELS[n] : n }}</span>
         </button>
 
         <!-- Mode buttons in the trailing column, rows 1-4 (+ line tool row 5) -->
@@ -118,43 +116,8 @@ function onDigitKey(n: number) {
         />
         <NumpadModeKeys />
 
-        <!-- Row 4: 0 + Delete; in line mode both give way to the target picker -->
-        <select
-          v-if="isLine"
-          v-model="editor.penTarget"
-          aria-label="Line tool target"
-          class="col-start-1 col-span-3 row-start-4 h-full rounded-lg bg-surface border border-line text-soft text-sm font-medium shadow-sm px-2 hover:border-action transition-colors"
-        >
-          <option
-            v-for="t in PEN_TARGETS"
-            :key="t.value"
-            :value="t.value"
-          >
-            {{ t.label }}
-          </option>
-        </select>
-        <template v-else>
-          <button
-            :class="[KEY, 'col-start-1 row-start-4', isColor ? 'overflow-hidden' : '']"
-            :style="isColor ? swatchStyle(0) : undefined"
-            @click="editor.placeDigitForSelection(0)"
-          >
-            <span
-              v-if="isColor"
-              class="absolute bottom-0.5 right-1 font-display text-[9px] font-semibold text-ink-text/50 leading-none"
-            >0</span>
-            <span
-              v-else
-              :class="['transition-all duration-150', digitClass(0)]"
-            >0</span>
-          </button>
-          <button
-            class="col-start-2 col-span-2 row-start-4 h-full rounded-lg bg-surface border border-line text-soft text-sm font-medium shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 active:bg-red-100 transition-colors"
-            @click="editor.placeDigitForSelection(null)"
-          >
-            Delete
-          </button>
-        </template>
+        <!-- Row 4: 0 + Delete (+ the letters toggle) or the pen target picker -->
+        <NumpadBottomRow />
       </div>
 
       <!-- Color page navigation + palette editor, shown only in color mode -->

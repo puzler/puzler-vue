@@ -14,7 +14,8 @@
 
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string'
 import { clonePenState, isEmptyPenState, normalizePenState } from '@/utils/pen'
-import type { CellState, SolverInputMode, PenState } from '@/types/grid'
+import { isLetter } from '@/utils/cellValues'
+import type { CellState, CellValue, SolverInputMode, PenState } from '@/types/grid'
 import type { SerializedHistory, SolverDiff } from '@/composables/useUndoRedo'
 
 export const SOLVE_SCHEMA_VERSION = 1
@@ -50,6 +51,8 @@ export interface SolveProgress {
   // solve. Rides progress_state; cell_state stays strictly cell-keyed for the
   // collaboration relay.
   pen: PenState
+  // Letter-tool numpad toggle (additive like `pen`; absent → false).
+  letterMode: boolean
 }
 
 export interface SolveSnapshot {
@@ -65,6 +68,7 @@ export interface SolverEditorLike {
   selection: Set<string>
   inputMode: SolverInputMode
   penState: PenState
+  letterMode: boolean
   setInputMode: (m: SolverInputMode) => void
   serializeHistory: () => SerializedHistory
   hydrateHistory: (h: SerializedHistory | null) => void
@@ -124,6 +128,7 @@ export function serializeSession(
       inputMode: editor.inputMode,
       palettePage: palette.pageIndex,
       pen: clonePenState(editor.penState),
+      letterMode: editor.letterMode,
     },
   }
 }
@@ -145,6 +150,7 @@ export function applySession(
   editor.selection = new Set(snap.progress.selection)
   editor.setInputMode(snap.progress.inputMode)
   editor.penState = clonePenState(snap.progress.pen)
+  editor.letterMode = snap.progress.letterMode
   editor.hydrateHistory(snap.progress.history)
   palette.setPageIndex(snap.progress.palettePage)
   timer.restore(snap.progress.elapsed, snap.progress.holds)
@@ -288,19 +294,27 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
 }
 
-function numberArray(v: unknown): number[] {
-  return Array.isArray(v) ? v.filter((n): n is number => typeof n === 'number') : []
-}
 function stringArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []
+}
+
+// Values and marks may be digits OR Letter-tool letters (single capitals);
+// anything else is garbage and dropped. This runs on every reload AND on the
+// collaboration relay (applyCellDiff), so rejecting letters here would make
+// them silently vanish.
+function cellValue(v: unknown): CellValue | null {
+  return typeof v === 'number' || isLetter(v) ? v : null
+}
+function markArray(v: unknown): CellValue[] {
+  return Array.isArray(v) ? v.filter((m): m is CellValue => cellValue(m) !== null) : []
 }
 
 function normalizeCell(raw: unknown): CellState {
   const r = isObject(raw) ? raw : {}
   return {
-    value: typeof r.value === 'number' ? r.value : null,
-    cornerMarks: numberArray(r.cornerMarks),
-    centerMarks: numberArray(r.centerMarks),
+    value: cellValue(r.value),
+    cornerMarks: markArray(r.cornerMarks),
+    centerMarks: markArray(r.centerMarks),
     color: typeof r.color === 'string' ? r.color : null,
     colors: stringArray(r.colors),
   }
@@ -340,6 +354,7 @@ export function normalizeProgress(raw: unknown): SolveProgress {
     inputMode,
     palettePage: typeof r.palettePage === 'number' && r.palettePage >= 0 ? Math.floor(r.palettePage) : 0,
     pen: normalizePenState(r.pen),
+    letterMode: r.letterMode === true,
   }
 }
 

@@ -33,10 +33,15 @@ export interface BoxRegion {
   cells: CellKey[]
 }
 
+// What a solver can put in a cell: a digit, or (with the Letter tool) a single
+// capital letter 'A'-'Z'. Letters behave like digits for conflict/seen
+// highlighting but can never match a solution. Givens stay numeric.
+export type CellValue = number | string
+
 export interface CellState {
-  value: number | null
-  cornerMarks: number[]
-  centerMarks: number[]
+  value: CellValue | null
+  cornerMarks: CellValue[]
+  centerMarks: CellValue[]
   // Legacy single cosmetic color (author-set). Player coloring uses `colors`.
   color: string | null
   // Player-applied cell colors, stored as palette keys (sorted). A cell can

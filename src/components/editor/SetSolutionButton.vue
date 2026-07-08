@@ -22,13 +22,18 @@ function flash(state: 'set' | 'cleared') {
 
 // Plain click captures the current board (givens + entered digits) as the
 // solution; empty cells are simply absent from the snapshot. Shift-click clears
-// the saved solution, a quick undo for one set by accident.
+// the saved solution, a quick undo for one set by accident. Solutions are
+// digit-only: any Letter-tool letters on the board are skipped like empties.
 function onClick(event: MouseEvent) {
   if (event.shiftKey) {
     editor.solution = null
     flash('cleared')
   } else {
-    editor.solution = boardSnapshot(editor, grid)
+    const solution: Record<string, number> = {}
+    for (const [key, value] of Object.entries(boardSnapshot(editor, grid))) {
+      if (typeof value === 'number') solution[key] = value
+    }
+    editor.solution = solution
     flash('set')
   }
 }

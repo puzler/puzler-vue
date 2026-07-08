@@ -90,6 +90,21 @@ export function useGridKeyboard() {
       }
     }
 
+    // Letter mode captures EVERY unmodified letter key as grid input — even
+    // ones bound below (Z/X/C/V/B mode keys, WASD navigation). Shift+letter
+    // corner-marks, mirroring Shift+digit; Ctrl/Cmd/Alt chords pass through so
+    // undo/redo/select-all (and browser shortcuts) keep working. Non-letters
+    // (arrows, Space, digits, Backspace, '/') are unaffected.
+    if (
+      editor.mode === 'solving' && editor.letterModeActive &&
+      !event.ctrlKey && !event.metaKey && !event.altKey &&
+      /^[a-zA-Z]$/.test(event.key)
+    ) {
+      event.preventDefault()
+      editor.placeLetterForSelection(event.key.toUpperCase(), event.shiftKey ? 'corner' : undefined)
+      return
+    }
+
     const isWasd = event.key in { w: 1, a: 1, s: 1, d: 1 }
     const dir = DIRECTIONS[event.key]
     if (dir && (!isWasd || (!event.ctrlKey && !event.metaKey))) {
@@ -132,6 +147,13 @@ export function useGridKeyboard() {
         editor.setConnectorDotValue(sign)
         return
       }
+    }
+
+    // '/' toggles the Letter tool's numbers/letters mode (when enabled).
+    if (editor.mode === 'solving' && event.key === '/' && player.settings.enableLetterTool) {
+      event.preventDefault()
+      editor.setLetterMode(!editor.letterMode)
+      return
     }
 
     if (editor.mode === 'solving' && !event.ctrlKey && !event.metaKey) {

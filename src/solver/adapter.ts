@@ -52,8 +52,14 @@ export function buildSolverPuzzle(
       if (editor.givenDigits[key] !== undefined) continue
       const cell = keyToIndex(key)
       if (cell < 0) continue
-      if (state.value != null) placed.push({ cell, value: state.value })
-      else if (state.centerMarks.length) centerMarks.push({ cell, values: [...state.centerMarks] })
+      // The solver worker only understands digits; Letter-tool letters are
+      // annotations and never constrain it.
+      if (typeof state.value === 'number') {
+        placed.push({ cell, value: state.value })
+      } else if (state.value == null) {
+        const values = state.centerMarks.filter((v): v is number => typeof v === 'number')
+        if (values.length) centerMarks.push({ cell, values })
+      }
     }
   }
 

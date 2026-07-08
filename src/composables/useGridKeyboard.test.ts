@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { pushModal } from '@/components/ui/modalStack'
 import { useGridKeyboard } from './useGridKeyboard'
 
@@ -236,5 +237,72 @@ describe('multiSelectMode store state', () => {
     expect(editor.multiSelectMode).toBe(true)
     editor.reset()
     expect(editor.multiSelectMode).toBe(false)
+  })
+})
+
+// ── Line (pen) tool keys ──────────────────────────────────────────────────────
+describe('line tool keyboard', () => {
+  let editor: ReturnType<typeof useEditorStore>
+  let player: ReturnType<typeof usePlayerSettingsStore>
+
+  beforeEach(() => {
+    // Player settings persist to localStorage; clear so one test's
+    // enableLineTool write can't leak into the next one's fresh pinia.
+    localStorage.clear()
+    setActivePinia(createPinia())
+    editor = useEditorStore()
+    player = usePlayerSettingsStore()
+    useGridStore()
+    mountHost()
+    editor.setMode('solving')
+  })
+
+  it('B enters line mode only when the tool is enabled', () => {
+    press('b', { code: 'KeyB' })
+    expect(editor.inputMode).toBe('digit')
+    player.settings.enableLineTool = true
+    press('b', { code: 'KeyB' })
+    expect(editor.inputMode).toBe('line')
+  })
+
+  it('the Space cycle includes line mode only when enabled', () => {
+    editor.setInputMode('color')
+    press(' ', { code: 'Space' })
+    expect(editor.inputMode).toBe('digit') // color wraps straight to digit
+    player.settings.enableLineTool = true
+    editor.setInputMode('color')
+    press(' ', { code: 'Space' })
+    expect(editor.inputMode).toBe('line')
+    press(' ', { code: 'Space' })
+    expect(editor.inputMode).toBe('digit')
+  })
+
+  it('digits pick the pen color instead of entering the grid', () => {
+    player.settings.enableLineTool = true
+    editor.setInputMode('line')
+    editor.selectCell('r0c0')
+    press('5', { code: 'Digit5' })
+    expect(editor.penColorIndex).toBe(5)
+    expect(editor.solverCellStates['r0c0']).toBeUndefined()
+  })
+
+  it('Backspace/Delete/0 are inert in line mode (no cell clearing)', () => {
+    player.settings.enableLineTool = true
+    editor.selectCell('r0c0')
+    press('5', { code: 'Digit5' })
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+    editor.setInputMode('line')
+    press('Backspace')
+    press('Delete')
+    press('0', { code: 'Digit0' })
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+  })
+
+  it('held modifiers do not set a mode override while in line mode', () => {
+    player.settings.enableLineTool = true
+    editor.setInputMode('line')
+    press('Shift', { shiftKey: true })
+    expect(editor.keyboardModeOverride).toBeNull()
+    expect(editor.effectiveInputMode).toBe('line')
   })
 })

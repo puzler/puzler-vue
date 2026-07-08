@@ -2,6 +2,8 @@ import { onMounted, onUnmounted } from 'vue'
 import { isModalOpen } from '@/components/ui/modalStack'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { enabledExtraModes, nextExtraMode } from '@/components/editor/numpadModes'
 import { cellKey, keyToRowCol } from './useGrid'
 import type { SolverInputMode } from '@/types/grid'
 import type { ShapeData, TextData } from '@/types/constraints'
@@ -15,6 +17,7 @@ import type { ShapeData, TextData } from '@/types/constraints'
 export function useGridKeyboard() {
   const editor = useEditorStore()
   const grid = useGridStore()
+  const player = usePlayerSettingsStore()
 
   const DIRECTIONS: Record<string, { dr: number; dc: number }> = {
     ArrowUp: { dr: -1, dc: 0 },
@@ -52,7 +55,9 @@ export function useGridKeyboard() {
     // doesn't move the selection or place digits underneath.
     if (isModalOpen()) return
 
-    if (editor.mode === 'solving') {
+    // No momentary mark/color overrides while penning — a held Shift mid-stroke
+    // must not flip the numpad (or the gesture) out of line mode.
+    if (editor.mode === 'solving' && editor.inputMode !== 'line') {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
       else if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
       else if (event.shiftKey) editor.setKeyboardModeOverride('corner')
@@ -134,11 +139,20 @@ export function useGridKeyboard() {
       if (event.key === 'x' || event.key === 'X') { editor.setInputMode('corner'); return }
       if (event.key === 'c' || event.key === 'C') { editor.setInputMode('center'); return }
       if (event.key === 'v' || event.key === 'V') { editor.setInputMode('color'); return }
+      // B is the one keybind for every optional tool: it cycles through the
+      // enabled extras (no-op while none are enabled).
+      if (event.key === 'b' || event.key === 'B') {
+        const next = nextExtraMode(enabledExtraModes(player.settings), editor.inputMode)
+        if (next) { editor.setInputMode(next); return }
+      }
     }
 
     if (event.key === ' ' && editor.mode === 'solving') {
       event.preventDefault()
-      const cycle: SolverInputMode[] = ['digit', 'corner', 'center', 'color']
+      const cycle: SolverInputMode[] = [
+        'digit', 'corner', 'center', 'color',
+        ...enabledExtraModes(player.settings).map((m) => m.mode),
+      ]
       const next = cycle[(cycle.indexOf(editor.inputMode) + 1) % cycle.length]
       editor.setInputMode(next)
       return
@@ -212,6 +226,21 @@ export function useGridKeyboard() {
       }
     }
 
+    // Line mode: digits 1-9 pick the pen color; Backspace/Delete/0 are inert
+    // (committed pen lines are only removed by an erase pass — and cell
+    // contents must never be nuked from pen mode).
+    if (editor.mode === 'solving' && editor.effectiveInputMode === 'line') {
+      if (event.key === 'Backspace' || event.key === 'Delete' || digit === 0) {
+        event.preventDefault()
+        return
+      }
+      if (digit !== null && digit >= 1 && digit <= 9) {
+        event.preventDefault()
+        editor.setPenColorIndex(digit)
+        return
+      }
+    }
+
     if (event.key === 'Backspace' || event.key === 'Delete' || digit === 0) {
       event.preventDefault()
       editor.placeDigitForSelection(null)
@@ -234,6 +263,7 @@ export function useGridKeyboard() {
     if (event.key === 'Shift') editor.setShiftHeld(false)
     if (isModalOpen()) return
     if (event.key !== 'Shift' && event.key !== 'Control' && event.key !== 'Meta') return
+    if (editor.inputMode === 'line') return // overrides are suppressed while penning
     if ((event.ctrlKey || event.metaKey) && event.shiftKey) editor.setKeyboardModeOverride('color')
     else if (event.ctrlKey || event.metaKey) editor.setKeyboardModeOverride('center')
     else if (event.shiftKey) editor.setKeyboardModeOverride('corner')

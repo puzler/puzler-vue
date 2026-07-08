@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
-import { ref, computed, type Ref } from 'vue'
-import { useUndoRedo } from '@/composables/useUndoRedo'
+import { ref, computed, watch, type Ref } from 'vue'
+import { useUndoRedo, type PenPatch, type SolverDiff } from '@/composables/useUndoRedo'
 import { usePresetCollection, styledPatch } from '@/composables/usePresetCollection'
 import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
-import type { CellState, SolverInputMode } from '@/types/grid'
+import { segmentKey, EMPTY_PEN_STATE, isEmptyPenState } from '@/utils/pen'
+import type { CellState, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { fogCellHash, computeFoggedCells } from '@/utils/fog'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
@@ -68,6 +70,25 @@ export const useEditorStore = defineStore('editor', () => {
   const mode = ref<'setting' | 'solving'>('setting')
   const inputMode = ref<SolverInputMode>('digit')
   const keyboardModeOverride = ref<SolverInputMode | null>(null)
+  // ── Pen (line) tool ────────────────────────────────────────────────────────
+  // Committed pen annotations (persisted with the solve session) plus the
+  // session-only stroke in progress. The stroke previews live and commits as
+  // ONE history entry on release; the first segment of a gesture decides
+  // whether the whole pass draws or erases.
+  const penState = ref<PenState>(EMPTY_PEN_STATE())
+  const penTarget = ref<PenTarget>('centers')
+  // Selected swatch position on palette PAGE 0 (the pen ignores page
+  // navigation); positions 1-9 mirror the numpad keys, defaulting to "1".
+  const penColorIndex = ref(1)
+  const penColorKey = computed<string | null>(() => {
+    const pages = useColorPaletteStore().palette.pages
+    return pages[0]?.[penColorIndex.value] ?? pages[0]?.[0] ?? null
+  })
+  const pendingPenStroke = ref<{
+    nodes: string[]
+    lattice: 'center' | 'corner'
+    pass: 'draw' | 'erase' | null
+  } | null>(null)
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
   const pendingBranchThermoId = ref<string | null>(null)
@@ -188,6 +209,15 @@ export const useEditorStore = defineStore('editor', () => {
   const activeLinePresetId = linePresetsC.activeId
   const activeLinePreset = linePresetsC.active
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
+
+  // Disabling the line tool in settings degrades cleanly: fall back to digit
+  // input rather than stranding the solver in a mode with no UI.
+  watch(
+    () => usePlayerSettingsStore().settings.enableLineTool,
+    (on) => {
+      if (!on && inputMode.value === 'line') setInputMode('digit')
+    },
+  )
   const { canUndo, canRedo, execute, record, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
 
   const hasSelection = computed(() => selection.value.size > 0)
@@ -537,12 +567,38 @@ export const useEditorStore = defineStore('editor', () => {
 
   // Write a cell-snapshot map into live solver state (clone so the stored diff is
   // never aliased to live cells); null deletes the cell. This is the applier
-  // useUndoRedo replays diffs through.
-  function applySolverSnapshot(snapshot: Record<string, CellState | null>) {
+  // useUndoRedo replays diffs through; pen patches ride the same entries.
+  function applySolverSnapshot(snapshot: Record<string, CellState | null>, pen?: PenPatch) {
     for (const k of Object.keys(snapshot)) {
       const v = snapshot[k]
       if (v === null) delete solverCellStates.value[k]
       else solverCellStates.value[k] = cloneCell(v)
+    }
+    applyPenPatch(pen)
+  }
+
+  // Write a sparse pen patch into live pen state (null deletes; marks cloned so
+  // stored diffs never alias live objects).
+  function applyPenPatch(patch?: PenPatch) {
+    if (!patch) return
+    const pen = penState.value
+    if (patch.segments) {
+      for (const [k, v] of Object.entries(patch.segments)) {
+        if (v === null) delete pen.segments[k]
+        else pen.segments[k] = v
+      }
+    }
+    if (patch.cellMarks) {
+      for (const [k, v] of Object.entries(patch.cellMarks)) {
+        if (v === null) delete pen.cellMarks[k]
+        else pen.cellMarks[k] = { ...v }
+      }
+    }
+    if (patch.edgeMarks) {
+      for (const [k, v] of Object.entries(patch.edgeMarks)) {
+        if (v === null) delete pen.edgeMarks[k]
+        else pen.edgeMarks[k] = v
+      }
     }
   }
 
@@ -602,6 +658,117 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setInputMode(m: SolverInputMode) {
     inputMode.value = m
+    // Modifier overrides are suppressed (and never cleared by keyup) in line
+    // mode; drop any held one so entering with Shift down can't strand it.
+    if (m === 'line') keyboardModeOverride.value = null
+  }
+
+  // ── Pen (line) tool actions ────────────────────────────────────────────────
+
+  function setPenTarget(t: PenTarget) {
+    penTarget.value = t
+  }
+
+  function setPenColorIndex(i: number) {
+    penColorIndex.value = Math.min(9, Math.max(1, Math.floor(i)))
+  }
+
+  function beginPenStroke(node: string, lattice: 'center' | 'corner') {
+    pendingPenStroke.value = { nodes: [node], lattice, pass: null }
+  }
+
+  // Extend the pending stroke to a node. Revisiting an earlier node of the
+  // stroke truncates back to it (same backtracking as extendPendingLine);
+  // truncating to a single node un-decides the pass so the next first segment
+  // re-decides draw-vs-erase.
+  function extendPenStroke(node: string) {
+    const stroke = pendingPenStroke.value
+    if (!stroke) return
+    const last = stroke.nodes[stroke.nodes.length - 1]
+    if (last === node) return
+    const idx = stroke.nodes.indexOf(node)
+    if (idx !== -1) {
+      stroke.nodes = stroke.nodes.slice(0, idx + 1)
+      if (stroke.nodes.length === 1) stroke.pass = null
+      return
+    }
+    if (stroke.pass === null) {
+      stroke.pass = penState.value.segments[segmentKey(last, node)] !== undefined ? 'erase' : 'draw'
+    }
+    stroke.nodes = [...stroke.nodes, node]
+  }
+
+  // Commit the pending stroke as one history entry. Draw: every path segment is
+  // set to the selected color (recoloring any it crosses). Erase: path segments
+  // that exist are deleted, the rest are ignored; erasing nothing records no
+  // history entry. Nothing touches penState until here — the drag itself only
+  // previews (PenLayer renders pendingPenStroke).
+  function commitPenStroke() {
+    const stroke = pendingPenStroke.value
+    pendingPenStroke.value = null
+    if (!stroke || stroke.nodes.length < 2) return
+    const color = penColorKey.value
+    const before: Record<string, string | null> = {}
+    const after: Record<string, string | null> = {}
+    for (let i = 1; i < stroke.nodes.length; i++) {
+      const key = segmentKey(stroke.nodes[i - 1], stroke.nodes[i])
+      const cur = penState.value.segments[key] ?? null
+      if (stroke.pass === 'erase') {
+        if (cur === null) continue
+        before[key] = cur
+        after[key] = null
+      } else {
+        if (color === null || cur === color) continue
+        before[key] = cur
+        after[key] = color
+      }
+    }
+    if (Object.keys(after).length === 0) return
+    execute({
+      kind: 'solverDiff',
+      before: {},
+      after: {},
+      pen: { before: { segments: before }, after: { segments: after } },
+    })
+  }
+
+  function cancelPenStroke() {
+    pendingPenStroke.value = null
+  }
+
+  // A pen click on a cell cycles none → X → O → none, re-stamping the currently
+  // selected color each step.
+  function penCycleCellMark(cell: string) {
+    const color = penColorKey.value
+    if (color === null) return
+    const cur = penState.value.cellMarks[cell] ?? null
+    const next: PenMark | null =
+      cur === null ? { shape: 'x', color } : cur.shape === 'x' ? { shape: 'o', color } : null
+    execute({
+      kind: 'solverDiff',
+      before: {},
+      after: {},
+      pen: {
+        before: { cellMarks: { [cell]: cur ? { ...cur } : null } },
+        after: { cellMarks: { [cell]: next } },
+      },
+    })
+  }
+
+  // A pen click on an edge toggles an X there (edges have no O).
+  function penToggleEdgeMark(edge: string) {
+    const color = penColorKey.value
+    if (color === null) return
+    const cur = penState.value.edgeMarks[edge] ?? null
+    execute({
+      kind: 'solverDiff',
+      before: {},
+      after: {},
+      pen: {
+        before: { edgeMarks: { [edge]: cur } },
+        after: { edgeMarks: { [edge]: cur === null ? color : null } },
+      },
+    })
   }
 
   // Apply a full solver state (logical step/solve): values[i] > 0 → place that
@@ -1543,11 +1710,30 @@ export const useEditorStore = defineStore('editor', () => {
 
   function clearSolverState() {
     const keys = Object.keys(solverCellStates.value)
-    if (keys.length === 0) return
+    const pen = penState.value
+    const hasPen = !isEmptyPenState(pen)
+    if (keys.length === 0 && !hasPen) return
     const before = snapshotCells(keys)
     const after: Record<string, CellState | null> = {}
     for (const k of keys) after[k] = null
-    execute({ kind: 'solverDiff', before, after })
+    const entry: SolverDiff = { kind: 'solverDiff', before, after }
+    if (hasPen) {
+      // Pen annotations clear in the SAME entry so Reset stays one undo step.
+      const nulls = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, null]))
+      entry.pen = {
+        before: {
+          segments: { ...pen.segments },
+          cellMarks: Object.fromEntries(Object.entries(pen.cellMarks).map(([k, v]) => [k, { ...v }])),
+          edgeMarks: { ...pen.edgeMarks },
+        },
+        after: {
+          segments: nulls(Object.keys(pen.segments)),
+          cellMarks: nulls(Object.keys(pen.cellMarks)),
+          edgeMarks: nulls(Object.keys(pen.edgeMarks)),
+        },
+      }
+    }
+    execute(entry)
   }
 
   // Everything reset() clears except the undo history. The raw JSON editor's
@@ -1572,6 +1758,10 @@ export const useEditorStore = defineStore('editor', () => {
     mode.value = 'setting'
     inputMode.value = 'digit'
     keyboardModeOverride.value = null
+    penState.value = EMPTY_PEN_STATE()
+    penTarget.value = 'centers'
+    penColorIndex.value = 1
+    pendingPenStroke.value = null
     cosmeticInstances.value = []
     singleCellMarks.value = {}
     singleCellMarkColors.value = {}
@@ -2254,6 +2444,19 @@ export const useEditorStore = defineStore('editor', () => {
     inputMode,
     keyboardModeOverride,
     effectiveInputMode,
+    penState,
+    penTarget,
+    penColorIndex,
+    penColorKey,
+    pendingPenStroke,
+    setPenTarget,
+    setPenColorIndex,
+    beginPenStroke,
+    extendPenStroke,
+    commitPenStroke,
+    cancelPenStroke,
+    penCycleCellMark,
+    penToggleEdgeMark,
     setActiveTool,
     setMode,
     setInputMode,

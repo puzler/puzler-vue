@@ -66,6 +66,7 @@ function minimalSnapshot(savedAt: number, cells = 0): SolveSnapshot {
       selection: [],
       inputMode: 'digit',
       palettePage: 0,
+      pen: { segments: {}, cellMarks: {}, edgeMarks: {} },
     },
   }
 }
@@ -277,5 +278,59 @@ describe('per-device live-updates toggle', () => {
     expect(isLiveUpdatesEnabled('p1')).toBe(false)
     setLiveUpdatesEnabledFor('p1', true)
     expect(isLiveUpdatesEnabled('p1')).toBe(true)
+  })
+})
+
+// ── Pen state persistence ─────────────────────────────────────────────────────
+describe('pen state in snapshots', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('round-trips pen segments and marks through serialize/apply', () => {
+    const e1 = useEditorStore()
+    e1.beginPenStroke('r0c0', 'center')
+    e1.extendPenStroke('r1c1')
+    e1.commitPenStroke()
+    e1.penCycleCellMark('r2c2')
+    e1.penToggleEdgeMark('k0c0-k0c1')
+    const snap = JSON.parse(JSON.stringify(serializeSession(e1, makeFakeTimer(), useColorPaletteStore(), null)))
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    applySession(e2, makeFakeTimer(), useColorPaletteStore(), snap)
+    expect(e2.penState.segments).toEqual({ 'r0c0-r1c1': '1' })
+    expect(e2.penState.cellMarks['r2c2']).toEqual({ shape: 'x', color: '1' })
+    expect(e2.penState.edgeMarks['k0c0-k0c1']).toBe('1')
+  })
+
+  it('normalizes legacy snapshots (no pen field) to an empty pen state', () => {
+    const legacy = minimalSnapshot(100, 1) as unknown as { progress: Record<string, unknown> }
+    delete legacy.progress.pen
+    const snap = normalizeSnapshot(JSON.parse(JSON.stringify(legacy)))
+    expect(snap).not.toBeNull()
+    expect(snap!.progress.pen).toEqual({ segments: {}, cellMarks: {}, edgeMarks: {} })
+  })
+
+  it('accepts the line input mode in normalizeSnapshot', () => {
+    const raw = minimalSnapshot(100, 0)
+    raw.progress.inputMode = 'line'
+    const snap = normalizeSnapshot(JSON.parse(JSON.stringify(raw)))
+    expect(snap!.progress.inputMode).toBe('line')
+  })
+
+  it('a pen-only session is NOT an empty snapshot (it must resume)', () => {
+    const raw = minimalSnapshot(0, 0)
+    expect(isEmptySnapshot(raw)).toBe(true)
+    raw.progress.pen.segments['r0c0-r0c1'] = '1'
+    expect(isEmptySnapshot(raw)).toBe(false)
+  })
+
+  it('drops garbage pen data instead of rejecting the snapshot', () => {
+    const raw = minimalSnapshot(100, 1) as unknown as { progress: Record<string, unknown> }
+    raw.progress.pen = { segments: { bogus: 42 }, cellMarks: 'junk', edgeMarks: null }
+    const snap = normalizeSnapshot(JSON.parse(JSON.stringify(raw)))
+    expect(snap).not.toBeNull()
+    expect(snap!.progress.pen).toEqual({ segments: {}, cellMarks: {}, edgeMarks: {} })
   })
 })

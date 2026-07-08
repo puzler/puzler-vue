@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useEditorStore } from './editor'
+import { usePlayerSettingsStore } from './playerSettings'
 
 // Exercises cellsSeenBySelection: the union->intersection change for multi-select
 // and the variant-rule contributions (Knight's/King's move, Disjoint Sets, X diagonals).
@@ -769,5 +771,161 @@ describe('removeGlobalConstraint - self-toggle groups', () => {
     editor.undo()
     expect(editor.activeTypes.has('disjoint_sets')).toBe(true)
     expect(editor.activeGlobalVariants).toEqual(new Set(['disjoint_sets', 'knights_move']))
+  })
+})
+
+// ── Pen (line) tool ───────────────────────────────────────────────────────────
+// Stroke semantics: pending preview + backtracking, first-segment draw/erase
+// pass, one history entry per commit, and click marks. Default palette page 0
+// is ['0'..'9'], so penColorIndex 1 (the default) resolves to color key '1'.
+describe('pen tool', () => {
+  beforeEach(() => {
+    // Player settings persist to localStorage; clear so a prior test's
+    // enableLineTool write can't leak into a fresh pinia.
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  function drawStroke(editor: ReturnType<typeof useEditorStore>, nodes: string[]) {
+    editor.beginPenStroke(nodes[0], 'center')
+    for (const n of nodes.slice(1)) editor.extendPenStroke(n)
+    editor.commitPenStroke()
+  }
+
+  it('commits a drawn stroke as segments in the selected color, as one undo entry', () => {
+    const editor = useEditorStore()
+    drawStroke(editor, ['r0c0', 'r0c1', 'r1c2'])
+    expect(editor.penState.segments).toEqual({ 'r0c0-r0c1': '1', 'r0c1-r1c2': '1' })
+    expect(editor.pendingPenStroke).toBeNull()
+    editor.undo()
+    expect(editor.penState.segments).toEqual({})
+    editor.redo()
+    expect(editor.penState.segments).toEqual({ 'r0c0-r0c1': '1', 'r0c1-r1c2': '1' })
+  })
+
+  it('backtracking onto an earlier node truncates the pending stroke', () => {
+    const editor = useEditorStore()
+    editor.beginPenStroke('r0c0', 'center')
+    editor.extendPenStroke('r0c1')
+    editor.extendPenStroke('r0c2')
+    editor.extendPenStroke('r0c1') // back one
+    expect(editor.pendingPenStroke?.nodes).toEqual(['r0c0', 'r0c1'])
+    editor.extendPenStroke('r0c0') // back to the start
+    expect(editor.pendingPenStroke?.nodes).toEqual(['r0c0'])
+    expect(editor.pendingPenStroke?.pass).toBeNull() // pass re-decides from here
+    editor.commitPenStroke() // single node -> nothing committed
+    expect(editor.penState.segments).toEqual({})
+    expect(editor.canUndo).toBe(false)
+  })
+
+  it('the first segment decides draw vs erase for the whole pass', () => {
+    const editor = useEditorStore()
+    drawStroke(editor, ['r0c0', 'r0c1'])
+    // Starts on the existing segment -> erase pass; the second segment does not
+    // exist and is ignored rather than drawn.
+    drawStroke(editor, ['r0c0', 'r0c1', 'r0c2'])
+    expect(editor.penState.segments).toEqual({})
+  })
+
+  it('erasing the middle of a line leaves two separated chunks', () => {
+    const editor = useEditorStore()
+    drawStroke(editor, ['r0c0', 'r0c1', 'r0c2', 'r0c3', 'r0c4', 'r0c5', 'r0c6', 'r0c7', 'r0c8'])
+    drawStroke(editor, ['r0c3', 'r0c4', 'r0c5', 'r0c6']) // starts on existing -> erase
+    expect(Object.keys(editor.penState.segments).sort()).toEqual([
+      'r0c0-r0c1', 'r0c1-r0c2', 'r0c2-r0c3', 'r0c6-r0c7', 'r0c7-r0c8',
+    ])
+  })
+
+  it('a draw pass recolors existing segments it crosses', () => {
+    const editor = useEditorStore()
+    drawStroke(editor, ['r0c1', 'r0c2'])
+    editor.setPenColorIndex(2)
+    // First segment (r0c0-r0c1) is new -> draw pass; the crossed one recolors.
+    drawStroke(editor, ['r0c0', 'r0c1', 'r0c2'])
+    expect(editor.penState.segments).toEqual({ 'r0c0-r0c1': '2', 'r0c1-r0c2': '2' })
+  })
+
+  it('draws on the corner lattice for edge strokes', () => {
+    const editor = useEditorStore()
+    editor.beginPenStroke('k0c0', 'corner')
+    editor.extendPenStroke('k0c1')
+    editor.extendPenStroke('k1c1')
+    editor.commitPenStroke()
+    expect(editor.penState.segments).toEqual({ 'k0c0-k0c1': '1', 'k0c1-k1c1': '1' })
+  })
+
+  it('cycles a cell mark none -> X -> O -> none, re-stamping the current color', () => {
+    const editor = useEditorStore()
+    editor.penCycleCellMark('r4c4')
+    expect(editor.penState.cellMarks['r4c4']).toEqual({ shape: 'x', color: '1' })
+    editor.setPenColorIndex(3)
+    editor.penCycleCellMark('r4c4')
+    expect(editor.penState.cellMarks['r4c4']).toEqual({ shape: 'o', color: '3' })
+    editor.penCycleCellMark('r4c4')
+    expect(editor.penState.cellMarks['r4c4']).toBeUndefined()
+    editor.undo() // back to O
+    expect(editor.penState.cellMarks['r4c4']).toEqual({ shape: 'o', color: '3' })
+  })
+
+  it('toggles an edge X (no O) and undoes it', () => {
+    const editor = useEditorStore()
+    editor.penToggleEdgeMark('k0c0-k0c1')
+    expect(editor.penState.edgeMarks['k0c0-k0c1']).toBe('1')
+    editor.penToggleEdgeMark('k0c0-k0c1')
+    expect(editor.penState.edgeMarks['k0c0-k0c1']).toBeUndefined()
+    editor.undo()
+    expect(editor.penState.edgeMarks['k0c0-k0c1']).toBe('1')
+  })
+
+  it('clearSolverState clears cells and pen in ONE undoable entry', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(5)
+    drawStroke(editor, ['r1c1', 'r1c2'])
+    editor.penCycleCellMark('r2c2')
+    editor.clearSolverState()
+    expect(editor.solverCellStates).toEqual({})
+    expect(editor.penState.segments).toEqual({})
+    expect(editor.penState.cellMarks).toEqual({})
+    editor.undo() // ONE undo restores everything
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+    expect(editor.penState.segments).toEqual({ 'r1c1-r1c2': '1' })
+    expect(editor.penState.cellMarks['r2c2']).toEqual({ shape: 'x', color: '1' })
+  })
+
+  it('resetPuzzleState empties pen state and drops any pending stroke', () => {
+    const editor = useEditorStore()
+    drawStroke(editor, ['r0c0', 'r0c1'])
+    editor.setPenColorIndex(5)
+    editor.setPenTarget('both')
+    editor.beginPenStroke('r3c3', 'center')
+    editor.resetPuzzleState()
+    expect(editor.penState.segments).toEqual({})
+    expect(editor.penColorIndex).toBe(1)
+    expect(editor.penTarget).toBe('centers')
+    expect(editor.pendingPenStroke).toBeNull()
+  })
+
+  it('falls back to digit mode when the line tool is disabled in settings', async () => {
+    const editor = useEditorStore()
+    const player = usePlayerSettingsStore()
+    player.settings.enableLineTool = true
+    // Let the watcher observe the enabled state before flipping it back off
+    // (watchers compare values at flush time, not per mutation).
+    await nextTick()
+    editor.setMode('solving')
+    editor.setInputMode('line')
+    player.settings.enableLineTool = false
+    await nextTick()
+    expect(editor.inputMode).toBe('digit')
+  })
+
+  it('setInputMode("line") clears a held keyboard override', () => {
+    const editor = useEditorStore()
+    editor.setMode('solving')
+    editor.setKeyboardModeOverride('corner')
+    editor.setInputMode('line')
+    expect(editor.keyboardModeOverride).toBeNull()
+    expect(editor.effectiveInputMode).toBe('line')
   })
 })

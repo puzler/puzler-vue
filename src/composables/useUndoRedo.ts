@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { CellState } from '@/types/grid'
+import type { CellState, PenMark } from '@/types/grid'
 
 // A reversible action. Setting-mode tools (constraints, cosmetics, regions, …)
 // use closure-based commands: they mutate complex editor state that isn't worth
@@ -15,10 +15,20 @@ export interface Command {
 // means the cell was — or becomes — absent from solverCellStates.
 export type CellSnapshot = CellState | null
 
+// Pen-tool changes ride the same diff pipeline: a sparse patch per map, where
+// `null` deletes the key. Optional so legacy history entries (and old clients
+// reading new snapshots) keep working untouched.
+export interface PenPatch {
+  segments?: Record<string, string | null>
+  cellMarks?: Record<string, PenMark | null>
+  edgeMarks?: Record<string, string | null>
+}
+
 export interface SolverDiff {
   kind: 'solverDiff'
   before: Record<string, CellSnapshot>
   after: Record<string, CellSnapshot>
+  pen?: { before: PenPatch; after: PenPatch }
 }
 
 export type HistoryEntry = Command | SolverDiff
@@ -32,10 +42,13 @@ function isDiff(entry: HistoryEntry): entry is SolverDiff {
   return (entry as SolverDiff).kind === 'solverDiff'
 }
 
-// `applySnapshot` writes a cell-snapshot map into the live solver state
-// (deleting keys whose snapshot is null). Diff entries replay through it in both
-// directions; legacy closure commands run their own execute/undo and ignore it.
-export function useUndoRedo(applySnapshot?: (snapshot: Record<string, CellSnapshot>) => void) {
+// `applySnapshot` writes a cell-snapshot map (and an optional pen patch) into
+// the live solver state (deleting keys whose snapshot is null). Diff entries
+// replay through it in both directions; legacy closure commands run their own
+// execute/undo and ignore it.
+export function useUndoRedo(
+  applySnapshot?: (snapshot: Record<string, CellSnapshot>, pen?: PenPatch) => void,
+) {
   const undoStack = ref<HistoryEntry[]>([])
   const redoStack = ref<HistoryEntry[]>([])
 
@@ -43,12 +56,12 @@ export function useUndoRedo(applySnapshot?: (snapshot: Record<string, CellSnapsh
   const canRedo = computed(() => redoStack.value.length > 0)
 
   function runForward(entry: HistoryEntry): void {
-    if (isDiff(entry)) applySnapshot?.(entry.after)
+    if (isDiff(entry)) applySnapshot?.(entry.after, entry.pen?.after)
     else entry.execute()
   }
 
   function runBackward(entry: HistoryEntry): void {
-    if (isDiff(entry)) applySnapshot?.(entry.before)
+    if (isDiff(entry)) applySnapshot?.(entry.before, entry.pen?.before)
     else entry.undo()
   }
 

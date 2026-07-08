@@ -13,7 +13,8 @@
 // mirroring utils/playerSettings.ts and utils/colorPalette.ts.
 
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string'
-import type { CellState, SolverInputMode } from '@/types/grid'
+import { clonePenState, isEmptyPenState, normalizePenState } from '@/utils/pen'
+import type { CellState, SolverInputMode, PenState } from '@/types/grid'
 import type { SerializedHistory, SolverDiff } from '@/composables/useUndoRedo'
 
 export const SOLVE_SCHEMA_VERSION = 1
@@ -28,7 +29,7 @@ const INDEX_KEY = 'puzler:solve:index'
 const MAX_ENTRIES = 15
 const MAX_BYTES = 2_500_000
 
-const VALID_INPUT_MODES: SolverInputMode[] = ['digit', 'center', 'corner', 'color']
+const VALID_INPUT_MODES: SolverInputMode[] = ['digit', 'center', 'corner', 'color', 'line']
 
 // Timer holds that should survive a reload. Transient UI holds (e.g. 'rules',
 // set while the rules modal is open) are dropped — the UI re-applies them.
@@ -44,6 +45,11 @@ export interface SolveProgress {
   selection: string[]
   inputMode: SolverInputMode
   palettePage: number
+  // Pen-tool annotations. Additive (absent in old snapshots → empty) so the
+  // schema version does NOT bump — a bump would discard every in-progress
+  // solve. Rides progress_state; cell_state stays strictly cell-keyed for the
+  // collaboration relay.
+  pen: PenState
 }
 
 export interface SolveSnapshot {
@@ -58,6 +64,7 @@ export interface SolverEditorLike {
   givenDigits: Record<string, number>
   selection: Set<string>
   inputMode: SolverInputMode
+  penState: PenState
   setInputMode: (m: SolverInputMode) => void
   serializeHistory: () => SerializedHistory
   hydrateHistory: (h: SerializedHistory | null) => void
@@ -116,6 +123,7 @@ export function serializeSession(
       selection: [...editor.selection],
       inputMode: editor.inputMode,
       palettePage: palette.pageIndex,
+      pen: clonePenState(editor.penState),
     },
   }
 }
@@ -136,6 +144,7 @@ export function applySession(
   editor.solverCellStates = cells
   editor.selection = new Set(snap.progress.selection)
   editor.setInputMode(snap.progress.inputMode)
+  editor.penState = clonePenState(snap.progress.pen)
   editor.hydrateHistory(snap.progress.history)
   palette.setPageIndex(snap.progress.palettePage)
   timer.restore(snap.progress.elapsed, snap.progress.holds)
@@ -145,7 +154,8 @@ export function isEmptySnapshot(snap: SolveSnapshot): boolean {
   return (
     Object.keys(snap.cellState).length === 0 &&
     snap.progress.elapsed === 0 &&
-    snap.progress.history.undo.length === 0
+    snap.progress.history.undo.length === 0 &&
+    isEmptyPenState(snap.progress.pen)
   )
 }
 
@@ -329,6 +339,7 @@ export function normalizeProgress(raw: unknown): SolveProgress {
     selection: stringArray(r.selection),
     inputMode,
     palettePage: typeof r.palettePage === 'number' && r.palettePage >= 0 ? Math.floor(r.palettePage) : 0,
+    pen: normalizePenState(r.pen),
   }
 }
 

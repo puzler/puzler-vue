@@ -78,6 +78,13 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   // Last-known server cell map. Local cells diverging from this are "dirty" — the
   // unsynced edits we push, and the ones a remote merge must preserve.
   let baseline: Record<string, CellState> = {}
+  // Pen state as the server last saw it (JSON). The cell baseline alone gates
+  // the server push, so without this a pen-only edit would sit in localStorage
+  // until the next cell change. Pen is snapshot-persisted but relay-local:
+  // the fast cell relay never carries it, and applyRemoteUpdate never adopts a
+  // peer's pen — collaborators' pen marks are their own scratch (a dedicated
+  // presence message could lift that later).
+  let penBaselineJson = JSON.stringify(editor.penState)
   // The board as we last relayed it to peers over the live channel; the next
   // relay sends only the diff against this.
   let lastRelay: Record<string, CellState> = {}
@@ -153,6 +160,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   function adoptServerPlay(id: string): void {
     playId.value = id
     baseline = snapshotNow()?.cellState ?? {}
+    penBaselineJson = JSON.stringify(editor.penState)
     lastRelay = cloneCellStates(baseline)
     goLive()
     void pushServer()
@@ -207,6 +215,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       // serialize), so subsequent edits register as dirty against it. Peers
       // already know this state too (they hydrate from the same server play).
       baseline = snapshotNow()?.cellState ?? {}
+      penBaselineJson = JSON.stringify(editor.penState)
       lastRelay = cloneCellStates(baseline)
       goLive()
     } catch {
@@ -327,6 +336,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       })
       lastServerJson = json
       baseline = snap.cellState // server now has exactly this
+      penBaselineJson = JSON.stringify(snap.progress.pen)
       lastSavedAt = snap.progress.savedAt
     } catch {
       /* leave baseline/lastServerJson untouched so the next change retries */
@@ -346,7 +356,12 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     writeLocalSnapshot(ctx.puzzleId, snap)
     if (playId.value) {
       void scheduleRelay() // fast path to peers (no-op when nothing cell-level changed)
-      if (hasLocalChanges(editor.solverCellStates, baseline)) void debouncedServerSave()
+      if (
+        hasLocalChanges(editor.solverCellStates, baseline) ||
+        JSON.stringify(editor.penState) !== penBaselineJson
+      ) {
+        void debouncedServerSave()
+      }
     }
   }
 
@@ -394,6 +409,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     lastServerJson = null
     lastSavedAt = 0
     baseline = {}
+    penBaselineJson = JSON.stringify(editor.penState)
     lastRelay = {}
     if (progressSub) {
       progressSub.unsubscribe()

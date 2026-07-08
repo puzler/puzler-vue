@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
+import { nearestPenNode, penClickTarget, nodesAdjacent, straightPath } from '@/utils/pen'
+import type { PenTarget } from '@/types/grid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
 import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
@@ -39,10 +41,18 @@ const DRAW_BUFFER = CELL_SIZE * 0.15
 const brushMode = ref<'paint' | 'erase' | null>(null)
 const brushCells = ref<Set<string>>(new Set())
 
+// Pen (line tool) gesture, latched at pointerdown so a mid-drag Shift or mode
+// change can't reroute the stroke into rubber-band selection. The pending
+// stroke itself lives in the store (PenLayer previews it); the layer keeps only
+// the latch and the down-point (for click resolution on release).
+const penGesture = ref(false)
+let penDownPt: { x: number; y: number } | null = null
+
 const cursor = computed(() => {
   // Solving mode ignores the setting tool entirely — interaction is plain
-  // cell selection so the solver can place digits and pencil marks.
-  if (editor.mode === 'solving') return 'default'
+  // cell selection so the solver can place digits and pencil marks; the pen
+  // tool is the one exception.
+  if (editor.mode === 'solving') return editor.inputMode === 'line' ? 'crosshair' : 'default'
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
@@ -375,6 +385,8 @@ function extendSelectionDrag(event: PointerEvent) {
 // current selection instead of replacing it.
 function onDoubleClick(event: MouseEvent) {
   if (event.button === 2) return
+  // Two rapid pen clicks are mark cycling, never select-all-same.
+  if (editor.mode === 'solving' && editor.inputMode === 'line') return
   const key = hitCell(event)
   if (!key) return
   const match = computeSelectAllSame(key, {
@@ -396,12 +408,73 @@ function onDoubleClick(event: MouseEvent) {
   emit('update:selection', additive ? new Set([...props.selection, ...match]) : match)
 }
 
+// The stroke's first node latches its lattice; later samples only look for
+// nodes on that lattice (no hopping between centers and edges mid-stroke).
+function penLatticeTarget(): PenTarget {
+  const stroke = editor.pendingPenStroke
+  if (!stroke) return editor.penTarget
+  return stroke.lattice === 'center' ? 'centers' : 'edges'
+}
+
+function beginPenGesture(event: PointerEvent) {
+  ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+  isDragging.value = true
+  penGesture.value = true
+  const pt = props.svgRef ? pointerToSvgPoint(event, props.svgRef) : null
+  penDownPt = pt
+  const hit = pt && nearestPenNode(pt, grid.rows, grid.cols, editor.penTarget)
+  if (hit) editor.beginPenStroke(hit.key, hit.lattice)
+}
+
+function extendPenGesture(event: PointerEvent) {
+  if (!props.svgRef) return
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return
+  const stroke = editor.pendingPenStroke
+  if (!stroke) {
+    // The press missed every node; the stroke starts at the first node reached.
+    const hit = nearestPenNode(pt, grid.rows, grid.cols, editor.penTarget)
+    if (hit) editor.beginPenStroke(hit.key, hit.lattice)
+    return
+  }
+  const hit = nearestPenNode(pt, grid.rows, grid.cols, penLatticeTarget())
+  if (!hit) return
+  const last = stroke.nodes[stroke.nodes.length - 1]
+  if (hit.key === last) return
+  if (nodesAdjacent(last, hit.key)) {
+    editor.extendPenStroke(hit.key)
+    return
+  }
+  // A fast flick can skip nodes; walk any straight run so the line keeps up.
+  // Non-straight jumps are ignored — the next samples will land closer.
+  const path = straightPath(last, hit.key)
+  if (path) for (const n of path) editor.extendPenStroke(n)
+}
+
+function endPenGesture() {
+  penGesture.value = false
+  const stroke = editor.pendingPenStroke
+  const downPt = penDownPt
+  penDownPt = null
+  if (stroke && stroke.nodes.length >= 2) {
+    editor.commitPenStroke()
+    return
+  }
+  // A click (no stroke drawn): cycle a cell X/O or toggle an edge X.
+  editor.cancelPenStroke()
+  const target = downPt && penClickTarget(downPt, grid.rows, grid.cols, editor.penTarget)
+  if (target?.kind === 'cell') editor.penCycleCellMark(target.key)
+  else if (target?.kind === 'edge') editor.penToggleEdgeMark(target.key)
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
 
-  // Solving mode ignores the active setting tool — always plain selection.
+  // Solving mode ignores the active setting tool — always plain selection,
+  // except the pen tool, which draws instead of selecting.
   if (editor.mode === 'solving') {
-    beginSelectionDrag(event)
+    if (editor.inputMode === 'line') beginPenGesture(event)
+    else beginSelectionDrag(event)
     return
   }
 
@@ -658,6 +731,11 @@ function processPointerMove(event: PointerEvent) {
   updateGhost(event)
   if (!isDragging.value) return
 
+  if (penGesture.value) {
+    extendPenGesture(event)
+    return
+  }
+
   if (editor.mode === 'solving') {
     extendSelectionDrag(event)
     return
@@ -719,6 +797,11 @@ function onPointerCancel() {
   cancelQueuedMove()
   dragSelection = null
   editor.setGhostPos(null)
+  if (penGesture.value) {
+    penGesture.value = false
+    penDownPt = null
+    editor.cancelPenStroke()
+  }
   if (!isDragging.value) return
   isDragging.value = false
   brushCells.value = new Set()
@@ -747,6 +830,11 @@ function onPointerUp(event: PointerEvent) {
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false
+
+  if (penGesture.value) {
+    endPenGesture()
+    return
+  }
 
   // Plain selection in solving mode has nothing to commit on release.
   if (editor.mode === 'solving') return

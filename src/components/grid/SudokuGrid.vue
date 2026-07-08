@@ -126,6 +126,11 @@ const viewBox = computed(() => {
         :key="layer.id"
       />
     </g>
+    <!-- Pen annotations render UNDER the digits: a drawn line must never
+         obscure placed values or pencil marks. Interactive grids only: the
+         layer reads the editor store directly, so static thumbnails must not
+         inherit the live session's pen marks. -->
+    <PenLayer v-if="interactive" />
     <DigitLayer
       :given-digits="givenDigits"
       :cell-states="cellStates"
@@ -136,11 +141,6 @@ const viewBox = computed(() => {
       v-for="layer in aboveDigitLayers"
       :key="layer.id"
     />
-    <!-- Pen annotations sit above digits and constraint glyphs (they're the
-         solver's own scratch). Interactive grids only: the layer reads the
-         editor store directly, so static thumbnails must not inherit the live
-         session's pen marks. -->
-    <PenLayer v-if="interactive" />
     <!-- Setting mode: a faint tint above everything, so the setter sees the
          fog coverage and lights without losing sight of the puzzle. -->
     <FogLayer

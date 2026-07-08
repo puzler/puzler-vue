@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { mdiRestart, mdiBookOpenVariant, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import BackToPuzzleLink from '@/components/player/BackToPuzzleLink.vue'
@@ -10,7 +11,10 @@ import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
 import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
 
-defineProps<{
+// The editor's solving mode reuses this panel so setters preview the real play
+// surface; the 'editor' variant drops everything tied to a live play session
+// (back link, collaboration, reset, solution check).
+const props = withDefaults(defineProps<{
   title: string
   author: { username: string; displayName: string } | null
   authorName: string | null
@@ -19,7 +23,8 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
-}>()
+  variant?: 'player' | 'editor'
+}>(), { variant: 'player' })
 
 const emit = defineEmits<{ 'toggle-pause': []; 'show-rules': []; 'reset': []; 'settings': []; 'check': []; 'collaborate': [] }>()
 
@@ -33,6 +38,9 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
   { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
   { icon: mdiCheckCircleOutline, label: 'Check solution', title: 'Check solution', event: 'check', end: true },
 ]
+const controls = computed(() =>
+  props.variant === 'editor' ? CONTROLS.filter((c) => c.event !== 'reset' && c.event !== 'check') : CONTROLS,
+)
 </script>
 
 <template>
@@ -40,7 +48,10 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
     <!-- Title, author and rules sit at the top; the rules scroll within a card. -->
     <div class="flex-1 min-h-0 p-3 flex flex-col gap-3">
       <div class="shrink-0 flex flex-col gap-1.5 px-1">
-        <BackToPuzzleLink class="self-start text-xs text-soft hover:text-action transition-colors" />
+        <BackToPuzzleLink
+          v-if="variant === 'player'"
+          class="self-start text-xs text-soft hover:text-action transition-colors"
+        />
         <div class="flex items-start gap-2">
           <h1 class="flex-1 min-w-0 font-display text-lg font-semibold text-ink-text leading-snug">
             {{ title || 'Puzzle' }}
@@ -61,7 +72,10 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
             :author-name="authorName"
           />
         </p>
-        <div class="flex flex-wrap items-center gap-1.5">
+        <div
+          v-if="variant === 'player'"
+          class="flex flex-wrap items-center gap-1.5"
+        >
           <LiveSyncBadge />
           <PlayersPanel />
           <ConnectionStatus />
@@ -92,7 +106,7 @@ const CONTROLS: { icon: string; label: string; title: string; event: Action; end
         />
       </button>
       <button
-        v-for="c in CONTROLS"
+        v-for="c in controls"
         :key="c.event"
         :data-tour="c.event === 'check' ? 'player-check' : undefined"
         :class="[ICON_BTN, c.end ? 'ml-auto' : '']"

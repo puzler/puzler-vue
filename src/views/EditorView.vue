@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import ToolSelector from '@/components/editor/ToolSelector.vue'
 import ToolControlBox from '@/components/editor/ToolControlBox.vue'
 import PuzzleControls from '@/components/editor/PuzzleControls.vue'
-import SolverNumpad from '@/components/editor/SolverNumpad.vue'
+import PlayerSidePanel from '@/components/player/PlayerSidePanel.vue'
+import PlayerSettingsModal from '@/components/player/PlayerSettingsModal.vue'
+import RulesIntroModal from '@/components/player/RulesIntroModal.vue'
 import PuzzleJsonPanel from '@/components/editor/json/PuzzleJsonPanel.vue'
 import EditorMobileLayout from '@/components/editor/EditorMobileLayout.vue'
 import { useEditorStore } from '@/stores/editor'
@@ -13,6 +15,11 @@ import { usePuzzleStore } from '@/stores/puzzle'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
 import { panelForTool } from '@/constraints/registry'
+
+// The root-level modals make this template a fragment, which disables Vue's
+// automatic attribute inheritance — forward the router-applied classes to
+// whichever layout branch renders instead.
+defineOptions({ inheritAttrs: false })
 
 const editor = useEditorStore()
 const puzzle = usePuzzleStore()
@@ -27,6 +34,11 @@ const activeToolHasControls = computed(() =>
 )
 
 const solverCellStates = computed(() => editor.solverCellStates)
+
+// Solving mode reuses the player's side panel so setters preview the real play
+// surface; these drive its Settings / Show Rules buttons on both layouts.
+const showSettings = ref(false)
+const showRulesIntro = ref(false)
 
 // Grid keyboard interaction (navigation, modes, undo/redo, digit entry) lives in
 // a shared composable so the editor and the standalone solver stay in lockstep.
@@ -53,11 +65,17 @@ onMounted(() => {
 </script>
 
 <template>
-  <EditorMobileLayout v-if="isMobile" />
+  <EditorMobileLayout
+    v-if="isMobile"
+    v-bind="$attrs"
+    @show-rules="showRulesIntro = true"
+    @settings="showSettings = true"
+  />
 
   <div
     v-else
     class="flex-1 flex overflow-hidden"
+    v-bind="$attrs"
   >
     <div
       data-tour="editor-toolselector"
@@ -93,9 +111,22 @@ onMounted(() => {
 
     <div
       class="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="editor.mode === 'solving' ? 'w-64' : 'w-0'"
+      :class="editor.mode === 'solving' ? 'w-72' : 'w-0'"
     >
-      <SolverNumpad class="w-64 flex-1 min-h-0 border-l border-line" />
+      <PlayerSidePanel
+        variant="editor"
+        class="w-72 flex-1 min-h-0"
+        :title="editor.puzzleName"
+        :author="null"
+        :author-name="editor.puzzleAuthor || null"
+        :rules="editor.puzzleRules"
+        :show-timer="false"
+        elapsed-label=""
+        :paused="false"
+        :collaboration-enabled="false"
+        @show-rules="showRulesIntro = true"
+        @settings="showSettings = true"
+      />
     </div>
 
     <div
@@ -113,4 +144,17 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <PlayerSettingsModal
+    v-if="showSettings"
+    @close="showSettings = false"
+  />
+  <RulesIntroModal
+    v-if="showRulesIntro"
+    :title="editor.puzzleName"
+    :author="null"
+    :author-name="editor.puzzleAuthor || null"
+    :rules="editor.puzzleRules"
+    @close="showRulesIntro = false"
+  />
 </template>

@@ -12,6 +12,8 @@ import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
 
+const emit = defineEmits<{ 'show-rules': []; settings: [] }>()
+
 // The bottom control window is a single surface that swaps between views instead
 // of popping modals over the grid — the grid stays visible and interactive in
 // every view. 'primary' is the active tool's controls (setting) or the solver
@@ -53,6 +55,8 @@ function selectView(v: MobileView) {
       <EditorMobileIconBar
         :active-view="view"
         @select="selectView"
+        @show-rules="emit('show-rules')"
+        @settings="emit('settings')"
       />
       <div class="flex-1 overflow-hidden bg-surface">
         <ToolSelector

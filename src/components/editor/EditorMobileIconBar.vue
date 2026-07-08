@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { mdiUndo, mdiRedo } from '@mdi/js'
+import { computed } from 'vue'
+import { mdiUndo, mdiRedo, mdiBookOpenVariant, mdiCogOutline } from '@mdi/js'
 import { useEditorStore } from '@/stores/editor'
 import MdiIcon from '@/components/MdiIcon.vue'
 
@@ -8,7 +9,10 @@ type MobileView = 'primary' | 'tools' | 'solver' | 'puzzle'
 const editor = useEditorStore()
 
 defineProps<{ activeView: MobileView }>()
-const emit = defineEmits<{ select: [view: 'tools' | 'solver' | 'puzzle'] }>()
+const emit = defineEmits<{ select: [view: 'tools' | 'solver' | 'puzzle']; 'show-rules': []; settings: [] }>()
+// TS can't pick a defineEmits overload from a union event name (same dodge as
+// PlayerSidePanel's `fire`).
+const firePlay = emit as unknown as (e: 'show-rules' | 'settings') => void
 
 const BTN = 'w-9 h-9 flex items-center justify-center rounded-lg transition-colors'
 function cls(active: boolean): string {
@@ -16,17 +20,51 @@ function cls(active: boolean): string {
     ? 'bg-action-tint text-action'
     : 'text-soft hover:bg-line/60 active:bg-line'
 }
+
+// View-toggle buttons keep their original heroicon outlines (drawn inline, not
+// from @mdi/js), so the paths live here as data to keep the template lean.
+const VIEW_ICONS: Record<'tools' | 'solver' | 'puzzle', string[]> = {
+  tools: ['M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12'],
+  solver: [
+    'M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18',
+  ],
+  puzzle: [
+    'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z',
+    'M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+  ],
+}
+
+const viewButtons = computed(() => {
+  const all: { view: 'tools' | 'solver' | 'puzzle'; title: string }[] = [
+    { view: 'tools', title: 'Tools' },
+    { view: 'solver', title: 'Solver' },
+    { view: 'puzzle', title: 'Puzzle Controls' },
+  ]
+  return editor.mode === 'setting' ? all : all.filter((b) => b.view !== 'tools')
+})
+
+// Solving mode previews the play surface: rules + play settings live here since
+// the mobile editor has no side panel to host them.
+const playButtons = computed(() =>
+  editor.mode === 'solving'
+    ? [
+        { event: 'show-rules' as const, title: 'Rules', label: 'Show rules', icon: mdiBookOpenVariant },
+        { event: 'settings' as const, title: 'Settings', label: 'Settings', icon: mdiCogOutline },
+      ]
+    : [],
+)
 </script>
 
 <template>
   <div class="flex flex-col items-center gap-2 py-3 px-1.5 border-r border-line bg-surface shrink-0 w-12">
     <button
-      v-if="editor.mode === 'setting'"
-      :class="[BTN, cls(activeView === 'tools')]"
-      title="Tools"
-      aria-label="Tools"
-      :aria-pressed="activeView === 'tools'"
-      @click="emit('select', 'tools')"
+      v-for="b in viewButtons"
+      :key="b.view"
+      :class="[BTN, cls(activeView === b.view)]"
+      :title="b.title"
+      :aria-label="b.title"
+      :aria-pressed="activeView === b.view"
+      @click="emit('select', b.view)"
     >
       <svg
         class="w-5 h-5"
@@ -36,58 +74,27 @@ function cls(active: boolean): string {
         viewBox="0 0 24 24"
       >
         <path
+          v-for="(d, i) in VIEW_ICONS[b.view]"
+          :key="i"
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"
+          :d="d"
         />
       </svg>
     </button>
+
     <button
-      :class="[BTN, cls(activeView === 'solver')]"
-      title="Solver"
-      aria-label="Solver"
-      :aria-pressed="activeView === 'solver'"
-      @click="emit('select', 'solver')"
+      v-for="b in playButtons"
+      :key="b.event"
+      :class="[BTN, cls(false)]"
+      :title="b.title"
+      :aria-label="b.label"
+      @click="firePlay(b.event)"
     >
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.75"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
-        />
-      </svg>
-    </button>
-    <button
-      :class="[BTN, cls(activeView === 'puzzle')]"
-      title="Puzzle Controls"
-      aria-label="Puzzle Controls"
-      :aria-pressed="activeView === 'puzzle'"
-      @click="emit('select', 'puzzle')"
-    >
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.75"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z"
-        />
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-        />
-      </svg>
+      <MdiIcon
+        :path="b.icon"
+        :size="20"
+      />
     </button>
 
     <!-- Undo / Redo float to the bottom of the bar -->

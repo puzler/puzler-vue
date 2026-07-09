@@ -31,14 +31,24 @@ const subtext = computed(() => {
   if (p.solveCount) bits.push(`${p.solveCount} solve${p.solveCount === 1 ? '' : 's'}`)
   return bits.join(' · ')
 })
+
+// Drafts have no meaningful description page yet, so send them to the editor.
+const titleLink = computed(() =>
+  props.puzzle.status === PuzzleStatusEnum.Published
+    ? { name: 'puzzle', params: { id: props.puzzle.id } }
+    : { name: 'editor-edit', params: { id: props.puzzle.id } },
+)
 </script>
 
 <template>
   <li class="flex items-center gap-3 p-3 rounded-xl border border-line">
-    <div class="flex flex-col min-w-0 flex-1">
-      <span class="font-medium text-ink-text truncate">{{ puzzle.title }}</span>
+    <RouterLink
+      :to="titleLink"
+      class="group flex flex-col min-w-0 flex-1"
+    >
+      <span class="font-medium text-ink-text truncate group-hover:text-action transition-colors">{{ puzzle.title }}</span>
       <span class="text-xs text-faint">{{ subtext }}</span>
-    </div>
+    </RouterLink>
     <RowMeta
       kind="puzzle"
       :entity-id="puzzle.id"

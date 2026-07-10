@@ -167,6 +167,8 @@ export type Collection = {
   id: Scalars['ID']['output'];
   /** Ordering mode: unordered or sequence */
   mode: CollectionModeEnum;
+  /** When the next scheduled entry arrives; null when nothing is pending */
+  nextReleaseAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Sanitized rich HTML body for the collection page */
   pageDescriptionHtml?: Maybe<Scalars['String']['output']>;
   /** Number of puzzles the viewer can see in this collection */
@@ -255,6 +257,8 @@ export type CollectionEntry = {
   position: Scalars['Int']['output'];
   /** The puzzle, when this entry is a puzzle */
   puzzle?: Maybe<Puzzle>;
+  /** Scheduled release time; null means released on creation */
+  releasedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Whether the viewer has solved this entry's puzzle (always false for story pages) */
   solved: Scalars['Boolean']['output'];
   /** The story page with its body, when this entry is an unlocked story page */
@@ -271,6 +275,8 @@ export type CollectionEntryGatesInput = {
   finale?: InputMaybe<Scalars['Boolean']['input']>;
   /** Hide the entry until its codeword is entered (requires a codeword) */
   hidden?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Scheduled release time; explicit null releases the entry now */
+  releasedAt?: InputMaybe<Scalars['ISO8601DateTime']['input']>;
 };
 
 /** One solver's standing in a timed collection */

@@ -2,7 +2,7 @@
 import MdiIcon from '@/components/MdiIcon.vue'
 import {
   mdiArrowUp, mdiArrowDown, mdiClose, mdiBookOpenPageVariantOutline, mdiPencilOutline,
-  mdiKeyOutline, mdiEyeOffOutline, mdiTrophyOutline, mdiTuneVariant,
+  mdiKeyOutline, mdiEyeOffOutline, mdiTrophyOutline, mdiTuneVariant, mdiClockOutline,
 } from '@mdi/js'
 import type { CollectionDetailQuery } from '@/graphql/generated/types'
 
@@ -29,6 +29,10 @@ const GATE_BADGES = [
   { key: 'hidden', icon: mdiEyeOffOutline, title: 'Hidden until codeword' },
   { key: 'finale', icon: mdiTrophyOutline, title: 'Finale' },
 ] as const
+
+function scheduled(entry: Entry): boolean {
+  return !!entry.releasedAt && new Date(entry.releasedAt) > new Date()
+}
 </script>
 
 <template>
@@ -49,6 +53,13 @@ const GATE_BADGES = [
     <span class="flex-1 truncate text-sm text-ink-text">
       {{ entry.entryType === 'Puzzle' ? entry.puzzle?.title : (entry.storyPage?.title || 'Untitled story page') }}
     </span>
+    <MdiIcon
+      v-if="scheduled(entry)"
+      :path="mdiClockOutline"
+      :size="14"
+      :title="`Releases ${new Date(entry.releasedAt!).toLocaleString()}`"
+      class="text-action"
+    />
     <span
       v-for="badge in GATE_BADGES"
       :key="badge.key"

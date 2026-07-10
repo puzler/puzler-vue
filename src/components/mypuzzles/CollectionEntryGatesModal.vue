@@ -9,21 +9,32 @@ import type {
 
 // Per-entry hunt gates, all opt-in. The codeword is write-only (the server
 // stores a digest), so the input starts blank; leaving it blank keeps the
-// current codeword, Clear removes it.
+// current codeword, Clear removes it. The release time round-trips through
+// the datetime-local input in the author's local timezone.
 const props = defineProps<{
   collectionId: string
-  entry: { id: string; gated: boolean; hidden: boolean; finale: boolean }
+  entry: { id: string; gated: boolean; hidden: boolean; finale: boolean; releasedAt?: string | null }
   entryLabel: string
 }>()
 const emit = defineEmits<{ close: [], saved: [] }>()
 
+type Gates = { codeword?: string; hidden?: boolean; finale?: boolean; releasedAt?: string | null }
+
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 const codeword = ref('')
 const hidden = ref(props.entry.hidden)
 const finale = ref(props.entry.finale)
+const releaseInput = ref(toLocalInput(props.entry.releasedAt))
 const busy = ref(false)
 const error = ref<string | null>(null)
 
-async function apply(gates: { codeword?: string; hidden?: boolean; finale?: boolean }) {
+async function apply(gates: Gates) {
   busy.value = true
   error.value = null
   try {
@@ -44,10 +55,10 @@ async function apply(gates: { codeword?: string; hidden?: boolean; finale?: bool
 }
 
 async function save() {
-  const gates: { codeword?: string; hidden?: boolean; finale?: boolean } = {
-    hidden: hidden.value, finale: finale.value,
-  }
+  const gates: Gates = { hidden: hidden.value, finale: finale.value }
   if (codeword.value.trim()) gates.codeword = codeword.value
+  const release = releaseInput.value ? new Date(releaseInput.value).toISOString() : null
+  if (release !== (props.entry.releasedAt ?? null)) gates.releasedAt = release
   if (await apply(gates)) emit('close')
 }
 
@@ -116,6 +127,18 @@ async function clearCodeword() {
         <span>
           Finale
           <span class="block text-xs text-faint">Unlocks only once every other puzzle in the collection is solved.</span>
+        </span>
+      </label>
+
+      <label class="flex flex-col gap-1.5 text-sm text-soft">
+        Scheduled release
+        <input
+          v-model="releaseInput"
+          type="datetime-local"
+          class="text-sm px-2.5 py-1.5 rounded-lg border border-line bg-surface text-ink-text focus:outline-none focus:border-action"
+        >
+        <span class="text-xs text-faint">
+          Invisible to solvers until this moment. Leave empty to release right away.
         </span>
       </label>
 

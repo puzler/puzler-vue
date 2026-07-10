@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { entryUnlocked, entryOpen, entrySolved, puzzleOrdinal, tableOfContents, type FlowEntry } from './collectionEntries'
+import { entryUnlocked, entryOpen, entrySolved, huntProgress, puzzleOrdinal, tableOfContents, type FlowEntry } from './collectionEntries'
 
 function puzzleEntry(id: string): FlowEntry {
   return { id: `e-${id}`, entryType: 'Puzzle', puzzle: { id } }
@@ -86,6 +86,21 @@ describe('entryOpen', () => {
   it('counts server-reported solves toward local sequence checks', () => {
     const entries: FlowEntry[] = [ { ...puzzleEntry('p1'), solved: true }, { ...puzzleEntry('p2'), locked: true } ]
     expect(entryOpen(entries, 1, true, new Set())).toBe(true)
+  })
+})
+
+describe('huntProgress', () => {
+  it('counts visible puzzles and flags completion', () => {
+    expect(huntProgress(ENTRIES, new Set([ 'p1' ]))).toEqual({ total: 2, solved: 1, complete: false })
+    expect(huntProgress(ENTRIES, new Set([ 'p1', 'p2' ]))).toEqual({ total: 2, solved: 2, complete: true })
+  })
+
+  it('never reports an empty collection as complete', () => {
+    expect(huntProgress([ storyEntry('s1', 'Only prose') ], new Set())).toEqual({ total: 0, solved: 0, complete: false })
+  })
+
+  it('counts server-reported solves', () => {
+    expect(huntProgress([ { ...puzzleEntry('p1'), solved: true } ], new Set())).toEqual({ total: 1, solved: 1, complete: true })
   })
 })
 

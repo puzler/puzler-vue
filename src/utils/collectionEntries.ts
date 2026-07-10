@@ -55,6 +55,16 @@ export function puzzleOrdinal(entries: FlowEntry[], index: number): number {
   return entries.slice(0, index + 1).filter((e) => e.entryType === 'Puzzle').length
 }
 
+// Puzzle progress across the viewer's visible entries. Completion means every
+// visible puzzle, finales included.
+export function huntProgress(
+  entries: FlowEntry[], localSolved: Set<string>,
+): { total: number; solved: number; complete: boolean } {
+  const puzzles = entries.filter((e) => e.entryType === 'Puzzle')
+  const solved = puzzles.filter((e) => entrySolved(e, localSolved)).length
+  return { total: puzzles.length, solved, complete: puzzles.length > 0 && solved === puzzles.length }
+}
+
 // Titled story entries form the table of contents; untitled interludes don't.
 // Locked chapters keep their title (the server still sends storyTitle).
 export function tableOfContents(

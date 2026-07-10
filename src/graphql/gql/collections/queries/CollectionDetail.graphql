@@ -19,6 +19,7 @@ query CollectionDetail($id: ID!) {
       gated
       hidden
       finale
+      releasedAt
       puzzle {
         id
         title

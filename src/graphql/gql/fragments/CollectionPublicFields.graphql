@@ -23,6 +23,7 @@ fragment CollectionPublicFields on Collection {
     solveCount
   }
   hasCodewords
+  nextReleaseAt
   entries {
     id
     entryType

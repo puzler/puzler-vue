@@ -7,6 +7,7 @@ import CollectionLeaderboard from '@/components/collections/CollectionLeaderboar
 import CollectionEntryFlow from '@/components/collections/CollectionEntryFlow.vue'
 import CollectionToc from '@/components/collections/CollectionToc.vue'
 import CollectionCodewordBox from '@/components/collections/CollectionCodewordBox.vue'
+import CollectionProgress from '@/components/collections/CollectionProgress.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { solvedIds } from '@/utils/solveProgress'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
@@ -90,6 +91,13 @@ onMounted(load)
             :collection="collection"
             :body-html="bodyHtml"
             :is-sequence="isSequence"
+          />
+
+          <CollectionProgress
+            :entries="collection.entries"
+            :solved="solved"
+            :timed="collection.timed"
+            :next-release-at="collection.nextReleaseAt ?? null"
           />
 
           <CollectionCodewordBox

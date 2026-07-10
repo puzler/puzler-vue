@@ -7,7 +7,7 @@
 // costs one fixed-thickness scrolling strip; the pad itself never grows or
 // shrinks. Adding a tool = one entry here.
 
-import { mdiDraw } from '@mdi/js'
+import { mdiCursorMove, mdiDraw } from '@mdi/js'
 import type { PlayerSettings } from '@/utils/playerSettings'
 import type { SolverInputMode } from '@/types/grid'
 
@@ -18,6 +18,21 @@ export interface ExtraNumpadMode {
   icon: string
 }
 
+export interface GridSize {
+  rows: number
+  cols: number
+}
+
+// Above this many rows or columns the Pan tool appears regardless of the
+// setting: 16 was the historical grid cap, so anything bigger is a
+// gattai-scale board that is unusable without zoom — and every pre-existing
+// puzzle keeps its exact tool set.
+export const PAN_AUTO_THRESHOLD = 16
+
+export function panToolAvailable(settings: PlayerSettings, size: GridSize): boolean {
+  return settings.enablePanTool || size.rows > PAN_AUTO_THRESHOLD || size.cols > PAN_AUTO_THRESHOLD
+}
+
 // Shared look for the strip/rail keys, matching the core mode keys' states.
 export function extraToolClass(active: boolean): string {
   return active
@@ -25,10 +40,13 @@ export function extraToolClass(active: boolean): string {
     : 'bg-surface border-line text-soft hover:border-action hover:text-action'
 }
 
-export function enabledExtraModes(settings: PlayerSettings): ExtraNumpadMode[] {
+export function enabledExtraModes(settings: PlayerSettings, size: GridSize): ExtraNumpadMode[] {
   const out: ExtraNumpadMode[] = []
   if (settings.enableLineTool) {
     out.push({ mode: 'line', title: 'Line tool (B)', label: 'Line tool', icon: mdiDraw })
+  }
+  if (panToolAvailable(settings, size)) {
+    out.push({ mode: 'pan', title: 'Pan (B)', label: 'Pan tool', icon: mdiCursorMove })
   }
   return out
 }

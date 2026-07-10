@@ -6,6 +6,8 @@ import {
 import { QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, OUTER_RUN_DIRECTIONS, outerClueDirections, validLittleKillerDirections } from '@/types/constraints'
 import type { OuterClueRunDirection } from '@/types/constraints'
 import type { SerializedPuzzle } from './puzzleExport'
+import { GRID_MAX } from './puzzleJson'
+import { defaultDigitRange } from '@/composables/useGrid'
 
 // Pre-apply validation for hand-edited documents (the raw JSON editor). The
 // dividing line, per the product stance: FUNCTIONALLY BROKEN = error (cannot
@@ -131,16 +133,26 @@ function validateGrid(ctx: Ctx, doc: SerializedPuzzle): void {
   const { rows, cols, digits, regions } = doc.grid
   if (!Number.isInteger(rows) || rows < 1 || !Number.isInteger(cols) || cols < 1) {
     ctx.errors.push({ path: 'grid', message: 'rows and cols must be positive integers' })
+  } else if (rows > GRID_MAX || cols > GRID_MAX) {
+    ctx.errors.push({ path: 'grid', message: `rows and cols stay at or below ${GRID_MAX}` })
   }
+  const autoHouses = doc.globals?.sudokuRules && doc.globals.sudokuRules.enabled !== false && doc.globals.sudokuRules.custom !== true
   if (digits !== undefined) {
     if (!Number.isInteger(digits) || digits < 2 || digits > 16) {
       ctx.errors.push({ path: 'grid.digits', message: 'digits must be an integer between 2 and 16' })
-    } else if (digits < Math.max(rows, cols) && doc.globals?.sudokuRules && doc.globals.sudokuRules.enabled !== false && doc.globals.sudokuRules.custom !== true) {
+    } else if (digits < Math.max(rows, cols) && autoHouses) {
       ctx.warnings.push({
         path: 'grid.digits',
         message: `${digits} digits cannot fill the automatic full-length houses; enable custom houses or turn sudoku rules off`,
       })
     }
+  } else if (autoHouses && Math.max(rows, cols) > 9) {
+    // No explicit range on a big grid: the default is 9 (see
+    // defaultDigitRange), so full-length automatic houses can never fill.
+    ctx.warnings.push({
+      path: 'grid.digits',
+      message: `grids larger than 9 default to 9 digits, which cannot fill the automatic full-length houses; set grid.digits, enable custom houses, or turn sudoku rules off`,
+    })
   }
   if (regions === undefined) return
   if (typeof regions !== 'object' || regions === null || Array.isArray(regions)) {
@@ -685,7 +697,7 @@ export function validatePuzzle(doc: SerializedPuzzle): PuzzleValidation {
   const ctx: Ctx = {
     rows,
     cols,
-    digitRange: typeof doc.grid?.digits === 'number' ? doc.grid.digits : Math.max(rows, cols),
+    digitRange: typeof doc.grid?.digits === 'number' ? doc.grid.digits : defaultDigitRange(rows, cols),
     voids,
     errors: [],
     warnings: [],

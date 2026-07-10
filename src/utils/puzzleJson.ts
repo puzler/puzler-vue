@@ -52,9 +52,11 @@ export function applyPuzzleJson(editor: EditorStore, grid: GridStore, after: Ser
 
 // Grid-tool resize: serialize → pure transform → whole-document apply, so an
 // add/remove of a row or column (with all its constraint trimming) is exactly
-// one undoable step. Bounds match the New Grid modal (2–16 per axis).
+// one undoable step. Bounds match the New Grid modal. 48 covers the known
+// gattai shapes (Samurai 21, Sumo 33, Shogun 21×45) with headroom; the
+// zoom/pan viewport is what makes boards past ~16 usable.
 export const GRID_MIN = 2
-export const GRID_MAX = 16
+export const GRID_MAX = 48
 
 export function resizePuzzleGrid(
   editor: EditorStore,

@@ -77,6 +77,7 @@ function matchByMarkSet(key: string, layer: MarkLayer, ctx: SelectAllContext): S
 function matchLayer(key: string, layer: SolverInputMode, ctx: SelectAllContext): Set<string> | null {
   if (layer === 'digit') return matchByValue(key, ctx)
   if (layer === 'line') return null // pen annotations aren't per-cell content
+  if (layer === 'pan') return null // a view mode, not a content layer (dblclick is gated off anyway)
   return matchByMarkSet(key, layer, ctx)
 }
 

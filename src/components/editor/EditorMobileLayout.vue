@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
+import ZoomControls from '@/components/grid/ZoomControls.vue'
 import ToolSelector from '@/components/editor/ToolSelector.vue'
 import ToolControlBox from '@/components/editor/ToolControlBox.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
@@ -40,7 +41,7 @@ function selectView(v: MobileView) {
 
 <template>
   <div class="flex-1 flex flex-col overflow-hidden">
-    <div class="flex-1 bg-canvas overflow-hidden min-h-0">
+    <div class="relative flex-1 bg-canvas overflow-hidden min-h-0">
       <SudokuGrid
         mode="edit"
         :given-digits="editor.activeTool === 'grid' ? {} : editor.givenDigits"
@@ -49,6 +50,7 @@ function selectView(v: MobileView) {
         @update:selection="editor.selection = $event"
         @clear-selection="editor.clearSelection()"
       />
+      <ZoomControls />
     </div>
 
     <div class="h-72 flex border-t border-line shrink-0">

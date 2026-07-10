@@ -5,7 +5,9 @@ export type GridMode = 'edit' | 'play'
 // Solver input modes: how a numbered key is interpreted. `color` toggles a
 // palette color on the selected cells (see the color-palette store); `line` is
 // the pen tool (numbered keys pick a pen color instead of entering digits).
-export type SolverInputMode = 'digit' | 'center' | 'corner' | 'color' | 'line'
+// `pan` turns single-pointer drags into viewport panning (digits still place
+// into the standing selection, matching SudokuPad).
+export type SolverInputMode = 'digit' | 'center' | 'corner' | 'color' | 'line' | 'pan'
 
 // ── Pen (line) tool ──────────────────────────────────────────────────────────
 // What the pen draws on: cell centers, cell edges (the border lattice), or both

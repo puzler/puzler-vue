@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { useEditorStore } from '@/stores/editor'
+import { useViewportStore } from '@/stores/viewport'
 import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRowCol } from '@/composables/useGrid'
 import { nearestPenNode, penClickTarget, nodesAdjacent, straightPath } from '@/utils/pen'
 import type { PenTarget } from '@/types/grid'
@@ -21,9 +22,19 @@ const emit = defineEmits<{
 
 const grid = useGridStore()
 const editor = useEditorStore()
+const viewport = useViewportStore()
 
 const isDragging = ref(false)
 const dragAdditive = ref(false)
+
+// Viewport pan drag: the pan tool (solving), the setter's hand toggle, a held
+// Space (setting mode), or the middle mouse button turn a single-pointer drag
+// into panning instead of selecting/placing.
+const panDragging = ref(false)
+let panAnchor: { x: number; y: number } | null = null
+const panToolOn = computed(() =>
+  (editor.mode === 'solving' && editor.inputMode === 'pan') ||
+  (editor.mode === 'setting' && viewport.panLock))
 
 const DRAWING_TOOLS = new Set(['cosmetic_line', ...THERMO_TYPES, 'arrow', ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
@@ -60,6 +71,8 @@ const houseDownCell = ref<string | null>(null)
 const houseDragged = ref(false)
 
 const cursor = computed(() => {
+  if (panDragging.value) return 'grabbing'
+  if (panToolOn.value || viewport.spaceHeld) return 'grab'
   // Solving mode ignores the setting tool entirely — interaction is plain
   // cell selection so the solver can place digits and pencil marks; the pen
   // tool is the one exception.
@@ -412,11 +425,18 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
 // parent, so the prop can be a stale snapshot mid-gesture.
 let dragSelection: Set<string> | null = null
 
+// Selection as it stood before the drag began. A selection change lands on the
+// very first pointerdown, so an aborted gesture (second finger starting a
+// pinch, system cancel) restores it — putting two fingers down to zoom must
+// not leave a stray cell selected under the first finger.
+let selectionBeforeDrag: Set<string> | null = null
+
 function beginSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
   if (!key) return
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
   isDragging.value = true
+  selectionBeforeDrag = new Set(props.selection)
   // The multi-select toggle makes a plain click behave like ctrl-click.
   const additive = event.ctrlKey || event.metaKey || event.shiftKey || editor.multiSelectMode
   dragAdditive.value = additive
@@ -444,8 +464,10 @@ function extendSelectionDrag(event: PointerEvent) {
 // current selection instead of replacing it.
 function onDoubleClick(event: MouseEvent) {
   if (event.button === 2) return
-  // Two rapid pen clicks are mark cycling, never select-all-same.
-  if (editor.mode === 'solving' && editor.inputMode === 'line') return
+  // Two rapid pen clicks are mark cycling, never select-all-same; two rapid
+  // pan taps must not surprise-select either.
+  if (editor.mode === 'solving' && (editor.inputMode === 'line' || editor.inputMode === 'pan')) return
+  if (panToolOn.value || viewport.spaceHeld) return
   const key = hitCell(event)
   if (!key) return
   const match = computeSelectAllSame(key, {
@@ -526,8 +548,29 @@ function endPenGesture() {
   else if (target?.kind === 'edge') editor.penToggleEdgeMark(target.key)
 }
 
+// Pan drag: the anchor is a fixed user-space point; every move re-derives the
+// pointer's user-space position AFTER the previous pan applied, so steering
+// toward the anchor self-corrects — no incremental drift, no anchor updates.
+function beginPanDrag(event: PointerEvent) {
+  if (!props.svgRef) return
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return
+  ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+  isDragging.value = true
+  panDragging.value = true
+  panAnchor = pt
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.button === 2) return
+  // A second touch finger owns the viewport (pinch/two-finger pan); the
+  // gestures composable already aborted whatever this layer had in flight.
+  if (viewport.touchGestureActive) return
+
+  if (event.button === 1 || viewport.spaceHeld || panToolOn.value) {
+    beginPanDrag(event)
+    return
+  }
 
   // Solving mode ignores the active setting tool — always plain selection,
   // except the pen tool, which draws instead of selecting.
@@ -815,8 +858,15 @@ function cancelQueuedMove() {
 }
 
 function processPointerMove(event: PointerEvent) {
+  if (viewport.touchGestureActive) return
   updateGhost(event)
   if (!isDragging.value) return
+
+  if (panDragging.value) {
+    const pt = props.svgRef && pointerToSvgPoint(event, props.svgRef)
+    if (pt && panAnchor) viewport.panBy(panAnchor.x - pt.x, panAnchor.y - pt.y)
+    return
+  }
 
   if (penGesture.value) {
     extendPenGesture(event)
@@ -901,17 +951,25 @@ function processPointerMove(event: PointerEvent) {
   }
 }
 
-// A pointercancel (system gesture, second finger, etc.) aborts the gesture
-// without a pointerup — reset transient state so we don't get stuck mid-drag.
-function onPointerCancel() {
+// Abort the in-flight gesture without committing anything — used by
+// pointercancel (system gesture) and when a second touch finger hands the
+// pointers over to the viewport pinch. Resets every piece of transient drag
+// state so we don't get stuck mid-drag.
+function abortGesture() {
   cancelQueuedMove()
   dragSelection = null
+  if (selectionBeforeDrag) {
+    emit('update:selection', selectionBeforeDrag)
+    selectionBeforeDrag = null
+  }
   editor.setGhostPos(null)
   if (penGesture.value) {
     penGesture.value = false
     penDownPt = null
     editor.cancelPenStroke()
   }
+  panDragging.value = false
+  panAnchor = null
   if (!isDragging.value) return
   isDragging.value = false
   brushCells.value = new Set()
@@ -925,6 +983,15 @@ function onPointerCancel() {
   editor.cancelPendingLine()
 }
 
+function onPointerCancel() {
+  abortGesture()
+}
+
+// A pinch starting mid-drag must not commit the half-drawn line/brush/selection.
+watch(() => viewport.touchGestureActive, (on) => {
+  if (on) abortGesture()
+})
+
 // Clear the placement ghost when the pointer leaves the grid.
 function onPointerLeave() {
   cancelQueuedMove()
@@ -932,6 +999,7 @@ function onPointerLeave() {
 }
 
 function onPointerUp(event: PointerEvent) {
+  if (viewport.touchGestureActive) return
   // Flush queued moves first so a fast flick's final positions land (line
   // ends / brush cells) before the gesture commits.
   if (queuedMoves.length) {
@@ -940,9 +1008,16 @@ function onPointerUp(event: PointerEvent) {
     for (const e of batch) processPointerMove(e)
   }
   dragSelection = null
+  selectionBeforeDrag = null // the gesture completed; nothing to roll back
   if (!isDragging.value) return
   ;(event.currentTarget as Element).releasePointerCapture(event.pointerId)
   isDragging.value = false
+
+  if (panDragging.value) {
+    panDragging.value = false
+    panAnchor = null
+    return
+  }
 
   if (penGesture.value) {
     endPenGesture()

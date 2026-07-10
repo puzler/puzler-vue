@@ -27,9 +27,10 @@ describe('buildSolverPuzzle', () => {
     expect(puzzle.regions).toHaveLength(27)
   })
 
-  it('emits a non-square grid with digitRange = max(rows, cols) and per-axis houses', () => {
+  it('emits a non-square grid with an explicit full-range digits and per-axis houses', () => {
     const grid = useGridStore()
     grid.setDimensions(6, 10) // 6 rows × 10 cols
+    grid.setDigits(10) // the automatic default caps at 9; full-length rows need 10
     const { puzzle, supported } = buildSolverPuzzle()
     expect(supported).toBe(true)
     expect(puzzle.size).toBe(10)

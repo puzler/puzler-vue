@@ -138,12 +138,13 @@ describe('serializePuzzle (format v4)', () => {
     expect(g2.effectiveDigitRange).toBe(6)
     expect(serializePuzzle(e2, g2)).toEqual(data)
 
-    // A document without the field hydrates back to automatic.
+    // A document without the field hydrates back to automatic (the long side
+    // capped at 9 — see defaultDigitRange).
     setActivePinia(createPinia())
     const g3 = useGridStore()
     deserializePuzzle(useEditorStore(), g3, { formatVersion: 4, grid: { rows: 6, cols: 10 } })
     expect(g3.digits).toBeNull()
-    expect(g3.effectiveDigitRange).toBe(10)
+    expect(g3.effectiveDigitRange).toBe(9)
   })
 
   it('round-trips outer clue run directions on void-hosted clues', () => {

@@ -65,6 +65,7 @@ const groups: { title: string; items: Item[] }[] = [
     items: [
       ps('enableLineTool', 'Line tool', 'Draw lines and X/O marks on the grid while solving'),
       ps('enableLetterTool', 'Letter tool', 'Numpad toggle to enter letters instead of digits'),
+      ps('enablePanTool', 'Pan tool', 'Drag to move around a zoomed board (appears automatically on oversized puzzles)'),
     ],
   },
   {

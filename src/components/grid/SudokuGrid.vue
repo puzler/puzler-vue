@@ -5,6 +5,8 @@ import { useEditorStore } from '@/stores/editor'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { svgWidth, svgHeight, LABEL_GUTTER } from '@/composables/useGrid'
 import { useOuterMargins } from '@/composables/useOuterMargins'
+import { useViewportGestures } from '@/composables/useViewportGestures'
+import { useViewportStore } from '@/stores/viewport'
 import GridBackground from './GridBackground.vue'
 import GridBorders from './GridBorders.vue'
 import GridLabelsLayer from './GridLabelsLayer.vue'
@@ -51,6 +53,7 @@ const emit = defineEmits<{
 const grid = useGridStore()
 const editor = useEditorStore()
 const player = usePlayerSettingsStore()
+const viewport = useViewportStore()
 const svgEl = ref<SVGSVGElement | null>(null)
 const margins = useOuterMargins()
 
@@ -77,14 +80,21 @@ const aboveDigitLayers = constraintLayersForSlot('above_digits')
 
 // Outer clue margins extend the viewBox into negative space so all
 // PADDING-based cell math stays untouched; the optional row/column labels add a
-// further gutter on the top and left.
-const viewBox = computed(() => {
+// further gutter on the top and left. Interactive grids read the zoom/pan
+// viewport store instead (whose base box is this same math); static renders
+// (thumbnails) must ignore the shared store's zoom state entirely.
+const baseViewBox = computed(() => {
   const m = margins.value
   const g = showLabels.value ? LABEL_GUTTER : 0
   const left = m.left + g
   const top = m.top + g
   return `${-left} ${-top} ${svgWidth(grid.cols) + left + m.right} ${svgHeight(grid.rows) + top + m.bottom}`
 })
+const viewBox = computed(() =>
+  props.interactive ? viewport.viewBoxString : baseViewBox.value,
+)
+
+useViewportGestures(svgEl, { enabled: () => props.interactive })
 </script>
 
 <template>

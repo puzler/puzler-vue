@@ -43,14 +43,20 @@ describe('multi-label regions', () => {
     expect(grid.regionBorderType('r1c0', 'r1c1')).toBe('outer')
   })
 
-  it('digit range: explicit digits beat the automatic long side', () => {
+  it('digit range: explicit digits beat the automatic default', () => {
     const grid = useGridStore()
+    // The automatic default is the long side capped at 9 — gattai-scale
+    // boards must never default past the solver's 16-digit mask limit.
     grid.setDimensions(10, 10)
+    expect(grid.effectiveDigitRange).toBe(9)
+    grid.setDigits(10)
     expect(grid.effectiveDigitRange).toBe(10)
     grid.setDigits(6)
     expect(grid.effectiveDigitRange).toBe(6)
-    grid.setDimensions(9, 9) // new grid resets to automatic
+    grid.setDimensions(6, 6) // new grid resets to automatic; small grids track their size
     expect(grid.digits).toBeNull()
+    expect(grid.effectiveDigitRange).toBe(6)
+    grid.setDimensions(48, 48)
     expect(grid.effectiveDigitRange).toBe(9)
   })
 })

@@ -3,6 +3,7 @@ import { isModalOpen } from '@/components/ui/modalStack'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { useViewportStore } from '@/stores/viewport'
 import { enabledExtraModes, nextExtraMode } from '@/components/editor/numpadModes'
 import { cellKey, keyToRowCol } from './useGrid'
 import type { SolverInputMode } from '@/types/grid'
@@ -18,6 +19,7 @@ export function useGridKeyboard() {
   const editor = useEditorStore()
   const grid = useGridStore()
   const player = usePlayerSettingsStore()
+  const viewport = useViewportStore()
 
   const DIRECTIONS: Record<string, { dr: number; dc: number }> = {
     ArrowUp: { dr: -1, dc: 0 },
@@ -143,6 +145,34 @@ export function useGridKeyboard() {
       return
     }
 
+    // Viewport zoom. '=' is unshifted '+' on most layouts; Home snaps back to
+    // fit. Bare digits stay untouched — these keys collide with nothing above
+    // (the cosmetic text capture already returned, deliberately winning).
+    if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault()
+        viewport.zoomStep(1)
+        return
+      }
+      if (event.key === '-') {
+        event.preventDefault()
+        viewport.zoomStep(-1)
+        return
+      }
+      if (event.key === 'Home') {
+        event.preventDefault()
+        viewport.reset()
+        return
+      }
+      // Hold Space to pan in setting mode (solving mode's Space cycles input
+      // modes, handled below).
+      if (event.key === ' ' && editor.mode === 'setting') {
+        event.preventDefault()
+        viewport.spaceHeld = true
+        return
+      }
+    }
+
     // A selected XV clue captures X/V input, a selected inequality captures
     // </> (comma/period work unshifted). Delete falls through to the generic
     // handler, which routes it to the selected connector.
@@ -179,7 +209,7 @@ export function useGridKeyboard() {
       // B is the one keybind for every optional tool: it cycles through the
       // enabled extras (no-op while none are enabled).
       if (event.key === 'b' || event.key === 'B') {
-        const next = nextExtraMode(enabledExtraModes(player.settings), editor.inputMode)
+        const next = nextExtraMode(enabledExtraModes(player.settings, grid), editor.inputMode)
         if (next) { editor.setInputMode(next); return }
       }
     }
@@ -188,7 +218,7 @@ export function useGridKeyboard() {
       event.preventDefault()
       const cycle: SolverInputMode[] = [
         'digit', 'corner', 'center', 'color',
-        ...enabledExtraModes(player.settings).map((m) => m.mode),
+        ...enabledExtraModes(player.settings, grid).map((m) => m.mode),
       ]
       const next = cycle[(cycle.indexOf(editor.inputMode) + 1) % cycle.length]
       editor.setInputMode(next)
@@ -304,6 +334,7 @@ export function useGridKeyboard() {
 
   function onKeyUp(event: KeyboardEvent) {
     if (event.key === 'Shift') editor.setShiftHeld(false)
+    if (event.key === ' ') viewport.spaceHeld = false
     if (isModalOpen()) return
     if (event.key !== 'Shift' && event.key !== 'Control' && event.key !== 'Meta') return
     if (editor.inputMode === 'line') return // overrides are suppressed while penning
@@ -313,9 +344,10 @@ export function useGridKeyboard() {
     else editor.setKeyboardModeOverride(null)
   }
 
-  // Releasing shift outside the window (e.g. after cmd+tab) never fires keyup
+  // Releasing a key outside the window (e.g. after cmd+tab) never fires keyup
   function onWindowBlur() {
     editor.setShiftHeld(false)
+    viewport.spaceHeld = false
   }
 
   onMounted(() => {

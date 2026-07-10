@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
+import ZoomControls from '@/components/grid/ZoomControls.vue'
 import ToolSelector from '@/components/editor/ToolSelector.vue'
 import ToolControlBox from '@/components/editor/ToolControlBox.vue'
 import PuzzleControls from '@/components/editor/PuzzleControls.vue'
@@ -96,7 +97,7 @@ onMounted(() => {
       <PuzzleControls />
       <div
         data-tour="editor-grid"
-        class="flex-1 bg-canvas overflow-hidden min-h-0"
+        class="relative flex-1 bg-canvas overflow-hidden min-h-0"
       >
         <SudokuGrid
           mode="edit"
@@ -106,6 +107,7 @@ onMounted(() => {
           @update:selection="editor.selection = $event"
           @clear-selection="editor.clearSelection()"
         />
+        <ZoomControls />
       </div>
     </main>
 

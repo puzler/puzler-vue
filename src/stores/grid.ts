@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { cellKey } from '@/composables/useGrid'
+import { cellKey, defaultDigitRange } from '@/composables/useGrid'
 
 function dimensionsForSize(size: number): { width: number; height: number } {
   const factors: number[] = []
@@ -40,11 +40,15 @@ export const useGridStore = defineStore('grid', () => {
   const cols = ref(9)
 
   // The value range digits run over (1..N). null = automatic: the long side
-  // of the grid, which is the classic size on square boards. An explicit
+  // of the grid up to 9, then 9 (see defaultDigitRange — gattai boards use
+  // ordinary digits, and the solver's masks cap ranges at 16). An explicit
   // value serves puzzles whose digits don't span the grid (two 6×6 sudokus
-  // conjoined on a 10×10 use 1-6).
+  // conjoined on a 10×10 use 1-6) or larger-than-9 ranges (up to 16).
   const digits = ref<number | null>(null)
-  const effectiveDigitRange = computed(() => digits.value ?? Math.max(rows.value, cols.value))
+  const effectiveDigitRange = computed(() => digits.value ?? defaultDigitRange(rows.value, cols.value))
+
+  // Bumped on every setDimensions call (even same-size) — see setDimensions.
+  const layoutVersion = ref(0)
 
   // null = all cells use standard default labels
   // Record: per-cell override — the SORTED list of region labels ('0'–'9',
@@ -128,6 +132,10 @@ export const useGridStore = defineStore('grid', () => {
     cols.value = c
     customCellRegions.value = null
     digits.value = null
+    // Every puzzle load / new grid passes through here. Bump even when the
+    // dimensions are unchanged so watchers (the zoom viewport's reset) can
+    // tell "a different same-size board" from "nothing happened".
+    layoutVersion.value++
   }
 
   function allCellKeys(): string[] {
@@ -143,6 +151,7 @@ export const useGridStore = defineStore('grid', () => {
     cols,
     digits,
     effectiveDigitRange,
+    layoutVersion,
     setDigits,
     customCellRegions,
     cellRegionLabelMap,

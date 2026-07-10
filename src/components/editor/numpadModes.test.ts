@@ -1,19 +1,46 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { enabledExtraModes, nextExtraMode, type ExtraNumpadMode } from './numpadModes'
+import { enabledExtraModes, nextExtraMode, panToolAvailable, type ExtraNumpadMode } from './numpadModes'
 import NumpadExtraToolsBar from './NumpadExtraToolsBar.vue'
 import NumpadExtraToolsRail from './NumpadExtraToolsRail.vue'
 import { useEditorStore } from '@/stores/editor'
+import { useGridStore } from '@/stores/grid'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { DEFAULT_PLAYER_SETTINGS } from '@/utils/playerSettings'
 import type { SolverInputMode } from '@/types/grid'
 
 describe('numpadModes registry', () => {
+  const SMALL = { rows: 9, cols: 9 }
+
   it('gates the line tool on its setting', () => {
-    expect(enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS })).toEqual([])
-    const modes = enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS, enableLineTool: true })
+    expect(enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS }, SMALL)).toEqual([])
+    const modes = enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS, enableLineTool: true }, SMALL)
     expect(modes.map((m) => m.mode)).toEqual(['line'])
+  })
+
+  it('gates the pan tool on its setting OR a gattai-scale board', () => {
+    expect(panToolAvailable({ ...DEFAULT_PLAYER_SETTINGS }, SMALL)).toBe(false)
+    expect(panToolAvailable({ ...DEFAULT_PLAYER_SETTINGS, enablePanTool: true }, SMALL)).toBe(true)
+    // The threshold is the historical 16 cap: existing puzzles never change.
+    expect(panToolAvailable({ ...DEFAULT_PLAYER_SETTINGS }, { rows: 16, cols: 16 })).toBe(false)
+    expect(panToolAvailable({ ...DEFAULT_PLAYER_SETTINGS }, { rows: 21, cols: 21 })).toBe(true)
+    expect(panToolAvailable({ ...DEFAULT_PLAYER_SETTINGS }, { rows: 9, cols: 17 })).toBe(true)
+
+    expect(enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS }, { rows: 21, cols: 21 })
+      .map((m) => m.mode)).toEqual(['pan'])
+    expect(enabledExtraModes({ ...DEFAULT_PLAYER_SETTINGS, enablePanTool: true }, SMALL)
+      .map((m) => m.mode)).toEqual(['pan'])
+  })
+
+  it('cycles line into pan when both are enabled', () => {
+    const extras = enabledExtraModes(
+      { ...DEFAULT_PLAYER_SETTINGS, enableLineTool: true, enablePanTool: true },
+      SMALL,
+    )
+    expect(extras.map((m) => m.mode)).toEqual(['line', 'pan'])
+    expect(nextExtraMode(extras, 'line')).toBe('pan')
+    expect(nextExtraMode(extras, 'pan')).toBe('line')
   })
 })
 
@@ -67,6 +94,20 @@ describe('extra tools strip (bar + rail)', () => {
       expect(btn.exists()).toBe(true)
       await btn.trigger('click')
       expect(editor.inputMode).toBe('line')
+    },
+  )
+
+  it.each([[NumpadExtraToolsBar], [NumpadExtraToolsRail]])(
+    'shows the pan tool key on an oversized grid without the setting (%#)',
+    async (component) => {
+      useGridStore().setDimensions(21, 21)
+      const editor = useEditorStore()
+      editor.setMode('solving')
+      const wrapper = mount(component)
+      const btn = wrapper.find('button[aria-label="Pan tool"]')
+      expect(btn.exists()).toBe(true)
+      await btn.trigger('click')
+      expect(editor.inputMode).toBe('pan')
     },
   )
 

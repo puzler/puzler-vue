@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
+import ZoomControls from '@/components/grid/ZoomControls.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import BackToPuzzleLink from '@/components/player/BackToPuzzleLink.vue'
@@ -83,6 +84,7 @@ const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
         @update:selection="editor.selection = $event"
         @clear-selection="editor.clearSelection()"
       />
+      <ZoomControls />
       <PausedOverlay
         v-if="paused"
         resume-verb="Tap"

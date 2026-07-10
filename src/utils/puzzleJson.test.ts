@@ -161,10 +161,10 @@ describe('resizePuzzleGrid', () => {
     expect(editor.givenDigits).toEqual({ r1c0: 5, r9c8: 9 })
   })
 
-  it('refuses to leave the 2..16 range', () => {
+  it('refuses to leave the GRID_MIN..GRID_MAX range', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
-    grid.setDimensions(16, 16)
+    grid.setDimensions(48, 48)
     expect(resizePuzzleGrid(editor, grid, 'bottom', 1).ok).toBe(false)
     grid.setDimensions(2, 2)
     expect(resizePuzzleGrid(editor, grid, 'left', -1).ok).toBe(false)

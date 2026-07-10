@@ -35,6 +35,15 @@ export function svgHeight(rows: number): number {
   return PADDING * 2 + rows * CELL_SIZE
 }
 
+// The digit range when grid.digits is absent: the grid's long side up to 9,
+// then 9. Gattai-scale boards are made of sub-grids solved with ordinary
+// digits — and the solver engine's 32-bit candidate masks cap any range at 16,
+// so a large grid must never default past that. Setters wanting 10-16 set
+// grid.digits explicitly.
+export function defaultDigitRange(rows: number, cols: number): number {
+  return Math.min(Math.max(rows, cols), 9)
+}
+
 function standardBoxDimensions(n: number): { boxRows: number; boxCols: number } | null {
   const known: Record<number, { boxRows: number; boxCols: number }> = {
     4: { boxRows: 2, boxCols: 2 },

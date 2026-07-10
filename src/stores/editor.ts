@@ -6,6 +6,7 @@ import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { cellKey, keyToRowCol } from '@/composables/useGrid'
+import { panToolAvailable } from '@/components/editor/numpadModes'
 import { knightNeighbours, kingNeighbours, standardBoxes, rowOf, colOf, cellAt } from '@/solver/engine/geometry'
 import { segmentKey, EMPTY_PEN_STATE, isEmptyPenState } from '@/utils/pen'
 import { sortMarks } from '@/utils/cellValues'
@@ -260,6 +261,15 @@ export const useEditorStore = defineStore('editor', () => {
     () => usePlayerSettingsStore().settings.enableLetterTool,
     (on) => {
       if (!on) letterMode.value = false
+    },
+  )
+
+  // And the pan tool — which stays available regardless of the setting while
+  // the board is over the auto-enable size threshold.
+  watch(
+    () => panToolAvailable(usePlayerSettingsStore().settings, useGridStore()),
+    (on) => {
+      if (!on && inputMode.value === 'pan') setInputMode('digit')
     },
   )
   const { canUndo, canRedo, execute, record, undo, redo, clear: clearHistory, serialize: serializeHistory, hydrate: hydrateHistory } = useUndoRedo(applySolverSnapshot)
@@ -736,12 +746,12 @@ export const useEditorStore = defineStore('editor', () => {
     letterMode.value = v
   }
 
-  // Letter input routes like digit input, but letters have no meaning in color
-  // or line mode — those fall back to placing a full value.
+  // Letter input routes like digit input, but letters have no meaning in color,
+  // line, or pan mode — those fall back to placing a full value.
   function placeLetterForSelection(letter: string, modeOverride?: SolverInputMode) {
     if (mode.value !== 'solving') return
     let effective = modeOverride ?? effectiveInputMode.value
-    if (effective === 'color' || effective === 'line') effective = 'digit'
+    if (effective === 'color' || effective === 'line' || effective === 'pan') effective = 'digit'
     if (effective === 'digit') setSolverValueForSelection(letter)
     else if (effective === 'corner') toggleCornerMarkForSelection(letter)
     else if (effective === 'center') toggleCenterMarkForSelection(letter)
@@ -1055,7 +1065,10 @@ export const useEditorStore = defineStore('editor', () => {
     } else {
       // Solvers may enter ANY digit, 0 and out-of-range included — like
       // letters, they're honest entries that simply never match the solution.
-      const effective = modeOverride ?? effectiveInputMode.value
+      // Pan mode keeps the standing selection writable (as in SudokuPad):
+      // digits route as if in digit mode.
+      let effective = modeOverride ?? effectiveInputMode.value
+      if (effective === 'pan') effective = 'digit'
       if (effective === 'digit') setSolverValueForSelection(digit)
       else if (effective === 'corner') toggleCornerMarkForSelection(digit)
       else if (effective === 'center') toggleCenterMarkForSelection(digit)

@@ -26,6 +26,7 @@ export interface PlayerSettings {
   // Available tools
   enableLineTool: boolean
   enableLetterTool: boolean
+  enablePanTool: boolean
 }
 
 const KEY = 'puzler:player-settings'
@@ -44,6 +45,7 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   hideShareToken: false,
   enableLineTool: false,
   enableLetterTool: false,
+  enablePanTool: false,
 }
 
 // Merge an arbitrary (possibly partial / server-sourced) object over the

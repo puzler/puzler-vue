@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -21,6 +21,11 @@ const copiedKind = ref<'open' | 'copy' | null>(null)
 const error = ref<string | null>(null)
 const warnings = ref<string[]>([])
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
+
+// The f-puzzles format underlying the conversion tops out at 16×16; gattai
+// boards past that can't round-trip, so the export is disabled outright
+// rather than producing a corrupt link.
+const tooLarge = computed(() => grid.rows > 16 || grid.cols > 16)
 
 // Request a SudokuPad link for the current puzzle. Records any fidelity
 // warnings; returns null (and sets error) on failure, e.g. a non-square grid.
@@ -93,8 +98,9 @@ const LINK = 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6
   <div class="flex flex-col gap-2 pt-3 border-t border-line">
     <div class="flex gap-1.5">
       <button
-        title="Copy a SudokuPad link and open it in a new tab"
-        class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border transition-colors"
+        :title="tooLarge ? 'SudokuPad export supports grids up to 16×16' : 'Copy a SudokuPad link and open it in a new tab'"
+        :disabled="tooLarge"
+        class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border transition-colors disabled:opacity-40 disabled:pointer-events-none"
         :class="copiedKind === 'open'
           ? 'border-green-400 bg-green-50 text-green-700'
           : 'border-line hover:border-action hover:bg-action-tint text-ink-text'"
@@ -118,9 +124,10 @@ const LINK = 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6
       </button>
 
       <button
-        title="Copy SudokuPad link"
+        :title="tooLarge ? 'SudokuPad export supports grids up to 16×16' : 'Copy SudokuPad link'"
         aria-label="Copy SudokuPad link"
-        class="w-11 flex items-center justify-center rounded-xl border transition-colors"
+        :disabled="tooLarge"
+        class="w-11 flex items-center justify-center rounded-xl border transition-colors disabled:opacity-40 disabled:pointer-events-none"
         :class="copiedKind === 'copy'
           ? 'border-green-400 bg-green-50 text-green-500'
           : 'border-line hover:border-action hover:bg-action-tint text-faint'"
@@ -142,6 +149,12 @@ const LINK = 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6
       </button>
     </div>
 
+    <p
+      v-if="tooLarge"
+      class="text-xs text-soft"
+    >
+      SudokuPad export supports grids up to 16×16.
+    </p>
     <p
       v-if="editor.fogEnabled"
       class="text-xs text-soft"

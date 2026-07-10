@@ -3,6 +3,7 @@
 // numpad) on the right. Mirrors PlayerMobileLayout — both read the editor store
 // directly for the grid and forward the same panel props/events.
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
+import ZoomControls from '@/components/grid/ZoomControls.vue'
 import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import PlayerSidePanel from '@/components/player/PlayerSidePanel.vue'
 import { useEditorStore } from '@/stores/editor'
@@ -39,6 +40,7 @@ defineEmits<{
         @update:selection="editor.selection = $event"
         @clear-selection="editor.clearSelection()"
       />
+      <ZoomControls />
       <PausedOverlay
         v-if="paused"
         @resume="$emit('toggle-pause')"

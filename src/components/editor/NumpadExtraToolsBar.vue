@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useGridStore } from '@/stores/grid'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { enabledExtraModes, extraToolClass, centerToolInStrip } from './numpadModes'
 import MdiIcon from '@/components/MdiIcon.vue'
@@ -12,9 +13,10 @@ import MdiIcon from '@/components/MdiIcon.vue'
 // tool is enabled.
 
 const editor = useEditorStore()
+const grid = useGridStore()
 const player = usePlayerSettingsStore()
 
-const extraModes = computed(() => enabledExtraModes(player.settings))
+const extraModes = computed(() => enabledExtraModes(player.settings, grid))
 
 const strip = ref<HTMLElement | null>(null)
 

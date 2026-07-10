@@ -46,7 +46,7 @@
     "codemirror-json-schema": "^0.8.1",
     "dompurify": "^3.4.11",
     "driver.js": "^1.6.0",
-    "graphql": "^16.14.2",
+    "graphql": "^17.0.2",
     "graphql-ruby-client": "^1.15.1",
     "js-sha256": "^0.11.1",
     "lz-string": "^1.5.0",

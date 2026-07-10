@@ -5,24 +5,28 @@ import { apolloClient } from '@/utils/apolloClient'
 import ContentPage from '@/components/ContentPage.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import AddPuzzlesModal from '@/components/mypuzzles/AddPuzzlesModal.vue'
-import CollectionPuzzleList from '@/components/mypuzzles/CollectionPuzzleList.vue'
+import CollectionEntryList from '@/components/mypuzzles/CollectionEntryList.vue'
 import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
 import CollectionPageEditor from '@/components/mypuzzles/CollectionPageEditor.vue'
+import StoryPageModal from '@/components/mypuzzles/StoryPageModal.vue'
 import CollectionDetailDocument from '@/graphql/gql/collections/queries/CollectionDetail.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import DeleteCollectionDocument from '@/graphql/gql/collections/mutations/DeleteCollection.graphql'
-import RemovePuzzleFromCollectionDocument from '@/graphql/gql/collections/mutations/RemovePuzzleFromCollection.graphql'
-import ReorderCollectionPuzzlesDocument from '@/graphql/gql/collections/mutations/ReorderCollectionPuzzles.graphql'
+import AddStoryPageToCollectionDocument from '@/graphql/gql/collections/mutations/AddStoryPageToCollection.graphql'
+import RemoveCollectionEntryDocument from '@/graphql/gql/collections/mutations/RemoveCollectionEntry.graphql'
+import ReorderCollectionEntriesDocument from '@/graphql/gql/collections/mutations/ReorderCollectionEntries.graphql'
 import type {
   CollectionDetailQuery, CollectionDetailQueryVariables,
   UpdateCollectionMutation, UpdateCollectionMutationVariables,
   DeleteCollectionMutation, DeleteCollectionMutationVariables,
-  RemovePuzzleFromCollectionMutation, RemovePuzzleFromCollectionMutationVariables,
-  ReorderCollectionPuzzlesMutation, ReorderCollectionPuzzlesMutationVariables,
+  AddStoryPageToCollectionMutation, AddStoryPageToCollectionMutationVariables,
+  RemoveCollectionEntryMutation, RemoveCollectionEntryMutationVariables,
+  ReorderCollectionEntriesMutation, ReorderCollectionEntriesMutationVariables,
 } from '@/graphql/generated/types'
 import { CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionDetailQuery['collection']>
+type Entry = Collection['entries'][number]
 type Attrs = Partial<Pick<UpdateCollectionMutationVariables,
   'title' | 'visibility' | 'mode' | 'timed' | 'accentColor' | 'bgTreatment' | 'titleFont'>>
 
@@ -31,17 +35,22 @@ const router = useRouter()
 const id = route.params.id as string
 
 const collection = ref<Collection | null>(null)
-const puzzles = ref<Collection['puzzles']>([])
+const entries = ref<Entry[]>([])
 const loading = ref(true)
 const showAdd = ref(false)
 const showDelete = ref(false)
+const editingStory = ref<Entry['storyPage'] | null>(null)
+const removingEntry = ref<Entry | null>(null)
+
+const puzzleIds = computed(() =>
+  entries.value.flatMap((entry) => (entry.puzzle ? [ entry.puzzle.id ] : [])))
 
 async function load() {
   const { data } = await apolloClient.query<CollectionDetailQuery, CollectionDetailQueryVariables>({
     query: CollectionDetailDocument, variables: { id }, fetchPolicy: 'network-only',
   })
   collection.value = data?.collection ?? null
-  puzzles.value = collection.value ? [ ...collection.value.puzzles ] : []
+  entries.value = collection.value ? [ ...collection.value.entries ] : []
   loading.value = false
 }
 
@@ -60,20 +69,42 @@ function save(attrs: Attrs) {
 
 function move(index: number, delta: number) {
   const target = index + delta
-  if (target < 0 || target >= puzzles.value.length) return
-  const next = [ ...puzzles.value ]
+  if (target < 0 || target >= entries.value.length) return
+  const next = [ ...entries.value ]
   ;[ next[index], next[target] ] = [ next[target], next[index] ]
-  puzzles.value = next
-  apolloClient.mutate<ReorderCollectionPuzzlesMutation, ReorderCollectionPuzzlesMutationVariables>({
-    mutation: ReorderCollectionPuzzlesDocument, variables: { collectionId: id, orderedPuzzleIds: next.map((p) => p.id) },
+  entries.value = next
+  apolloClient.mutate<ReorderCollectionEntriesMutation, ReorderCollectionEntriesMutationVariables>({
+    mutation: ReorderCollectionEntriesDocument, variables: { collectionId: id, orderedEntryIds: next.map((e) => e.id) },
   })
 }
 
-async function removePuzzle(puzzleId: string) {
-  await apolloClient.mutate<RemovePuzzleFromCollectionMutation, RemovePuzzleFromCollectionMutationVariables>({
-    mutation: RemovePuzzleFromCollectionDocument, variables: { collectionId: id, puzzleId },
+// Puzzle entries unlink immediately; story pages are destroyed with their
+// entry, so those go through a confirm first.
+function requestRemove(entry: Entry) {
+  if (entry.entryType === 'StoryPage') removingEntry.value = entry
+  else void removeEntry(entry)
+}
+
+async function removeEntry(entry: Entry) {
+  removingEntry.value = null
+  await apolloClient.mutate<RemoveCollectionEntryMutation, RemoveCollectionEntryMutationVariables>({
+    mutation: RemoveCollectionEntryDocument, variables: { collectionId: id, entryId: entry.id },
   })
-  puzzles.value = puzzles.value.filter((p) => p.id !== puzzleId)
+  entries.value = entries.value.filter((e) => e.id !== entry.id)
+}
+
+async function addStoryPage() {
+  const { data } = await apolloClient.mutate<AddStoryPageToCollectionMutation, AddStoryPageToCollectionMutationVariables>({
+    mutation: AddStoryPageToCollectionDocument, variables: { collectionId: id },
+  })
+  const storyPage = data?.addStoryPageToCollection?.storyPage
+  await load()
+  if (storyPage) editingStory.value = storyPage
+}
+
+async function closeStoryModal() {
+  editingStory.value = null
+  await load()
 }
 
 async function deleteCollection() {
@@ -145,11 +176,13 @@ onMounted(load)
           @save="save"
         />
 
-        <CollectionPuzzleList
-          :puzzles="puzzles"
+        <CollectionEntryList
+          :entries="entries"
           @move="move"
-          @remove="removePuzzle"
+          @remove="requestRemove"
           @add="showAdd = true"
+          @add-story="addStoryPage"
+          @edit-story="editingStory = $event.storyPage"
         />
 
         <div class="pt-4 border-t border-line">
@@ -165,9 +198,21 @@ onMounted(load)
       <AddPuzzlesModal
         v-if="showAdd && collection"
         :collection-id="id"
-        :exclude-ids="puzzles.map((p) => p.id)"
+        :exclude-ids="puzzleIds"
         @added="load"
         @close="showAdd = false"
+      />
+      <StoryPageModal
+        v-if="editingStory"
+        :story-page="editingStory"
+        @close="closeStoryModal"
+      />
+      <ConfirmModal
+        v-if="removingEntry"
+        message="Delete this story page? Its text and images are removed for good."
+        confirm-label="Delete"
+        @confirm="removeEntry(removingEntry)"
+        @cancel="removingEntry = null"
       />
       <ConfirmModal
         v-if="showDelete"

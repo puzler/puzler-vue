@@ -5,11 +5,13 @@ import ContentPage from '@/components/ContentPage.vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import RichProseBody from '@/components/RichProseBody.vue'
 import CollectionLeaderboard from '@/components/collections/CollectionLeaderboard.vue'
-import CollectionPuzzleList from '@/components/collections/CollectionPuzzleList.vue'
+import CollectionEntryFlow from '@/components/collections/CollectionEntryFlow.vue'
+import CollectionToc from '@/components/collections/CollectionToc.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { solvedIds } from '@/utils/solveProgress'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
 import { collectionThemeClasses } from '@/utils/collectionTheme'
+import { tableOfContents } from '@/utils/collectionEntries'
 import CollectionPublicDocument from '@/graphql/gql/collections/queries/CollectionPublic.graphql'
 import CollectionByTokenPublicDocument from '@/graphql/gql/collections/queries/CollectionByTokenPublic.graphql'
 import type {
@@ -32,6 +34,14 @@ const isSequence = computed(() => collection.value?.mode === CollectionModeEnum.
 // defence-in-depth before v-html).
 const themeClasses = computed(() => (collection.value ? collectionThemeClasses(collection.value) : []))
 const bodyHtml = computed(() => sanitizeHtml(collection.value?.pageDescriptionHtml ?? null))
+
+// Titled story pages become a table of contents; one heading alone isn't worth
+// a nav, so it appears from two on. Locked chapters show but don't link.
+const toc = computed(() => {
+  if (!collection.value) return []
+  const items = tableOfContents(collection.value.entries, isSequence.value, solved.value)
+  return items.length >= 2 ? items : []
+})
 
 async function load() {
   const id = typeof route.params.id === 'string' ? route.params.id : null
@@ -115,8 +125,14 @@ onMounted(load)
             ⏱ Timed — your solve times are ranked below.
           </p>
 
-          <CollectionPuzzleList
+          <CollectionToc
+            v-if="toc.length"
+            :items="toc"
+          />
+
+          <CollectionEntryFlow
             data-tour="collection-puzzles"
+            :entries="collection.entries"
             :puzzles="collection.puzzles"
             :is-sequence="isSequence"
             :solved="solved"

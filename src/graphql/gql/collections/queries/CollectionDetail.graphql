@@ -12,11 +12,21 @@ query CollectionDetail($id: ID!) {
     mode
     timed
     shareToken
-    puzzles {
+    entries {
       id
-      title
-      status
-      visibility
+      entryType
+      position
+      puzzle {
+        id
+        title
+        status
+        visibility
+      }
+      storyPage {
+        id
+        title
+        bodyHtml
+      }
     }
   }
 }

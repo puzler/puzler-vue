@@ -1,0 +1,52 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import MdiIcon from '@/components/MdiIcon.vue'
+import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
+
+// One puzzle row in a collection's entry flow: a playable link when unlocked,
+// a dashed locked row otherwise.
+defineProps<{
+  puzzle: { id: string; title: string; avgRating?: number | null }
+  link: { name: string; params: Record<string, string>; query: Record<string, string> }
+  unlocked: boolean
+  showNumber: boolean
+  number: number
+  isSolved: boolean
+}>()
+</script>
+
+<template>
+  <RouterLink
+    v-if="unlocked"
+    :to="link"
+    class="flex items-center gap-3 p-4 rounded-xl border border-line bg-surface hover:border-action hover:bg-action-tint transition-colors"
+  >
+    <span
+      v-if="showNumber"
+      class="text-sm text-faint w-5 text-right shrink-0"
+    >{{ number }}</span>
+    <span class="font-medium text-ink-text truncate flex-1">{{ puzzle.title }}</span>
+    <MdiIcon
+      v-if="isSolved"
+      :path="mdiCheckCircle"
+      :size="16"
+      class="text-green-500 shrink-0"
+    />
+    <span
+      v-else-if="puzzle.avgRating"
+      class="text-xs text-faint shrink-0"
+    >★ {{ puzzle.avgRating.toFixed(1) }}</span>
+  </RouterLink>
+  <div
+    v-else
+    class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line text-faint cursor-not-allowed"
+  >
+    <span class="text-sm w-5 text-right shrink-0">{{ number }}</span>
+    <span class="truncate flex-1">{{ puzzle.title }}</span>
+    <MdiIcon
+      :path="mdiLockOutline"
+      :size="16"
+      class="shrink-0"
+    />
+  </div>
+</template>

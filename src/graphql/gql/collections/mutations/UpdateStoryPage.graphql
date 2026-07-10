@@ -1,0 +1,10 @@
+mutation UpdateStoryPage($id: ID!, $title: String, $html: String) {
+  updateStoryPage(input: { id: $id, title: $title, html: $html }) {
+    storyPage {
+      id
+      title
+      bodyHtml
+    }
+    errors
+  }
+}

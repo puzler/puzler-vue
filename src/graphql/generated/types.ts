@@ -122,6 +122,14 @@ export type AddPuzzleToCollectionMutationVariables = Exact<{
 
 export type AddPuzzleToCollectionMutation = { addPuzzleToCollection: { errors: Array<string>, collection: { id: string, puzzles: Array<{ id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum }> } | null } | null };
 
+export type AddStoryPageToCollectionMutationVariables = Exact<{
+  collectionId: string | number;
+  title?: string | null | undefined;
+}>;
+
+
+export type AddStoryPageToCollectionMutation = { addStoryPageToCollection: { errors: Array<string>, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null, collection: { id: string } | null } | null };
+
 export type CreateCollectionMutationVariables = Exact<{
   title: string;
 }>;
@@ -191,6 +199,14 @@ export type RemoveCollectionCoverImageMutationVariables = Exact<{
 
 export type RemoveCollectionCoverImageMutation = { removeCollectionCoverImage: { errors: Array<string>, collection: { id: string, coverImageUrl: string | null, coverThumbUrl: string | null } | null } | null };
 
+export type RemoveCollectionEntryMutationVariables = Exact<{
+  collectionId: string | number;
+  entryId: string | number;
+}>;
+
+
+export type RemoveCollectionEntryMutation = { removeCollectionEntry: { errors: Array<string>, collection: { id: string } | null } | null };
+
 export type RemovePuzzleFromCollectionMutationVariables = Exact<{
   collectionId: string | number;
   puzzleId: string | number;
@@ -206,6 +222,14 @@ export type RenameFolderMutationVariables = Exact<{
 
 
 export type RenameFolderMutation = { renameFolder: { errors: Array<string>, folder: { id: string, name: string, puzzleCount: number } | null } | null };
+
+export type ReorderCollectionEntriesMutationVariables = Exact<{
+  collectionId: string | number;
+  orderedEntryIds: Array<string | number> | string | number;
+}>;
+
+
+export type ReorderCollectionEntriesMutation = { reorderCollectionEntries: { errors: Array<string>, collection: { id: string } | null } | null };
 
 export type ReorderCollectionPuzzlesMutationVariables = Exact<{
   collectionId: string | number;
@@ -238,6 +262,15 @@ export type UpdateCollectionPageDescriptionMutationVariables = Exact<{
 
 export type UpdateCollectionPageDescriptionMutation = { updateCollectionPageDescription: { errors: Array<string>, collection: { id: string, pageDescriptionHtml: string | null } | null } | null };
 
+export type UpdateStoryPageMutationVariables = Exact<{
+  id: string | number;
+  title?: string | null | undefined;
+  html?: string | null | undefined;
+}>;
+
+
+export type UpdateStoryPageMutation = { updateStoryPage: { errors: Array<string>, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null } | null };
+
 export type UploadCollectionCoverImageMutationVariables = Exact<{
   collectionId: string | number;
   file: File;
@@ -254,19 +287,27 @@ export type UploadCollectionDescriptionImageMutationVariables = Exact<{
 
 export type UploadCollectionDescriptionImageMutation = { uploadCollectionDescriptionImage: { url: string | null, errors: Array<string> } | null };
 
+export type UploadStoryPageImageMutationVariables = Exact<{
+  storyPageId: string | number;
+  file: File;
+}>;
+
+
+export type UploadStoryPageImageMutation = { uploadStoryPageImage: { url: string | null, errors: Array<string> } | null };
+
 export type CollectionByTokenPublicQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }>, entries: Array<{ id: string, entryType: string, position: number, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionDetailQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, shareToken: string | null, puzzles: Array<{ id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum }> } | null };
+export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, shareToken: string | null, entries: Array<{ id: string, entryType: string, position: number, puzzle: { id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionLeaderboardQueryVariables = Exact<{
   collectionId: string | number;
@@ -280,7 +321,7 @@ export type CollectionPublicQueryVariables = Exact<{
 }>;
 
 
-export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> } | null };
+export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }>, entries: Array<{ id: string, entryType: string, position: number, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionsQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
@@ -310,7 +351,7 @@ export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzz
 
 export type CollectionCardFieldsFragment = { id: string, title: string, coverThumbUrl: string | null, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
-export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }> };
+export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number }>, entries: Array<{ id: string, entryType: string, position: number, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> };
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null };
 

@@ -143,6 +143,15 @@ declare module '*/AddPuzzleToCollection.graphql' {
 }
     
 
+declare module '*/AddStoryPageToCollection.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const AddStoryPageToCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/CreateCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -224,6 +233,15 @@ declare module '*/RemoveCollectionCoverImage.graphql' {
 }
     
 
+declare module '*/RemoveCollectionEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RemoveCollectionEntry: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RemovePuzzleFromCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -237,6 +255,15 @@ declare module '*/RenameFolder.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const RenameFolder: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ReorderCollectionEntries.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ReorderCollectionEntries: DocumentNode;
 
   export default defaultDocument;
 }
@@ -269,6 +296,15 @@ declare module '*/UpdateCollectionPageDescription.graphql' {
 }
     
 
+declare module '*/UpdateStoryPage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateStoryPage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UploadCollectionCoverImage.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -282,6 +318,15 @@ declare module '*/UploadCollectionDescriptionImage.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UploadCollectionDescriptionImage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UploadStoryPageImage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UploadStoryPageImage: DocumentNode;
 
   export default defaultDocument;
 }

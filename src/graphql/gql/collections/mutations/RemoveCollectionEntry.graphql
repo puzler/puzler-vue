@@ -1,0 +1,8 @@
+mutation RemoveCollectionEntry($collectionId: ID!, $entryId: ID!) {
+  removeCollectionEntry(input: { collectionId: $collectionId, entryId: $entryId }) {
+    collection {
+      id
+    }
+    errors
+  }
+}

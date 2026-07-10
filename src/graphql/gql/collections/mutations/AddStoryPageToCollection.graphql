@@ -1,0 +1,13 @@
+mutation AddStoryPageToCollection($collectionId: ID!, $title: String) {
+  addStoryPageToCollection(input: { collectionId: $collectionId, title: $title }) {
+    storyPage {
+      id
+      title
+      bodyHtml
+    }
+    collection {
+      id
+    }
+    errors
+  }
+}

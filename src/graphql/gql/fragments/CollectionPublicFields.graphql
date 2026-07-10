@@ -22,4 +22,17 @@ fragment CollectionPublicFields on Collection {
     avgRating
     solveCount
   }
+  entries {
+    id
+    entryType
+    position
+    puzzle {
+      id
+    }
+    storyPage {
+      id
+      title
+      bodyHtml
+    }
+  }
 }

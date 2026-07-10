@@ -1,0 +1,6 @@
+mutation UploadStoryPageImage($storyPageId: ID!, $file: Upload!) {
+  uploadStoryPageImage(input: { storyPageId: $storyPageId, file: $file }) {
+    url
+    errors
+  }
+}

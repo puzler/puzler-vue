@@ -1,0 +1,8 @@
+mutation ReorderCollectionEntries($collectionId: ID!, $orderedEntryIds: [ID!]!) {
+  reorderCollectionEntries(input: { collectionId: $collectionId, orderedEntryIds: $orderedEntryIds }) {
+    collection {
+      id
+    }
+    errors
+  }
+}

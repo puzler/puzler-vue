@@ -18,7 +18,7 @@
     "schema:puzzle": "ts-json-schema-generator --path src/components/editor/json/schemaTypes.ts --type SerializedPuzzleSchema --tsconfig tsconfig.app.json --no-type-check -o src/components/editor/json/puzzle-schema.json"
   },
   "dependencies": {
-    "@apollo/client": "^3.14.1",
+    "@apollo/client": "^4.2.6",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-json": "^6.0.2",

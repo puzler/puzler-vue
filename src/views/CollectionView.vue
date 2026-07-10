@@ -91,6 +91,7 @@ onMounted(load)
             :collection="collection"
             :body-html="bodyHtml"
             :is-sequence="isSequence"
+            :share-token="shareToken"
           />
 
           <CollectionProgress

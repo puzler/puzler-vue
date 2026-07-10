@@ -12,7 +12,18 @@ useThemeApplier()
 </script>
 
 <template>
-  <div class="h-[100svh] max-h-[100svh] flex flex-col overflow-hidden">
+  <!-- Print routes escape the fixed-height shell (window.print only paginates
+       naturally-flowing documents) and carry no site chrome. -->
+  <div
+    v-if="route.meta.print"
+    class="bg-paper min-h-screen"
+  >
+    <RouterView />
+  </div>
+  <div
+    v-else
+    class="h-[100svh] max-h-[100svh] flex flex-col overflow-hidden"
+  >
     <NavBar />
     <RouterView class="flex-1 min-h-0" />
     <AppFooter v-if="!route.meta.hideFooter" />

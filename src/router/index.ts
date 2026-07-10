@@ -42,6 +42,12 @@ const router = createRouter({
       component: () => import('@/views/CollectionView.vue'),
     },
     {
+      path: '/collections/:id/print',
+      name: 'collection-print',
+      component: () => import('@/views/PrintCollectionView.vue'),
+      meta: { print: true, hideFooter: true },
+    },
+    {
       path: '/my-puzzles/series/:id',
       name: 'series-detail',
       component: () => import('@/views/SeriesDetailView.vue'),

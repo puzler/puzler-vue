@@ -21,6 +21,7 @@ fragment CollectionPublicFields on Collection {
     constraintTypes
     avgRating
     solveCount
+    sudokupadUrl
   }
   hasCodewords
   nextReleaseAt

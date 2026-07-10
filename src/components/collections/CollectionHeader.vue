@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import RichProseBody from '@/components/RichProseBody.vue'
+import MdiIcon from '@/components/MdiIcon.vue'
+import { mdiPrinterOutline, mdiShareVariantOutline } from '@mdi/js'
+import { API_URL } from '@/utils/env'
 
 // The top of a public collection page: cover hero, title, author line, the
-// rich body (or plain description fallback), and the mode/timing hints.
-// `bodyHtml` is already sanitized by the caller.
-defineProps<{
+// rich body (or plain description fallback), mode/timing hints, and the
+// print/share actions. `bodyHtml` is already sanitized by the caller.
+const props = defineProps<{
   collection: {
+    id: string
     title: string
     coverImageUrl?: string | null
     description?: string | null
@@ -16,7 +22,19 @@ defineProps<{
   }
   bodyHtml: string
   isSequence: boolean
+  shareToken: string | null
 }>()
+
+const copied = ref(false)
+
+// The share endpoint serves crawlers OG tags (title, blurb, cover) and
+// bounces humans to this page, so pasted links unfurl properly.
+async function copyShareLink() {
+  const token = props.shareToken ? `?t=${props.shareToken}` : ''
+  await navigator.clipboard.writeText(`${API_URL}/share/collections/${props.collection.id}${token}`)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
 </script>
 
 <template>
@@ -35,6 +53,28 @@ defineProps<{
     </h1>
     <p class="text-sm text-soft mt-1">
       by <AuthorAttribution :author="collection.author" /> · {{ collection.puzzles.length }} puzzle{{ collection.puzzles.length === 1 ? '' : 's' }}
+    </p>
+    <p class="flex items-center gap-4 mt-2 text-xs">
+      <RouterLink
+        :to="{ name: 'collection-print', params: { id: collection.id }, query: shareToken ? { t: shareToken } : {} }"
+        class="inline-flex items-center gap-1 text-soft hover:text-action"
+      >
+        <MdiIcon
+          :path="mdiPrinterOutline"
+          :size="14"
+        />
+        Print hand-out
+      </RouterLink>
+      <button
+        class="inline-flex items-center gap-1 text-soft hover:text-action"
+        @click="copyShareLink"
+      >
+        <MdiIcon
+          :path="mdiShareVariantOutline"
+          :size="14"
+        />
+        {{ copied ? 'Link copied!' : 'Copy share link' }}
+      </button>
     </p>
     <RichProseBody
       v-if="bodyHtml"

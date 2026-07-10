@@ -22,10 +22,13 @@ export interface FogInput {
   lights: ReadonlySet<string>
   // Cells holding a verified digit; each clears itself and all 8 neighbors.
   verified: ReadonlySet<string>
+  // Void cells (no region on a regioned grid) are not part of the puzzle, so
+  // fog never covers them.
+  voids?: ReadonlySet<string>
 }
 
 // The set of currently fogged cells (internal 0-indexed keys).
-export function computeFoggedCells({ rows, cols, lights, verified }: FogInput): Set<string> {
+export function computeFoggedCells({ rows, cols, lights, verified, voids }: FogInput): Set<string> {
   const cleared = new Set<string>(lights)
   for (const key of verified) {
     const { row, col } = keyToRowCol(key)
@@ -39,7 +42,7 @@ export function computeFoggedCells({ rows, cols, lights, verified }: FogInput): 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const key = cellKey(r, c)
-      if (!cleared.has(key)) fogged.add(key)
+      if (!cleared.has(key) && !voids?.has(key)) fogged.add(key)
     }
   }
   return fogged

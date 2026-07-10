@@ -25,6 +25,9 @@ export interface SolverPuzzle {
   // get completeness reasoning (hidden singles etc.); shorter houses are
   // no-repeat only.
   regions: number[][]
+  // Dead cells (no region on a regioned grid): excluded from every house,
+  // never filled, never counted toward completion.
+  voids?: number[]
   givens: Array<{ cell: number; value: number }>
   // Digits the solver itself has already placed (distinct from author givens) —
   // included for step/logical-solve so they continue from the current grid.

@@ -1,5 +1,5 @@
 import { mdiGrid } from '@mdi/js'
-import { defineGlobalConstraint } from '../define'
+import { defineGlobalConstraint, defineGlobalVariant } from '../define'
 
 // Standard sudoku rules: rows, columns and regions must not repeat digits.
 // The chip carries the rule: the document key's PRESENCE means the puzzle has
@@ -11,7 +11,7 @@ import { defineGlobalConstraint } from '../define'
 // mean "absent = off"); the effective rule is editor.sudokuRulesActive.
 // filter: false — nearly every puzzle carries the chip, so an archive filter
 // keyed on it would be noise.
-export default defineGlobalConstraint({
+const sudokuRules = defineGlobalConstraint({
   type: 'sudoku_rules',
   label: 'Sudoku Rules',
   json: { key: 'sudokuRules', selfToggleKey: 'enabled' },
@@ -19,3 +19,17 @@ export default defineGlobalConstraint({
   filter: false,
   panelId: 'sudoku_rules',
 })
+
+// Custom houses: "this is sudoku, just with author-defined houses". Drops the
+// automatic full-length row/column houses; the painted regions (which are
+// author-defined by nature) and House constraints carry the structure instead.
+// A true variant (absent = off), so it rides the generic globals machinery:
+// `sudokuRules: { custom: true }`.
+const customHouses = defineGlobalVariant({
+  type: 'sudoku_custom_houses',
+  label: 'Custom houses',
+  jsonKey: 'custom',
+  variantOf: 'sudoku_rules',
+})
+
+export default [sudokuRules, customHouses] as const

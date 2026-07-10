@@ -31,12 +31,20 @@ export class Board {
   readonly givenBit: number
   readonly regions: number[][]
   readonly weakLinks: Set<number>[]
+  // Dead cells: no candidates, never filled, never counted toward completion.
+  readonly voidCells: ReadonlySet<number>
   cells: Int32Array
   constraints: Constraint[]
   nakedSingleQueue: number[]
   givenCount: number
 
-  constructor(rows: number, cols: number, digitRange: number, regions: number[][]) {
+  constructor(
+    rows: number,
+    cols: number,
+    digitRange: number,
+    regions: number[][],
+    voids: ReadonlySet<number> = new Set(),
+  ) {
     this.rows = rows
     this.cols = cols
     this.digitRange = digitRange
@@ -44,7 +52,9 @@ export class Board {
     this.allValues = allValuesMask(digitRange)
     this.givenBit = 1 << digitRange
     this.regions = regions
+    this.voidCells = voids
     this.cells = new Int32Array(this.numCells).fill(this.allValues)
+    for (const cell of voids) this.cells[cell] = 0
     this.constraints = []
     this.nakedSingleQueue = []
     this.givenCount = 0
@@ -138,6 +148,7 @@ export class Board {
       regions: this.regions,
       weakLinks: this.weakLinks,
       constraints: this.constraints,
+      voidCells: this.voidCells,
     })
     // Shared, read-only after init.
     Object.assign(copy, { linkSources: this.linkSources })
@@ -209,7 +220,7 @@ export class Board {
     let changed = false
     while (this.nakedSingleQueue.length > 0) {
       const cell = this.nakedSingleQueue.pop() as number
-      if (this.isGiven(cell)) continue
+      if (this.isGiven(cell) || this.voidCells.has(cell)) continue
       const mask = this.candidateMask(cell)
       if (mask === 0) return LogicResult.INVALID
       if (!isSingle(mask)) continue
@@ -275,7 +286,8 @@ export class Board {
   }
 
   isSolved(): boolean {
-    return this.givenCount === this.numCells
+    // Void cells are never filled; the board completes without them.
+    return this.givenCount === this.numCells - this.voidCells.size
   }
 
   // Minimum-remaining-values: the unsolved cell with the fewest candidates.
@@ -283,7 +295,7 @@ export class Board {
     let best = -1
     let bestCount = this.digitRange + 1
     for (let cell = 0; cell < this.numCells; cell += 1) {
-      if (this.isGiven(cell)) continue
+      if (this.isGiven(cell) || this.voidCells.has(cell)) continue
       const count = popcount(this.candidateMask(cell))
       if (count < bestCount) {
         bestCount = count

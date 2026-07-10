@@ -37,6 +37,9 @@ function solverState(board: Board, givenCells: Set<number>): { values: number[];
 function needsInitialCandidates(board: Board, puzzle: SolverPuzzle): boolean {
   const pencilled = new Set((puzzle.centerMarks ?? []).map((m) => m.cell))
   for (let cell = 0; cell < board.numCells; cell += 1) {
+    // Void cells are never given and never pencilled — without this skip,
+    // every step on a holed grid would re-emit "Initial candidates" forever.
+    if (board.voidCells.has(cell)) continue
     if (!board.isGiven(cell) && !pencilled.has(cell)) return true
   }
   return false

@@ -35,7 +35,7 @@ const activeCellRects = computed<CellRect[]>(() => {
   const labels = grid.cellRegionLabelMap
   for (let r = 0; r < grid.rows; r++) {
     for (let c = 0; c < grid.cols; c++) {
-      if (labels.get(cellKey(r, c)) !== null)
+      if ((labels.get(cellKey(r, c)) ?? []).length > 0)
         rects.push({ x: PADDING + c * CELL_SIZE, y: PADDING + r * CELL_SIZE })
     }
   }

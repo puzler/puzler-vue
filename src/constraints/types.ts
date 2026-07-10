@@ -109,6 +109,9 @@ export const LAYER_SPECS = {
   between_lines:    { slot: 'constraint', order: 80 },
   lockout_lines:    { slot: 'constraint', order: 85 },
   constraint_lines: { slot: 'constraint', order: 90 },
+  // SudokuGrid: hidden houses outline above the grid lines while the Grid or
+  // House tool is active (the layer itself gates visibility)
+  houses:           { slot: 'above_regions', order: 5 },
   // SudokuGrid: dots sit on cell borders, above grid + region lines
   connector_dots:   { slot: 'above_regions', order: 10 },
   // SudokuGrid: outer clues render above digits
@@ -133,7 +136,7 @@ export type ConstraintPanelId =
   | 'line_tool' | 'thermo' | 'arrow'
   | 'single_cell' | 'kropki_dots' | 'xv' | 'quadruples' | 'inequality'
   | 'killer_cage' | 'extra_regions' | 'clone'
-  | 'outer_clue' | 'global' | 'fog' | 'sudoku_rules'
+  | 'outer_clue' | 'global' | 'fog' | 'sudoku_rules' | 'grid'
   | 'cosmetic_line' | 'cosmetic_border' | 'cell_color' | 'shape' | 'text' | 'cosmetic_cage'
 
 export interface ConstraintPanelRef {

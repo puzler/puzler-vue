@@ -81,6 +81,7 @@ import colIndexCells from './definitions/colIndexCells'
 // Cages & regions
 import killerCage from './definitions/killerCage'
 import extraRegions from './definitions/extraRegions'
+import house from './definitions/house'
 import clone from './definitions/clone'
 // Outer clues
 import xSums from './definitions/xSums'
@@ -136,6 +137,7 @@ const DEFS = [
   colIndexCells,
   killerCage,
   extraRegions,
+  house,
   clone,
   xSums,
   sandwichSums,
@@ -145,7 +147,7 @@ const DEFS = [
   battlefield,
   nextToNine,
   rossini,
-  sudokuRules,
+  ...sudokuRules,
   ...diagonals,
   ...chess,
   ...antiKropki,

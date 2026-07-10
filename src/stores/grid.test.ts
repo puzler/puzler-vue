@@ -1,0 +1,56 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useGridStore } from './grid'
+
+// The multi-label region model: cells may belong to several regions
+// (conjoined grids overlap their boxes), and borders/uniqueness derive from
+// label SETS rather than a single label per cell.
+
+describe('multi-label regions', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('treats overlap membership as shared-region uniqueness', () => {
+    const grid = useGridStore()
+    grid.setCustomCellRegions({
+      r0c0: ['A'],
+      r0c1: ['A', 'B'],
+      r0c2: ['B'],
+      r0c3: [],
+    })
+    expect(grid.areSameRegion('r0c0', 'r0c1')).toBe(true) // share A
+    expect(grid.areSameRegion('r0c1', 'r0c2')).toBe(true) // share B
+    expect(grid.areSameRegion('r0c0', 'r0c2')).toBe(false) // no shared label
+    expect(grid.areSameRegion('r0c0', 'r0c3')).toBe(false) // regionless never sees
+  })
+
+  it('draws a border wherever the label sets differ (both outlines through an overlap)', () => {
+    const grid = useGridStore()
+    grid.setCustomCellRegions({
+      r0c0: ['A'],
+      r0c1: ['A', 'B'], // B starts here: border between c0 and c1
+      r0c2: ['A', 'B'],
+      r0c3: ['B'], // A ends here: border between c2 and c3
+      r1c0: [],
+    })
+    expect(grid.regionBorderType('r0c0', 'r0c1')).toBe('thick')
+    expect(grid.regionBorderType('r0c1', 'r0c2')).toBe('thin')
+    expect(grid.regionBorderType('r0c2', 'r0c3')).toBe('thick')
+    expect(grid.regionBorderType('r0c0', 'r1c0')).toBe('outer')
+    // r1c1 keeps its standard box label; against the regionless r1c0 that's
+    // still an outer edge.
+    expect(grid.regionBorderType('r1c0', 'r1c1')).toBe('outer')
+  })
+
+  it('digit range: explicit digits beat the automatic long side', () => {
+    const grid = useGridStore()
+    grid.setDimensions(10, 10)
+    expect(grid.effectiveDigitRange).toBe(10)
+    grid.setDigits(6)
+    expect(grid.effectiveDigitRange).toBe(6)
+    grid.setDimensions(9, 9) // new grid resets to automatic
+    expect(grid.digits).toBeNull()
+    expect(grid.effectiveDigitRange).toBe(9)
+  })
+})

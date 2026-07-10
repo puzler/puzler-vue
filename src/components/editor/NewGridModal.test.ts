@@ -48,7 +48,7 @@ describe('NewGridModal', () => {
     // Creating a new grid resets the puzzle.
     expect(editor.givenDigits).toEqual({})
     // Non-square grids start regionless.
-    expect([...grid.cellRegionLabelMap.values()].every((l) => l === null)).toBe(true)
+    expect([...grid.cellRegionLabelMap.values()].every((l) => l.length === 0)).toBe(true)
   })
 
   it('relinking snaps height back to width', async () => {

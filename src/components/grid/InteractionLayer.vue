@@ -54,6 +54,11 @@ let penDownPt: { x: number; y: number } | null = null
 const borderErase = ref(false)
 const borderEraseEdges = ref<Set<string>>(new Set())
 
+// House-tool gesture: a tap (no drag) on an existing house removes it; any
+// drag paints a new house, freely overlapping others.
+const houseDownCell = ref<string | null>(null)
+const houseDragged = ref(false)
+
 const cursor = computed(() => {
   // Solving mode ignores the setting tool entirely — interaction is plain
   // cell selection so the solver can place digits and pencil marks; the pen
@@ -61,18 +66,26 @@ const cursor = computed(() => {
   if (editor.mode === 'solving') return editor.inputMode === 'line' ? 'crosshair' : 'default'
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
-  if (editor.activeTool === 'cosmetic_border') return 'crosshair'
+  if (editor.activeTool === 'cosmetic_border' || editor.activeTool === 'house') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
   if (editor.activeTool === 'shape') return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
   return 'default'
 })
 
+// Void cells (no region on a regioned grid) are dead space for every gesture
+// EXCEPT the grid tool, where selecting them is how a setter un-voids them by
+// painting a label.
+function voidBlocked(key: string): boolean {
+  return editor.activeTool !== 'grid' && grid.isVoid(key)
+}
+
 function hitCell(event: MouseEvent): string | null {
   if (!props.svgRef) return null
   const pos = pointerToCell(event, props.svgRef, grid.rows, grid.cols)
   if (!pos) return null
-  return cellKey(pos.row, pos.col)
+  const key = cellKey(pos.row, pos.col)
+  return voidBlocked(key) ? null : key
 }
 
 function hitCellBuffered(event: PointerEvent): string | null {
@@ -96,7 +109,8 @@ function hitCellBuffered(event: PointerEvent): string | null {
     return null
   }
 
-  return cellKey(rawRow, rawCol)
+  const key = cellKey(rawRow, rawCol)
+  return voidBlocked(key) ? null : key
 }
 
 function findLineAtCell(key: string): string | null {
@@ -570,6 +584,20 @@ function onPointerDown(event: PointerEvent) {
     return
   }
 
+  if (editor.activeTool === 'house') {
+    const houseKey = hitCell(event)
+    if (!houseKey) return
+    // Always arm a brush: overlap is legal, so membership never blocks a new
+    // house. A no-drag release on an existing house removes it (pointerup).
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    houseDownCell.value = houseKey
+    houseDragged.value = false
+    brushCells.value = new Set([houseKey])
+    editor.setPendingRegionBrushCells([houseKey])
+    return
+  }
+
   if (isCageTool.value) {
     const cageKey = hitCell(event)
     if (!cageKey) return
@@ -791,6 +819,16 @@ function processPointerMove(event: PointerEvent) {
     return
   }
 
+  if (editor.activeTool === 'house') {
+    const key = hitCell(event)
+    if (!key || brushCells.value.has(key)) return
+    // No membership skip: houses overlap freely.
+    houseDragged.value = true
+    brushCells.value = new Set([...brushCells.value, key])
+    editor.setPendingRegionBrushCells(Array.from(brushCells.value))
+    return
+  }
+
   if (editor.activeTool === 'clone') {
     const key = hitCell(event)
     if (!key) return
@@ -841,8 +879,11 @@ function onPointerCancel() {
   brushCells.value = new Set()
   brushMode.value = null
   cloneDrag.value = null
+  houseDownCell.value = null
+  houseDragged.value = false
   editor.setPendingCloneDrag(null)
   editor.setPendingBrushCells([])
+  editor.setPendingRegionBrushCells([])
   editor.cancelPendingLine()
 }
 
@@ -893,6 +934,20 @@ function onPointerUp(event: PointerEvent) {
 
   if (editor.activeTool === 'extra_regions') {
     editor.commitExtraRegion(Array.from(brushCells.value))
+    brushCells.value = new Set()
+    return
+  }
+
+  if (editor.activeTool === 'house') {
+    // Tap (no drag) on an existing house removes the topmost one there;
+    // anything else commits the brush (the store drops < 2 cells).
+    if (!houseDragged.value && houseDownCell.value && editor.findHouseAt(houseDownCell.value)) {
+      editor.removeHouseAt(houseDownCell.value)
+    } else {
+      editor.commitHouse(Array.from(brushCells.value))
+    }
+    houseDownCell.value = null
+    houseDragged.value = false
     brushCells.value = new Set()
     return
   }

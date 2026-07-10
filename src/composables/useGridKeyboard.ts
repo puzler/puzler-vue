@@ -269,7 +269,7 @@ export function useGridKeyboard() {
       return
     }
 
-    if (digit !== null && digit >= 1 && digit <= Math.max(grid.rows, grid.cols)) {
+    if (digit !== null && digit >= 1 && digit <= grid.effectiveDigitRange) {
       event.preventDefault()
       let modeOverride: SolverInputMode | undefined
       if (editor.mode === 'solving') {

@@ -37,14 +37,13 @@ const xvClues = computed<RenderedXv[]>(() =>
   editor.connectorDots.flatMap((dot) => {
     if (dot.type !== 'xv') return []
     const [a, b] = borderKeyCells(dot.location)
-    const labels = grid.cellRegionLabelMap
     return [{
       key: dot.id,
       ...borderMidpoint(dot.location),
       glyph: dot.value === null ? '_' : String(dot.value),
       selected: editor.selectedConnectorId === dot.id,
       horizontal: a.split('c')[0] !== b.split('c')[0],
-      borderWidth: (labels.get(a) !== labels.get(b) ? BOX_STROKE : THIN_STROKE) + 1,
+      borderWidth: (['thick', 'outer'].includes(grid.regionBorderType(a, b)) ? BOX_STROKE : THIN_STROKE) + 1,
       // Per-instance setter color beats the theme style.
       color: dot.color ?? xvColor.value,
     }]

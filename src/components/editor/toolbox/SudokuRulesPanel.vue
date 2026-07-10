@@ -29,11 +29,28 @@ const editor = useEditorStore()
         <span class="text-sm text-ink-text">Enabled</span>
       </label>
 
+      <label class="flex items-center gap-2.5 cursor-pointer justify-center">
+        <input
+          type="checkbox"
+          class="accent-action w-3.5 h-3.5 cursor-pointer"
+          :checked="editor.activeGlobalVariants.has('sudoku_custom_houses')"
+          :disabled="!editor.sudokuRulesEnabled"
+          @change="editor.toggleGlobalVariant('sudoku_custom_houses')"
+        >
+        <span class="text-sm text-ink-text">Custom houses</span>
+      </label>
+
       <p
         v-if="!editor.sudokuRulesEnabled"
         class="text-[11px] text-soft leading-snug text-center"
       >
         Digits may repeat in rows, columns, and regions. All other constraints still apply.
+      </p>
+      <p
+        v-else-if="editor.customHousesActive"
+        class="text-[11px] text-soft leading-snug text-center"
+      >
+        Skips the automatic row and column houses. Painted regions and House constraints still apply.
       </p>
     </div>
   </div>

@@ -11,17 +11,19 @@ const visible = computed(() => editor.activeTool === 'grid')
 
 const labels = computed(() => {
   if (!visible.value) return []
-  const result: Array<{ key: string; x: number; y: number; label: string; isNull: boolean }> = []
+  const result: Array<{ key: string; x: number; y: number; label: string; isNull: boolean; fontSize: number }> = []
   for (let r = 0; r < grid.rows; r++) {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
-      const regionLabel = grid.cellRegionLabelMap.get(key) ?? null
+      const regionLabels = grid.cellRegionLabelMap.get(key) ?? []
       result.push({
         key,
         x: PADDING + c * CELL_SIZE + CELL_SIZE / 2,
         y: PADDING + r * CELL_SIZE + CELL_SIZE / 2,
-        label: regionLabel ?? '—',
-        isNull: regionLabel === null,
+        // Labels are single characters, so a multi-region cell reads as "67".
+        label: regionLabels.length ? regionLabels.join('') : '—',
+        isNull: regionLabels.length === 0,
+        fontSize: regionLabels.length > 1 ? Math.max(12, 26 - 6 * (regionLabels.length - 1)) : 26,
       })
     }
   }
@@ -41,7 +43,7 @@ const labels = computed(() => {
       :y="cell.y"
       text-anchor="middle"
       dominant-baseline="central"
-      font-size="26"
+      :font-size="cell.fontSize"
       font-weight="600"
       :fill="cell.isNull ? '#ddd' : '#bbb'"
     >

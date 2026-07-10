@@ -174,6 +174,19 @@ describe('resizeDocument: cages, clones, connectors', () => {
     expect(out.constraints?.killerCages).toEqual([{ cells: ['r1c1'], sum: 12 }])
   })
 
+  it('trims houses like any cell group, deleting emptied ones', () => {
+    const input = doc({
+      constraints: {
+        houses: [
+          { cells: ['r1c1', 'r2c1', 'r3c1'] },
+          { cells: ['r1c5'] },
+        ],
+      },
+    })
+    const out = resizeDocument(input, 'top', -1)
+    expect(out.constraints?.houses).toEqual([{ cells: ['r1c1', 'r2c1'] }])
+  })
+
   it('drops clone copies whose surviving cells land outside the new grid', () => {
     const input = doc({
       constraints: {
@@ -293,6 +306,12 @@ describe('resizeDocument: single-cell marks and cosmetics', () => {
 })
 
 describe('resizeDocument: pass-through sections', () => {
+  it('keeps grid.digits across resizes', () => {
+    const input: SerializedPuzzle = { formatVersion: 4, grid: { rows: 10, cols: 10, digits: 6 } }
+    expect(resizeDocument(input, 'right', 1).grid.digits).toBe(6)
+    expect(resizeDocument(input, 'top', -1).grid.digits).toBe(6)
+  })
+
   it('keeps globals, meta and solver helpers verbatim', () => {
     const input = doc({
       meta: { name: 'X' },

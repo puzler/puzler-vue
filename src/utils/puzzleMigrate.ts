@@ -24,6 +24,7 @@ interface V3Document {
   formatVersion?: number
   version?: number
   grid: { rows: number; cols: number; customCellRegions?: Record<string, string | null> | null }
+  // (v3 stored one label per cell; the snapshot converts to label lists.)
   meta?: { name?: string; author?: string; rules?: string; solveMessage?: string }
   solution?: Record<string, number> | null
   givenDigits?: Record<string, number>
@@ -104,7 +105,14 @@ function snapshotFromV3(doc: V3Document): PuzzleSnapshot {
   return {
     rows: doc.grid.rows,
     cols: doc.grid.cols,
-    customCellRegions: doc.grid.customCellRegions ?? null,
+    // An explicit digit range did not exist before v4.
+    digits: null,
+    // v3 held one label (or null) per cell; the store now keeps label lists.
+    customCellRegions: doc.grid.customCellRegions
+      ? Object.fromEntries(
+          Object.entries(doc.grid.customCellRegions).map(([key, label]) => [key, label === null ? [] : [label]]),
+        )
+      : null,
     meta: {
       name: meta.name ?? '',
       author: meta.author ?? '',

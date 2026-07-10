@@ -27,6 +27,7 @@ const NO_CHANGE = { lines: [], invalid: false }
 export class FogGate {
   private readonly rows: number
   private readonly cols: number
+  private readonly voids: ReadonlySet<number>
   private readonly lights: Set<number>
   private readonly verified: Set<number>
   private fogged: Set<number>
@@ -47,9 +48,10 @@ export class FogGate {
   constructor(puzzle: SolverPuzzle) {
     this.rows = puzzle.rows ?? puzzle.size
     this.cols = puzzle.cols ?? puzzle.size
+    this.voids = new Set(puzzle.voids ?? [])
     this.lights = new Set(puzzle.fog?.lights ?? [])
     this.verified = new Set(puzzle.fog?.verified ?? [])
-    this.fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified)
+    this.fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified, this.voids)
     this.tracked = new Set()
 
     this.hiddenGivens = new Map()
@@ -127,7 +129,7 @@ export class FogGate {
       if (!this.hiddenGivens.has(cell)) this.verified.add(cell)
     }
 
-    const fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified)
+    const fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified, this.voids)
     // Fog is monotonic, so equal size means nothing newly revealed.
     if (fogged.size === this.fogged.size) return NO_CHANGE
     this.fogged = fogged

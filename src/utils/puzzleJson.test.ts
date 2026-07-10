@@ -176,13 +176,13 @@ describe('resizePuzzleGrid', () => {
     const grid = useGridStore()
     grid.setDimensions(4, 4)
     // All cells in one region: shrink once → still one region, never 2×2 boxes.
-    const all: Record<string, string> = {}
-    for (const key of grid.allCellKeys()) all[key] = '1'
+    const all: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) all[key] = ['1']
     grid.setCustomCellRegions(all)
     resizePuzzleGrid(editor, grid, 'bottom', -1)
     expect(grid.rows).toBe(3)
-    const labels = new Set(grid.cellRegionLabelMap.values())
-    expect(labels).toEqual(new Set(['1']))
+    const labels = [...grid.cellRegionLabelMap.values()]
+    expect(labels.every((l) => l.length === 1 && l[0] === '1')).toBe(true)
   })
 })
 

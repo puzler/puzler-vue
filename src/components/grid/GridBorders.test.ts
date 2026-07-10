@@ -53,8 +53,8 @@ describe('GridBorders', () => {
 
   it('renders a plain lattice when every cell is painted regionless on a square grid', () => {
     const grid = useGridStore()
-    const all: Record<string, string | null> = {}
-    for (const key of grid.allCellKeys()) all[key] = null
+    const all: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) all[key] = []
     grid.setCustomCellRegions(all)
     const w = render()
     expect(w.findAll('g.grid-line-thin line')).toHaveLength(16) // 8 + 8 full-length lines
@@ -65,7 +65,7 @@ describe('GridBorders', () => {
     const grid = useGridStore()
     // One regionless cell in a corner: its outer edge drops, everything else
     // keeps region-derived rendering.
-    grid.setCustomCellRegions({ r0c0: null })
+    grid.setCustomCellRegions({ r0c0: [] })
     const w = render()
     const box = w.findAll('g.grid-line-box line')
     // 72 on a full 9x9; r0c0's two puzzle-edge segments drop, its two interior

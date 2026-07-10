@@ -155,6 +155,12 @@ export const useEditorStore = defineStore('editor', () => {
   const sudokuRulesActive = computed(
     () => activeTypes.value.has('sudoku_rules') && sudokuRulesEnabled.value,
   )
+  // Custom-houses mode: sudoku with author-defined houses — the automatic
+  // full-length row/column houses switch off; painted regions and House
+  // constraints carry the structure.
+  const customHousesActive = computed(
+    () => sudokuRulesActive.value && activeGlobalVariants.value.has('sudoku_custom_houses'),
+  )
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   // Fog of War verification data for published play: per-cell solution hashes
   // and their salt (the published version's solutionHash), set by the player
@@ -279,6 +285,9 @@ export const useEditorStore = defineStore('editor', () => {
     const square = gridStore.rows === gridStore.cols
     const size = gridStore.rows
     const sudoku = sudokuRulesActive.value
+    // Custom houses drop the automatic row/column sight; painted regions keep
+    // constraining (they are the author's houses).
+    const autoLines = sudoku && !customHousesActive.value
     const variants = activeGlobalVariants.value
     const knight = square && variants.has('knights_move')
     const king = square && variants.has('kings_move')
@@ -340,7 +349,7 @@ export const useEditorStore = defineStore('editor', () => {
       keyA: string, rowA: number, colA: number,
       keyB: string, rowB: number, colB: number,
     ): boolean => {
-      if (sudoku && (rowA === rowB || colA === colB)) return true
+      if (autoLines && (rowA === rowB || colA === colB)) return true
       if (sudoku && gridStore.areSameRegion(keyA, keyB)) return true
       if (uniquePairs.size > 0 && uniquePairs.has(pairKey(keyA, keyB))) return true
       if (moveNeighbours(keyA, rowA, colA)?.has(keyB)) return true
@@ -394,6 +403,7 @@ export const useEditorStore = defineStore('editor', () => {
       cols: gridStore.cols,
       lights: fogLightCells.value,
       verified: fogVerifiedCells.value,
+      voids: gridStore.voidCells,
     })
   })
 
@@ -430,6 +440,7 @@ export const useEditorStore = defineStore('editor', () => {
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
+        if (gridStore.isVoid(key)) continue
         const seen = new Set<CellValue>()
         for (const f of filled) {
           if (f.key === key) continue
@@ -456,7 +467,7 @@ export const useEditorStore = defineStore('editor', () => {
     for (let r = 0; r < gridStore.rows; r++) {
       for (let c = 0; c < gridStore.cols; c++) {
         const key = cellKey(r, c)
-        if (selection.value.has(key)) continue
+        if (selection.value.has(key) || gridStore.isVoid(key)) continue
         if (sels.every((s) => seesRC(s.key, s.row, s.col, key, r, c))) result.add(key)
       }
     }
@@ -889,6 +900,8 @@ export const useEditorStore = defineStore('editor', () => {
     const keys: string[] = []
     const next: Record<string, number> = {}
     for (let i = 0; i < values.length; i++) {
+      // Void cells come back as 0 from a solved board — leave them empty.
+      if (values[i] <= 0) continue
       const key = cellKey(Math.floor(i / stride), i % stride)
       if (givenDigits.value[key] !== undefined) continue
       keys.push(key)
@@ -1014,6 +1027,15 @@ export const useEditorStore = defineStore('editor', () => {
       else appendOuterClueDigit(digit)
       return
     }
+    // Void cells never take content (digits, marks, or colors). Narrow the
+    // selection to live cells — a void can only be selected via keyboard
+    // navigation, and typing resolves it honestly.
+    const gridStore = useGridStore()
+    if (gridStore.voidCells.size > 0) {
+      const liveKeys = [...selection.value].filter((k) => !gridStore.isVoid(k))
+      if (liveKeys.length === 0) return
+      if (liveKeys.length !== selection.value.size) selection.value = new Set(liveKeys)
+    }
     // Color mode (solving only): a numbered key toggles a palette color on the
     // selection. 0 maps to the first colour (index 0), NOT clear; the Delete key
     // (null) clears all colours. Handled before the generic 0→clear rule below.
@@ -1092,17 +1114,23 @@ export const useEditorStore = defineStore('editor', () => {
 
   // Removing the Sudoku Rules chip restores the default (rules on) in the same
   // undoable step, so a dropped chip never leaves the rules silently disabled.
+  // The custom-houses variant goes with it.
   function removeSudokuRulesConstraint() {
     if (!activeTypes.value.has('sudoku_rules')) return
     const prevEnabled = sudokuRulesEnabled.value
+    const prevVariants = new Set(activeGlobalVariants.value)
+    const nextVariants = new Set(prevVariants)
+    nextVariants.delete('sudoku_custom_houses')
     execute({
       execute: () => {
         dropActiveType('sudoku_rules')
         sudokuRulesEnabled.value = true
+        activeGlobalVariants.value = nextVariants
       },
       undo: () => {
         addActiveType('sudoku_rules')
         sudokuRulesEnabled.value = prevEnabled
+        activeGlobalVariants.value = prevVariants
       },
     })
   }
@@ -1838,13 +1866,40 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ── Region editing ────────────────────────────────────────────────────────
 
+  // Undoable digit-range change (Grid panel spinner). null = automatic
+  // (the grid's long side).
+  function setGridDigits(n: number | null) {
+    const grid = useGridStore()
+    const prev = grid.digits
+    if (prev === n) return
+    execute({
+      execute: () => { grid.setDigits(n) },
+      undo: () => { grid.setDigits(prev) },
+    })
+  }
+
+  // Label buttons/keys TOGGLE membership so overlapping regions are paintable:
+  // if every selected cell already carries the label it comes off, otherwise
+  // it goes on. null clears all labels (regionless). Touched cells materialize
+  // explicit override entries; untouched cells stay on the standard layout.
   function setRegionForSelection(label: string | null) {
     const keys = Array.from(selection.value)
     if (!keys.length) return
     const grid = useGridStore()
     const prevRegions = grid.customCellRegions ? { ...grid.customCellRegions } : null
     const newRegions = prevRegions ? { ...prevRegions } : {}
-    keys.forEach(k => { newRegions[k] = label })
+    const current = (k: string) => grid.cellRegionLabelMap.get(k) ?? []
+    if (label === null) {
+      keys.forEach(k => { newRegions[k] = [] })
+    } else {
+      const allHave = keys.every(k => current(k).includes(label))
+      keys.forEach(k => {
+        const labels = current(k)
+        newRegions[k] = allHave
+          ? labels.filter(l => l !== label)
+          : [...new Set([...labels, label])].sort()
+      })
+    }
     execute({
       execute: () => { grid.setCustomCellRegions(newRegions) },
       undo: () => { grid.setCustomCellRegions(prevRegions) },
@@ -2322,6 +2377,41 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  // ── Hidden houses (Grid tool's Houses mode) ───────────────────────────────
+
+  // A painted house needs at least two cells to mean anything; overlap with
+  // other houses (and regions) is the point, so nothing blocks it.
+  function commitHouse(cells: string[]) {
+    pendingRegionBrushCells.value = []
+    const unique = [...new Set(cells)]
+    if (unique.length < 2) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'house',
+      data: { cells: unique },
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  // Topmost house containing the cell (back-to-front, matching render order).
+  function findHouseAt(cell: string): string | null {
+    for (let i = cosmeticInstances.value.length - 1; i >= 0; i--) {
+      const inst = cosmeticInstances.value[i]
+      if (inst.type !== 'house') continue
+      if (((inst.data as { cells?: string[] }).cells ?? []).includes(cell)) return inst.id
+    }
+    return null
+  }
+
+  function removeHouseAt(cell: string) {
+    pendingRegionBrushCells.value = []
+    const id = findHouseAt(cell)
+    if (id) removeCosmeticInstance(id)
+  }
+
   // ── Clones ────────────────────────────────────────────────────────────────
 
   function setPendingCloneDrag(drag: { instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null) {
@@ -2648,6 +2738,7 @@ export const useEditorStore = defineStore('editor', () => {
     toggleGlobalVariant,
     sudokuRulesEnabled,
     sudokuRulesActive,
+    customHousesActive,
     setSudokuRulesEnabled,
     removeSudokuRulesConstraint,
     toggleFogSolverHelper,
@@ -2707,6 +2798,7 @@ export const useEditorStore = defineStore('editor', () => {
     cancelPendingLine,
     removeCosmeticInstance,
     setRegionForSelection,
+    setGridDigits,
     removeShapePreset,
     removeTextPreset,
     removeLinePreset,
@@ -2830,6 +2922,9 @@ export const useEditorStore = defineStore('editor', () => {
     pendingRegionBrushCells,
     setPendingRegionBrushCells,
     commitExtraRegion,
+    commitHouse,
+    findHouseAt,
+    removeHouseAt,
     cloneMode,
     effectiveCloneMode,
     setCloneMode,

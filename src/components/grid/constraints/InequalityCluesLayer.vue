@@ -36,7 +36,6 @@ const inequalityClues = computed<RenderedInequality[]>(() =>
   editor.connectorDots.flatMap((dot) => {
     if (dot.type !== 'inequality') return []
     const [a, b] = borderKeyCells(dot.location)
-    const labels = grid.cellRegionLabelMap
     const horizontal = a.split('c')[0] !== b.split('c')[0]
     return [{
       key: dot.id,
@@ -45,7 +44,7 @@ const inequalityClues = computed<RenderedInequality[]>(() =>
       rotate: horizontal && dot.value !== null,
       selected: editor.selectedConnectorId === dot.id,
       horizontal,
-      borderWidth: (labels.get(a) !== labels.get(b) ? BOX_STROKE : THIN_STROKE) + 1,
+      borderWidth: (['thick', 'outer'].includes(grid.regionBorderType(a, b)) ? BOX_STROKE : THIN_STROKE) + 1,
       // Per-instance setter color beats the theme style.
       color: dot.color ?? ineqColor.value,
     }]

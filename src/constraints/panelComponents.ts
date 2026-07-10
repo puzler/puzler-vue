@@ -27,6 +27,7 @@ import OuterCluePanel from '@/components/editor/toolbox/OuterCluePanel.vue'
 import GlobalConstraintPanel from '@/components/editor/toolbox/GlobalConstraintPanel.vue'
 import FogPanel from '@/components/editor/toolbox/FogPanel.vue'
 import SudokuRulesPanel from '@/components/editor/toolbox/SudokuRulesPanel.vue'
+import GridPanel from '@/components/editor/toolbox/GridPanel.vue'
 import CosmeticLinePanel from '@/components/editor/toolbox/CosmeticLinePanel.vue'
 import CosmeticBorderPanel from '@/components/editor/toolbox/CosmeticBorderPanel.vue'
 import CellColorPanel from '@/components/editor/toolbox/CellColorPanel.vue'
@@ -50,6 +51,7 @@ export const PANEL_COMPONENTS: Record<ConstraintPanelId, Component> = {
   global:        GlobalConstraintPanel,
   fog:           FogPanel,
   sudoku_rules:  SudokuRulesPanel,
+  grid:          GridPanel,
   cosmetic_line: CosmeticLinePanel,
   cosmetic_border: CosmeticBorderPanel,
   cell_color:    CellColorPanel,

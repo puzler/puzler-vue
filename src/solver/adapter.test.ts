@@ -42,6 +42,44 @@ describe('buildSolverPuzzle', () => {
     expect(puzzle.regions.filter((r) => r.length === 6)).toHaveLength(10)
   })
 
+  it('emits overlapping label groups and drops void cells from every house', () => {
+    const grid = useGridStore()
+    grid.setDimensions(4, 4)
+    const overrides: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) overrides[key] = []
+    overrides.r0c0 = ['1']
+    overrides.r0c1 = ['1', '2']
+    overrides.r0c2 = ['2']
+    grid.setCustomCellRegions(overrides)
+    const { puzzle } = buildSolverPuzzle()
+    // Regionless cells on a regioned grid are voids: rows 1-3 and every column
+    // vanish (1 or 0 live cells), leaving row 0's live prefix plus the two
+    // overlapping label groups.
+    expect(puzzle.regions).toEqual([[0, 1, 2], [0, 1], [1, 2]])
+    expect(puzzle.voids).toEqual(expect.arrayContaining([3, 4, 15]))
+    expect(puzzle.voids).toHaveLength(13)
+  })
+
+  it('uses grid.digits as the value range when set', () => {
+    const grid = useGridStore()
+    grid.setDimensions(10, 10)
+    grid.setDigits(6)
+    const { puzzle } = buildSolverPuzzle()
+    expect(puzzle.size).toBe(6)
+    expect(puzzle.rows).toBe(10)
+    expect(puzzle.cols).toBe(10)
+  })
+
+  it('custom-houses mode emits only the painted label groups', () => {
+    const editor = useEditorStore()
+    editor.activeGlobalVariants = new Set(['sudoku_custom_houses'])
+    const { puzzle } = buildSolverPuzzle()
+    // No automatic 9-cell rows/cols; the standard boxes (painted layout) stay.
+    expect(puzzle.regions).toHaveLength(9)
+    expect(puzzle.regions.every((r) => r.length === 9)).toBe(true)
+    expect(puzzle.regions[0]).toEqual([0, 1, 2, 9, 10, 11, 18, 19, 20]) // box 1, not row 0
+  })
+
   it('emits no houses when the Sudoku Rules chip is absent', () => {
     const editor = useEditorStore()
     editor.removeSudokuRulesConstraint()
@@ -61,5 +99,16 @@ describe('buildSolverPuzzle', () => {
     expect(puzzle.regions).toEqual([])
     expect(puzzle.constraints.some((c) => c.kind === 'killer_cage')).toBe(true)
     expect(puzzle.constraints.some((c) => c.kind === 'extra_region')).toBe(true)
+  })
+
+  it('emits house specs from painted house instances', () => {
+    const editor = useEditorStore()
+    editor.cosmeticInstances = [
+      { id: 'h1', type: 'house', data: { cells: ['r0c0', 'r0c1', 'r1c0'] } },
+      { id: 'h2', type: 'house', data: { cells: ['r1c0', 'r1c1'] } }, // overlaps h1
+    ]
+    const { puzzle } = buildSolverPuzzle()
+    const houses = puzzle.constraints.filter((c) => c.kind === 'house') as Array<{ kind: string; cells: number[] }>
+    expect(houses.map((h) => h.cells)).toEqual([[0, 1, 9], [9, 10]])
   })
 })

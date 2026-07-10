@@ -170,6 +170,35 @@ describe('cosmetic borders', () => {
   })
 })
 
+describe('region painting toggles multi-label membership', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('adds, stacks, and removes labels per selection, undoably', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.setRegionForSelection('A')
+    // Standard box labels stay, A stacks on top.
+    expect(grid.cellRegionLabelMap.get('r0c0')).toEqual(['1', 'A'])
+    // Toggling again removes it (both carry it).
+    editor.setRegionForSelection('A')
+    expect(grid.cellRegionLabelMap.get('r0c0')).toEqual(['1'])
+    // Mixed membership adds to all instead of removing.
+    editor.selection = new Set(['r0c0'])
+    editor.setRegionForSelection('A')
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.setRegionForSelection('A')
+    expect(grid.cellRegionLabelMap.get('r0c1')).toEqual(['1', 'A'])
+    // null clears everything.
+    editor.setRegionForSelection(null)
+    expect(grid.cellRegionLabelMap.get('r0c0')).toEqual([])
+    editor.undo()
+    expect(grid.cellRegionLabelMap.get('r0c0')).toEqual(['1', 'A'])
+  })
+})
+
 describe('conflicts on a non-square grid', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -278,6 +307,29 @@ describe('sudoku rules off', () => {
     editor.undo()
     expect(editor.activeTypes.has('sudoku_rules')).toBe(true)
     expect(editor.sudokuRulesEnabled).toBe(false)
+  })
+
+  it('custom houses drop row/col sight but keep painted regions', () => {
+    const editor = useEditorStore()
+    // Same row, different boxes: seen under standard rules only.
+    editor.givenDigits = { r0c0: 5, r0c5: 5 }
+    expect(editor.errorCells.size).toBe(2)
+    editor.toggleGlobalVariant('sudoku_custom_houses')
+    expect(editor.customHousesActive).toBe(true)
+    expect(editor.errorCells.size).toBe(0)
+    // Same painted box still conflicts in custom mode.
+    editor.givenDigits = { r0c0: 5, r1c1: 5 }
+    expect(editor.errorCells.size).toBe(2)
+  })
+
+  it('removing the chip also drops the custom-houses variant, undoably', () => {
+    const editor = useEditorStore()
+    editor.toggleGlobalVariant('sudoku_custom_houses')
+    editor.removeSudokuRulesConstraint()
+    expect(editor.activeGlobalVariants.has('sudoku_custom_houses')).toBe(false)
+    editor.undo()
+    expect(editor.activeGlobalVariants.has('sudoku_custom_houses')).toBe(true)
+    expect(editor.activeTypes.has('sudoku_rules')).toBe(true)
   })
 
   it('the chip carries the rule: removing it disables sudoku rules', () => {
@@ -395,6 +447,66 @@ describe('uniqueness groups from constraint instances', () => {
     // The two cages do NOT chain: r0c0 and r8c8 share no group.
     editor.givenDigits = { r0c0: 5, r8c8: 5 }
     expect(editor.errorCells.size).toBe(0)
+  })
+
+  it('links house members for conflicts and seen cells', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [instance('house', { cells: ['r0c0', 'r4c4', 'r8c8'] })]
+    editor.selection = new Set(['r0c0'])
+    expect(editor.cellsSeenBySelection.has('r4c4')).toBe(true)
+    expect(editor.cellsSeenBySelection.has('r8c8')).toBe(true)
+    editor.givenDigits = { r0c0: 5, r8c8: 5 }
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+    expect(editor.errorCells.has('r8c8')).toBe(true)
+  })
+})
+
+describe('house painting', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('commitHouse dedupes cells and drops fewer than two', () => {
+    const editor = useEditorStore()
+    editor.commitHouse(['r0c0', 'r0c1', 'r0c0'])
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    expect(editor.cosmeticInstances[0].data).toEqual({ cells: ['r0c0', 'r0c1'] })
+    editor.commitHouse(['r5c5'])
+    expect(editor.cosmeticInstances).toHaveLength(1)
+  })
+
+  it('commitHouse is one undo step and allows overlap', () => {
+    const editor = useEditorStore()
+    editor.commitHouse(['r0c0', 'r0c1'])
+    editor.commitHouse(['r0c1', 'r0c2']) // overlaps the first freely
+    expect(editor.cosmeticInstances).toHaveLength(2)
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    editor.redo()
+    expect(editor.cosmeticInstances).toHaveLength(2)
+  })
+
+  it('removeHouseAt removes the topmost house at a cell, undoably', () => {
+    const editor = useEditorStore()
+    editor.commitHouse(['r0c0', 'r0c1'])
+    editor.commitHouse(['r0c1', 'r0c2'])
+    editor.removeHouseAt('r0c1')
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    expect((editor.cosmeticInstances[0].data as { cells: string[] }).cells).toEqual(['r0c0', 'r0c1'])
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(2)
+  })
+
+  it('findHouseAt ignores other instance types and misses', () => {
+    const editor = useEditorStore()
+    editor.cosmeticInstances = [
+      { id: 'e1', type: 'extra_regions', data: { cells: ['r0c0'] } },
+    ]
+    expect(editor.findHouseAt('r0c0')).toBeNull()
+    editor.commitHouse(['r0c0', 'r1c0'])
+    expect(editor.findHouseAt('r0c0')).toBe(editor.cosmeticInstances[1].id)
+    expect(editor.findHouseAt('r5c5')).toBeNull()
   })
 })
 

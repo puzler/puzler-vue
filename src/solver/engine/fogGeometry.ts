@@ -8,6 +8,7 @@ export function computeFoggedIndices(
   cols: number,
   lights: Iterable<number>,
   verified: Iterable<number>,
+  voids: ReadonlySet<number> = new Set(),
 ): Set<number> {
   const cleared = new Set<number>()
   for (const cell of lights) cleared.add(cell)
@@ -22,7 +23,8 @@ export function computeFoggedIndices(
   }
   const fogged = new Set<number>()
   for (let cell = 0; cell < rows * cols; cell += 1) {
-    if (!cleared.has(cell)) fogged.add(cell)
+    // Void cells are not part of the puzzle: fog never covers them.
+    if (!cleared.has(cell) && !voids.has(cell)) fogged.add(cell)
   }
   return fogged
 }

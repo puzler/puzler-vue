@@ -25,6 +25,7 @@ import BetweenLinesLayer from '@/components/grid/constraints/BetweenLinesLayer.v
 import LockoutLinesLayer from '@/components/grid/constraints/LockoutLinesLayer.vue'
 import ConstraintLinesLayer from '@/components/grid/constraints/ConstraintLinesLayer.vue'
 import ConnectorDotsLayer from '@/components/grid/constraints/ConnectorDotsLayer.vue'
+import HouseLayer from '@/components/grid/constraints/HouseLayer.vue'
 import OuterCluesLayer from '@/components/grid/constraints/OuterCluesLayer.vue'
 
 const LAYER_COMPONENTS: Record<ConstraintLayerId, Component> = {
@@ -40,6 +41,7 @@ const LAYER_COMPONENTS: Record<ConstraintLayerId, Component> = {
   between_lines:    BetweenLinesLayer,
   lockout_lines:    LockoutLinesLayer,
   constraint_lines: ConstraintLinesLayer,
+  houses:           HouseLayer,
   connector_dots:   ConnectorDotsLayer,
   outer_clues:      OuterCluesLayer,
 }

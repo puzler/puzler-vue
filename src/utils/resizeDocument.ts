@@ -361,7 +361,12 @@ export function resizeDocument(doc: SerializedPuzzle, side: ResizeSide, delta: 1
 
   return {
     ...doc,
-    grid: { rows: newRows, cols: newCols, ...(regions ? { regions } : {}) },
+    grid: {
+      rows: newRows,
+      cols: newCols,
+      ...(doc.grid.digits !== undefined ? { digits: doc.grid.digits } : {}),
+      ...(regions ? { regions } : {}),
+    },
     ...(doc.solution !== undefined && doc.solution !== null
       ? { solution: mapCellRecord(ctx, doc.solution) }
       : {}),

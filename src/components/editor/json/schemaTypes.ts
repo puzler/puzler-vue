@@ -341,8 +341,14 @@ export interface SerializedPuzzleSchema {
   grid: {
     rows: number
     cols: number
-    // Region label → complete cell list. Omitted = standard boxes; when
-    // present it IS the whole layout and unlisted cells belong to no region.
+    /** The value range digits run over (1..N); absent = the grid's long side. */
+    digits?: number
+    /**
+     * Region label → complete cell list. Omitted = standard boxes; when
+     * present it IS the whole layout. A cell may appear under several labels
+     * (overlapping regions); a cell listed nowhere is VOID — dead space the
+     * solver and player never touch.
+     */
     regions?: Record<string, string[]>
   }
   meta?: {
@@ -354,7 +360,12 @@ export interface SerializedPuzzleSchema {
   solution?: Record<string, number> | null
   givenDigits?: Record<string, number>
   globals?: {
-    sudokuRules?: { enabled?: boolean }
+    /**
+     * Key presence = the puzzle has sudoku rules; enabled:false soft-disables
+     * them. custom:true keeps region/house uniqueness but drops the automatic
+     * full-length row/column houses (conjoined and irregular layouts).
+     */
+    sudokuRules?: { enabled?: boolean; custom?: boolean }
     diagonals?: { positive?: boolean; negative?: boolean; antiPositive?: boolean; antiNegative?: boolean }
     chess?: { king?: boolean; knight?: boolean }
     antiKropki?: { white?: boolean; black?: boolean; differences?: number[]; ratios?: number[] }
@@ -392,6 +403,12 @@ export interface SerializedPuzzleSchema {
     fogLights?: Array<string | CellMarkDoc>
     killerCages?: KillerCageDoc[]
     extraRegions?: LineDoc[]
+    /**
+     * Hidden all-different cell groups (painted in the Grid tool's Houses
+     * mode): invisible to solvers, free to overlap anything. A house spanning
+     * the full digit range acts as a complete sudoku house.
+     */
+    houses?: LineDoc[]
     clones?: CloneDoc[]
     xSums?: OuterClueDoc[]
     sandwichSums?: OuterClueDoc[]

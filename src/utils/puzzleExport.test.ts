@@ -94,6 +94,83 @@ describe('serializePuzzle (format v4)', () => {
     expect((data.cosmetics as Record<string, unknown>).linePresets).toBeDefined()
   })
 
+  it('round-trips overlapping regions (cells under several labels)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(4, 4)
+    const overrides: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) overrides[key] = []
+    overrides.r0c0 = ['1']
+    overrides.r0c1 = ['1', '2']
+    overrides.r0c2 = ['2']
+    grid.setCustomCellRegions(overrides)
+    const data = serializePuzzle(editor, grid)
+    expect(data.grid.regions).toEqual({
+      '1': ['r1c1', 'r1c2'],
+      '2': ['r1c2', 'r1c3'],
+    })
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(g2.cellRegionLabelMap.get('r0c1')).toEqual(['1', '2'])
+    expect(g2.areSameRegion('r0c0', 'r0c1')).toBe(true)
+    expect(g2.areSameRegion('r0c0', 'r0c2')).toBe(false)
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
+  it('round-trips grid.digits: absent = automatic, explicit value survives', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    expect(serializePuzzle(editor, grid).grid.digits).toBeUndefined()
+
+    grid.setDimensions(10, 10)
+    grid.setDigits(6)
+    const data = serializePuzzle(editor, grid)
+    expect(data.grid).toMatchObject({ rows: 10, cols: 10, digits: 6 })
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(g2.digits).toBe(6)
+    expect(g2.effectiveDigitRange).toBe(6)
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+
+    // A document without the field hydrates back to automatic.
+    setActivePinia(createPinia())
+    const g3 = useGridStore()
+    deserializePuzzle(useEditorStore(), g3, { formatVersion: 4, grid: { rows: 6, cols: 10 } })
+    expect(g3.digits).toBeNull()
+    expect(g3.effectiveDigitRange).toBe(10)
+  })
+
+  it('round-trips houses without a chip: painted instances alone carry the key', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    // Painted via the Grid tool: instances exist but 'house' is never in
+    // activeTypes.
+    editor.commitHouse(['r0c0', 'r0c1', 'r1c0'])
+    editor.commitHouse(['r1c0', 'r1c1']) // overlaps the first
+    const data = serializePuzzle(editor, grid)
+    expect((data.constraints as Record<string, unknown>).houses).toEqual([
+      { cells: ['r1c1', 'r1c2', 'r2c1'] },
+      { cells: ['r2c1', 'r2c2'] },
+    ])
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    const houses = e2.cosmeticInstances.filter((i) => i.type === 'house')
+    expect(houses.map((h) => (h.data as { cells: string[] }).cells)).toEqual([
+      ['r0c0', 'r0c1', 'r1c0'],
+      ['r1c0', 'r1c1'],
+    ])
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
   it('round-trips cosmetic borders: edges as 1-indexed cell pairs + preset slugs', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
@@ -151,6 +228,19 @@ describe('serializePuzzle (format v4)', () => {
     // The flag must not leak into the variants set.
     expect(e2.activeGlobalVariants.has('sudoku_rules')).toBe(false)
     expect(serializePuzzle(e2, g2)).toEqual(off)
+
+    // Combined soft-disable + custom flag round-trips through the generic
+    // variant machinery.
+    editor.sudokuRulesEnabled = false
+    editor.activeGlobalVariants = new Set(['sudoku_custom_houses'])
+    const combined = serializePuzzle(editor, grid)
+    expect(combined.globals).toEqual({ sudokuRules: { enabled: false, custom: true } })
+    setActivePinia(createPinia())
+    const eCombined = useEditorStore()
+    deserializePuzzle(eCombined, useGridStore(), JSON.parse(JSON.stringify(combined)) as SerializedPuzzle)
+    expect(eCombined.sudokuRulesEnabled).toBe(false)
+    expect(eCombined.activeGlobalVariants.has('sudoku_custom_houses')).toBe(true)
+    expect(eCombined.activeGlobalVariants.has('sudoku_rules')).toBe(false)
 
     // A v4 document without the key hydrates to a rules-OFF puzzle: no chip,
     // so the (default-true) checkbox has nothing to act on.
@@ -261,12 +351,12 @@ describe('serializePuzzle (format v4)', () => {
 
     // A sparse override map that happens to equal the standard layout is
     // canonicalized away too.
-    grid.setCustomCellRegions({ r0c0: '1' })
+    grid.setCustomCellRegions({ r0c0: ['1'] })
     expect(serializePuzzle(editor, grid).grid.regions).toBeUndefined()
 
     // Excluding a cell from regions produces the full explicit layout, with
     // the excluded cell listed nowhere.
-    grid.setCustomCellRegions({ r0c0: null })
+    grid.setCustomCellRegions({ r0c0: [] })
     const regions = serializePuzzle(editor, grid).grid.regions!
     expect(Object.keys(regions)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
     expect(regions['1']).not.toContain('r1c1')
@@ -318,7 +408,7 @@ describe('deserializePuzzle', () => {
     editor.puzzleRules = 'Normal sudoku rules.'
     editor.solveMessage = 'The keyword is CIPHER'
     editor.solution = { r0c0: 5, r1c1: 3 }
-    grid.setCustomCellRegions({ r0c0: null })
+    grid.setCustomCellRegions({ r0c0: [] })
 
     const original = JSON.parse(JSON.stringify(serializePuzzle(editor, grid)))
 
@@ -330,7 +420,7 @@ describe('deserializePuzzle', () => {
     expect(editor2.solution).toEqual({ r0c0: 5, r1c1: 3 })
     expect(editor2.solveMessage).toBe('The keyword is CIPHER')
     expect(editor2.givenDigits).toEqual({ r0c0: 5 })
-    expect(grid2.cellRegionLabelMap.get('r0c0')).toBeNull()
+    expect(grid2.cellRegionLabelMap.get('r0c0')).toEqual([])
     expect(JSON.parse(JSON.stringify(serializePuzzle(editor2, grid2)))).toEqual(original)
   })
 

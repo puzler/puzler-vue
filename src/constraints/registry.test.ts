@@ -22,7 +22,8 @@ describe('constraint registry derivations', () => {
     expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))
     expect(OUTER_CLUE_TYPES).toEqual(new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers', 'numbered_rooms', 'battlefield', 'next_to_nine', 'rossini']))
     expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'counting_circles', 'row_index_cells', 'col_index_cells', 'fog_lights']))
-    expect(LOCAL_TOOL_TYPES.size).toBe(38)
+    expect(LOCAL_TOOL_TYPES.size).toBe(39)
+    expect(LOCAL_TOOL_TYPES.has('house')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('killer_cage')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('diagonals')).toBe(false)
     expect(LOCAL_TOOL_TYPES.has('cosmetic_line')).toBe(false)
@@ -45,7 +46,7 @@ describe('constraint registry derivations', () => {
 
   it('derives global variants per category, in def order', () => {
     expect(Object.keys(GLOBAL_VARIANTS)).toEqual(['sudoku_rules', 'diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets', 'fog'])
-    expect(GLOBAL_VARIANTS.sudoku_rules).toEqual([])
+    expect(GLOBAL_VARIANTS.sudoku_rules).toEqual([{ type: 'sudoku_custom_houses', label: 'Custom houses' }])
     expect(GLOBAL_VARIANTS.diagonals.map(v => v.type)).toEqual([
       'positive_diagonal', 'negative_diagonal', 'anti_positive_diagonal', 'anti_negative_diagonal',
     ])
@@ -129,6 +130,7 @@ describe('constraint registry derivations', () => {
     expect(panelForTool('diagonals')?.id).toBe('global')
     expect(panelForTool('fog')?.id).toBe('fog')
     expect(panelForTool('fog_lights')?.id).toBe('fog')
+    expect(panelForTool('house')?.id).toBe('grid')
     expect(panelForTool('sudoku_rules')?.id).toBe('sudoku_rules')
     expect(panelForTool('digit')).toBeUndefined()
   })
@@ -139,7 +141,7 @@ describe('constraint registry derivations', () => {
       'odd_even_cells', 'counting_circles', 'min_max', 'diagonals', 'thermometers', 'arrows',
       'killer_cages', 'clone_originals', 'between_lines', 'lockout_lines', 'constraint_lines',
     ])
-    expect(layerIdsForSlot('above_regions')).toEqual(['connector_dots'])
+    expect(layerIdsForSlot('above_regions')).toEqual(['houses', 'connector_dots'])
     expect(layerIdsForSlot('above_digits')).toEqual(['outer_clues'])
   })
 
@@ -192,6 +194,7 @@ describe('constraint registry derivations', () => {
       col_index_cells: 'colIndexCells',
       killer_cage: 'killerCages',
       extra_regions: 'extraRegions',
+      house: 'houses',
       clone: 'clones',
       x_sums: 'xSums',
       sandwich_sums: 'sandwichSums',
@@ -231,7 +234,10 @@ describe('constraint registry derivations', () => {
       {
         type: 'sudoku_rules',
         key: 'sudokuRules',
-        variants: [{ type: 'sudoku_rules', key: 'enabled' }],
+        variants: [
+          { type: 'sudoku_rules', key: 'enabled' },
+          { type: 'sudoku_custom_houses', key: 'custom' },
+        ],
         customValues: {},
       },
       {

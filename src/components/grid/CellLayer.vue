@@ -29,6 +29,8 @@ const cells = computed<CellInfo[]>(() => {
   for (let r = 0; r < grid.rows; r++) {
     for (let c = 0; c < grid.cols; c++) {
       const key = cellKey(r, c)
+      // Void cells are dead space: nothing to fill.
+      if (grid.isVoid(key)) continue
       const state = props.cellStates?.[key]
       // Each applied color keeps its own slot (and thus its own wedge). Real
       // colors resolve to pastel rgba; fully-transparent ones resolve to null

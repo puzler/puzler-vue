@@ -38,8 +38,8 @@ function vSegs(borderType: 'thin' | 'thick' | 'outer'): Segment[] {
 // least one region keep the region-derived rendering, including its
 // hole-puzzle behavior (regionless cells drop their outer edge).
 const regionless = computed(() => {
-  for (const label of grid.cellRegionLabelMap.values()) {
-    if (label !== null) return false
+  for (const labels of grid.cellRegionLabelMap.values()) {
+    if (labels.length > 0) return false
   }
   return true
 })
@@ -83,15 +83,15 @@ const puzzleEdge = computed<Segment[]>(() => {
   const segs: Segment[] = []
   const labels = grid.cellRegionLabelMap
   for (let c = 0; c < grid.cols; c++) {
-    if (labels.get(cellKey(0, c)) !== null)
+    if ((labels.get(cellKey(0, c)) ?? []).length > 0)
       segs.push({ x1: PADDING + c * CELL_SIZE, y1: PADDING, x2: PADDING + (c + 1) * CELL_SIZE, y2: PADDING })
-    if (labels.get(cellKey(grid.rows - 1, c)) !== null)
+    if ((labels.get(cellKey(grid.rows - 1, c)) ?? []).length > 0)
       segs.push({ x1: PADDING + c * CELL_SIZE, y1: PADDING + grid.rows * CELL_SIZE, x2: PADDING + (c + 1) * CELL_SIZE, y2: PADDING + grid.rows * CELL_SIZE })
   }
   for (let r = 0; r < grid.rows; r++) {
-    if (labels.get(cellKey(r, 0)) !== null)
+    if ((labels.get(cellKey(r, 0)) ?? []).length > 0)
       segs.push({ x1: PADDING, y1: PADDING + r * CELL_SIZE, x2: PADDING, y2: PADDING + (r + 1) * CELL_SIZE })
-    if (labels.get(cellKey(r, grid.cols - 1)) !== null)
+    if ((labels.get(cellKey(r, grid.cols - 1)) ?? []).length > 0)
       segs.push({ x1: PADDING + grid.cols * CELL_SIZE, y1: PADDING + r * CELL_SIZE, x2: PADDING + grid.cols * CELL_SIZE, y2: PADDING + (r + 1) * CELL_SIZE })
   }
   return segs

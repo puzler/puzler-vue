@@ -125,8 +125,10 @@ export function thermoLinesToEdges(lines: string[][]): ThermoEdge[] {
 
 // ── Regions ──────────────────────────────────────────────────────────────────
 // Document `grid.regions` is region-first: label → complete cell list; omitted
-// entirely = standard box layout; a cell listed nowhere = regionless. The store
-// keeps the sparse per-cell override map, so both directions expand/compact.
+// entirely = standard box layout; a cell listed nowhere = regionless; a cell
+// listed under several labels belongs to all of them (conjoined grids overlap
+// their boxes). The store keeps the sparse per-cell override map of sorted
+// label lists, so both directions expand/compact.
 
 // Standard box label for an internal cell, or null when the grid has none
 // (non-square grids have no default layout).
@@ -135,24 +137,26 @@ export function standardRegionLabel(rows: number, cols: number, row: number, col
   return boxIndexToLabel(regionsForSize(rows)[row][col])
 }
 
-// Effective per-cell label under the sparse override map (mirrors the grid
-// store's cellRegionLabelMap, usable outside a Pinia context).
-export function effectiveRegionLabel(
-  overrides: Record<string, string | null> | null | undefined,
+// Effective per-cell labels under the sparse override map (mirrors the grid
+// store's cellRegionLabelMap, usable outside a Pinia context). Sorted; empty
+// = regionless.
+export function effectiveRegionLabels(
+  overrides: Record<string, string[]> | null | undefined,
   rows: number,
   cols: number,
   row: number,
   col: number,
-): string | null {
+): string[] {
   const key = `r${row}c${col}`
   if (overrides && key in overrides) return overrides[key]
-  return standardRegionLabel(rows, cols, row, col)
+  const standard = standardRegionLabel(rows, cols, row, col)
+  return standard === null ? [] : [standard]
 }
 
 // Region-first document form, or undefined when the effective layout equals
 // the standard boxes (canonical: standard layouts are always omitted).
 export function regionsToDoc(
-  overrides: Record<string, string | null> | null | undefined,
+  overrides: Record<string, string[]> | null | undefined,
   rows: number,
   cols: number,
 ): Record<string, string[]> | undefined {
@@ -161,9 +165,10 @@ export function regionsToDoc(
   let differs = false
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const label = effectiveRegionLabel(overrides, rows, cols, r, c)
-      if (label !== standardRegionLabel(rows, cols, r, c)) differs = true
-      if (label !== null) (regions[label] ??= []).push(`r${r + 1}c${c + 1}`)
+      const labels = effectiveRegionLabels(overrides, rows, cols, r, c)
+      const standard = standardRegionLabel(rows, cols, r, c)
+      if (labels.length !== 1 || labels[0] !== standard) differs = true
+      for (const label of labels) (regions[label] ??= []).push(`r${r + 1}c${c + 1}`)
     }
   }
   if (!differs) return undefined
@@ -171,18 +176,22 @@ export function regionsToDoc(
 }
 
 // Inverse: expand a document layout into the complete per-cell map (listed
-// cells get their label, unlisted cells are explicitly regionless).
+// cells collect every label naming them, sorted; unlisted cells are
+// explicitly regionless).
 export function regionsFromDoc(
   regions: Record<string, string[]>,
   rows: number,
   cols: number,
-): Record<string, string | null> {
-  const map: Record<string, string | null> = {}
+): Record<string, string[]> {
+  const map: Record<string, string[]> = {}
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) map[`r${r}c${c}`] = null
+    for (let c = 0; c < cols; c++) map[`r${r}c${c}`] = []
   }
-  for (const [label, cells] of Object.entries(regions)) {
-    for (const cell of cells) map[internalCell(cell)] = label
+  for (const label of Object.keys(regions).sort()) {
+    for (const cell of regions[label]) {
+      const key = internalCell(cell)
+      if (map[key] !== undefined && !map[key].includes(label)) map[key].push(label)
+    }
   }
   return map
 }

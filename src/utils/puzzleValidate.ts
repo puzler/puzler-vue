@@ -29,6 +29,11 @@ const HEX_RE = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/
 interface Ctx {
   rows: number
   cols: number
+  // The effective value range: grid.digits when set, else the long side.
+  digitRange: number
+  // Void cells: with regions painted, cells listed under no label are dead
+  // space (1-indexed doc keys). Empty when the grid has no regions.
+  voids: Set<string>
   errors: PuzzleIssue[]
   warnings: PuzzleIssue[]
 }
@@ -50,6 +55,9 @@ function checkCell(ctx: Ctx, cell: unknown, path: string): void {
   }
   if (pos.row < 1 || pos.col < 1) {
     ctx.errors.push({ path, message: `${cell as string} is outside the representable grid (rows and columns start at 1)` })
+  }
+  if (ctx.voids.has(cell as string)) {
+    ctx.warnings.push({ path, message: `${cell as string} belongs to no region; with regions painted it is a void (dead) cell` })
   }
 }
 
@@ -87,9 +95,9 @@ function warnDuplicateCells(ctx: Ctx, cells: string[], path: string): void {
 }
 
 function checkDigit(ctx: Ctx, value: unknown, path: string): void {
-  const max = Math.max(ctx.rows, ctx.cols)
+  const max = ctx.digitRange
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > max) {
-    ctx.warnings.push({ path, message: `${String(value)} is outside the grid's digit range (1-${max})` })
+    ctx.warnings.push({ path, message: `${String(value)} is outside the puzzle's digit range (1-${max})` })
   }
 }
 
@@ -119,29 +127,32 @@ function checkInstanceColors(ctx: Ctx, type: string, e: DocRecord, p: string): v
 // ── Section validators ───────────────────────────────────────────────────────
 
 function validateGrid(ctx: Ctx, doc: SerializedPuzzle): void {
-  const { rows, cols, regions } = doc.grid
+  const { rows, cols, digits, regions } = doc.grid
   if (!Number.isInteger(rows) || rows < 1 || !Number.isInteger(cols) || cols < 1) {
     ctx.errors.push({ path: 'grid', message: 'rows and cols must be positive integers' })
+  }
+  if (digits !== undefined) {
+    if (!Number.isInteger(digits) || digits < 2 || digits > 16) {
+      ctx.errors.push({ path: 'grid.digits', message: 'digits must be an integer between 2 and 16' })
+    } else if (digits < Math.max(rows, cols) && doc.globals?.sudokuRules && doc.globals.sudokuRules.enabled !== false && doc.globals.sudokuRules.custom !== true) {
+      ctx.warnings.push({
+        path: 'grid.digits',
+        message: `${digits} digits cannot fill the automatic full-length houses; enable custom houses or turn sudoku rules off`,
+      })
+    }
   }
   if (regions === undefined) return
   if (typeof regions !== 'object' || regions === null || Array.isArray(regions)) {
     ctx.errors.push({ path: 'grid.regions', message: 'expected Record<string, Array<string>>' })
     return
   }
-  const owner = new Map<string, string>()
+  // Cells may appear under several labels: overlapping regions are how
+  // conjoined grids share cells between boxes. Only within-label duplicates
+  // are suspect (warned above).
   for (const [label, cells] of Object.entries(regions)) {
     const path = `grid.regions.${label}`
     if (!checkCellArray(ctx, cells, path)) continue
     warnDuplicateCells(ctx, cells, path)
-    for (const cell of cells) {
-      const prior = owner.get(cell)
-      if (prior !== undefined && prior !== label) {
-        // One region label per cell — multiple membership has no internal
-        // representation (or visual design) yet.
-        ctx.errors.push({ path, message: `${cell} is already in region "${prior}", and a cell can only belong to one region` })
-      }
-      owner.set(cell, label)
-    }
   }
 }
 
@@ -622,9 +633,25 @@ function validateSolverHelpers(ctx: Ctx, doc: SerializedPuzzle): void {
 }
 
 export function validatePuzzle(doc: SerializedPuzzle): PuzzleValidation {
+  const rows = typeof doc.grid?.rows === 'number' ? doc.grid.rows : 0
+  const cols = typeof doc.grid?.cols === 'number' ? doc.grid.cols : 0
+  // Doc-side void set: regions present + a cell listed nowhere = void.
+  const voids = new Set<string>()
+  const regions = doc.grid?.regions
+  if (regions && typeof regions === 'object' && !Array.isArray(regions) && Object.keys(regions).length > 0) {
+    const regioned = new Set(Object.values(regions).flat())
+    for (let r = 1; r <= rows; r++) {
+      for (let c = 1; c <= cols; c++) {
+        const key = `r${r}c${c}`
+        if (!regioned.has(key)) voids.add(key)
+      }
+    }
+  }
   const ctx: Ctx = {
-    rows: typeof doc.grid?.rows === 'number' ? doc.grid.rows : 0,
-    cols: typeof doc.grid?.cols === 'number' ? doc.grid.cols : 0,
+    rows,
+    cols,
+    digitRange: typeof doc.grid?.digits === 'number' ? doc.grid.digits : Math.max(rows, cols),
+    voids,
     errors: [],
     warnings: [],
   }

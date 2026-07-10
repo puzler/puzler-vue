@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
 import { LETTER_LABELS } from '@/utils/cellValues'
 import SolverNumpadControls from './SolverNumpadControls.vue'
@@ -11,12 +12,21 @@ import NumpadExtraToolsRail from './NumpadExtraToolsRail.vue'
 import NumpadColorBar from './NumpadColorBar.vue'
 
 const editor = useEditorStore()
+const grid = useGridStore()
 const palette = useColorPaletteStore()
 
 const isColor = computed(() => editor.effectiveInputMode === 'color')
 const isLine = computed(() => editor.effectiveInputMode === 'line')
 // Letter mode relabels the keys A-J only where letters can be placed.
 const letterKeys = computed(() => editor.letterModeActive && !isColor.value && !isLine.value)
+
+// Keys above the puzzle's digit range hide in digit/mark modes (the explicit
+// DIGIT_POS grid keeps the remaining keys in place). Color, line, and letter
+// modes use all nine keys as swatches/letters, so they stay.
+function keyVisible(n: number): boolean {
+  if (isColor.value || isLine.value || letterKeys.value) return true
+  return n <= grid.effectiveDigitRange
+}
 
 const KEY = 'relative flex p-1 aspect-square rounded-lg bg-surface border border-line text-ink-text font-display font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors'
 
@@ -88,6 +98,7 @@ function onDigitKey(n: number) {
            line mode, with a ring on the selected color) -->
         <button
           v-for="n in 9"
+          v-show="keyVisible(n)"
           :key="n"
           :class="[
             KEY,

@@ -65,11 +65,11 @@ describe('validatePuzzle errors (functionally broken)', () => {
     expect(errors[0].path).toBe('constraints.xSums[0].cell')
   })
 
-  it('rejects a cell in two regions', () => {
+  it('accepts a cell in two regions (overlapping conjoined boxes)', () => {
     const { errors } = validatePuzzle(doc({
       grid: { rows: 9, cols: 9, regions: { '1': ['r1c1'], '2': ['r1c1'] } },
     }))
-    expect(errors.some((e) => e.message.includes('one region'))).toBe(true)
+    expect(errors).toEqual([])
   })
 
   it('reports a flat cell list where cell paths belong as a type mismatch', () => {

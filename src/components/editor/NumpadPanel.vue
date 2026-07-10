@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { useGridStore } from '@/stores/grid'
+
 const emit = defineEmits<{
   digit: [n: number]
   delete: []
 }>()
+
+// Keys above the puzzle's digit range are dead weight (a digits-6 board never
+// takes a 7); ranges past 9 stay keyboard-only, like everywhere else.
+const grid = useGridStore()
 </script>
 
 <template>
@@ -11,6 +17,7 @@ const emit = defineEmits<{
   <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 w-full">
     <button
       v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
+      v-show="n <= grid.effectiveDigitRange"
       :key="n"
       class="aspect-square rounded-lg bg-surface border border-line text-ink-text font-display text-xl font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors"
       @click="emit('digit', n)"

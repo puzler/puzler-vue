@@ -38,6 +38,7 @@ import arrowPrefix from './arrowPrefix'
 // Phase 7 — cages, regions & outer clues.
 import killerCage from './killerCage'
 import extraRegion from './extraRegion'
+import house from './house'
 import clone from './clone'
 import xSum from './xSum'
 import sandwich from './sandwich'
@@ -78,6 +79,7 @@ export const MODULES: ConstraintModule[] = [
   lockoutLine,
   killerCage,
   extraRegion,
+  house,
   clone,
   xSum,
   sandwich,

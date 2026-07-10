@@ -64,8 +64,9 @@ const confirmTarget = computed(() =>
 )
 
 const localConstraints = computed(() =>
-  // fog_lights is managed through the Fog of War panel, not as its own chip.
-  editor.activeConstraints.filter(c => c.category !== 'global' && c.category !== 'cosmetic' && c.type !== 'fog_lights'),
+  // fog_lights is managed through the Fog of War panel, and house through the
+  // Grid tool's Houses mode — neither gets its own chip.
+  editor.activeConstraints.filter(c => c.category !== 'global' && c.category !== 'cosmetic' && c.type !== 'fog_lights' && c.type !== 'house'),
 )
 
 function constraintsFor(key: string) {
@@ -148,7 +149,7 @@ function handleRemoveConfirm() {
       </button>
       <button
         class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors"
-        :class="editor.activeTool === 'grid' ? 'bg-action-tint text-action font-medium' : 'text-ink-text hover:bg-line/60'"
+        :class="editor.activeTool === 'grid' || editor.activeTool === 'house' ? 'bg-action-tint text-action font-medium' : 'text-ink-text hover:bg-line/60'"
         @click="editor.setActiveTool('grid')"
       >
         Grid

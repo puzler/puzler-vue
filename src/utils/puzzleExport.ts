@@ -32,6 +32,12 @@ import { migratePuzzleDocument } from './puzzleMigrate'
 // 3 → 4: the user-facing document redesign — 1-indexed cell keys, one camelCase
 // key per constraint type (presence = active chip), region-first grid.regions,
 // UI-grouped globals, instance UUIDs dropped, short preset slugs.
+//
+// Additive within v4 (absent = old behavior, so no bump): `grid.digits`
+// (explicit value range), overlapping `grid.regions` (a cell may appear under
+// several labels; on a regioned grid an unlisted cell is VOID dead space),
+// `sudokuRules.custom` (keep region/house uniqueness, drop the automatic
+// row/column houses), and `constraints.houses` (hidden all-different groups).
 export const PUZZLE_EXPORT_VERSION = 4
 
 type EditorStore = ReturnType<typeof useEditorStore>
@@ -63,7 +69,8 @@ export interface SerializedSolverHelpers {
 
 export interface SerializedPuzzle {
   formatVersion: number
-  grid: { rows: number; cols: number; regions?: Record<string, string[]> }
+  // `digits` is the value range (1..N); absent = the grid's long side.
+  grid: { rows: number; cols: number; digits?: number; regions?: Record<string, string[]> }
   meta?: { name?: string; author?: string; rules?: string; solveMessage?: string }
   solution?: Record<string, number> | null
   givenDigits?: Record<string, number>
@@ -82,7 +89,10 @@ export interface SerializedPuzzle {
 export interface PuzzleSnapshot {
   rows: number
   cols: number
-  customCellRegions: Record<string, string | null> | null
+  // Explicit digit range, or null for the automatic max(rows, cols).
+  digits: number | null
+  // Per-cell sorted region-label lists (cells may belong to several regions).
+  customCellRegions: Record<string, string[]> | null
   meta: { name: string; author: string; rules: string; solveMessage: string }
   solution: Record<string, number> | null
   givenDigits: Record<string, number>
@@ -118,6 +128,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
   return {
     rows: grid.rows,
     cols: grid.cols,
+    digits: grid.digits,
     customCellRegions: grid.customCellRegions,
     meta: {
       name: editor.puzzleName,
@@ -389,7 +400,12 @@ export function buildDocument(snap: PuzzleSnapshot): SerializedPuzzle {
   const solverHelpers = solverHelpersDoc(snap.fogSolverHelpers)
   const doc: SerializedPuzzle = {
     formatVersion: PUZZLE_EXPORT_VERSION,
-    grid: { rows: snap.rows, cols: snap.cols, ...(regions ? { regions } : {}) },
+    grid: {
+      rows: snap.rows,
+      cols: snap.cols,
+      ...(snap.digits !== null ? { digits: snap.digits } : {}),
+      ...(regions ? { regions } : {}),
+    },
     ...(Object.keys(meta).length ? { meta } : {}),
     ...(snap.solution && Object.keys(snap.solution).length ? { solution: shiftMapKeys(snap.solution, 1) } : {}),
     ...(Object.keys(snap.givenDigits).length ? { givenDigits: shiftMapKeys(snap.givenDigits, 1) } : {}),
@@ -515,6 +531,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   const cosmetics = (data.cosmetics ?? {}) as Record<string, unknown>
 
   grid.setDimensions(data.grid.rows, data.grid.cols)
+  grid.setDigits(data.grid.digits ?? null)
   grid.setCustomCellRegions(
     data.grid.regions ? regionsFromDoc(data.grid.regions, data.grid.rows, data.grid.cols) : null,
   )
@@ -545,10 +562,12 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
     const entry = globals[group.key]
     if (entry === undefined) continue
     activeTypes.add(group.type)
-    // Sudoku Rules' `enabled` field is default-ON state with a dedicated ref;
-    // it must not leak into the variants set (absence means off there).
-    if (group.type === 'sudoku_rules') continue
     for (const variant of group.variants) {
+      // Sudoku Rules' `enabled` self-toggle is default-ON state with a
+      // dedicated ref; it must not leak into the variants set (absence means
+      // off there). Real variants of the group (custom houses) hydrate
+      // normally.
+      if (variant.type === 'sudoku_rules') continue
       if (entry[variant.key] !== true) continue
       // Hand-edited documents can enable both of a mutually exclusive pair;
       // mirror the UI toggle: the later one wins, dropping its partner.

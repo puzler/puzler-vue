@@ -754,6 +754,13 @@
               },
               "type": "array"
             },
+            "houses": {
+              "description": "Hidden all-different cell groups (painted in the Grid tool's Houses mode): invisible to solvers, free to overlap anything. A house spanning the full digit range acts as a complete sudoku house.",
+              "items": {
+                "$ref": "#/definitions/LineDoc"
+              },
+              "type": "array"
+            },
             "inequalities": {
               "items": {
                 "$ref": "#/definitions/InequalityDoc"
@@ -1117,7 +1124,11 @@
             },
             "sudokuRules": {
               "additionalProperties": false,
+              "description": "Key presence = the puzzle has sudoku rules; enabled:false soft-disables them. custom:true keeps region/house uniqueness but drops the automatic full-length row/column houses (conjoined and irregular layouts).",
               "properties": {
+                "custom": {
+                  "type": "boolean"
+                },
                 "enabled": {
                   "type": "boolean"
                 }
@@ -1133,6 +1144,10 @@
             "cols": {
               "type": "number"
             },
+            "digits": {
+              "description": "The value range digits run over (1..N); absent = the grid's long side.",
+              "type": "number"
+            },
             "regions": {
               "additionalProperties": {
                 "items": {
@@ -1140,6 +1155,7 @@
                 },
                 "type": "array"
               },
+              "description": "Region label → complete cell list. Omitted = standard boxes; when present it IS the whole layout. A cell may appear under several labels (overlapping regions); a cell listed nowhere is VOID — dead space the solver and player never touch.",
               "type": "object"
             },
             "rows": {

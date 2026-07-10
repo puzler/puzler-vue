@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { IndexCellConstraint } from './shared'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Numbered rooms: the first cell from the clue's side indexes a position in the
 // row/column, and that position holds the clue digit. Exactly the index-cell
@@ -23,8 +23,9 @@ export default defineModule<NumberedRoomsSpec>({
       if (clue.type !== 'numbered_rooms' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length) specs.push({ kind: 'numbered_rooms', line, target: clue.value })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        specs.push({ kind: 'numbered_rooms', line, target: clue.value })
+      }
     }
     return specs
   },

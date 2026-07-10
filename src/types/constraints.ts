@@ -259,6 +259,11 @@ export interface OuterClue {
   rossiniDirection?: RossiniDirection
 }
 
+// The orthogonal reading directions a straight outer clue can bind, named
+// from the clue toward the run.
+export type OuterClueRunDirection = 'up' | 'down' | 'left' | 'right'
+export const OUTER_RUN_DIRECTIONS: readonly OuterClueRunDirection[] = ['up', 'down', 'left', 'right']
+
 // A placed outer clue. Same instance model as ConnectorInstance: ordered, last
 // at a location wins, one per location through the UI, ids never serialized.
 export interface OuterClueInstance {
@@ -268,6 +273,10 @@ export interface OuterClueInstance {
   value: number | null
   direction?: LittleKillerDirection
   rossiniDirection?: RossiniDirection
+  // Straight clues on multi-run positions (a void between two grids): the
+  // runs this clue binds. Absent = every readable run (ring clues and
+  // pre-toggle placements).
+  directions?: OuterClueRunDirection[]
   color?: string
   // Little killers only: clue text and diagonal arrow color separately.
   textColor?: string
@@ -293,18 +302,56 @@ const DIRECTION_STEPS: Record<LittleKillerDirection, { dRow: number; dCol: numbe
   'down-right': { dRow: 1, dCol: 1 },
 }
 
-// Directions whose first diagonal step from this outer position lands inside
-// the grid. Corners get exactly one; edge cells get two.
-export function validLittleKillerDirections(row: number, col: number, rows: number, cols: number): LittleKillerDirection[] {
+// Directions whose first diagonal step from this position lands on a live
+// in-grid cell. Ring corners get exactly one, ring edge cells two; a VOID
+// in-grid cell (isLive false there) can point along any diagonal that starts
+// live. `isLive` defaults to bounds-only for voidless grids.
+export function validLittleKillerDirections(
+  row: number, col: number, rows: number, cols: number,
+  isLive?: (r: number, c: number) => boolean,
+): LittleKillerDirection[] {
   const inBounds = (r: number, c: number) => r >= 0 && r < rows && c >= 0 && c < cols
+  const live = isLive ?? inBounds
   return (Object.keys(DIRECTION_STEPS) as LittleKillerDirection[]).filter(dir => {
     const step = DIRECTION_STEPS[dir]
-    return inBounds(row + step.dRow, col + step.dCol)
+    return inBounds(row + step.dRow, col + step.dCol) && live(row + step.dRow, col + step.dCol)
   })
 }
 
 export function littleKillerStep(dir: LittleKillerDirection): { dRow: number; dCol: number } {
   return DIRECTION_STEPS[dir]
+}
+
+export const OUTER_RUN_STEP: Record<OuterClueRunDirection, { dRow: number; dCol: number }> = {
+  up:    { dRow: -1, dCol: 0 },
+  down:  { dRow: 1, dCol: 0 },
+  left:  { dRow: 0, dCol: -1 },
+  right: { dRow: 0, dCol: 1 },
+}
+
+// Orthogonal reading directions for a straight outer clue: ring edge cells
+// have their single inward direction (empty if the first cell is void), an
+// in-grid VOID cell reads toward every adjacent live cell, and live in-grid
+// cells or ring corners have none. Mirrors the solver's outerRuns geometry.
+export function outerClueDirections(
+  row: number, col: number, rows: number, cols: number,
+  isLive: (r: number, c: number) => boolean,
+): OuterClueRunDirection[] {
+  const rowOuter = row === -1 || row === rows
+  const colOuter = col === -1 || col === cols
+  let candidates: OuterClueRunDirection[]
+  if (rowOuter && colOuter) return []
+  else if (row === -1) candidates = ['down']
+  else if (row === rows) candidates = ['up']
+  else if (col === -1) candidates = ['right']
+  else if (col === cols) candidates = ['left']
+  else if (row < 0 || row >= rows || col < 0 || col >= cols || isLive(row, col)) return []
+  else candidates = [...OUTER_RUN_DIRECTIONS]
+  const inBounds = (r: number, c: number) => r >= 0 && r < rows && c >= 0 && c < cols
+  return candidates.filter((dir) => {
+    const { dRow, dCol } = OUTER_RUN_STEP[dir]
+    return inBounds(row + dRow, col + dCol) && isLive(row + dRow, col + dCol)
+  })
 }
 
 // ── Global constraint variants ────────────────────────────────────────────────

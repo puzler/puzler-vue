@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { SandwichConstraint } from './sumConstraints'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Sandwich: the digits between the 1 and the highest digit in the line sum to
 // the clue.
@@ -21,8 +21,9 @@ export default defineModule<SandwichSpec>({
       if (clue.type !== 'sandwich_sums' || clue.value == null) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length) specs.push({ kind: 'sandwich', line, target: clue.value })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        specs.push({ kind: 'sandwich', line, target: clue.value })
+      }
     }
     return specs
   },

@@ -12,7 +12,7 @@ import { sortMarks } from '@/utils/cellValues'
 import type { CellState, CellValue, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { fogCellHash, computeFoggedCells } from '@/utils/fog'
-import { DEFAULT_LINE_STYLE, DEFAULT_BORDER_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_BORDER_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, OUTER_RUN_DIRECTIONS, cosmeticPos, parseOuterKey, validLittleKillerDirections, outerClueDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   BorderPreset, BorderStyle, CosmeticBorderData,
@@ -23,7 +23,7 @@ import type {
   ConnectorInstance, BorderConnectorType, XvValue, InequalityValue,
   ArrowData, KillerCageData, ExtraRegionData, CloneData,
   FogSolverHelpers,
-  OuterClueInstance, OuterClueType,
+  OuterClueInstance, OuterClueType, OuterClueRunDirection,
   CagePreset, CageCosmeticStyle, CosmeticCageData,
 } from '@/types/constraints'
 
@@ -1047,13 +1047,14 @@ export const useEditorStore = defineStore('editor', () => {
       }
       return
     }
-    // For cells, 0 means clear (numpads with a 0 button route through here)
-    if (digit === 0) digit = null
     if (mode.value === 'setting') {
-      setGivenDigitsForSelection(digit)
+      // For givens, 0 means clear (numpads with a 0 button route through here).
+      setGivenDigitsForSelection(digit === 0 ? null : digit)
     } else if (digit === null) {
       deleteSolverContentForSelection()
     } else {
+      // Solvers may enter ANY digit, 0 and out-of-range included — like
+      // letters, they're honest entries that simply never match the solution.
       const effective = modeOverride ?? effectiveInputMode.value
       if (effective === 'digit') setSolverValueForSelection(digit)
       else if (effective === 'corner') toggleCornerMarkForSelection(digit)
@@ -2593,6 +2594,34 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  // The readable run directions at an outer clue position (grid geometry, not
+  // the clue's own toggles).
+  function outerClueCandidateDirections(location: string): OuterClueRunDirection[] {
+    const pos = parseOuterKey(location)
+    if (!pos) return []
+    const gridStore = useGridStore()
+    return outerClueDirections(
+      pos.row, pos.col, gridStore.rows, gridStore.cols,
+      (r, c) => !gridStore.isVoid(cellKey(r, c)),
+    )
+  }
+
+  // Toggle one run arrow on a multi-run clue. Absent `directions` = all runs
+  // (the placement default); the last arrow can't toggle off — a clue that
+  // binds nothing is a trap, and removing the clue is the center click.
+  function toggleOuterClueDirection(location: string, dir: OuterClueRunDirection) {
+    const clue = outerClueAt(location)
+    if (!clue || clue.type === 'little_killers') return
+    const candidates = outerClueCandidateDirections(location)
+    if (!candidates.includes(dir)) return
+    const current = clue.directions ?? candidates
+    const next = current.includes(dir)
+      ? current.filter((d) => d !== dir)
+      : OUTER_RUN_DIRECTIONS.filter((d) => current.includes(d) || d === dir)
+    if (next.length === 0) return
+    patchOuterClue(clue.id, { ...clue }, { ...clue, directions: [...next] })
+  }
+
   function appendOuterClueDigit(digit: number) {
     const clue = selectedOuterClue.value
     if (!clue || clue.type === 'rossini') return
@@ -2624,7 +2653,10 @@ export const useEditorStore = defineStore('editor', () => {
     const pos = parseOuterKey(location)
     if (!pos) return
     const gridStore = useGridStore()
-    const dirs = validLittleKillerDirections(pos.row, pos.col, gridStore.rows, gridStore.cols)
+    const dirs = validLittleKillerDirections(
+      pos.row, pos.col, gridStore.rows, gridStore.cols,
+      (r, c) => !gridStore.isVoid(cellKey(r, c)),
+    )
     const idx = dirs.indexOf(clue.direction)
     if (idx === -1 || idx === dirs.length - 1) {
       toggleOuterClue('little_killers', location)
@@ -2942,6 +2974,8 @@ export const useEditorStore = defineStore('editor', () => {
     selectedOuterClue,
     outerClueAt,
     toggleOuterClue,
+    toggleOuterClueDirection,
+    outerClueCandidateDirections,
     selectOuterClue,
     appendOuterClueDigit,
     removeLastOuterClueDigit,

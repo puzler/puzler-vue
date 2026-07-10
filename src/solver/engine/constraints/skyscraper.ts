@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { SkyscraperConstraint } from './sumConstraints'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Skyscrapers: the count of cells visible from the edge equals the clue.
 interface SkyscraperSpec extends SolverConstraintSpec {
@@ -20,8 +20,9 @@ export default defineModule<SkyscraperSpec>({
       if (clue.type !== 'skyscrapers' || clue.value == null) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length) specs.push({ kind: 'skyscraper', line, target: clue.value })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        specs.push({ kind: 'skyscraper', line, target: clue.value })
+      }
     }
     return specs
   },

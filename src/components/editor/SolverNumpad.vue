@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
-import { useGridStore } from '@/stores/grid'
 import { useColorPaletteStore } from '@/stores/colorPalette'
 import { LETTER_LABELS } from '@/utils/cellValues'
 import SolverNumpadControls from './SolverNumpadControls.vue'
@@ -12,21 +11,12 @@ import NumpadExtraToolsRail from './NumpadExtraToolsRail.vue'
 import NumpadColorBar from './NumpadColorBar.vue'
 
 const editor = useEditorStore()
-const grid = useGridStore()
 const palette = useColorPaletteStore()
 
 const isColor = computed(() => editor.effectiveInputMode === 'color')
 const isLine = computed(() => editor.effectiveInputMode === 'line')
 // Letter mode relabels the keys A-J only where letters can be placed.
 const letterKeys = computed(() => editor.letterModeActive && !isColor.value && !isLine.value)
-
-// Keys above the puzzle's digit range hide in digit/mark modes (the explicit
-// DIGIT_POS grid keeps the remaining keys in place). Color, line, and letter
-// modes use all nine keys as swatches/letters, so they stay.
-function keyVisible(n: number): boolean {
-  if (isColor.value || isLine.value || letterKeys.value) return true
-  return n <= grid.effectiveDigitRange
-}
 
 const KEY = 'relative flex p-1 aspect-square rounded-lg bg-surface border border-line text-ink-text font-display font-semibold shadow-sm hover:bg-action-tint hover:border-action active:bg-action-tint transition-colors'
 
@@ -94,11 +84,11 @@ function onDigitKey(n: number) {
         data-tour="numpad-digits"
         class="grid grid-cols-[repeat(3,minmax(0,1fr))_0.375rem_minmax(0,1fr)] gap-1.5 w-full max-w-[14rem] md:max-w-none mx-auto content-start"
       >
-        <!-- Rows 1-3: digits 1-9 (swatches in color mode; pen-color pickers in
-           line mode, with a ring on the selected color) -->
+        <!-- Rows 1-3: digits 1-9, always all nine — the digit range constrains
+           the solver, never entry (swatches in color mode; pen-color pickers
+           in line mode, with a ring on the selected color) -->
         <button
           v-for="n in 9"
-          v-show="keyVisible(n)"
           :key="n"
           :class="[
             KEY,

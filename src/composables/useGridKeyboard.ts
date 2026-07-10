@@ -109,10 +109,25 @@ export function useGridKeyboard() {
     const dir = DIRECTIONS[event.key]
     if (dir && (!isWasd || (!event.ctrlKey && !event.metaKey))) {
       event.preventDefault()
+      // Void cells are dead space: movement steps over them (wrapping as
+      // usual) to the next live cell, and stays put when the whole line is
+      // void. Only the grid tool enters them — setters paint them back to life.
+      const skipVoids = editor.mode === 'solving' || editor.activeTool !== 'grid'
       const { row, col } = navAnchor()
-      const newRow = ((row + dir.dr) + grid.rows) % grid.rows
-      const newCol = ((col + dir.dc) + grid.cols) % grid.cols
-      const key = cellKey(newRow, newCol)
+      let newRow = row
+      let newCol = col
+      const steps = dir.dr !== 0 ? grid.rows : grid.cols
+      let key: string | null = null
+      for (let i = 0; i < steps; i++) {
+        newRow = ((newRow + dir.dr) + grid.rows) % grid.rows
+        newCol = ((newCol + dir.dc) + grid.cols) % grid.cols
+        const candidate = cellKey(newRow, newCol)
+        if (!skipVoids || !grid.isVoid(candidate)) {
+          key = candidate
+          break
+        }
+      }
+      if (key === null) return
       if (event.shiftKey) editor.addCell(key)
       else editor.selectCell(key)
       return
@@ -182,10 +197,13 @@ export function useGridKeyboard() {
 
     if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
       event.preventDefault()
+      const skipVoids = editor.mode === 'solving' || editor.activeTool !== 'grid'
       const all = new Set<string>()
       for (let r = 0; r < grid.rows; r++)
-        for (let c = 0; c < grid.cols; c++)
-          all.add(cellKey(r, c))
+        for (let c = 0; c < grid.cols; c++) {
+          const key = cellKey(r, c)
+          if (!skipVoids || !grid.isVoid(key)) all.add(key)
+        }
       editor.selection = all
       return
     }
@@ -263,13 +281,16 @@ export function useGridKeyboard() {
       }
     }
 
-    if (event.key === 'Backspace' || event.key === 'Delete' || digit === 0) {
+    if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault()
       editor.placeDigitForSelection(null)
       return
     }
 
-    if (digit !== null && digit >= 1 && digit <= grid.effectiveDigitRange) {
+    // Any digit 0-9 places: the digit range constrains the solver, never
+    // entry. The store clears givens on 0 (setting mode) and stores a literal
+    // 0 for players.
+    if (digit !== null && digit >= 0 && digit <= 9) {
       event.preventDefault()
       let modeOverride: SolverInputMode | undefined
       if (editor.mode === 'solving') {

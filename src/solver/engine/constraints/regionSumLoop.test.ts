@@ -14,6 +14,7 @@ function ctxWithLine(cellKeys: string[]): AdapterContext {
     size: 9, rows: 9, cols: 9,
     keyToIndex: (k: string) => { const m = k.match(/^r(\d+)c(\d+)$/); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
     regionOfCell: boxOf,
+    voids: new Set<number>(),
     variants: new Set(),
     customGlobals: [], fogSolverHelpers: {},
     singleCellMarks: {},

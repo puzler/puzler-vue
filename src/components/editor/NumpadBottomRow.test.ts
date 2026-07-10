@@ -43,13 +43,16 @@ describe('NumpadBottomRow', () => {
     expect(useEditorStore().letterMode).toBe(true)
   })
 
-  it('the 0 key places J in letter mode and 0 otherwise', async () => {
+  it('the 0 key places J in letter mode and a literal 0 otherwise', async () => {
     usePlayerSettingsStore().settings.enableLetterTool = true
     const editor = useEditorStore()
     editor.selection = new Set(['r0c0'])
     const wrapper = render()
     const zeroKey = wrapper.findAll('button')[0]
     expect(zeroKey.text()).toBe('0')
+    // Solvers may enter 0 like any digit; it just never matches a solution.
+    await zeroKey.trigger('click')
+    expect(editor.solverCellStates['r0c0'].value).toBe(0)
     editor.setLetterMode(true)
     await wrapper.vm.$nextTick()
     expect(zeroKey.text()).toBe('J')

@@ -81,6 +81,7 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
+      voids: new Set<number>(),
       variants: new Set(), customGlobals: [], fogSolverHelpers: {}, singleCellMarks: {}, connectorDots: [], outerClues: [],
       constraintInstances: [
         { type: 'entropic_lines', data: { cells: ['r0c0', 'r0c1', 'r0c2'] } },
@@ -186,6 +187,7 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
+      voids: new Set<number>(),
       variants: new Set(), customGlobals: [], fogSolverHelpers: {}, singleCellMarks: {}, connectorDots: [], outerClues: [],
       constraintInstances: [
         { type: 'nabner_lines', data: { cells: ['r0c0', 'r0c1'] } },
@@ -434,6 +436,7 @@ describe('connector & line constraints', () => {
       size: 9, rows: 9, cols: 9,
       keyToIndex: (k) => { const m = /^r(\d+)c(\d+)$/.exec(k); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
       regionOfCell: () => null,
+      voids: new Set<number>(),
       variants: new Set(), customGlobals: [], fogSolverHelpers: {}, singleCellMarks: {}, outerClues: [], constraintInstances: [],
       connectorDots: [
         { id: 'i1', type: 'inequality', location: 'r0c0|r0c1', value: '>' }, // r0c0 > r0c1 -> smaller cell is r0c1

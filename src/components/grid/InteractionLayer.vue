@@ -6,9 +6,9 @@ import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRow
 import { nearestPenNode, penClickTarget, nodesAdjacent, straightPath } from '@/utils/pen'
 import type { PenTarget } from '@/types/grid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, OUTER_RUN_STEP, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep, outerClueDirections } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
-import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection } from '@/types/constraints'
+import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection, OuterClueRunDirection } from '@/types/constraints'
 
 const props = defineProps<{
   svgRef: SVGSVGElement | null
@@ -283,9 +283,15 @@ function hitBorder(event: PointerEvent): string | null {
   return borderKey(cellKey(row, col), cellKey(best.row, best.col))
 }
 
-// Hit test for the ring of clue cells outside the grid. Edge positions have
-// exactly one axis at -1/rows/cols; corners (both axes outside) are only
-// valid for little killers.
+// Hit test for outer clue positions: the ring just outside the grid (edge
+// cells for every type, corners for little killers) plus in-grid VOID cells —
+// dead space doubles as "outside" for the live runs it borders. Placement
+// needs at least one readable run, so dead voids and pierced ring cells
+// (adjacent cell void) reject.
+function outerCellIsLive(r: number, c: number): boolean {
+  return !grid.isVoid(cellKey(r, c))
+}
+
 function hitOuterCell(event: PointerEvent): { row: number; col: number } | null {
   if (!props.svgRef) return null
   const pt = pointerToSvgPoint(event, props.svgRef)
@@ -293,16 +299,20 @@ function hitOuterCell(event: PointerEvent): { row: number; col: number } | null 
 
   const row = Math.floor((pt.y - PADDING) / CELL_SIZE)
   const col = Math.floor((pt.x - PADDING) / CELL_SIZE)
+  if (row < -1 || row > grid.rows || col < -1 || col > grid.cols) return null
   const rowOuter = row === -1 || row === grid.rows
   const colOuter = col === -1 || col === grid.cols
-  if (!rowOuter && !colOuter) return null
-  if (row < -1 || row > grid.rows || col < -1 || col > grid.cols) return null
-  if (rowOuter && colOuter) {
-    // Corner positions are reserved for little killers
-    if (editor.activeTool !== 'little_killers') return null
-    return { row, col }
+  if (!rowOuter && !colOuter) {
+    // In-grid: only void cells host clues.
+    if (!grid.isVoid(cellKey(row, col))) return null
+  } else if (rowOuter && colOuter && editor.activeTool !== 'little_killers') {
+    // Corner positions are reserved for little killers.
+    return null
   }
-  return { row, col }
+  const readable = editor.activeTool === 'little_killers'
+    ? validLittleKillerDirections(row, col, grid.rows, grid.cols, outerCellIsLive).length > 0
+    : outerClueDirections(row, col, grid.rows, grid.cols, outerCellIsLive).length > 0
+  return readable ? { row, col } : null
 }
 
 // Max distance (per axis, fraction of cell size) from an interior corner
@@ -327,7 +337,7 @@ function hitCorner(event: PointerEvent): string | null {
 // Initial direction points at whichever valid diagonal corner is nearest
 // the click point within the outer cell
 function nearestLittleKillerDirection(pos: { row: number; col: number }, event: PointerEvent): LittleKillerDirection {
-  const dirs = validLittleKillerDirections(pos.row, pos.col, grid.rows, grid.cols)
+  const dirs = validLittleKillerDirections(pos.row, pos.col, grid.rows, grid.cols, outerCellIsLive)
   if (dirs.length <= 1 || !props.svgRef) return dirs[0]
   const pt = pointerToSvgPoint(event, props.svgRef)
   if (!pt) return dirs[0]
@@ -345,6 +355,27 @@ function nearestLittleKillerDirection(pos: { row: number; col: number }, event: 
   return best
 }
 
+// A click near one of a multi-run clue's arrows (rendered at the cell's edge
+// midpoints) toggles that run; anywhere else falls through to the clue-level
+// action (remove / rossini cycle).
+function hitOuterClueArrow(pos: { row: number; col: number }, key: string, event: PointerEvent): OuterClueRunDirection | null {
+  if (!props.svgRef) return null
+  const pt = pointerToSvgPoint(event, props.svgRef)
+  if (!pt) return null
+  const candidates = editor.outerClueCandidateDirections(key)
+  if (candidates.length < 2) return null
+  const cx = PADDING + pos.col * CELL_SIZE + CELL_SIZE / 2
+  const cy = PADDING + pos.row * CELL_SIZE + CELL_SIZE / 2
+  let best: OuterClueRunDirection | null = null
+  let bestDist = Infinity
+  for (const dir of candidates) {
+    const step = OUTER_RUN_STEP[dir]
+    const d = Math.hypot(pt.x - (cx + step.dCol * CELL_SIZE * 0.36), pt.y - (cy + step.dRow * CELL_SIZE * 0.36))
+    if (d < bestDist) { bestDist = d; best = dir }
+  }
+  return bestDist <= CELL_SIZE * 0.28 ? best : null
+}
+
 function placeOuterClue(pos: { row: number; col: number }, key: string, event: PointerEvent) {
   if (editor.activeTool === 'little_killers') {
     if (editor.outerClueAt(key)?.type === 'little_killers') {
@@ -353,6 +384,13 @@ function placeOuterClue(pos: { row: number; col: number }, key: string, event: P
       editor.toggleOuterClue('little_killers', key, nearestLittleKillerDirection(pos, event))
     }
     return
+  }
+  if (editor.outerClueAt(key)?.type === editor.activeTool) {
+    const arrow = hitOuterClueArrow(pos, key, event)
+    if (arrow) {
+      editor.toggleOuterClueDirection(key, arrow)
+      return
+    }
   }
   if (editor.activeTool === 'rossini') {
     if (editor.outerClueAt(key)?.type === 'rossini') {

@@ -101,6 +101,22 @@ describe('buildSolverPuzzle', () => {
     expect(puzzle.constraints.some((c) => c.kind === 'extra_region')).toBe(true)
   })
 
+  it('emits one x-sum spec per live run for a void-hosted clue', () => {
+    const grid = useGridStore()
+    const editor = useEditorStore()
+    grid.setDimensions(3, 3)
+    const overrides: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) overrides[key] = ['1']
+    overrides.r0c2 = [] // the void hosting the clue
+    grid.setCustomCellRegions(overrides)
+    editor.outerClues = [{ id: 'x1', type: 'x_sums', location: 'o:r0c2', value: 3 }]
+    const { puzzle } = buildSolverPuzzle()
+    const xsums = puzzle.constraints.filter((c) => c.kind === 'x_sum') as Array<{ kind: string; line: number[]; target: number }>
+    // Down column 2 and left along row 0 — one clue constrains both runs.
+    expect(xsums.map((x) => x.line)).toEqual([[5, 8], [1, 0]])
+    expect(xsums.every((x) => x.target === 3)).toBe(true)
+  })
+
   it('emits house specs from painted house instances', () => {
     const editor = useEditorStore()
     editor.cosmeticInstances = [

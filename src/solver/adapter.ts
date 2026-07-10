@@ -107,6 +107,7 @@ export function buildSolverPuzzle(
     // (sorted) label decides the segmentation — deterministic, and single-label
     // grids behave exactly as before.
     regionOfCell: (cell) => grid.cellRegionLabelMap.get(indexToKey(cell))?.[0] ?? null,
+    voids: voidIndices,
     variants: new Set(editor.activeGlobalVariants),
     customGlobals: [...editor.customGlobalConstraints],
     fogSolverHelpers: { ...editor.fogSolverHelpers },

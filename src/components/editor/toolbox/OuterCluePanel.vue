@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useGridStore } from '@/stores/grid'
 import ModeSwitcher from './ModeSwitcher.vue'
 import NumpadPanel from '../NumpadPanel.vue'
 
 const editor = useEditorStore()
+const grid = useGridStore()
 
 const MODES = [
   { key: 'place', label: 'Place' },
@@ -83,6 +85,12 @@ const info = computed(() => INFO[editor.activeTool] ?? INFO.x_sums)
       </p>
       <p class="text-[11px] text-soft leading-snug text-center">
         {{ info.placeHint }} · Select: click a clue to edit it (or hold Shift) · Backspace removes the last digit
+      </p>
+      <p
+        v-if="grid.voidCells.size > 0"
+        class="text-[11px] text-soft leading-snug text-center"
+      >
+        Void cells take clues too. Where several rows or columns touch, arrows show which ones the clue binds; click an arrow to toggle it.
       </p>
     </div>
   </div>

@@ -938,6 +938,35 @@ describe('outer clue instances', () => {
     expect(editor.outerClues).toHaveLength(0)
   })
 
+  it('toggles run arrows on a multi-run void clue, never below one', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    // 3×3 with the top-right corner void: the clue there reads down and left.
+    grid.setDimensions(3, 3)
+    const regions: Record<string, string[]> = {}
+    for (let r = 0; r < 3; r++)
+      for (let c = 0; c < 3; c++) regions[`r${r}c${c}`] = r === 0 && c === 2 ? [] : ['1']
+    grid.setCustomCellRegions(regions)
+
+    expect(editor.outerClueCandidateDirections('o:r0c2')).toEqual(['down', 'left'])
+    editor.toggleOuterClue('x_sums', 'o:r0c2')
+    // Absent = all runs; the first toggle materializes the rest.
+    expect(editor.outerClues[0].directions).toBeUndefined()
+    editor.toggleOuterClueDirection('o:r0c2', 'down')
+    expect(editor.outerClues[0].directions).toEqual(['left'])
+    // The last arrow won't toggle off.
+    editor.toggleOuterClueDirection('o:r0c2', 'left')
+    expect(editor.outerClues[0].directions).toEqual(['left'])
+    // Re-enabling keeps canonical order.
+    editor.toggleOuterClueDirection('o:r0c2', 'down')
+    expect(editor.outerClues[0].directions).toEqual(['down', 'left'])
+    // Unreadable directions are ignored.
+    editor.toggleOuterClueDirection('o:r0c2', 'up')
+    expect(editor.outerClues[0].directions).toEqual(['down', 'left'])
+    editor.undo()
+    expect(editor.outerClues[0].directions).toEqual(['left'])
+  })
+
   it('replaces a different-type clue at the same position and restores it on undo', () => {
     const editor = useEditorStore()
     editor.toggleOuterClue('x_sums', 'o:r-1c3')

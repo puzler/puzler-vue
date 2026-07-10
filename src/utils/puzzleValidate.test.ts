@@ -63,6 +63,59 @@ describe('validatePuzzle errors (functionally broken)', () => {
     }))
     expect(errors).toHaveLength(1)
     expect(errors[0].path).toBe('constraints.xSums[0].cell')
+    expect(errors[0].message).toContain('live cell')
+  })
+
+  it('accepts outer clues in void cells and warns when one reads nothing', () => {
+    // 2×2 live block top-left of a 3×3; r1c3 is void beside it, r3c3 is a void
+    // with only void/ring neighbors.
+    const regions = { '1': ['r1c1', 'r1c2', 'r2c1', 'r2c2'] }
+    const ok = validatePuzzle(doc({
+      grid: { rows: 3, cols: 3, regions },
+      constraints: { xSums: [{ cell: 'r1c3', value: 3 }] },
+    }))
+    expect(ok.errors).toEqual([])
+    expect(ok.warnings).toEqual([])
+
+    const orphaned = validatePuzzle(doc({
+      grid: { rows: 3, cols: 3, regions },
+      constraints: { xSums: [{ cell: 'r3c3', value: 3 }] },
+    }))
+    expect(orphaned.errors).toEqual([])
+    expect(orphaned.warnings.some((w) => w.message.includes('reads no cells'))).toBe(true)
+  })
+
+  it('warns on a ring clue whose first cell is void', () => {
+    const { errors, warnings } = validatePuzzle(doc({
+      grid: { rows: 3, cols: 3, regions: { '1': ['r1c1', 'r1c2', 'r2c1', 'r2c2'] } },
+      constraints: { xSums: [{ cell: 'r0c3', value: 3 }] },
+    }))
+    expect(errors).toEqual([])
+    expect(warnings.some((w) => w.message.includes('reads no cells'))).toBe(true)
+  })
+
+  it('validates run-direction toggles: bad names warn, all-off warns, a live subset passes', () => {
+    const grid = { rows: 3, cols: 3, regions: { '1': ['r1c1', 'r1c2', 'r2c1', 'r2c2', 'r2c3', 'r3c3'] } }
+    // r1c3 is void and reads down (r2c3) and left (r1c2).
+    const ok = validatePuzzle(doc({
+      grid,
+      constraints: { xSums: [{ cell: 'r1c3', value: 3, directions: ['left'] }] },
+    }))
+    expect(ok.errors).toEqual([])
+    expect(ok.warnings).toEqual([])
+
+    const bad = validatePuzzle(doc({
+      grid,
+      constraints: { xSums: [{ cell: 'r1c3', value: 3, directions: ['sideways' as never] }] },
+    }))
+    expect(bad.warnings.some((w) => w.message.includes('not a run direction'))).toBe(true)
+    expect(bad.warnings.some((w) => w.message.includes('reads no cells'))).toBe(true)
+
+    const off = validatePuzzle(doc({
+      grid,
+      constraints: { xSums: [{ cell: 'r1c3', value: 3, directions: ['up'] }] },
+    }))
+    expect(off.warnings.some((w) => w.message.includes('reads no cells'))).toBe(true)
   })
 
   it('accepts a cell in two regions (overlapping conjoined boxes)', () => {

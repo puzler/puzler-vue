@@ -3,7 +3,8 @@ import {
   toolboxCategory, THERMO_TYPES, SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS,
   INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
-import { QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN } from '@/types/constraints'
+import { QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, OUTER_RUN_DIRECTIONS, outerClueDirections, validLittleKillerDirections } from '@/types/constraints'
+import type { OuterClueRunDirection } from '@/types/constraints'
 import type { SerializedPuzzle } from './puzzleExport'
 
 // Pre-apply validation for hand-edited documents (the raw JSON editor). The
@@ -279,6 +280,9 @@ function validateConnector(ctx: Ctx, type: string, entries: DocRecord[], path: s
 }
 
 function validateOuterClue(ctx: Ctx, type: string, entries: DocRecord[], path: string, seenCells: Map<string, string>): void {
+  // Internal-coordinate liveness for the shared direction helpers: doc r1c1 is
+  // internal (0,0). A cell is live when in-grid and not void.
+  const isLive = (r: number, c: number) => !ctx.voids.has(`r${r + 1}c${c + 1}`)
   entries.forEach((e, i) => {
     const p = `${path}[${i}]`
     const pos = parseCell(e.cell)
@@ -289,12 +293,43 @@ function validateOuterClue(ctx: Ctx, type: string, entries: DocRecord[], path: s
     const onRowRing = pos.row === 0 || pos.row === ctx.rows + 1
     const onColRing = pos.col === 0 || pos.col === ctx.cols + 1
     const inRange = pos.row >= 0 && pos.row <= ctx.rows + 1 && pos.col >= 0 && pos.col <= ctx.cols + 1
-    if (!inRange || (!onRowRing && !onColRing)) {
+    const inGrid = !onRowRing && !onColRing && inRange
+    if (!inRange) {
       ctx.errors.push({
         path: `${p}.cell`,
-        message: `${e.cell as string} is not on the outer clue ring (r0/r${ctx.rows + 1} rows or c0/c${ctx.cols + 1} columns)`,
+        message: `${e.cell as string} is not on the outer clue ring (r0/r${ctx.rows + 1} rows or c0/c${ctx.cols + 1} columns) or in a void cell`,
       })
       return
+    }
+    if (inGrid && !ctx.voids.has(e.cell as string)) {
+      ctx.errors.push({
+        path: `${p}.cell`,
+        message: `${e.cell as string} is a live cell; in-grid outer clues go in void cells (or on the r0/r${ctx.rows + 1}/c0/c${ctx.cols + 1} ring)`,
+      })
+      return
+    }
+    // The optional per-run toggles: named directions, straight clues only.
+    const directions = Array.isArray(e.directions) ? (e.directions as unknown[]) : null
+    if (directions) {
+      if (type === 'little_killers') {
+        ctx.warnings.push({ path: `${p}.directions`, message: 'little killers point along their own `direction`; `directions` has no effect' })
+      }
+      for (const [di, d] of directions.entries()) {
+        if (!OUTER_RUN_DIRECTIONS.includes(d as OuterClueRunDirection)) {
+          ctx.warnings.push({ path: `${p}.directions[${di}]`, message: `"${String(d)}" is not a run direction (up/down/left/right)` })
+        }
+      }
+    }
+    // Clues read maximal live runs starting at an adjacent cell; a clue with
+    // no run constrains nothing (a pierced ring cell, a void with no live
+    // neighbor, or every readable run toggled off).
+    const internal = { row: pos.row - 1, col: pos.col - 1 }
+    const readable = type === 'little_killers'
+      ? validLittleKillerDirections(internal.row, internal.col, ctx.rows, ctx.cols, isLive).length > 0
+      : outerClueDirections(internal.row, internal.col, ctx.rows, ctx.cols, isLive)
+          .filter((d) => !directions || directions.includes(d)).length > 0
+    if (!readable) {
+      ctx.warnings.push({ path: `${p}.cell`, message: `the outer clue at ${e.cell as string} reads no cells (every adjacent run is void, outside the grid, or toggled off)` })
     }
     const prior = seenCells.get(e.cell as string)
     if (prior !== undefined) {

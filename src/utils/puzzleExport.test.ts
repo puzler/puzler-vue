@@ -146,6 +146,29 @@ describe('serializePuzzle (format v4)', () => {
     expect(g3.effectiveDigitRange).toBe(10)
   })
 
+  it('round-trips outer clue run directions on void-hosted clues', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set(['sudoku_rules', 'x_sums'])
+    editor.outerClues = [
+      { id: 'x1', type: 'x_sums', location: 'o:r0c2', value: 6, directions: ['left'] },
+      { id: 'x2', type: 'x_sums', location: 'o:r-1c0', value: 9 },
+    ]
+    const data = serializePuzzle(editor, grid)
+    expect((data.constraints as Record<string, unknown>).xSums).toEqual([
+      { cell: 'r1c3', value: 6, directions: ['left'] },
+      { cell: 'r0c1', value: 9 },
+    ])
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(e2.outerClues[0]).toMatchObject({ location: 'o:r0c2', value: 6, directions: ['left'] })
+    expect(e2.outerClues[1].directions).toBeUndefined()
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
   it('round-trips houses without a chip: painted instances alone carry the key', () => {
     const editor = useEditorStore()
     const grid = useGridStore()

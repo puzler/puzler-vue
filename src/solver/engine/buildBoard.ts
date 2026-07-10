@@ -40,22 +40,29 @@ export function buildBoard(
 
   if (!board.initConstraints()) return { board, valid: false, fogGate }
 
+  // Entry is permissive (players may type any digit, 0 included), so the wire
+  // can carry values outside 1..size. They can never be part of a solution —
+  // and valueBit on them would corrupt masks — so the board is simply invalid.
+  const inRange = (value: number) => value >= 1 && value <= puzzle.size
+
   if (puzzle.centerMarks) {
     for (const { cell, values } of puzzle.centerMarks) {
       let keep = 0
-      for (const value of values) keep |= valueBit(value)
+      // Out-of-range marks contribute nothing: {3,7} on digits 1-6 means the 3.
+      // A set with NO in-range digit keeps an empty mask — invalid, correctly.
+      for (const value of values) { if (inRange(value)) keep |= valueBit(value) }
       if (board.keepMask(cell, keep) === ConstraintResult.INVALID) return { board, valid: false, fogGate }
     }
   }
 
   const givens = fogGate ? fogGate.visibleGivens() : puzzle.givens
   for (const { cell, value } of givens) {
-    if (!board.setAsGiven(cell, value)) return { board, valid: false, fogGate }
+    if (!inRange(value) || !board.setAsGiven(cell, value)) return { board, valid: false, fogGate }
   }
 
   if (puzzle.placed) {
     for (const { cell, value } of puzzle.placed) {
-      if (!board.setAsGiven(cell, value)) return { board, valid: false, fogGate }
+      if (!inRange(value) || !board.setAsGiven(cell, value)) return { board, valid: false, fogGate }
     }
   }
 

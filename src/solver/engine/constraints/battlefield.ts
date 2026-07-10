@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { BattlefieldConstraint } from './sumConstraints'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Battlefield: the first and last digits of the row/column claim that many
 // cells from their own ends; the clue sums the overlap of the two claims, or
@@ -22,8 +22,9 @@ export default defineModule<BattlefieldSpec>({
       if (clue.type !== 'battlefield' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length) specs.push({ kind: 'battlefield', line, target: clue.value })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        specs.push({ kind: 'battlefield', line, target: clue.value })
+      }
     }
     return specs
   },

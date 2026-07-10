@@ -22,6 +22,7 @@ function adapterCtx(overrides: Partial<AdapterContext>): AdapterContext {
     cols: 9,
     keyToIndex: (k: string) => { const m = k.match(/^r(\d+)c(\d+)$/); return m ? Number(m[1]) * 9 + Number(m[2]) : -1 },
     regionOfCell: () => null,
+      voids: new Set<number>(),
     variants: new Set(),
     customGlobals: [], fogSolverHelpers: {},
     singleCellMarks: {},

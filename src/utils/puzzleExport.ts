@@ -6,7 +6,7 @@ import {
   TYPE_TO_JSON_KEY, JSON_KEY_TO_TYPE, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
   toolboxCategory, THERMO_TYPES, GLOBAL_VARIANT_EXCLUSIONS, INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
-import { cosmeticPos, DEFAULT_SHAPE_STYLE } from '@/types/constraints'
+import { cosmeticPos, DEFAULT_SHAPE_STYLE, OUTER_RUN_DIRECTIONS } from '@/types/constraints'
 import type {
   ThermometerData, ArrowData, KillerCageData, ExtraRegionData, CloneData,
   ConstraintLineData, CosmeticLineData, CosmeticBorderData, TextData, ShapeData, CosmeticCageData,
@@ -37,7 +37,9 @@ import { migratePuzzleDocument } from './puzzleMigrate'
 // (explicit value range), overlapping `grid.regions` (a cell may appear under
 // several labels; on a regioned grid an unlisted cell is VOID dead space),
 // `sudokuRules.custom` (keep region/house uniqueness, drop the automatic
-// row/column houses), and `constraints.houses` (hidden all-different groups).
+// row/column houses), `constraints.houses` (hidden all-different groups), and
+// outer-clue cells inside VOID cells (the clue reads every adjacent live run;
+// all outer clue lines stop at voids).
 export const PUZZLE_EXPORT_VERSION = 4
 
 type EditorStore = ReturnType<typeof useEditorStore>
@@ -111,7 +113,7 @@ export interface PuzzleSnapshot {
   connectorDots: Array<Pick<ConnectorInstance,
     'type' | 'location' | 'value' | 'color' | 'fillColor' | 'outlineColor' | 'textColor'>>
   outerClues: Array<Pick<OuterClueInstance,
-    'type' | 'location' | 'value' | 'direction' | 'rossiniDirection' | 'color' | 'textColor' | 'arrowColor'>>
+    'type' | 'location' | 'value' | 'direction' | 'rossiniDirection' | 'directions' | 'color' | 'textColor' | 'arrowColor'>>
   instances: Array<{ type: string; data: unknown }>
   cellColors: Record<string, string>
   presets: {
@@ -154,6 +156,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
     outerClues: editor.outerClues.map((c) => ({
       type: c.type, location: c.location, value: c.value,
       direction: c.direction, rossiniDirection: c.rossiniDirection,
+      directions: c.directions ? [...c.directions] : undefined,
       color: c.color, textColor: c.textColor, arrowColor: c.arrowColor,
     })),
     instances: editor.cosmeticInstances.map((i) => ({ type: i.type, data: toRaw(i.data) })),
@@ -268,6 +271,9 @@ function docConstraintEntry(snap: PuzzleSnapshot, type: string): unknown {
       ...(type === 'rossini'
         ? { direction: c.rossiniDirection ?? 'increasing' }
         : c.direction ? { direction: c.direction } : {}),
+      // Multi-run positions (void-hosted clues): the runs this clue binds.
+      // Absent = every readable run.
+      ...(c.directions ? { directions: [...c.directions] } : {}),
       ...pickDefined(c, colorFields),
     }))
   }
@@ -472,6 +478,7 @@ interface DocOuterClue {
   cell?: string
   value?: number
   direction?: string
+  directions?: string[]
   color?: string
   textColor?: string
   arrowColor?: string
@@ -640,6 +647,9 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
       }
     } else if (category === 'outer') {
       for (const clue of (entry as DocOuterClue[]) ?? []) {
+        const directions = Array.isArray(clue.directions)
+          ? OUTER_RUN_DIRECTIONS.filter((d) => (clue.directions as string[]).includes(d))
+          : null
         outerClues.push({
           id: crypto.randomUUID(),
           type: type as OuterClueType,
@@ -648,6 +658,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
           ...(type === 'rossini'
             ? { rossiniDirection: (clue.direction as RossiniDirection) ?? 'increasing' }
             : clue.direction ? { direction: clue.direction as LittleKillerDirection } : {}),
+          ...(directions && directions.length ? { directions } : {}),
           ...pickDefined(clue, colorFields),
         })
       }

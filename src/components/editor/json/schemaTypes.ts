@@ -161,8 +161,17 @@ export interface QuadrupleDoc {
 }
 
 export interface OuterClueDoc {
-  // A ring cell: r0/r{rows+1} rows or c0/c{cols+1} columns.
+  /**
+   * A ring cell (r0/r{rows+1} rows or c0/c{cols+1} columns) or a VOID in-grid
+   * cell. The clue reads every maximal live run starting next to it (runs
+   * stop at voids); a void-hosted clue between two grids can constrain both.
+   */
   cell: string
+  /**
+   * On a multi-run position, the runs this clue binds (named from the clue
+   * toward the run). Absent = every readable run.
+   */
+  directions?: Array<'up' | 'down' | 'left' | 'right'>
   value?: number
   /**
    * Recolors the clue text. 6 or 8 digit hex.
@@ -189,6 +198,11 @@ export interface LittleKillerDoc {
 export interface RossiniDoc {
   cell: string
   direction?: RossiniDirection
+  /**
+   * On a multi-run position, the runs this clue binds (named from the clue
+   * toward the run). Absent = every readable run.
+   */
+  directions?: Array<'up' | 'down' | 'left' | 'right'>
   /** Recolors the arrow. 6 or 8 digit hex. */
   color?: string
 }

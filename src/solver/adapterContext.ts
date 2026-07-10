@@ -16,6 +16,9 @@ export interface AdapterContext {
   // region label of a cell index, or null when it belongs to no region. Used to
   // segment region-sum lines by region.
   regionOfCell: (cellIndex: number) => string | null
+  // Void cell indices (regionless cells on a regioned grid). Outer clues stop
+  // their lines at voids and may sit IN a void, reading every adjacent run.
+  voids: ReadonlySet<number>
 
   // Global variant types currently active (e.g. 'knights_move', 'nonconsecutive').
   variants: Set<string>

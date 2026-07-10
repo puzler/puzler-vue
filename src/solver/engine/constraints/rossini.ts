@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { ForbiddenPairsConstraint } from './shared'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Rossini: the three digits nearest the arrow's edge strictly increase in the
 // arrow's direction. The line comes ordered from the clue's side, so
@@ -23,9 +23,10 @@ export default defineModule<RossiniSpec>({
       if (clue.type !== 'rossini' || !clue.rossiniDirection) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length < 3) continue
-      specs.push({ kind: 'rossini', cells: line.slice(0, 3), increasing: clue.rossiniDirection === 'increasing' })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        if (line.length < 3) continue
+        specs.push({ kind: 'rossini', cells: line.slice(0, 3), increasing: clue.rossiniDirection === 'increasing' })
+      }
     }
     return specs
   },

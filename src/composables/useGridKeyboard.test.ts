@@ -100,12 +100,96 @@ describe('useGridKeyboard', () => {
     expect(editor.selection.size).toBe(grid.rows * grid.cols)
   })
 
+  describe('void cells (regionless on a regioned grid)', () => {
+    // Region maps list EVERY cell (an explicit [] = regionless), matching how
+    // documents hydrate; unlisted cells would fall back to standard boxes.
+    function regionMap(voids: string[], live: Record<string, string>): Record<string, string[]> {
+      const map: Record<string, string[]> = {}
+      for (let r = 0; r < 3; r++)
+        for (let c = 0; c < 3; c++) {
+          const key = `r${r}c${c}`
+          map[key] = voids.includes(key) ? [] : [live[key] ?? '1']
+        }
+      return map
+    }
+
+    // A 3×3 whose top-right corner r0c2 is void.
+    beforeEach(() => {
+      grid.setDimensions(3, 3)
+      grid.setCustomCellRegions(regionMap(['r0c2'], { r1c2: '2', r2c2: '2' }))
+    })
+
+    it('arrow movement jumps over a void to the next live cell', () => {
+      editor.selectCell('r0c1')
+      press('ArrowRight') // r0c2 is void → wraps past it to r0c0
+      expect([...editor.selection]).toEqual(['r0c0'])
+      editor.selectCell('r1c2')
+      press('ArrowUp') // r0c2 is void → wraps to r2c2
+      expect([...editor.selection]).toEqual(['r2c2'])
+    })
+
+    it('stays put when the whole line is void', () => {
+      grid.setCustomCellRegions(regionMap(['r0c1', 'r1c1', 'r2c1'], {}))
+      editor.selectCell('r1c0')
+      press('ArrowRight') // column 1 is entirely void → jumps to r1c2
+      expect([...editor.selection]).toEqual(['r1c2'])
+      editor.selectCell('r1c0')
+      press('ArrowUp') // column 0 all live: normal move
+      expect([...editor.selection]).toEqual(['r0c0'])
+      // Only row 0 live: moving down from it has nowhere to go.
+      grid.setCustomCellRegions(regionMap(
+        ['r1c0', 'r1c1', 'r1c2', 'r2c0', 'r2c1', 'r2c2'], {},
+      ))
+      editor.selectCell('r0c0')
+      press('ArrowDown')
+      expect([...editor.selection]).toEqual(['r0c0'])
+    })
+
+    it('the grid tool still walks into voids', () => {
+      editor.setActiveTool('grid')
+      editor.selectCell('r0c1')
+      press('ArrowRight')
+      expect([...editor.selection]).toEqual(['r0c2'])
+    })
+
+    it('Cmd/Ctrl+A skips voids except for the grid tool', () => {
+      editor.clearSelection()
+      press('a', { metaKey: true })
+      expect(editor.selection.size).toBe(8)
+      expect(editor.selection.has('r0c2')).toBe(false)
+      editor.setActiveTool('grid')
+      press('a', { metaKey: true })
+      expect(editor.selection.size).toBe(9)
+    })
+  })
+
   it('places a digit on the selected cell while solving', () => {
     editor.setMode('solving')
     editor.setInputMode('digit')
     editor.selectCell('r0c0')
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '5', code: 'Digit5' }))
     expect(editor.solverCellStates['r0c0']?.value).toBe(5)
+  })
+
+  it('entry ignores the digit range: solvers may type out-of-range digits and 0', () => {
+    grid.setDigits(6)
+    editor.setMode('solving')
+    editor.setInputMode('digit')
+    editor.selectCell('r0c0')
+    press('9', { code: 'Digit9' }) // above the puzzle's 1-6 range
+    expect(editor.solverCellStates['r0c0']?.value).toBe(9)
+    press('0', { code: 'Digit0' }) // a literal zero, not a clear
+    expect(editor.solverCellStates['r0c0']?.value).toBe(0)
+    press('Delete')
+    expect(editor.solverCellStates['r0c0']?.value ?? null).toBeNull()
+  })
+
+  it('0 still clears a given in setting mode', () => {
+    editor.selectCell('r0c0')
+    press('7', { code: 'Digit7' })
+    expect(editor.givenDigits['r0c0']).toBe(7)
+    press('0', { code: 'Digit0' })
+    expect(editor.givenDigits['r0c0']).toBeUndefined()
   })
 
   it('ignores grid keystrokes while a modal is open', () => {

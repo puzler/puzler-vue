@@ -557,6 +557,7 @@
       "additionalProperties": false,
       "properties": {
         "cell": {
+          "description": "A ring cell (r0/r{rows+1} rows or c0/c{cols+1} columns) or a VOID in-grid cell. The clue reads every maximal live run starting next to it (runs stop at voids); a void-hosted clue between two grids can constrain both.",
           "type": "string"
         },
         "color": {
@@ -565,6 +566,19 @@
             "#555555"
           ],
           "type": "string"
+        },
+        "directions": {
+          "description": "On a multi-run position, the runs this clue binds (named from the clue toward the run). Absent = every readable run.",
+          "items": {
+            "enum": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "type": "string"
+          },
+          "type": "array"
         },
         "value": {
           "type": "number"
@@ -635,6 +649,19 @@
         },
         "direction": {
           "$ref": "#/definitions/RossiniDirection"
+        },
+        "directions": {
+          "description": "On a multi-run position, the runs this clue binds (named from the clue toward the run). Absent = every readable run.",
+          "items": {
+            "enum": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [

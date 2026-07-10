@@ -2,7 +2,7 @@ import type { SolverConstraintSpec } from '../../types'
 import { defineModule } from './module'
 import { ALWAYS } from './fogPolicies'
 import { NextToNineConstraint } from './sumConstraints'
-import { parseOuterKey, outerLine } from './outerHelpers'
+import { parseOuterKey, outerRuns } from './outerHelpers'
 
 // Next-to-nine: the clue's decimal digits are exactly the digits orthogonally
 // adjacent to the 9 in that row/column. Malformed clues (containing a 0) are
@@ -24,8 +24,9 @@ export default defineModule<NextToNineSpec>({
       if (digits.some((d) => d < 1)) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
-      if (line.length) specs.push({ kind: 'next_to_nine', line, digits })
+      for (const line of outerRuns(ctx.rows, ctx.cols, pos.row, pos.col, ctx.voids, clue.directions)) {
+        specs.push({ kind: 'next_to_nine', line, digits })
+      }
     }
     return specs
   },

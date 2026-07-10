@@ -28,7 +28,7 @@ export function buildBoard(
   options: { logPropagation?: boolean; respectFog?: boolean } = {},
 ): BuiltBoard {
   const fogGate = options.respectFog && puzzle.fog ? new FogGate(puzzle) : undefined
-  const board = new Board(puzzle.size, puzzle.regions)
+  const board = new Board(puzzle.rows ?? puzzle.size, puzzle.cols ?? puzzle.size, puzzle.size, puzzle.regions)
   board.constraints = fogGate ? fogGate.buildConstraints(board) : buildConstraints(board, puzzle.constraints)
   if (options.logPropagation) board.propagationLog = []
 

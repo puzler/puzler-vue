@@ -44,7 +44,8 @@ describe('constraint registry derivations', () => {
   })
 
   it('derives global variants per category, in def order', () => {
-    expect(Object.keys(GLOBAL_VARIANTS)).toEqual(['diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets', 'fog'])
+    expect(Object.keys(GLOBAL_VARIANTS)).toEqual(['sudoku_rules', 'diagonals', 'chess', 'anti_kropki', 'anti_xv', 'disjoint_sets', 'fog'])
+    expect(GLOBAL_VARIANTS.sudoku_rules).toEqual([])
     expect(GLOBAL_VARIANTS.diagonals.map(v => v.type)).toEqual([
       'positive_diagonal', 'negative_diagonal', 'anti_positive_diagonal', 'anti_negative_diagonal',
     ])
@@ -58,7 +59,7 @@ describe('constraint registry derivations', () => {
   it('derives an icon for every pickable type and the global-variant filters', () => {
     for (const type of LOCAL_TOOL_TYPES) expect(CONSTRAINT_ICONS[type], type).toBeDefined()
     for (const type of ['diagonals', 'chess', 'kings_move', 'knights_move', 'anti_kropki', 'anti_xv', 'disjoint_sets',
-      'cosmetic_line', 'cell_color', 'shape', 'text', 'cosmetic_cage']) {
+      'cosmetic_line', 'cosmetic_border', 'cell_color', 'shape', 'text', 'cosmetic_cage']) {
       expect(CONSTRAINT_ICONS[type], type).toBeDefined()
     }
     // Line icons take their color from the def's line style (one source of truth).
@@ -113,10 +114,10 @@ describe('constraint registry derivations', () => {
 
   it('derives sidebar picker options for global and cosmetic categories', () => {
     expect(pickerOptionsFor('global').map(o => o.label)).toEqual([
-      'Diagonals', 'Chess', 'Anti-Kropki', 'Anti-XV', 'Disjoint Sets', 'Fog of War',
+      'Sudoku Rules', 'Diagonals', 'Chess', 'Anti-Kropki', 'Anti-XV', 'Disjoint Sets', 'Fog of War',
     ])
     expect(pickerOptionsFor('cosmetic').map(o => o.label)).toEqual([
-      'Line', 'Cell color', 'Shape', 'Text', 'Cage',
+      'Line', 'Border', 'Cell color', 'Shape', 'Text', 'Cage',
     ])
   })
 
@@ -128,6 +129,7 @@ describe('constraint registry derivations', () => {
     expect(panelForTool('diagonals')?.id).toBe('global')
     expect(panelForTool('fog')?.id).toBe('fog')
     expect(panelForTool('fog_lights')?.id).toBe('fog')
+    expect(panelForTool('sudoku_rules')?.id).toBe('sudoku_rules')
     expect(panelForTool('digit')).toBeUndefined()
   })
 
@@ -199,6 +201,7 @@ describe('constraint registry derivations', () => {
       battlefield: 'battlefield',
       next_to_nine: 'nextToNine',
       rossini: 'rossini',
+      sudoku_rules: 'sudokuRules',
       diagonals: 'diagonals',
       chess: 'chess',
       anti_kropki: 'antiKropki',
@@ -207,6 +210,7 @@ describe('constraint registry derivations', () => {
       fog: 'fog',
       fog_lights: 'fogLights',
       cosmetic_line: 'lines',
+      cosmetic_border: 'borders',
       cell_color: 'cellColors',
       shape: 'shapes',
       text: 'texts',
@@ -214,6 +218,7 @@ describe('constraint registry derivations', () => {
     })
     expect(Object.fromEntries(PRESETS_KEY_BY_TYPE)).toEqual({
       cosmetic_line: 'linePresets',
+      cosmetic_border: 'borderPresets',
       cell_color: 'cellColorPresets',
       shape: 'shapePresets',
       text: 'textPresets',
@@ -223,6 +228,12 @@ describe('constraint registry derivations', () => {
 
   it('derives the globals group document shapes', () => {
     expect(GLOBAL_GROUPS_JSON).toEqual([
+      {
+        type: 'sudoku_rules',
+        key: 'sudokuRules',
+        variants: [{ type: 'sudoku_rules', key: 'enabled' }],
+        customValues: {},
+      },
       {
         type: 'diagonals',
         key: 'diagonals',

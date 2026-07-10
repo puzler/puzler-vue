@@ -48,6 +48,12 @@ const brushCells = ref<Set<string>>(new Set())
 const penGesture = ref(false)
 let penDownPt: { x: number; y: number } | null = null
 
+// Border-tool drag: draw-vs-erase latches from whether the first edge hit
+// already carries a border. Drawn edges preview via the store's pending list;
+// erased edges accumulate locally and apply on release.
+const borderErase = ref(false)
+const borderEraseEdges = ref<Set<string>>(new Set())
+
 const cursor = computed(() => {
   // Solving mode ignores the setting tool entirely — interaction is plain
   // cell selection so the solver can place digits and pencil marks; the pen
@@ -55,6 +61,7 @@ const cursor = computed(() => {
   if (editor.mode === 'solving') return editor.inputMode === 'line' ? 'crosshair' : 'default'
   if (isDrawing.value || isBrushing.value || isSingleCellTool.value || isDotTool.value) return 'crosshair'
   if (isCageTool.value || editor.activeTool === 'extra_regions' || editor.activeTool === 'clone') return 'crosshair'
+  if (editor.activeTool === 'cosmetic_border') return 'crosshair'
   if (isOuterTool.value) return 'crosshair'
   if (editor.activeTool === 'shape') return 'crosshair'
   if (editor.activeTool === 'text') return 'text'
@@ -584,6 +591,20 @@ function onPointerDown(event: PointerEvent) {
     return
   }
 
+  if (editor.activeTool === 'cosmetic_border') {
+    const edge = hitBorder(event)
+    if (!edge) return
+    ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
+    isDragging.value = true
+    borderErase.value = editor.borderEdgeExists(edge)
+    if (borderErase.value) {
+      borderEraseEdges.value = new Set([edge])
+    } else {
+      editor.pendingBorderEdges = [edge]
+    }
+    return
+  }
+
   if (isDotTool.value) {
     const border = editor.activeTool === 'quadruples' ? hitCorner(event) : hitBorder(event)
     const mode = event.shiftKey ? 'select' : editor.effectiveConnectorMode
@@ -741,6 +762,19 @@ function processPointerMove(event: PointerEvent) {
     return
   }
 
+  if (editor.activeTool === 'cosmetic_border') {
+    const edge = hitBorder(event)
+    if (!edge) return
+    if (borderErase.value) {
+      if (!borderEraseEdges.value.has(edge)) {
+        borderEraseEdges.value = new Set([...borderEraseEdges.value, edge])
+      }
+    } else if (!editor.pendingBorderEdges.includes(edge)) {
+      editor.pendingBorderEdges = [...editor.pendingBorderEdges, edge]
+    }
+    return
+  }
+
   if (isCageTool.value) {
     const key = hitCell(event)
     if (!key || brushCells.value.has(key) || findCageAtCell(key, editor.activeTool) !== null) return
@@ -838,6 +872,17 @@ function onPointerUp(event: PointerEvent) {
 
   // Plain selection in solving mode has nothing to commit on release.
   if (editor.mode === 'solving') return
+
+  if (editor.activeTool === 'cosmetic_border') {
+    if (borderErase.value) {
+      editor.eraseBorderEdges(Array.from(borderEraseEdges.value))
+      borderEraseEdges.value = new Set()
+      borderErase.value = false
+    } else {
+      editor.commitBorderInstance([...editor.pendingBorderEdges])
+    }
+    return
+  }
 
   if (isCageTool.value) {
     if (editor.activeTool === 'cosmetic_cage') editor.commitCosmeticCage(Array.from(brushCells.value))

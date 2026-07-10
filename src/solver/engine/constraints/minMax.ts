@@ -25,7 +25,7 @@ export default defineModule<MinMaxSpec>({
     return specs.filter((s) => s.cell >= 0)
   },
   build: (board, spec) => {
-    const pairs = orthogonalNeighbours(spec.cell, board.size).map(
+    const pairs = orthogonalNeighbours(spec.cell, board.rows, board.cols).map(
       (n) => [spec.cell, n] as [number, number],
     )
     const forbidden =

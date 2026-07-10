@@ -17,9 +17,9 @@ const SUBSET_NAME = ['', 'single', 'pair', 'triple', 'quad']
 // rectangle — distinct cells spanning r rows × c cols fill it exactly when
 // r·c matches the cell count), else "a region".
 function regionName(board: Board, region: number[]): string {
-  const size = board.size
-  const rows = new Set(region.map((c) => Math.floor(c / size)))
-  const cols = new Set(region.map((c) => c % size))
+  const stride = board.cols
+  const rows = new Set(region.map((c) => Math.floor(c / stride)))
+  const cols = new Set(region.map((c) => c % stride))
   if (rows.size === 1) return `row ${[...rows][0] + 1}`
   if (cols.size === 1) return `column ${[...cols][0] + 1}`
   if (rows.size * cols.size === region.length) return 'a box'
@@ -30,14 +30,14 @@ function regionName(board: Board, region: number[]): string {
 // "a box", "2 regions").
 function regionSetName(board: Board, regions: number[][]): string {
   if (regions.length === 1) return regionName(board, regions[0])
-  const size = board.size
+  const stride = board.cols
   const soleIndex = (region: number[], of: (c: number) => number): number => {
     const set = new Set(region.map(of))
     return set.size === 1 ? ([...set][0] as number) : -1
   }
   for (const [label, of] of [
-    ['rows', (c: number) => Math.floor(c / size)],
-    ['columns', (c: number) => c % size],
+    ['rows', (c: number) => Math.floor(c / stride)],
+    ['columns', (c: number) => c % stride],
   ] as Array<[string, (c: number) => number]>) {
     const indices = regions.map((r) => soleIndex(r, of))
     if (indices.every((i) => i >= 0)) {
@@ -63,7 +63,7 @@ export function describeRemovals(board: Board, before: Int32Array): string {
   }
   const parts: string[] = []
   for (const [mask, cellList] of groups) {
-    parts.push(`${valuesList(mask).join(',')} from ${cellList.map((c) => cellName(c, board.size)).join(', ')}`)
+    parts.push(`${valuesList(mask).join(',')} from ${cellList.map((c) => cellName(c, board.cols)).join(', ')}`)
   }
   return parts.join('; ')
 }
@@ -93,7 +93,7 @@ export function nakedSingle(board: Board): Elimination | null {
     if (popcount(mask) === 1) {
       const value = minValue(mask)
       if (!board.setAsGiven(cell, value)) return { desc: 'Board is invalid', invalid: true }
-      return { desc: `Naked single: ${cellName(cell, board.size)} = ${value}` }
+      return { desc: `Naked single: ${cellName(cell, board.cols)} = ${value}` }
     }
   }
   return null
@@ -101,8 +101,8 @@ export function nakedSingle(board: Board): Elimination | null {
 
 export function hiddenSingle(board: Board): Elimination | null {
   for (const region of board.regions) {
-    if (region.length !== board.size) continue
-    for (let value = 1; value <= board.size; value += 1) {
+    if (region.length !== board.digitRange) continue
+    for (let value = 1; value <= board.digitRange; value += 1) {
       const vb = valueBit(value)
       let home = -1
       let count = 0
@@ -120,7 +120,7 @@ export function hiddenSingle(board: Board): Elimination | null {
       if (count === 0) return { desc: 'Board is invalid', invalid: true }
       if (count === 1) {
         if (!board.setAsGiven(home, value)) return { desc: 'Board is invalid', invalid: true }
-        return { desc: `Hidden single: ${cellName(home, board.size)} = ${value}` }
+        return { desc: `Hidden single: ${cellName(home, board.cols)} = ${value}` }
       }
     }
   }
@@ -190,9 +190,9 @@ export function nakedSubset(board: Board, n: number): Elimination | null {
 // those values.
 export function hiddenSubset(board: Board, n: number): Elimination | null {
   for (const region of board.regions) {
-    if (region.length !== board.size) continue
+    if (region.length !== board.digitRange) continue
     const valueCells = new Map<number, number[]>()
-    for (let value = 1; value <= board.size; value += 1) {
+    for (let value = 1; value <= board.digitRange; value += 1) {
       const homes = region.filter((c) => !board.isGiven(c) && (board.candidateMask(c) & valueBit(value)) !== 0)
       if (homes.length >= 2 && homes.length <= n) valueCells.set(value, homes)
     }
@@ -211,7 +211,7 @@ export function hiddenSubset(board: Board, n: number): Elimination | null {
         if ((board.candidateMask(c) & ~keep) === 0) continue
         const res = board.keepMask(c, keep)
         if (res === ConstraintResult.INVALID) {
-          result = { desc: `Hidden ${SUBSET_NAME[n]} empties ${cellName(c, board.size)}`, invalid: true }
+          result = { desc: `Hidden ${SUBSET_NAME[n]} empties ${cellName(c, board.cols)}`, invalid: true }
           return true
         }
         if (res === ConstraintResult.CHANGED) cleared.push(c)
@@ -245,8 +245,8 @@ export function lockedCandidates(board: Board): Elimination | null {
     // regions like killer cages don't guarantee that — a sum-6 {r5c2,r5c3} cage
     // need not contain a 1 — so using one as the source region is unsound. (B may
     // still be any all-different region: v landing in A∩B excludes B's others.)
-    if (regionA.length !== board.size) continue
-    for (let value = 1; value <= board.size; value += 1) {
+    if (regionA.length !== board.digitRange) continue
+    for (let value = 1; value <= board.digitRange; value += 1) {
       const vb = valueBit(value)
       const homes = regionA.filter((c) => !board.isGiven(c) && (board.candidateMask(c) & vb) !== 0)
       if (homes.length < 2) continue
@@ -263,7 +263,7 @@ export function lockedCandidates(board: Board): Elimination | null {
           if ((board.candidateMask(c) & vb) === 0) continue
           const res = board.keepMask(c, board.candidateMask(c) & ~vb)
           if (res === ConstraintResult.INVALID) {
-            return { desc: `Locked candidate empties ${cellName(c, board.size)}`, invalid: true }
+            return { desc: `Locked candidate empties ${cellName(c, board.cols)}`, invalid: true }
           }
           if (res === ConstraintResult.CHANGED) cleared.push(c)
         }
@@ -289,8 +289,8 @@ export function lockedCandidates(board: Board): Elimination | null {
 // one of them and a house-peer of the other, so the value drops out of it.
 export function confinedValueForcing(board: Board): Elimination | null {
   for (const region of board.regions) {
-    if (region.length !== board.size) continue
-    for (let value = 1; value <= board.size; value += 1) {
+    if (region.length !== board.digitRange) continue
+    for (let value = 1; value <= board.digitRange; value += 1) {
       const vb = valueBit(value)
       const homes = region.filter((c) => (board.candidateMask(c) & vb) !== 0)
       // One home is an ordinary hidden single (handled earlier); a value spread
@@ -348,14 +348,14 @@ export function nakedPairLinks(board: Board): Elimination | null {
             if ((board.candidateMask(c) & valueBit(v)) === 0) continue
             const res = board.keepMask(c, board.candidateMask(c) & ~valueBit(v))
             if (res === ConstraintResult.INVALID) {
-              return { desc: `Linked pair empties ${cellName(c, board.size)}`, invalid: true }
+              return { desc: `Linked pair empties ${cellName(c, board.cols)}`, invalid: true }
             }
             if (res === ConstraintResult.CHANGED) cleared.push(c)
           }
         }
         if (cleared.length) {
           return {
-            desc: `Linked pair (${x}${y}) at ${cellName(a, board.size)}, ${cellName(b, board.size)}`,
+            desc: `Linked pair (${x}${y}) at ${cellName(a, board.cols)}, ${cellName(b, board.cols)}`,
           }
         }
       }
@@ -390,10 +390,10 @@ export function weakLinkCellForcing(board: Board): Elimination | null {
         if ((linkedMask & otherCandidates) !== otherCandidates) continue
         const res = board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value))
         if (res === ConstraintResult.INVALID) {
-          return { desc: `${cellName(cell, board.size)} = ${value} empties ${cellName(otherCell, board.size)}`, invalid: true }
+          return { desc: `${cellName(cell, board.cols)} = ${value} empties ${cellName(otherCell, board.cols)}`, invalid: true }
         }
         return {
-          desc: `${cellName(cell, board.size)} = ${value} would empty ${cellName(otherCell, board.size)}`,
+          desc: `${cellName(cell, board.cols)} = ${value} would empty ${cellName(otherCell, board.cols)}`,
         }
       }
     }
@@ -447,10 +447,10 @@ export function forcedTwinElimination(board: Board): Elimination | null {
         if (group.length < 2 || !anyWeakLinkedPair(board, group, w)) continue
         const res = board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value))
         if (res === ConstraintResult.INVALID) {
-          return { desc: `${cellName(cell, board.size)} = ${value} empties a cell`, invalid: true }
+          return { desc: `${cellName(cell, board.cols)} = ${value} empties a cell`, invalid: true }
         }
         return {
-          desc: `${cellName(cell, board.size)} = ${value} forces ${cellName(group[0], board.size)} and ${cellName(group[1], board.size)} to both be ${w}`,
+          desc: `${cellName(cell, board.cols)} = ${value} forces ${cellName(group[0], board.cols)} and ${cellName(group[1], board.cols)} to both be ${w}`,
         }
       }
     }
@@ -484,14 +484,16 @@ function allCoRegioned(cells: number[], cellRegions: number[][]): boolean {
 // Rows are pairwise disjoint, as are columns; blocks are pairwise disjoint too
 // (a cell lives in one box / one custom region).
 function houseFamilies(board: Board): { rows: number[][]; cols: number[][]; blocks: number[][] } {
-  const size = board.size
+  // Completeness is a digit-range test; row/column classification decodes cell
+  // indices, whose row-major stride is the column count.
+  const stride = board.cols
   const rows: number[][] = []
   const cols: number[][] = []
   const blocks: number[][] = []
   for (const region of board.regions) {
-    if (region.length !== size) continue
-    if (new Set(region.map((c) => Math.floor(c / size))).size === 1) rows.push(region)
-    else if (new Set(region.map((c) => c % size)).size === 1) cols.push(region)
+    if (region.length !== board.digitRange) continue
+    if (new Set(region.map((c) => Math.floor(c / stride))).size === 1) rows.push(region)
+    else if (new Set(region.map((c) => c % stride)).size === 1) cols.push(region)
     else blocks.push(region)
   }
   return { rows, cols, blocks }
@@ -507,7 +509,7 @@ function houseFamilies(board: Board): { rows: number[][]; cols: number[][]; bloc
 // Unions are same-family (rows, columns, or disjoint boxes/regions) so the total
 // is a plain sum with no double counting.
 export function sumCounting(board: Board): Elimination | null {
-  const size = board.size
+  const size = board.digitRange
   // Exact-sum facts, normalised to unplaced cells: committed cells subtract from
   // the clue total, and a fully placed clue carries no information.
   const clues: Array<{ cells: number[]; sum: number }> = []
@@ -644,7 +646,7 @@ export function setEquivalence(board: Board, maxHouses = 3): Elimination | null 
   const { rows, cols, blocks } = houseFamilies(board)
   if (blocks.length === 0) return null
   const depth = Math.min(maxHouses, blocks.length)
-  const size = board.size
+  const size = board.digitRange
 
   let result: Elimination | null = null
 
@@ -821,8 +823,8 @@ function paritiesFor(size: number): { odd: number; even: number } {
 // Sound: every relation is a necessary condition of any solution. Arrow/cage parity
 // comes from Constraint.parityClues.
 export function parityCounting(board: Board): Elimination | null {
-  const { odd: ODD, even: EVEN } = paritiesFor(board.size)
-  const size = board.size
+  const { odd: ODD, even: EVEN } = paritiesFor(board.digitRange)
+  const size = board.digitRange
   const rhsBit = 1 << size // a house has ≤ size cells, so an equation fits in one int
 
   const clues: Array<{ cells: number[]; rhs: number }> = []
@@ -893,7 +895,7 @@ export function parityCounting(board: Board): Elimination | null {
       const keep = board.candidateMask(cell) & (pivots[k] & rhsBit ? ODD : EVEN)
       const res = board.keepMask(cell, keep)
       if (res === ConstraintResult.INVALID) {
-        return { desc: `Parity counting empties ${cellName(cell, board.size)}`, invalid: true }
+        return { desc: `Parity counting empties ${cellName(cell, board.cols)}`, invalid: true }
       }
       if (res === ConstraintResult.CHANGED) cleared.push(cell)
     }
@@ -920,7 +922,7 @@ const FISH_NAME: Record<number, string> = { 2: 'X-Wing', 3: 'Swordfish' }
 // base houses are rows and the cover houses columns (or vice versa); using the
 // irregular regions as base or cover lines is the generalisation.
 export function fish(board: Board, n: number): Elimination | null {
-  const size = board.size
+  const size = board.digitRange
   // Complete houses only (a value must appear in each exactly once).
   const houses = board.regions.filter((cells) => cells.length === size)
   if (houses.length < 2 * n) return null
@@ -1052,13 +1054,13 @@ export function xyWing(board: Board): Elimination | null {
           if (board.isGiven(c) || (board.candidateMask(c) & zb) === 0) continue
           const res = board.keepMask(c, board.candidateMask(c) & ~zb)
           if (res === ConstraintResult.INVALID) {
-            return { desc: `XY-Wing empties ${cellName(c, board.size)}`, invalid: true }
+            return { desc: `XY-Wing empties ${cellName(c, board.cols)}`, invalid: true }
           }
           if (res === ConstraintResult.CHANGED) cleared.push(c)
         }
         if (cleared.length) {
           return {
-            desc: `XY-Wing (pivot ${cellName(pivot, board.size)}, ${a.z})`,
+            desc: `XY-Wing (pivot ${cellName(pivot, board.cols)}, ${a.z})`,
           }
         }
       }
@@ -1090,9 +1092,9 @@ export function contradictionForcing(board: Board): Elimination | null {
       if (trial.setAsGiven(cell, value) && trial.bruteForceLogic() !== LogicResult.INVALID) continue
       // Placing `value` here forces a contradiction, so it can't go here.
       if (board.keepMask(cell, board.candidateMask(cell) & ~valueBit(value)) === ConstraintResult.INVALID) {
-        return { desc: `Contradiction check empties ${cellName(cell, board.size)}`, invalid: true }
+        return { desc: `Contradiction check empties ${cellName(cell, board.cols)}`, invalid: true }
       }
-      return { desc: `Contradiction check: ${cellName(cell, board.size)} can't be ${value}` }
+      return { desc: `Contradiction check: ${cellName(cell, board.cols)} can't be ${value}` }
     }
   }
   return null

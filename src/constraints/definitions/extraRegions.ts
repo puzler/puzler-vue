@@ -1,6 +1,7 @@
 import { mdiTextureBox } from '@mdi/js'
 import { defineRegionConstraint } from '../define'
 import { greyscale } from '../types'
+import { cellsGroup } from '../uniqueness'
 
 export default defineRegionConstraint({
   type: 'extra_regions',
@@ -13,4 +14,5 @@ export default defineRegionConstraint({
   cellBg: greyscale(221),
   layers: ['constraint_backgrounds'],
   panelId: 'extra_regions',
+  uniqueness: cellsGroup,
 })

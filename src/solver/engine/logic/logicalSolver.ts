@@ -44,7 +44,7 @@ export function describePropagation(board: Board): string | null {
     if (board.isGiven(cell)) continue
     let parts = bySource.get(source)
     if (!parts) bySource.set(source, (parts = []))
-    parts.push(`${nameOf(cell, board.size)}≠${value}`)
+    parts.push(`${nameOf(cell, board.cols)}≠${value}`)
   }
   if (bySource.size === 0) return null
   return [...bySource.entries()]

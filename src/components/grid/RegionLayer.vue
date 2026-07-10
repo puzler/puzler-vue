@@ -7,7 +7,7 @@ import { CELL_SIZE, PADDING, cellKey } from '@/composables/useGrid'
 const grid = useGridStore()
 const editor = useEditorStore()
 
-const visible = computed(() => editor.activeTool === 'region')
+const visible = computed(() => editor.activeTool === 'grid')
 
 const labels = computed(() => {
   if (!visible.value) return []

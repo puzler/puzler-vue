@@ -92,6 +92,7 @@ import battlefield from './definitions/battlefield'
 import nextToNine from './definitions/nextToNine'
 import rossini from './definitions/rossini'
 // Global constraints (each file exports its category def + variants)
+import sudokuRules from './definitions/sudokuRules'
 import diagonals from './definitions/diagonals'
 import chess from './definitions/chess'
 import antiKropki from './definitions/antiKropki'
@@ -100,6 +101,7 @@ import disjointSets from './definitions/disjointSets'
 import fog from './definitions/fog'
 // Cosmetics
 import cosmeticLine from './definitions/cosmeticLine'
+import cosmeticBorder from './definitions/cosmeticBorder'
 import cellColor from './definitions/cellColor'
 import shape from './definitions/shape'
 import text from './definitions/text'
@@ -143,6 +145,7 @@ const DEFS = [
   battlefield,
   nextToNine,
   rossini,
+  sudokuRules,
   ...diagonals,
   ...chess,
   ...antiKropki,
@@ -150,6 +153,7 @@ const DEFS = [
   disjointSets,
   ...fog,
   cosmeticLine,
+  cosmeticBorder,
   cellColor,
   shape,
   text,

@@ -240,6 +240,12 @@ export interface CosmeticLineDoc {
   preset?: string
 }
 
+export interface CosmeticBorderDoc {
+  /** Each edge is the pair of adjacent cells it separates, e.g. ["r1c1", "r1c2"]. */
+  edges: string[][]
+  preset?: string
+}
+
 export interface CosmeticCageDoc {
   cells: string[]
   sum?: number
@@ -348,6 +354,7 @@ export interface SerializedPuzzleSchema {
   solution?: Record<string, number> | null
   givenDigits?: Record<string, number>
   globals?: {
+    sudokuRules?: { enabled?: boolean }
     diagonals?: { positive?: boolean; negative?: boolean; antiPositive?: boolean; antiNegative?: boolean }
     chess?: { king?: boolean; knight?: boolean }
     antiKropki?: { white?: boolean; black?: boolean; differences?: number[]; ratios?: number[] }
@@ -398,6 +405,8 @@ export interface SerializedPuzzleSchema {
   cosmetics?: {
     lines?: CosmeticLineDoc[]
     linePresets?: LinePresetDoc[]
+    borders?: CosmeticBorderDoc[]
+    borderPresets?: LinePresetDoc[]
     cellColors?: Record<string, string>
     cellColorPresets?: ColorPresetDoc[]
     shapes?: FreeCosmeticDoc[]

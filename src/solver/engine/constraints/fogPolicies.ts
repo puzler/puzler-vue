@@ -91,13 +91,13 @@ export function visibleComponents(cells: readonly number[], view: FogView): numb
     while (stack.length > 0) {
       const cell = stack.pop() as number
       component.push(cell)
-      const row = Math.floor(cell / view.size)
-      const col = cell % view.size
+      const row = Math.floor(cell / view.cols)
+      const col = cell % view.cols
       const neighbours: number[] = []
-      if (row > 0) neighbours.push(cell - view.size)
-      if (row < view.size - 1) neighbours.push(cell + view.size)
+      if (row > 0) neighbours.push(cell - view.cols)
+      if (row < view.rows - 1) neighbours.push(cell + view.cols)
       if (col > 0) neighbours.push(cell - 1)
-      if (col < view.size - 1) neighbours.push(cell + 1)
+      if (col < view.cols - 1) neighbours.push(cell + 1)
       for (const n of neighbours) {
         if (visible.has(n) && !seen.has(n)) {
           seen.add(n)

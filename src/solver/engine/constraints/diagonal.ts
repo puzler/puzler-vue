@@ -44,6 +44,8 @@ function diagonalSegments(cells: number[], size: number): number[][] | null {
 export default defineModule<DiagonalSpec>({
   kind: 'diagonal',
   fromEditor: (ctx) => {
+    // Diagonals only exist on square grids (matches the editor's gating).
+    if (ctx.rows !== ctx.cols) return []
     const specs: DiagonalSpec[] = []
     const v = ctx.variants
     const addMatching = (cells: number[]) => {
@@ -58,7 +60,7 @@ export default defineModule<DiagonalSpec>({
   },
   build: (board, spec) =>
     spec.mode === 'matching_sets'
-      ? new MatchingSetsConstraint('Diagonal', spec.segments ?? diagonalSegments(spec.cells, board.size) ?? [])
+      ? new MatchingSetsConstraint('Diagonal', spec.segments ?? diagonalSegments(spec.cells, board.cols) ?? [])
       : new AllDifferentConstraint('Diagonal', spec.cells),
   // Rules-level variant: the player knows it from the rules, not a grid glyph.
   fogPolicy: ALWAYS,

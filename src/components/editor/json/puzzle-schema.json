@@ -204,6 +204,28 @@
       ],
       "type": "object"
     },
+    "CosmeticBorderDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "description": "Each edge is the pair of adjacent cells it separates, e.g. [\"r1c1\", \"r1c2\"].",
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "preset": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "edges"
+      ],
+      "type": "object"
+    },
     "CosmeticCageDoc": {
       "additionalProperties": false,
       "properties": {
@@ -916,6 +938,18 @@
         "cosmetics": {
           "additionalProperties": false,
           "properties": {
+            "borderPresets": {
+              "items": {
+                "$ref": "#/definitions/LinePresetDoc"
+              },
+              "type": "array"
+            },
+            "borders": {
+              "items": {
+                "$ref": "#/definitions/CosmeticBorderDoc"
+              },
+              "type": "array"
+            },
             "cagePresets": {
               "items": {
                 "$ref": "#/definitions/CagePresetDoc"
@@ -1073,6 +1107,15 @@
               "type": "object"
             },
             "fog": {
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "sudokuRules": {
               "additionalProperties": false,
               "properties": {
                 "enabled": {

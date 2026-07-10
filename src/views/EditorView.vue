@@ -30,7 +30,7 @@ const isMobile = useIsMobile()
 // ToolControlBox renders (constraint panels via the registry, plus the two
 // non-constraint tools).
 const activeToolHasControls = computed(() =>
-  editor.activeTool === 'digit' || editor.activeTool === 'region' || panelForTool(editor.activeTool) !== undefined,
+  editor.activeTool === 'digit' || editor.activeTool === 'grid' || panelForTool(editor.activeTool) !== undefined,
 )
 
 const solverCellStates = computed(() => editor.solverCellStates)

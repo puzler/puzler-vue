@@ -42,6 +42,7 @@ export interface LineConstraintInput {
   themeLabel?: string
   color: Color
   ruleText: string
+  uniqueness?: (data: unknown) => string[][]
 }
 
 export function defineLineConstraint<const I extends LineConstraintInput>(
@@ -59,6 +60,7 @@ export function defineLineConstraint<const I extends LineConstraintInput>(
     draw: 'line',
     layers: ['constraint_lines'],
     panel: { id: 'line_tool', props: { ruleText: input.ruleText } },
+    uniqueness: input.uniqueness,
   } as const satisfies ConstraintDef
   return def as ConstraintDef & { type: I['type']; theme: { family: 'line'; category: 'lines' } }
 }
@@ -75,6 +77,7 @@ export interface ThermoConstraintInput {
   // Thermo-family tools sort ahead of the plain lines in the archive filter.
   filterOrder: number
   panelProps?: Readonly<Record<string, unknown>>
+  uniqueness?: (data: unknown) => string[][]
 }
 
 export function defineThermoConstraint<const I extends ThermoConstraintInput>(
@@ -91,6 +94,7 @@ export function defineThermoConstraint<const I extends ThermoConstraintInput>(
     draw: 'thermo',
     layers: ['thermometers'],
     panel: { id: 'thermo', props: input.panelProps },
+    uniqueness: input.uniqueness,
   } as const satisfies ConstraintDef
   return def as ConstraintDef & { type: I['type']; theme: { family: 'thermo'; category: 'lines' } }
 }
@@ -184,6 +188,7 @@ export interface RegionConstraintInput {
   cellBg?: Color
   layers: readonly ConstraintLayerId[]
   panelId: ConstraintPanelId
+  uniqueness?: (data: unknown) => string[][]
 }
 
 export function defineRegionConstraint<const I extends RegionConstraintInput>(
@@ -202,6 +207,7 @@ export function defineRegionConstraint<const I extends RegionConstraintInput>(
     cellBg: input.cellBg,
     layers: input.layers,
     panel: { id: input.panelId },
+    uniqueness: input.uniqueness,
   } as const satisfies ConstraintDef
   return def as ConstraintDef
     & { type: I['type']; theme: { family: I['themeFamily']; category: 'regions' } }

@@ -43,8 +43,8 @@ function selectView(v: MobileView) {
     <div class="flex-1 bg-canvas overflow-hidden min-h-0">
       <SudokuGrid
         mode="edit"
-        :given-digits="editor.activeTool === 'region' ? {} : editor.givenDigits"
-        :cell-states="editor.activeTool === 'region' ? {} : solverCellStates"
+        :given-digits="editor.activeTool === 'grid' ? {} : editor.givenDigits"
+        :cell-states="editor.activeTool === 'grid' ? {} : solverCellStates"
         :selection="editor.selection"
         @update:selection="editor.selection = $event"
         @clear-selection="editor.clearSelection()"

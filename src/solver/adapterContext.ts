@@ -7,10 +7,11 @@ import type { ConnectorInstance, OuterClueInstance, CustomGlobalConstraint, FogS
 // so constraint modules stay simple and the union of collections grows here as
 // new constraint families are wired up.
 export interface AdapterContext {
+  // The digit range (max(rows, cols)); use rows/cols for geometry.
   size: number
   rows: number
   cols: number
-  // cell key 'r{r}c{c}' → row-major cell index (row * size + col)
+  // cell key 'r{r}c{c}' → row-major cell index (row * cols + col)
   keyToIndex: (cellKey: string) => number
   // region label of a cell index, or null when it belongs to no region. Used to
   // segment region-sum lines by region.

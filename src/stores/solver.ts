@@ -76,14 +76,14 @@ export const useSolverStore = defineStore('solver', () => {
 
   function countsByCell(counts: number[][] | undefined): Record<string, Record<number, number>> {
     if (!counts) return {}
-    const size = useGridStore().rows
+    const stride = useGridStore().cols
     const out: Record<string, Record<number, number>> = {}
     counts.forEach((perValue, cell) => {
       const map: Record<number, number> = {}
       perValue.forEach((count, valueIndex) => {
         if (count > 0) map[valueIndex + 1] = count
       })
-      out[cellKey(Math.floor(cell / size), cell % size)] = map
+      out[cellKey(Math.floor(cell / stride), cell % stride)] = map
     })
     return out
   }
@@ -91,11 +91,11 @@ export const useSolverStore = defineStore('solver', () => {
   // Candidates (marks) that have zero completing solutions → the red diagnostic.
   function redByCell(candidates: number[][], counts: number[][] | undefined): Record<string, number[]> {
     if (!counts) return {}
-    const size = useGridStore().rows
+    const stride = useGridStore().cols
     const out: Record<string, number[]> = {}
     candidates.forEach((values, cell) => {
       const reds = values.filter((v) => (counts[cell]?.[v - 1] ?? 0) === 0)
-      if (reds.length) out[cellKey(Math.floor(cell / size), cell % size)] = reds
+      if (reds.length) out[cellKey(Math.floor(cell / stride), cell % stride)] = reds
     })
     return out
   }

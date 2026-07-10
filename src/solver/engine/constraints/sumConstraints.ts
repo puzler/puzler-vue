@@ -37,7 +37,7 @@ function sumInRange(board: Board, cells: number[], target: number): boolean {
     if (v === 0) empties += 1
     else sum += v
   }
-  return target >= sum + empties && target <= sum + empties * board.size
+  return target >= sum + empties && target <= sum + empties * board.digitRange
 }
 
 // A group of cells summing to a fixed target (killer cage sum, little killer).
@@ -210,8 +210,8 @@ export class XSumConstraint extends Constraint {
     if (this.seeded) return ConstraintResult.UNCHANGED
     this.seeded = true
     const first = this.line[0]
-    const full = (1 << board.size) - 1
-    for (let n = 1; n <= Math.min(board.size, this.line.length); n += 1) {
+    const full = (1 << board.digitRange) - 1
+    for (let n = 1; n <= Math.min(board.digitRange, this.line.length); n += 1) {
       const masks = [valueBit(n)]
       for (let i = 1; i < n; i += 1) masks.push(full)
       const scenario = distinctSumAllowed(masks, this.target)
@@ -314,7 +314,7 @@ export class SandwichConstraint extends Constraint {
   private distances(board: Board): Set<number> {
     if (this.feasibleDistances) return this.feasibleDistances
     const digits: number[] = []
-    for (let d = 2; d <= board.size - 1; d += 1) digits.push(d)
+    for (let d = 2; d <= board.digitRange - 1; d += 1) digits.push(d)
     // dp[g] = the sums reachable using exactly g of the digits.
     const dp: Set<number>[] = Array.from({ length: digits.length + 1 }, () => new Set<number>())
     dp[0].add(0)
@@ -336,7 +336,7 @@ export class SandwichConstraint extends Constraint {
     if (this.seeded) return ConstraintResult.UNCHANGED
     this.seeded = true
     const feasible = this.distances(board)
-    const high = board.size
+    const high = board.digitRange
     for (let i = 0; i < this.line.length; i += 1) {
       for (let j = i + 1; j < this.line.length; j += 1) {
         if (feasible.has(j - i)) continue
@@ -354,7 +354,7 @@ export class SandwichConstraint extends Constraint {
     for (let i = 0; i < this.line.length; i += 1) {
       const v = placed(board, this.line[i])
       if (v === 1) p1 = i
-      else if (v === board.size) pHigh = i
+      else if (v === board.digitRange) pHigh = i
     }
     if (p1 < 0 || pHigh < 0) return true
     const lo = Math.min(p1, pHigh)
@@ -365,7 +365,7 @@ export class SandwichConstraint extends Constraint {
   // Once both crusts are pinned, the cells between them are an exact-sum group.
   sumClues(board: Board) {
     const oneHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(1)) !== 0)
-    const sizeHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(board.size)) !== 0)
+    const sizeHomes = this.line.filter((c) => (board.candidateMask(c) & valueBit(board.digitRange)) !== 0)
     if (oneHomes.length !== 1 || sizeHomes.length !== 1) return []
     const i = this.line.indexOf(oneHomes[0])
     const j = this.line.indexOf(sizeHomes[0])
@@ -375,7 +375,7 @@ export class SandwichConstraint extends Constraint {
   }
 
   logicStep(board: Board, desc: string[]): ConstraintResult {
-    const size = board.size
+    const size = board.digitRange
     const cleared: number[] = []
     // Crust arc-consistency: a 1 (or the size) can sit only where its partner crust
     // can sit a feasible distance away. This is where the cell-count deductions live.
@@ -417,7 +417,7 @@ export class SandwichConstraint extends Constraint {
   private pruneCrusts(board: Board, cleared: number[]): boolean {
     const feasible = this.distances(board)
     const oneBit = valueBit(1)
-    const highBit = valueBit(board.size)
+    const highBit = valueBit(board.digitRange)
     const crusts: Array<[number, number]> = [[oneBit, highBit], [highBit, oneBit]]
     const canHold = (idx: number, bit: number) => (board.candidateMask(this.line[idx]) & bit) !== 0
     let changed = true
@@ -476,7 +476,7 @@ export class SkyscraperConstraint extends Constraint {
   // size ⇒ strictly ascending; otherwise a cell can't be so tall so early that
   // fewer than `clue` buildings could be seen (height ≤ size − clue + 1 + index).
   logicStep(board: Board, desc: string[]): ConstraintResult {
-    const size = board.size
+    const size = board.digitRange
     const clue = this.target
     const cleared: number[] = []
 
@@ -657,7 +657,7 @@ export class NextToNineConstraint extends Constraint {
     if (!this.involved.has(cell)) return true
     let nine = -1
     for (let i = 0; i < this.line.length; i += 1) {
-      if (placed(board, this.line[i]) === board.size) { nine = i; break }
+      if (placed(board, this.line[i]) === board.digitRange) { nine = i; break }
     }
     if (nine < 0) return true
     if (!this.fits(board, nine)) return false
@@ -668,7 +668,7 @@ export class NextToNineConstraint extends Constraint {
   }
 
   logicStep(board: Board, desc: string[]): ConstraintResult {
-    const nineBit = valueBit(board.size)
+    const nineBit = valueBit(board.digitRange)
     const cleared: number[] = []
     const homes: number[] = []
     for (let i = 0; i < this.line.length; i += 1) {

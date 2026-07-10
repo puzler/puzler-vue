@@ -1,6 +1,7 @@
 import { mdiCircleMultipleOutline } from '@mdi/js'
 import { defineConstraint } from '../define'
 import { greyscale, colorToCss, type ConstraintShapeStyle } from '../types'
+import { endpointPair } from '../uniqueness'
 
 // A line-category one-off: draws through the shared line machinery but renders via
 // its own layer (line + end bulbs) and themes as its own family.
@@ -31,4 +32,6 @@ export default defineConstraint({
   draw: 'line',
   layers: ['between_lines'],
   panel: { id: 'line_tool', props: { ruleText: 'Digits on the line fall strictly between the digits in the two end circles.' } },
+  // Only the two end circles must differ (strictly between needs a gap).
+  uniqueness: endpointPair,
 })

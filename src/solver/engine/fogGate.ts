@@ -25,7 +25,8 @@ const NO_CHANGE = { lines: [], invalid: false }
 // committing newly revealed givens and activating newly visible constraints.
 // Non-fog puzzles never construct a gate, so they pay nothing.
 export class FogGate {
-  private readonly size: number
+  private readonly rows: number
+  private readonly cols: number
   private readonly lights: Set<number>
   private readonly verified: Set<number>
   private fogged: Set<number>
@@ -44,10 +45,11 @@ export class FogGate {
   private lastGivenCount = -1
 
   constructor(puzzle: SolverPuzzle) {
-    this.size = puzzle.size
+    this.rows = puzzle.rows ?? puzzle.size
+    this.cols = puzzle.cols ?? puzzle.size
     this.lights = new Set(puzzle.fog?.lights ?? [])
     this.verified = new Set(puzzle.fog?.verified ?? [])
-    this.fogged = computeFoggedIndices(this.size, this.lights, this.verified)
+    this.fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified)
     this.tracked = new Set()
 
     this.hiddenGivens = new Map()
@@ -75,7 +77,8 @@ export class FogGate {
   private view(): FogView {
     const fogged = this.fogged
     return {
-      size: this.size,
+      rows: this.rows,
+      cols: this.cols,
       anyFog: fogged.size > 0,
       isFogged: (cell) => fogged.has(cell),
       allVisible: (cells) => cells.every((c) => !fogged.has(c)),
@@ -124,7 +127,7 @@ export class FogGate {
       if (!this.hiddenGivens.has(cell)) this.verified.add(cell)
     }
 
-    const fogged = computeFoggedIndices(this.size, this.lights, this.verified)
+    const fogged = computeFoggedIndices(this.rows, this.cols, this.lights, this.verified)
     // Fog is monotonic, so equal size means nothing newly revealed.
     if (fogged.size === this.fogged.size) return NO_CHANGE
     this.fogged = fogged
@@ -136,7 +139,7 @@ export class FogGate {
       if (fogged.has(cell)) continue
       this.hiddenGivens.delete(cell)
       this.tracked.add(cell)
-      lines.push(`Fog clears ${cellName(cell, this.size)}: given ${value}`)
+      lines.push(`Fog clears ${cellName(cell, this.cols)}: given ${value}`)
       if (!board.setAsGiven(cell, value)) return { lines, invalid: true }
     }
     this.lastGivenCount = board.givenCount

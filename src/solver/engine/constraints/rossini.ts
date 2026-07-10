@@ -23,7 +23,7 @@ export default defineModule<RossiniSpec>({
       if (clue.type !== 'rossini' || !clue.rossiniDirection) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.size, pos.row, pos.col)
+      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
       if (line.length < 3) continue
       specs.push({ kind: 'rossini', cells: line.slice(0, 3), increasing: clue.rossiniDirection === 'increasing' })
     }

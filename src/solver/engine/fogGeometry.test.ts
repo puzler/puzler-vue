@@ -34,19 +34,19 @@ describe('computeFoggedIndices', () => {
           lights: new Set([...lights].map((c) => key(size, c))),
           verified: new Set([...verified].map((c) => key(size, c))),
         })
-        const actual = new Set([...computeFoggedIndices(size, lights, verified)].map((c) => key(size, c)))
+        const actual = new Set([...computeFoggedIndices(size, size, lights, verified)].map((c) => key(size, c)))
         expect(actual).toEqual(expected)
       }
     }
   })
 
   it('fogs the whole grid with no lights or verified digits', () => {
-    expect(computeFoggedIndices(9, [], []).size).toBe(81)
+    expect(computeFoggedIndices(9, 9, [], []).size).toBe(81)
   })
 
   it('clears exactly the light itself but a 3x3 block around a verified digit', () => {
     // Light at r0c0 clears one cell; verified at r4c4 clears the 3x3 around it.
-    const fogged = computeFoggedIndices(9, [0], [40])
+    const fogged = computeFoggedIndices(9, 9, [0], [40])
     expect(fogged.has(0)).toBe(false)
     expect(fogged.has(1)).toBe(true)
     for (const cell of [30, 31, 32, 39, 40, 41, 48, 49, 50]) {

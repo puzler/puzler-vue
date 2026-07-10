@@ -21,7 +21,7 @@ export default defineModule<SandwichSpec>({
       if (clue.type !== 'sandwich_sums' || clue.value == null) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.size, pos.row, pos.col)
+      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
       if (line.length) specs.push({ kind: 'sandwich', line, target: clue.value })
     }
     return specs

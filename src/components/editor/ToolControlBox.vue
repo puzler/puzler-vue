@@ -2,13 +2,13 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import DigitPanel from './toolbox/DigitPanel.vue'
-import RegionPanel from './toolbox/RegionPanel.vue'
+import GridPanel from './toolbox/GridPanel.vue'
 import { panelForTool } from '@/constraints/registry'
 import { PANEL_COMPONENTS } from '@/constraints/panelComponents'
 
 // Constraint panels dispatch through the UI constraint registry: the active tool's
 // def names its panel (+ per-type props, e.g. the slow thermometer's copy). Only the
-// digit and region tools are not constraints, so they stay explicit.
+// digit and grid tools are not constraints, so they stay explicit.
 
 const editor = useEditorStore()
 
@@ -21,7 +21,7 @@ const constraintPanel = computed(() => {
 <template>
   <div class="flex flex-col bg-paper overflow-y-auto h-full">
     <DigitPanel v-if="editor.activeTool === 'digit'" />
-    <RegionPanel v-else-if="editor.activeTool === 'region'" />
+    <GridPanel v-else-if="editor.activeTool === 'grid'" />
     <component
       :is="constraintPanel.component"
       v-else-if="constraintPanel"

@@ -93,6 +93,10 @@ function handleRemoveConfirm() {
     // Fog also owns the lights tool and its placed marks.
     if (editor.activeTool === 'fog_lights') editor.setActiveTool('digit')
     editor.removeFogConstraint()
+  } else if (type === 'sudoku_rules') {
+    // Default-ON global: dropping the chip restores enabled, so the generic
+    // variant-clearing removal (absent = off) doesn't fit.
+    editor.removeSudokuRulesConstraint()
   } else if (category === 'global') {
     // The type itself is included for self-toggle groups (disjoint sets),
     // whose own type doubles as the rule's variant string; harmless for the
@@ -144,10 +148,10 @@ function handleRemoveConfirm() {
       </button>
       <button
         class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors"
-        :class="editor.activeTool === 'region' ? 'bg-action-tint text-action font-medium' : 'text-ink-text hover:bg-line/60'"
-        @click="editor.setActiveTool('region')"
+        :class="editor.activeTool === 'grid' ? 'bg-action-tint text-action font-medium' : 'text-ink-text hover:bg-line/60'"
+        @click="editor.setActiveTool('grid')"
       >
-        Regions
+        Grid
       </button>
     </div>
 

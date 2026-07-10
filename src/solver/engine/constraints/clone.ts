@@ -13,7 +13,7 @@ interface CloneSpec extends SolverConstraintSpec {
 export default defineModule<CloneSpec>({
   kind: 'clone',
   fromEditor: (ctx) => {
-    const size = ctx.size
+    const { rows, cols } = ctx
     const specs: CloneSpec[] = []
     for (const inst of ctx.constraintInstances) {
       if (inst.type !== 'clone') continue
@@ -22,12 +22,12 @@ export default defineModule<CloneSpec>({
       for (const key of data.cells ?? []) {
         const idx = ctx.keyToIndex(key)
         if (idx < 0) continue
-        const r = Math.floor(idx / size)
-        const c = idx % size
+        const r = Math.floor(idx / cols)
+        const c = idx % cols
         for (const { dRow, dCol } of data.copies ?? []) {
           const nr = r + dRow
           const nc = c + dCol
-          if (nr >= 0 && nr < size && nc >= 0 && nc < size) pairs.push([idx, nr * size + nc])
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) pairs.push([idx, nr * cols + nc])
         }
       }
       if (pairs.length) specs.push({ kind: 'clone', pairs })

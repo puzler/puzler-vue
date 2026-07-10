@@ -18,6 +18,7 @@ import DigitLayer from './DigitLayer.vue'
 import PenLayer from './PenLayer.vue'
 import FogLayer from './FogLayer.vue'
 import InteractionLayer from './InteractionLayer.vue'
+import GridResizeControls from './GridResizeControls.vue'
 import { constraintLayersForSlot } from '@/constraints/layerComponents'
 import type { CellState, GridMode } from '@/types/grid'
 
@@ -153,5 +154,7 @@ const viewBox = computed(() => {
       :selection="selection"
       @update:selection="emit('update:selection', $event)"
     />
+    <!-- After InteractionLayer so the buttons sit above its capture rect. -->
+    <GridResizeControls v-if="interactive && editor.mode === 'setting' && editor.activeTool === 'grid'" />
   </svg>
 </template>

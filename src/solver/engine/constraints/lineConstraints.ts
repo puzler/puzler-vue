@@ -37,8 +37,8 @@ export class RenbanConstraint extends Constraint {
     const length = this.cells.length
     for (let i = 0; i < length; i += 1) {
       for (let j = i + 1; j < length; j += 1) {
-        for (let u = 1; u <= board.size; u += 1) {
-          for (let w = 1; w <= board.size; w += 1) {
+        for (let u = 1; u <= board.digitRange; u += 1) {
+          for (let w = 1; w <= board.digitRange; w += 1) {
             if (u === w || Math.abs(u - w) >= length) {
               board.addWeakLink(board.candidateIndex(this.cells[i], u), board.candidateIndex(this.cells[j], w))
             }
@@ -70,7 +70,7 @@ export class RenbanConstraint extends Constraint {
   // a digit on every run is cleared from cells seeing the whole line. Falls back to
   // the looser window-union prune if the search exceeds its effort budget.
   logicStep(board: Board, desc: string[]): ConstraintResult {
-    const size = board.size
+    const size = board.digitRange
     const length = this.cells.length
     const valuesAt = (_pos: number, assigned: number[]): number[] => {
       let lo = 1
@@ -120,7 +120,7 @@ export class RenbanConstraint extends Constraint {
   // Looser distinctness-blind prune for a renban too wide to enumerate: keep each
   // cell to values lying in some window the whole line can still cover.
   private windowFallback(board: Board, desc: string[]): ConstraintResult {
-    const size = board.size
+    const size = board.digitRange
     const length = this.cells.length
     let union = 0
     for (const c of this.cells) union |= board.candidateMask(c)
@@ -207,7 +207,7 @@ export class BetweenLineConstraint extends Constraint {
     const valuesAt = (pos: number, assigned: number[]): number[] => {
       const out: number[] = []
       if (pos <= 1) {
-        for (let v = 1; v <= board.size; v += 1) out.push(v)
+        for (let v = 1; v <= board.digitRange; v += 1) out.push(v)
         return out
       }
       const lo = Math.min(assigned[0], assigned[1])
@@ -271,7 +271,7 @@ export class BetweenLineConstraint extends Constraint {
   }
 
   private invalid(board: Board, cell: number, desc: string[]): ConstraintResult {
-    desc.push(`Between line empties ${cellName(cell, board.size)}`)
+    desc.push(`Between line empties ${cellName(cell, board.cols)}`)
     return ConstraintResult.INVALID
   }
 }
@@ -318,7 +318,7 @@ export class ArrowConstraint extends Constraint {
         if (v === 0) empties += 1
         else sum += v
       }
-      if (target < sum + empties || target > sum + empties * board.size) return false
+      if (target < sum + empties || target > sum + empties * board.digitRange) return false
     }
     return true
   }
@@ -500,7 +500,7 @@ export class RegionSumLineConstraint extends Constraint {
         else sum += v
       }
       lo = Math.max(lo, sum + empties)
-      hi = Math.min(hi, sum + empties * board.size)
+      hi = Math.min(hi, sum + empties * board.digitRange)
     }
     return lo <= hi
   }
@@ -508,7 +508,7 @@ export class RegionSumLineConstraint extends Constraint {
   private containers(board: Board): number[][] {
     if (!this.containerOthers) {
       this.containerOthers = board.regions
-        .filter((region) => region.length === board.size && this.lineCells.every((c) => region.includes(c)))
+        .filter((region) => region.length === board.digitRange && this.lineCells.every((c) => region.includes(c)))
         .map((region) => region.filter((c) => !this.involved.has(c)))
     }
     return this.containerOthers
@@ -565,7 +565,7 @@ export class RegionSumLineConstraint extends Constraint {
   // digits sum to (house total − the other cells), which splits evenly across the
   // segments, often pinning S exactly. Each segment is then pruned to that S.
   logicStep(board: Board, desc: string[]): ConstraintResult {
-    const size = board.size
+    const size = board.digitRange
     let slo = 0
     let shi = Number.POSITIVE_INFINITY
     for (const seg of this.segments) {
@@ -739,7 +739,7 @@ export class QuadrupleConstraint extends Constraint {
       for (const [d] of stillNeeded) keep |= valueBit(d)
       for (const c of free) {
         if (prune(c, keep)) {
-          desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+          desc.push(`Quadruple empties ${cellName(c, board.cols)}`)
           return ConstraintResult.INVALID
         }
       }
@@ -756,7 +756,7 @@ export class QuadrupleConstraint extends Constraint {
       if (homes.length === k) {
         for (const c of homes) {
           if (prune(c, vb)) {
-            desc.push(`Quadruple empties ${cellName(c, board.size)}`)
+            desc.push(`Quadruple empties ${cellName(c, board.cols)}`)
             return ConstraintResult.INVALID
           }
         }
@@ -798,7 +798,7 @@ export class GroupCycleConstraint extends Constraint {
   logicStep(board: Board, desc: string[]): ConstraintResult {
     // Candidate mask and digit count of each group, for this board size.
     const groupMasks = [0, 0, 0]
-    for (let v = 1; v <= board.size; v += 1) groupMasks[this.groupOf(v)] |= valueBit(v)
+    for (let v = 1; v <= board.digitRange; v += 1) groupMasks[this.groupOf(v)] |= valueBit(v)
 
     // Largest same-house cluster per class: those cells are pairwise distinct,
     // so their class's group must hold at least that many digits.
@@ -839,7 +839,7 @@ export class GroupCycleConstraint extends Constraint {
       for (const c of this.classes[k]) {
         if ((board.candidateMask(c) & ~allowed[k]) === 0) continue
         if (board.keepMask(c, board.candidateMask(c) & allowed[k]) === ConstraintResult.INVALID) {
-          desc.push(`${this.name} empties ${cellName(c, board.size)}`)
+          desc.push(`${this.name} empties ${cellName(c, board.cols)}`)
           return ConstraintResult.INVALID
         }
         cleared.push(c)
@@ -872,8 +872,8 @@ export class NabnerConstraint extends Constraint {
     this.linked = true
     for (let i = 0; i < this.cells.length; i += 1) {
       for (let j = i + 1; j < this.cells.length; j += 1) {
-        for (let u = 1; u <= board.size; u += 1) {
-          for (let w = 1; w <= board.size; w += 1) {
+        for (let u = 1; u <= board.digitRange; u += 1) {
+          for (let w = 1; w <= board.digitRange; w += 1) {
             if (Math.abs(u - w) <= 1) {
               board.addWeakLink(board.candidateIndex(this.cells[i], u), board.candidateIndex(this.cells[j], w))
             }
@@ -887,7 +887,7 @@ export class NabnerConstraint extends Constraint {
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const valuesAt = (_pos: number, assigned: number[]): number[] => {
       const out: number[] = []
-      for (let v = 1; v <= board.size; v += 1) {
+      for (let v = 1; v <= board.digitRange; v += 1) {
         if (assigned.every((a) => Math.abs(v - a) >= 2)) out.push(v)
       }
       return out
@@ -904,7 +904,7 @@ export class NabnerConstraint extends Constraint {
       const c = this.cells[i]
       if ((board.candidateMask(c) & ~result.allowed[i]) === 0) continue
       if (board.keepMask(c, result.allowed[i]) === ConstraintResult.INVALID) {
-        desc.push(`Nabner line empties ${cellName(c, board.size)}`)
+        desc.push(`Nabner line empties ${cellName(c, board.cols)}`)
         return ConstraintResult.INVALID
       }
       cleared.push(c)
@@ -948,15 +948,15 @@ export class ZipperLineConstraint extends Constraint {
     this.linked = true
     for (const [a, b] of this.pairs) {
       for (const cell of [a, b]) {
-        for (let x = 1; x <= board.size; x += 1) {
+        for (let x = 1; x <= board.digitRange; x += 1) {
           for (let z = 1; z <= x; z += 1) {
             board.addWeakLink(board.candidateIndex(cell, x), board.candidateIndex(this.center, z))
           }
         }
       }
-      for (let x = 1; x <= board.size; x += 1) {
-        for (let y = 1; y <= board.size; y += 1) {
-          if (x + y > board.size) board.addWeakLink(board.candidateIndex(a, x), board.candidateIndex(b, y))
+      for (let x = 1; x <= board.digitRange; x += 1) {
+        for (let y = 1; y <= board.digitRange; y += 1) {
+          if (x + y > board.digitRange) board.addWeakLink(board.candidateIndex(a, x), board.candidateIndex(b, y))
         }
       }
     }
@@ -982,7 +982,7 @@ export class ZipperLineConstraint extends Constraint {
       return ConstraintResult.INVALID
     }
     const center = this.center
-    const size = board.size
+    const size = board.digitRange
     const linkedPair = (c1: number, v1: number, c2: number, v2: number) =>
       board.weakLinks[board.candidateIndex(c1, v1)].has(board.candidateIndex(c2, v2))
 
@@ -1074,8 +1074,8 @@ export class LockoutLineConstraint extends Constraint {
   init(board: Board) {
     if (this.linked) return ConstraintResult.UNCHANGED
     this.linked = true
-    for (let u = 1; u <= board.size; u += 1) {
-      for (let w = 1; w <= board.size; w += 1) {
+    for (let u = 1; u <= board.digitRange; u += 1) {
+      for (let w = 1; w <= board.digitRange; w += 1) {
         if (Math.abs(u - w) < 4) {
           board.addWeakLink(board.candidateIndex(this.a, u), board.candidateIndex(this.b, w))
         }
@@ -1129,7 +1129,7 @@ export class LockoutLineConstraint extends Constraint {
         const lo = Math.min(u, w)
         const hi = Math.max(u, w)
         let outsideMask = 0
-        for (let v = 1; v <= board.size; v += 1) if (v < lo || v > hi) outsideMask |= valueBit(v)
+        for (let v = 1; v <= board.digitRange; v += 1) if (v < lo || v > hi) outsideMask |= valueBit(v)
         if (this.middles.some((m) => (board.candidateMask(m) & outsideMask) === 0)) continue
         const houseFits = housedMiddles.every((group) => {
           let union = 0
@@ -1162,7 +1162,7 @@ export class LockoutLineConstraint extends Constraint {
     }
     for (let i = 0; i < this.middles.length; i += 1) {
       if (keep(this.middles[i], middleMasks[i])) {
-        desc.push(`Lockout line empties ${cellName(this.middles[i], board.size)}`)
+        desc.push(`Lockout line empties ${cellName(this.middles[i], board.cols)}`)
         return ConstraintResult.INVALID
       }
     }

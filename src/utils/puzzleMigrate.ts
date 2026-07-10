@@ -113,8 +113,11 @@ function snapshotFromV3(doc: V3Document): PuzzleSnapshot {
     },
     solution: doc.solution ?? null,
     givenDigits: doc.givenDigits ?? {},
-    activeTypes: new Set((doc.activeConstraints ?? []).map((c) => c.type)),
+    // Pre-v4 puzzles are always sudoku: add the Sudoku Rules chip, whose
+    // document presence is what now means "sudoku rules apply".
+    activeTypes: new Set([...(doc.activeConstraints ?? []).map((c) => c.type), 'sudoku_rules']),
     variants: new Set(globals.variants ?? []),
+    sudokuRulesEnabled: true,
     customGlobals: (globals.custom ?? []).map((c) => ({ type: c.type, value: c.value })),
     // Fog solver helpers did not exist before v4.
     fogSolverHelpers: {},
@@ -129,6 +132,8 @@ function snapshotFromV3(doc: V3Document): PuzzleSnapshot {
     cellColors: cosmetics.cellColors ?? {},
     presets: {
       cosmetic_line: cosmetics.linePresets ?? [],
+      // Cosmetic borders did not exist before v4.
+      cosmetic_border: [],
       shape: shapePresets,
       text: textPresets,
       cell_color: cosmetics.cellColorPresets ?? [],

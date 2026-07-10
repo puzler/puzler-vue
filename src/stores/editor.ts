@@ -12,9 +12,10 @@ import { sortMarks } from '@/utils/cellValues'
 import type { CellState, CellValue, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { fogCellHash, computeFoggedCells } from '@/utils/fog'
-import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_BORDER_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, cosmeticPos, parseOuterKey, validLittleKillerDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
+  BorderPreset, BorderStyle, CosmeticBorderData,
   CellColorPreset, CosmeticPos,
   ShapePreset, ShapeStyle, ShapeData,
   TextPreset, TextStyle, TextData,
@@ -43,8 +44,10 @@ export const useEditorStore = defineStore('editor', () => {
   // The set of active constraint types — the single source of truth for the
   // sidebar chips. Labels/categories derive from the registry, and display
   // order is the registry's canonical order (not add order), so the same
-  // puzzle always serializes identically.
-  const activeTypes = ref<Set<string>>(new Set())
+  // puzzle always serializes identically. New puzzles seed the Sudoku Rules
+  // chip (rules enabled) so the toggle is discoverable; loaded documents
+  // replace the set wholesale — key presence there is what carries a chip.
+  const activeTypes = ref<Set<string>>(new Set(['sudoku_rules']))
   const activeConstraints = computed<ActiveConstraint[]>(() =>
     [...TYPE_TO_JSON_KEY.keys()]
       .filter((type) => activeTypes.value.has(type))
@@ -99,6 +102,8 @@ export const useEditorStore = defineStore('editor', () => {
   )
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
+  // Border-tool drag in progress: the edges (borderKeys) crossed so far.
+  const pendingBorderEdges = ref<string[]>([])
   const pendingBranchThermoId = ref<string | null>(null)
   // Arrow instance receiving the arrow path being drawn; null while drawing a bulb
   const pendingArrowParentId = ref<string | null>(null)
@@ -139,6 +144,17 @@ export const useEditorStore = defineStore('editor', () => {
   // Live preview of a clone-copy drag: the offset the copy would land at
   const pendingCloneDrag = ref<{ instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null>(null)
   const activeGlobalVariants = ref<Set<string>>(new Set())
+  // The Sudoku Rules panel checkbox. Deliberately NOT a member of
+  // activeGlobalVariants: everything touching that set (reset, hydrate, chip
+  // removal, the solver adapter) assumes absence means off. The rules APPLY
+  // only while the chip is active too — see sudokuRulesActive.
+  const sudokuRulesEnabled = ref(true)
+  // Whether sudoku rules are in effect: the chip carries the rule (its
+  // document key's presence means "this puzzle has sudoku rules"), and the
+  // panel checkbox can soften it off without dropping the chip.
+  const sudokuRulesActive = computed(
+    () => activeTypes.value.has('sudoku_rules') && sudokuRulesEnabled.value,
+  )
   const customGlobalConstraints = ref<CustomGlobalConstraint[]>([])
   // Fog of War verification data for published play: per-cell solution hashes
   // and their salt (the published version's solutionHash), set by the player
@@ -200,6 +216,9 @@ export const useEditorStore = defineStore('editor', () => {
   const linePresetsC = usePresetCollection<LinePreset, Partial<LineStyle>>(
     'Line', () => ({ style: { ...DEFAULT_LINE_STYLE } }), styledPatch,
   )
+  const borderPresetsC = usePresetCollection<BorderPreset, Partial<BorderStyle>>(
+    'Border', () => ({ style: { ...DEFAULT_BORDER_STYLE } }), styledPatch,
+  )
 
   const cellColorPresets = colorPresets.presets
   const activeCellColorPresetId = colorPresets.activeId
@@ -216,6 +235,9 @@ export const useEditorStore = defineStore('editor', () => {
   const linePresets = linePresetsC.presets
   const activeLinePresetId = linePresetsC.activeId
   const activeLinePreset = linePresetsC.active
+  const borderPresets = borderPresetsC.presets
+  const activeBorderPresetId = borderPresetsC.activeId
+  const activeBorderPreset = borderPresetsC.active
   const effectiveInputMode = computed(() => keyboardModeOverride.value ?? inputMode.value)
 
   // Disabling the line tool in settings degrades cleanly: fall back to digit
@@ -239,19 +261,24 @@ export const useEditorStore = defineStore('editor', () => {
   const hasSelection = computed(() => selection.value.size > 0)
 
   // The single source of truth for "do these two cells constrain each other".
-  // Two cells see each other when they share a row, column or region, or are linked
-  // by an active variant rule: Knight's/King's move, Disjoint Sets, or the X-sudoku
-  // Positive/Negative diagonals. Anti-diagonals are intentionally excluded: their
-  // equal-set rule lets digits repeat across box segments, and the within-segment
-  // case is already covered by the box. Variant rules are derived from board size /
-  // standard boxing (as in the solver), so they only apply on square grids.
+  // Two cells see each other when they share a row, column or region (while
+  // sudoku rules are enabled), share a uniqueness group of a placed constraint
+  // instance (killer cage, extra region, renban…, per the defs' `uniqueness`
+  // extractors), or are linked by an active variant rule: Knight's/King's
+  // move, Disjoint Sets, or the X-sudoku Positive/Negative diagonals.
+  // Anti-diagonals are intentionally excluded: their equal-set rule lets
+  // digits repeat across box segments, and the within-segment case is already
+  // covered by the box. Variant rules are derived from board size / standard
+  // boxing (as in the solver), so they only apply on square grids.
   //
-  // Rebuilt when the grid or active variants change; the returned `seesRC` is shared
-  // by the seen-cells highlight, conflict checking, and pencil-mark checking.
+  // Rebuilt when the grid, active variants or placed instances change; the returned
+  // `seesRC` is shared by the seen-cells highlight, conflict checking, and
+  // pencil-mark checking.
   const cellVisibility = computed(() => {
     const gridStore = useGridStore()
     const square = gridStore.rows === gridStore.cols
     const size = gridStore.rows
+    const sudoku = sudokuRulesActive.value
     const variants = activeGlobalVariants.value
     const knight = square && variants.has('knights_move')
     const king = square && variants.has('kings_move')
@@ -274,6 +301,24 @@ export const useEditorStore = defineStore('editor', () => {
       }
     }
 
+    // Uniqueness groups contributed by placed constraint instances (killer
+    // cages, extra regions, renban/nabner lines, thermo paths, between/lockout
+    // bulbs): each group's cells are mutually all-different, so its pairs join
+    // the predicate. Deliberately independent of sudokuRulesEnabled — a cage
+    // constrains its cells with or without sudoku rules, which is exactly how
+    // setters build custom "houses" on rules-off grids.
+    const uniquePairs = new Set<string>()
+    const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
+    for (const instance of cosmeticInstances.value) {
+      const extract = constraintDef(instance.type)?.uniqueness
+      if (!extract) continue
+      for (const group of extract(instance.data)) {
+        for (let i = 0; i < group.length; i++) {
+          for (let j = i + 1; j < group.length; j++) uniquePairs.add(pairKey(group[i], group[j]))
+        }
+      }
+    }
+
     // Knight's/King's neighbour key sets, memoised per source cell, reusing the same
     // offset definitions as the solver to stay a single source of truth.
     const neighbourCache = new Map<string, Set<string>>()
@@ -283,8 +328,8 @@ export const useEditorStore = defineStore('editor', () => {
       if (cached) return cached
       const cell = cellAt(row, col, size)
       const keys = new Set<string>()
-      if (knight) for (const n of knightNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
-      if (king) for (const n of kingNeighbours(cell, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
+      if (knight) for (const n of knightNeighbours(cell, size, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
+      if (king) for (const n of kingNeighbours(cell, size, size)) keys.add(cellKey(rowOf(n, size), colOf(n, size)))
       neighbourCache.set(key, keys)
       return keys
     }
@@ -295,8 +340,9 @@ export const useEditorStore = defineStore('editor', () => {
       keyA: string, rowA: number, colA: number,
       keyB: string, rowB: number, colB: number,
     ): boolean => {
-      if (rowA === rowB || colA === colB) return true
-      if (gridStore.areSameRegion(keyA, keyB)) return true
+      if (sudoku && (rowA === rowB || colA === colB)) return true
+      if (sudoku && gridStore.areSameRegion(keyA, keyB)) return true
+      if (uniquePairs.size > 0 && uniquePairs.has(pairKey(keyA, keyB))) return true
       if (moveNeighbours(keyA, rowA, colA)?.has(keyB)) return true
       if (mainDiag && rowA === colA && rowB === colB) return true
       if (antiDiag && rowA + colA === size - 1 && rowB + colB === size - 1) return true
@@ -537,7 +583,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // Setting-mode tools that act on the cell selection; every other tool draws
   // or toggles on click, so a lingering selection is just visual noise.
-  const SELECTION_TOOLS = new Set(['digit', 'region'])
+  const SELECTION_TOOLS = new Set(['digit', 'grid'])
 
   function setMode(m: 'setting' | 'solving') {
     mode.value = m
@@ -809,12 +855,12 @@ export const useEditorStore = defineStore('editor', () => {
   // digit in cell i; otherwise show candidates[i] as center marks. Row-major,
   // undoable, never touches given cells.
   function applySolverState(values: number[], candidates: number[][]) {
-    const size = useGridStore().rows
+    const stride = useGridStore().cols
     const keys: string[] = []
     const nextValue: Record<string, number | null> = {}
     const nextMarks: Record<string, number[]> = {}
     for (let i = 0; i < candidates.length; i++) {
-      const key = cellKey(Math.floor(i / size), i % size)
+      const key = cellKey(Math.floor(i / stride), i % stride)
       if (givenDigits.value[key] !== undefined) continue
       keys.push(key)
       if (values[i] > 0) {
@@ -839,11 +885,11 @@ export const useEditorStore = defineStore('editor', () => {
   // givenDigits) and are undoable. Index is row-major: cell i → r{i/size}c{i%size}.
 
   function applySolverSolution(values: number[]) {
-    const size = useGridStore().rows
+    const stride = useGridStore().cols
     const keys: string[] = []
     const next: Record<string, number> = {}
     for (let i = 0; i < values.length; i++) {
-      const key = cellKey(Math.floor(i / size), i % size)
+      const key = cellKey(Math.floor(i / stride), i % stride)
       if (givenDigits.value[key] !== undefined) continue
       keys.push(key)
       next[key] = values[i]
@@ -863,12 +909,12 @@ export const useEditorStore = defineStore('editor', () => {
   // Candidates passes undoable=false so its continual refreshes don't flood the
   // undo history; the scratch is overwritten on the next edit anyway.
   function applySolverCandidates(candidates: number[][], singleAsValue: boolean, undoable = true) {
-    const size = useGridStore().rows
+    const stride = useGridStore().cols
     const keys: string[] = []
     const nextValue: Record<string, number | null> = {}
     const nextMarks: Record<string, number[]> = {}
     for (let i = 0; i < candidates.length; i++) {
-      const key = cellKey(Math.floor(i / size), i % size)
+      const key = cellKey(Math.floor(i / stride), i % stride)
       if (givenDigits.value[key] !== undefined) continue
       const cands = candidates[i]
       keys.push(key)
@@ -1035,6 +1081,32 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  function setSudokuRulesEnabled(on: boolean) {
+    const prev = sudokuRulesEnabled.value
+    if (prev === on) return
+    execute({
+      execute: () => { sudokuRulesEnabled.value = on },
+      undo: () => { sudokuRulesEnabled.value = prev },
+    })
+  }
+
+  // Removing the Sudoku Rules chip restores the default (rules on) in the same
+  // undoable step, so a dropped chip never leaves the rules silently disabled.
+  function removeSudokuRulesConstraint() {
+    if (!activeTypes.value.has('sudoku_rules')) return
+    const prevEnabled = sudokuRulesEnabled.value
+    execute({
+      execute: () => {
+        dropActiveType('sudoku_rules')
+        sudokuRulesEnabled.value = true
+      },
+      undo: () => {
+        addActiveType('sudoku_rules')
+        sudokuRulesEnabled.value = prevEnabled
+      },
+    })
+  }
+
   function toggleFogSolverHelper(key: keyof FogSolverHelpers) {
     const prev = { ...fogSolverHelpers.value }
     const next = { ...prev }
@@ -1170,7 +1242,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function removePresetCascade<P extends { id: string; label: string }>(
     collection: PresetCollection<P>,
-    instanceType: 'shape' | 'text' | 'line' | 'cosmetic_cage' | null,
+    instanceType: 'shape' | 'text' | 'line' | 'cosmetic_border' | 'cosmetic_cage' | null,
     id: string,
   ) {
     // The collection refuses to drop its last preset; skip the history entry too.
@@ -1209,18 +1281,21 @@ export const useEditorStore = defineStore('editor', () => {
   const removeShapePreset = (id: string) => removePresetCascade(shapePresetsC, 'shape', id)
   const removeTextPreset = (id: string) => removePresetCascade(textPresetsC, 'text', id)
   const removeLinePreset = (id: string) => removePresetCascade(linePresetsC, 'line', id)
+  const removeBorderPreset = (id: string) => removePresetCascade(borderPresetsC, 'cosmetic_border', id)
   const removeCagePreset = (id: string) => removePresetCascade(cagePresetsC, 'cosmetic_cage', id)
   const removeCellColorPreset = (id: string) => removePresetCascade(colorPresets, null, id)
 
   const duplicateShapePreset = shapePresetsC.duplicate
   const duplicateTextPreset = textPresetsC.duplicate
   const duplicateLinePreset = linePresetsC.duplicate
+  const duplicateBorderPreset = borderPresetsC.duplicate
   const duplicateCagePreset = cagePresetsC.duplicate
   const duplicateCellColorPreset = colorPresets.duplicate
 
   const renameShapePreset = shapePresetsC.rename
   const renameTextPreset = textPresetsC.rename
   const renameLinePreset = linePresetsC.rename
+  const renameBorderPreset = borderPresetsC.rename
   const renameCagePreset = cagePresetsC.rename
   const renameCellColorPreset = colorPresets.rename
 
@@ -1449,6 +1524,13 @@ export const useEditorStore = defineStore('editor', () => {
   const setActiveLinePreset = linePresetsC.setActive
   const updateActiveLinePreset = linePresetsC.updateActive
 
+  function addBorderPreset() {
+    borderPresetsC.add()
+  }
+
+  const setActiveBorderPreset = borderPresetsC.setActive
+  const updateActiveBorderPreset = borderPresetsC.updateActive
+
 
   function startPendingLine(cell: string) {
     pendingLineCells.value = [cell]
@@ -1533,6 +1615,62 @@ export const useEditorStore = defineStore('editor', () => {
   function startBranchFromThermo(thermoId: string, cell: string) {
     pendingBranchThermoId.value = thermoId
     startPendingLine(cell)
+  }
+
+  // ── Cosmetic borders ──────────────────────────────────────────────────────
+
+  // One drag along the grid's interior edges = one instance = one undo step.
+  function commitBorderInstance(edges: string[]) {
+    pendingBorderEdges.value = []
+    const unique = [...new Set(edges)]
+    if (unique.length === 0) return
+    const instance: CosmeticInstance = {
+      id: crypto.randomUUID(),
+      type: 'cosmetic_border',
+      data: { edges: unique, presetId: activeBorderPresetId.value } satisfies CosmeticBorderData,
+    }
+    execute({
+      execute: () => { cosmeticInstances.value.push(instance) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  // Erase drag: drop the crossed edges from every border instance; instances
+  // emptied by the erase disappear. One undo step for the whole gesture.
+  function eraseBorderEdges(edges: string[]) {
+    pendingBorderEdges.value = []
+    const drop = new Set(edges)
+    if (drop.size === 0) return
+    const prev = [...cosmeticInstances.value]
+    const next: CosmeticInstance[] = []
+    let changed = false
+    for (const inst of prev) {
+      if (inst.type !== 'cosmetic_border') {
+        next.push(inst)
+        continue
+      }
+      const data = inst.data as CosmeticBorderData
+      const kept = data.edges.filter((e) => !drop.has(e))
+      if (kept.length === data.edges.length) {
+        next.push(inst)
+        continue
+      }
+      changed = true
+      if (kept.length > 0) next.push({ ...inst, data: { ...data, edges: kept } })
+    }
+    if (!changed) return
+    execute({
+      execute: () => { cosmeticInstances.value = next },
+      undo: () => { cosmeticInstances.value = prev },
+    })
+  }
+
+  // Whether any placed border instance already covers this edge (drag gestures
+  // latch draw-vs-erase from their first edge).
+  function borderEdgeExists(edge: string): boolean {
+    return cosmeticInstances.value.some(
+      (i) => i.type === 'cosmetic_border' && (i.data as CosmeticBorderData).edges.includes(edge),
+    )
   }
 
   // ── Arrows ────────────────────────────────────────────────────────────────
@@ -1779,7 +1917,7 @@ export const useEditorStore = defineStore('editor', () => {
     solverCellStates.value = {}
     selection.value = new Set()
     activeTool.value = 'digit'
-    activeTypes.value = new Set()
+    activeTypes.value = new Set(['sudoku_rules'])
     puzzleName.value = ''
     // Left blank by default; the editor shows the user's display name as the
     // placeholder, and public attribution falls back to it when blank.
@@ -1821,11 +1959,14 @@ export const useEditorStore = defineStore('editor', () => {
     multiSelectMode.value = false
     pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
+    sudokuRulesEnabled.value = true
     customGlobalConstraints.value = []
     fogCellHashes.value = null
     fogHashSalt.value = null
     fogSolverHelpers.value = {}
     linePresetsC.reset()
+    borderPresetsC.reset()
+    pendingBorderEdges.value = []
     cosmeticCellColors.value = {}
     pendingBrushCells.value = []
     colorPresets.reset()
@@ -2505,6 +2646,10 @@ export const useEditorStore = defineStore('editor', () => {
     removeGlobalConstraint,
     activeGlobalVariants,
     toggleGlobalVariant,
+    sudokuRulesEnabled,
+    sudokuRulesActive,
+    setSudokuRulesEnabled,
+    removeSudokuRulesConstraint,
     toggleFogSolverHelper,
     fogCellHashes,
     fogHashSalt,
@@ -2546,6 +2691,16 @@ export const useEditorStore = defineStore('editor', () => {
     addLinePreset,
     setActiveLinePreset,
     updateActiveLinePreset,
+    borderPresets,
+    activeBorderPresetId,
+    activeBorderPreset,
+    addBorderPreset,
+    setActiveBorderPreset,
+    updateActiveBorderPreset,
+    pendingBorderEdges,
+    commitBorderInstance,
+    eraseBorderEdges,
+    borderEdgeExists,
     startPendingLine,
     extendPendingLine,
     commitPendingLine,
@@ -2555,16 +2710,19 @@ export const useEditorStore = defineStore('editor', () => {
     removeShapePreset,
     removeTextPreset,
     removeLinePreset,
+    removeBorderPreset,
     removeCagePreset,
     removeCellColorPreset,
     duplicateShapePreset,
     duplicateTextPreset,
     duplicateLinePreset,
+    duplicateBorderPreset,
     duplicateCagePreset,
     duplicateCellColorPreset,
     renameShapePreset,
     renameTextPreset,
     renameLinePreset,
+    renameBorderPreset,
     renameCagePreset,
     renameCellColorPreset,
     cosmeticCellColors,

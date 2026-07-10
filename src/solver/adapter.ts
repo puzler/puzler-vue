@@ -6,7 +6,8 @@ import { collectSpecs } from './engine/constraints/registry'
 
 export interface AdapterResult {
   puzzle: SolverPuzzle
-  // false when the grid can't be solved as a square latin-square puzzle.
+  // Kept for future gates; every rectangular grid is currently supported
+  // (digit range = max(rows, cols); short houses are no-repeat only).
   supported: boolean
   reason?: string
 }
@@ -26,18 +27,25 @@ export function buildSolverPuzzle(
   const editor = useEditorStore()
   const grid = useGridStore()
 
-  const size = grid.rows
-  if (grid.rows !== grid.cols) {
-    return { puzzle: emptyPuzzle(size), supported: false, reason: 'Only square grids are supported' }
-  }
+  const rows = grid.rows
+  const cols = grid.cols
+  // The value range: on square boards the side length; on rectangles the long
+  // side, so full-length houses stay complete (Latin-rectangle semantics) and
+  // short houses fall back to no-repeat only via the engine's length guards.
+  const size = Math.max(rows, cols)
 
   const keyToIndex = (cellKey: string): number => {
     const m = cellKey.match(/^r(\d+)c(\d+)$/)
     if (!m) return -1
-    return Number(m[1]) * size + Number(m[2])
+    return Number(m[1]) * cols + Number(m[2])
   }
 
-  const regions = buildRegions(size, grid.cellRegionLabelMap)
+  // Sudoku rules off (chip absent or unchecked) sends the engine no houses at
+  // all: rows, columns and the grid's region layout are exactly what the rule
+  // switches off. Explicit constraints keep their own uniqueness (extra
+  // regions and cages seed theirs through their modules), and regionOfCell
+  // below stays — region-sum lines still segment by the drawn layout.
+  const regions = editor.sudokuRulesActive ? buildRegions(rows, cols, grid.cellRegionLabelMap) : []
 
   const givens = Object.entries(editor.givenDigits)
     .map(([key, value]) => ({ cell: keyToIndex(key), value }))
@@ -63,7 +71,7 @@ export function buildSolverPuzzle(
     }
   }
 
-  const indexToKey = (cell: number): string => `r${Math.floor(cell / size)}c${cell % size}`
+  const indexToKey = (cell: number): string => `r${Math.floor(cell / cols)}c${cell % cols}`
 
   let fog: SolverPuzzle['fog']
   if (options.respectFog && editor.fogEnabled) {
@@ -77,8 +85,8 @@ export function buildSolverPuzzle(
 
   const ctx: AdapterContext = {
     size,
-    rows: grid.rows,
-    cols: grid.cols,
+    rows,
+    cols,
     keyToIndex,
     regionOfCell: (cell) => grid.cellRegionLabelMap.get(indexToKey(cell)) ?? null,
     variants: new Set(editor.activeGlobalVariants),
@@ -93,37 +101,36 @@ export function buildSolverPuzzle(
   }
 
   return {
-    puzzle: { size, regions, givens, placed, centerMarks, constraints: collectSpecs(ctx), fog },
+    puzzle: { size, rows, cols, regions, givens, placed, centerMarks, constraints: collectSpecs(ctx), fog },
     supported: true,
   }
 }
 
-function emptyPuzzle(size: number): SolverPuzzle {
-  return { size, regions: [], givens: [], constraints: [] }
-}
-
 // Rows, columns, and box/custom-region groups — every set of cells that must
-// hold distinct values. Cells whose region label is null are not grouped.
-function buildRegions(size: number, labelMap: Map<string, string | null>): number[][] {
+// hold distinct values. Cells whose region label is null are not grouped. On a
+// rectangle the short axis's lines are shorter than the digit range, so the
+// engine treats them as no-repeat groups without completeness reasoning.
+function buildRegions(rows: number, cols: number, labelMap: Map<string, string | null>): number[][] {
   const regions: number[][] = []
 
-  for (let r = 0; r < size; r += 1) {
+  for (let r = 0; r < rows; r += 1) {
     const row: number[] = []
+    for (let c = 0; c < cols; c += 1) row.push(r * cols + c)
+    regions.push(row)
+  }
+  for (let c = 0; c < cols; c += 1) {
     const col: number[] = []
-    for (let c = 0; c < size; c += 1) {
-      row.push(r * size + c)
-      col.push(c * size + r)
-    }
-    regions.push(row, col)
+    for (let r = 0; r < rows; r += 1) col.push(r * cols + c)
+    regions.push(col)
   }
 
   const groups = new Map<string, number[]>()
-  for (let r = 0; r < size; r += 1) {
-    for (let c = 0; c < size; c += 1) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
       const label = labelMap.get(`r${r}c${c}`)
       if (label == null) continue
       const group = groups.get(label) ?? []
-      group.push(r * size + c)
+      group.push(r * cols + c)
       groups.set(label, group)
     }
   }

@@ -1,6 +1,7 @@
 import { mdiDotsSquare } from '@mdi/js'
 import { defineRegionConstraint } from '../define'
 import { greyscale } from '../types'
+import { cellsGroup } from '../uniqueness'
 
 export const CAGE_STYLE = {
   textColor: greyscale(0),
@@ -17,4 +18,5 @@ export default defineRegionConstraint({
   themeFamily: 'cage',
   layers: ['killer_cages'],
   panelId: 'killer_cage',
+  uniqueness: cellsGroup,
 })

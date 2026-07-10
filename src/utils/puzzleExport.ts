@@ -9,9 +9,9 @@ import {
 import { cosmeticPos, DEFAULT_SHAPE_STYLE } from '@/types/constraints'
 import type {
   ThermometerData, ArrowData, KillerCageData, ExtraRegionData, CloneData,
-  ConstraintLineData, CosmeticLineData, TextData, ShapeData, CosmeticCageData,
+  ConstraintLineData, CosmeticLineData, CosmeticBorderData, TextData, ShapeData, CosmeticCageData,
   ConnectorInstance, OuterClueInstance, ConnectorValue, FogSolverHelpers,
-  LinePreset, ShapePreset, TextPreset, CellColorPreset, CagePreset, ShapeStyle,
+  LinePreset, BorderPreset, ShapePreset, TextPreset, CellColorPreset, CagePreset, ShapeStyle,
   OuterClueType, BorderConnectorType, LittleKillerDirection, RossiniDirection,
 } from '@/types/constraints'
 import {
@@ -88,6 +88,10 @@ export interface PuzzleSnapshot {
   givenDigits: Record<string, number>
   activeTypes: Set<string>
   variants: Set<string>
+  // The Sudoku Rules panel checkbox; lives outside `variants` (whose members
+  // all mean "absent = off"). The rule itself rides the chip: key presence in
+  // the document means sudoku rules apply, `enabled: false` soft-disables.
+  sudokuRulesEnabled: boolean
   customGlobals: Array<{ type: string; value: number }>
   fogSolverHelpers: FogSolverHelpers
   singleCellMarks: Record<string, string[]>
@@ -102,6 +106,7 @@ export interface PuzzleSnapshot {
   cellColors: Record<string, string>
   presets: {
     cosmetic_line: LinePreset[]
+    cosmetic_border: BorderPreset[]
     shape: ShapePreset[]
     text: TextPreset[]
     cell_color: CellColorPreset[]
@@ -124,6 +129,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
     givenDigits: editor.givenDigits,
     activeTypes: new Set(editor.activeTypes),
     variants: new Set(editor.activeGlobalVariants),
+    sudokuRulesEnabled: editor.sudokuRulesEnabled,
     customGlobals: editor.customGlobalConstraints.map((c) => ({ type: c.type, value: c.value })),
     fogSolverHelpers: { ...editor.fogSolverHelpers },
     singleCellMarks: Object.fromEntries(
@@ -143,6 +149,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
     cellColors: editor.cosmeticCellColors,
     presets: {
       cosmetic_line: editor.linePresets,
+      cosmetic_border: editor.borderPresets,
       shape: editor.shapePresets,
       text: editor.textPresets,
       cell_color: editor.cellColorPresets,
@@ -157,6 +164,7 @@ function snapshotStores(editor: EditorStore, grid: GridStore): PuzzleSnapshot {
 // keeps whatever runtime ids it holds, so this stays a pure function of state.
 const PRESET_SLUG_PREFIX: Record<keyof PuzzleSnapshot['presets'], string> = {
   cosmetic_line: 'line',
+  cosmetic_border: 'border',
   shape: 'shape',
   text: 'text',
   cell_color: 'color',
@@ -290,6 +298,13 @@ function docCosmeticEntry(snap: PuzzleSnapshot, type: string, slugs: SlugMaps): 
       const data = i.data as CosmeticLineData
       return { cells: docCells(data.cells), preset: slugs.cosmetic_line.get(data.presetId) ?? data.presetId }
     }
+    if (type === 'cosmetic_border') {
+      const data = i.data as CosmeticBorderData
+      return {
+        edges: data.edges.map(borderLocationToDocCells),
+        preset: slugs.cosmetic_border.get(data.presetId) ?? data.presetId,
+      }
+    }
     if (type === 'cosmetic_cage') {
       const data = i.data as CosmeticCageData
       return {
@@ -339,6 +354,14 @@ export function buildDocument(snap: PuzzleSnapshot): SerializedPuzzle {
     for (const [field, customType] of Object.entries(group.customValues)) {
       const values = snap.customGlobals.filter((c) => c.type === customType).map((c) => c.value).sort((a, b) => a - b)
       if (values.length) entry[field] = values
+    }
+    // Sudoku Rules: the key's PRESENCE means the puzzle has sudoku rules, so
+    // a missing chip writes nothing at all; an active chip writes the bare
+    // marker, plus `enabled: false` when the panel checkbox soft-disables it
+    // (the generic variant loop above never fires for it — its state stays
+    // out of snap.variants).
+    if (group.type === 'sudoku_rules' && snap.activeTypes.has(group.type) && !snap.sudokuRulesEnabled) {
+      entry.enabled = false
     }
     if (snap.activeTypes.has(group.type) || Object.keys(entry).length) globals[group.key] = entry
   }
@@ -449,6 +472,8 @@ interface DocSingleCellMark {
 }
 interface DocInstance {
   cells?: string[]
+  // Cosmetic borders: each edge is the pair of 1-indexed cells it separates.
+  edges?: string[][]
   sum?: number
   copies?: Array<{ dRow: number; dCol: number }>
   bulb?: string
@@ -520,6 +545,9 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
     const entry = globals[group.key]
     if (entry === undefined) continue
     activeTypes.add(group.type)
+    // Sudoku Rules' `enabled` field is default-ON state with a dedicated ref;
+    // it must not leak into the variants set (absence means off there).
+    if (group.type === 'sudoku_rules') continue
     for (const variant of group.variants) {
       if (entry[variant.key] !== true) continue
       // Hand-edited documents can enable both of a mutually exclusive pair;
@@ -538,6 +566,10 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   }
   editor.activeTypes = activeTypes
   editor.activeGlobalVariants = variants
+  // The checkbox state: an absent field means checked. Whether the rules
+  // APPLY also needs the chip, which key presence restored above (an absent
+  // sudokuRules key = a rules-off puzzle).
+  editor.sudokuRulesEnabled = globals.sudokuRules?.enabled !== false
   editor.customGlobalConstraints = customs
 
   const helperDoc = data.solverHelpers ?? {}
@@ -618,7 +650,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   // the next placement generates fresh ones).
   const cellColorsEntry = cosmetics.cellColors as Record<string, string> | undefined
   editor.cosmeticCellColors = cellColorsEntry ? shiftMapKeys(cellColorsEntry, -1) : {}
-  for (const kind of ['cosmetic_line', 'shape', 'text', 'cosmetic_cage'] as const) {
+  for (const kind of ['cosmetic_line', 'cosmetic_border', 'shape', 'text', 'cosmetic_cage'] as const) {
     const key = TYPE_TO_JSON_KEY.get(kind)!
     for (const inst of (cosmetics[key] as DocInstance[] | undefined) ?? []) {
       instances.push({ id: crypto.randomUUID(), type: kind, data: cosmeticDataFromDoc(kind, inst) })
@@ -634,11 +666,13 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   // Presets are only overwritten when present, so a document that omits them
   // keeps the default preset reset() created (the line/shape tools need one).
   const linePresets = cosmetics.linePresets as LinePreset[] | undefined
+  const borderPresets = cosmetics.borderPresets as BorderPreset[] | undefined
   const shapePresets = cosmetics.shapePresets as Array<{ id: string; label: string; style: Omit<ShapeStyle, 'sizeLinked'> }> | undefined
   const textPresets = cosmetics.textPresets as TextPreset[] | undefined
   const cellColorPresets = cosmetics.cellColorPresets as CellColorPreset[] | undefined
   const cagePresets = cosmetics.cagePresets as CagePreset[] | undefined
   if (linePresets) editor.linePresets = structuredClone(linePresets)
+  if (borderPresets) editor.borderPresets = structuredClone(borderPresets)
   if (shapePresets) {
     editor.shapePresets = shapePresets.map((p) => ({
       ...p,
@@ -656,6 +690,7 @@ export function hydratePuzzle(editor: EditorStore, grid: GridStore, input: Seria
   // Point the active-preset selectors at the restored presets (reset() left
   // them on freshly-generated default ids).
   if (linePresets?.[0]) editor.activeLinePresetId = linePresets[0].id
+  if (borderPresets?.[0]) editor.activeBorderPresetId = borderPresets[0].id
   if (shapePresets?.[0]) editor.activeShapePresetId = shapePresets[0].id
   if (textPresets?.[0]) editor.activeTextPresetId = textPresets[0].id
   if (cellColorPresets?.[0]) editor.activeCellColorPresetId = cellColorPresets[0].id
@@ -688,6 +723,12 @@ function instanceDataFromDoc(type: string, inst: DocInstance): unknown {
 function cosmeticDataFromDoc(kind: string, inst: DocInstance): unknown {
   if (kind === 'cosmetic_line') {
     return { cells: internalCells(inst.cells ?? []), presetId: inst.preset ?? '' } satisfies CosmeticLineData
+  }
+  if (kind === 'cosmetic_border') {
+    return {
+      edges: (inst.edges ?? []).map(borderLocationFromDocCells),
+      presetId: inst.preset ?? '',
+    } satisfies CosmeticBorderData
   }
   if (kind === 'cosmetic_cage') {
     return { cells: internalCells(inst.cells ?? []), sum: inst.sum ?? null, presetId: inst.preset ?? '' } satisfies CosmeticCageData

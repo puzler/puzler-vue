@@ -15,6 +15,8 @@ export default defineModule<DisjointSpec>({
   kind: 'disjoint',
   fromEditor: (ctx) => {
     if (!ctx.variants.has('disjoint_sets')) return []
+    // Standard boxing only exists on square grids (matches the editor's gating).
+    if (ctx.rows !== ctx.cols) return []
     const boxes = standardBoxes(ctx.size)
     if (!boxes) return []
     const positions = boxes[0].length

@@ -372,6 +372,28 @@ function validateInstanceEntry(ctx: Ctx, type: string, e: DocRecord, p: string):
     })
     return
   }
+  if (type === 'cosmetic_border') {
+    // Each edge is the pair of 1-indexed cells it separates.
+    const edges = e.edges
+    if (!Array.isArray(edges)) {
+      ctx.errors.push({ path: `${p}.edges`, message: 'expected Array<[string, string]>' })
+      return
+    }
+    edges.forEach((pair, ei) => {
+      const ep = `${p}.edges[${ei}]`
+      if (!checkCellArray(ctx, pair, ep)) return
+      const cells = pair as string[]
+      if (cells.length !== 2) {
+        ctx.errors.push({ path: ep, message: 'an edge is exactly the 2 cells it separates' })
+        return
+      }
+      const [a, b] = cells.map(parseCell)
+      if (a && b && Math.abs(a.row - b.row) + Math.abs(a.col - b.col) !== 1) {
+        ctx.errors.push({ path: ep, message: 'edge cells must be orthogonally adjacent' })
+      }
+    })
+    return
+  }
   // Cages, extra regions, constraint lines, cosmetic lines/cages: cell lists.
   if (!checkCellArray(ctx, e.cells, `${p}.cells`)) return
   warnDuplicateCells(ctx, e.cells as string[], `${p}.cells`)

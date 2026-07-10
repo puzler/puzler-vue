@@ -133,8 +133,8 @@ export type ConstraintPanelId =
   | 'line_tool' | 'thermo' | 'arrow'
   | 'single_cell' | 'kropki_dots' | 'xv' | 'quadruples' | 'inequality'
   | 'killer_cage' | 'extra_regions' | 'clone'
-  | 'outer_clue' | 'global' | 'fog'
-  | 'cosmetic_line' | 'cell_color' | 'shape' | 'text' | 'cosmetic_cage'
+  | 'outer_clue' | 'global' | 'fog' | 'sudoku_rules'
+  | 'cosmetic_line' | 'cosmetic_border' | 'cell_color' | 'shape' | 'text' | 'cosmetic_cage'
 
 export interface ConstraintPanelRef {
   id: ConstraintPanelId
@@ -218,4 +218,14 @@ export interface ConstraintDef {
   readonly layers?: readonly ConstraintLayerId[]
   // ToolControlBox panel while this type is the active tool.
   readonly panel?: ConstraintPanelRef
+
+  // Cells an instance of this type makes mutually all-different, as groups of
+  // internal cell keys (a cage is one group; a branching thermo is one group
+  // per bulb-to-tip path). Feeds the editor's visibility predicate (seen-cells
+  // highlight, conflict tint, pencil-mark checking) — independent of the
+  // Sudoku Rules toggle, so cages can define custom "houses" on rules-off
+  // grids. Declare only where the rule truly forbids repeats (killer cages,
+  // extra regions, renban, nabner, strict thermos — NOT slow thermos or
+  // cosmetic cages).
+  readonly uniqueness?: (data: unknown) => string[][]
 }

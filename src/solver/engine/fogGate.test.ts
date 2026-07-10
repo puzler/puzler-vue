@@ -167,7 +167,8 @@ describe('fog gating at build time', () => {
 function fogView(fogged: number[], size = 9): FogView {
   const dark = new Set(fogged)
   return {
-    size,
+    rows: size,
+    cols: size,
     anyFog: dark.size > 0,
     isFogged: (cell) => dark.has(cell),
     allVisible: (cells) => cells.every((c) => !dark.has(c)),

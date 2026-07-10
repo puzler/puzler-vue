@@ -1,6 +1,7 @@
 import { mdiCardsDiamondOutline } from '@mdi/js'
 import { defineConstraint } from '../define'
 import { greyscale, colorToCss, type ConstraintShapeStyle } from '../types'
+import { endpointPair } from '../uniqueness'
 
 // A line-category one-off like between lines: draws through the shared line
 // machinery but renders via its own layer (line + end diamonds) and themes
@@ -39,4 +40,6 @@ export default defineConstraint({
   branchable: false,
   layers: ['lockout_lines'],
   panel: { id: 'line_tool', props: { ruleText: 'The digits in the two diamond endpoints differ by at least 4. Digits on the line between them must fall outside of the range set by the endpoints.', branchable: false } },
+  // The diamond endpoints differ by at least 4, so they can never repeat.
+  uniqueness: endpointPair,
 })

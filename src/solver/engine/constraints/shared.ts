@@ -55,7 +55,7 @@ export class MatchingSetsConstraint extends Constraint {
   // can no longer hold it — the sets can then never match.
   enforce(board: Board, cell: number): boolean {
     if (!this.involved.has(cell)) return true
-    for (let v = 1; v <= board.size; v += 1) {
+    for (let v = 1; v <= board.digitRange; v += 1) {
       let anyPresent = false
       let anyImpossible = false
       for (const seg of this.segments) {
@@ -75,7 +75,7 @@ export class MatchingSetsConstraint extends Constraint {
   //    segment with a single remaining home for it is pinned to that value.
   logicStep(board: Board, desc: string[]): ConstraintResult {
     const cleared: number[] = []
-    for (let v = 1; v <= board.size; v += 1) {
+    for (let v = 1; v <= board.digitRange; v += 1) {
       const bit = valueBit(v)
       const info = this.segments.map((seg) => this.membership(board, seg, v))
       const anyPresent = info.some((m) => m.present)
@@ -148,8 +148,8 @@ export class ForbiddenPairsConstraint extends Constraint {
     if (this.linked) return ConstraintResult.UNCHANGED
     this.linked = true
     for (const [cellA, cellB] of this.pairs) {
-      for (let a = 1; a <= board.size; a += 1) {
-        for (let b = 1; b <= board.size; b += 1) {
+      for (let a = 1; a <= board.digitRange; a += 1) {
+        for (let b = 1; b <= board.digitRange; b += 1) {
           if (this.forbidden(a, b)) {
             board.addWeakLink(board.candidateIndex(cellA, a), board.candidateIndex(cellB, b))
           }
@@ -243,7 +243,7 @@ export class IndexCellConstraint extends Constraint {
     this.linked = true
     for (let k = 1; k <= this.cells.length; k += 1) {
       const target = this.cells[k - 1]
-      for (let v = 1; v <= board.size; v += 1) {
+      for (let v = 1; v <= board.digitRange; v += 1) {
         if (v === this.indexedValue) continue
         board.addWeakLink(board.candidateIndex(this.indexCell, k), board.candidateIndex(target, v))
       }

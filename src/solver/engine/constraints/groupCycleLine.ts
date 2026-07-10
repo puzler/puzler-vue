@@ -28,7 +28,7 @@ const LABEL = { thirds: 'Entropic line', mod3: 'Modular line' } as const
 
 function groupFn(partition: GroupCycleSpec['partition'], board: Board): (v: number) => number {
   if (partition === 'mod3') return (v) => v % 3
-  const band = Math.ceil(board.size / 3)
+  const band = Math.ceil(board.digitRange / 3)
   return (v) => Math.floor((v - 1) / band)
 }
 

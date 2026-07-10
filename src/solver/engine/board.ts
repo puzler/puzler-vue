@@ -17,11 +17,15 @@ export const LogicResult = {
 export type LogicResult = (typeof LogicResult)[keyof typeof LogicResult]
 
 // Bitwise sudoku board. Each entry of `cells` holds a candidate bitmask (bits
-// 0..size-1) optionally OR'd with `givenBit` once the cell's single value has
-// been committed and propagated. Weak links connect mutually-exclusive
-// candidates (candidate index = cell * size + value - 1).
+// 0..digitRange-1) optionally OR'd with `givenBit` once the cell's single value
+// has been committed and propagated. Weak links connect mutually-exclusive
+// candidates (candidate index = cell * digitRange + value - 1). Geometry is
+// rows × cols (row-major, stride = cols); digitRange is the value range, equal
+// to max(rows, cols) for grids and to the side length on square boards.
 export class Board {
-  readonly size: number
+  readonly rows: number
+  readonly cols: number
+  readonly digitRange: number
   readonly numCells: number
   readonly allValues: number
   readonly givenBit: number
@@ -32,18 +36,20 @@ export class Board {
   nakedSingleQueue: number[]
   givenCount: number
 
-  constructor(size: number, regions: number[][]) {
-    this.size = size
-    this.numCells = size * size
-    this.allValues = allValuesMask(size)
-    this.givenBit = 1 << size
+  constructor(rows: number, cols: number, digitRange: number, regions: number[][]) {
+    this.rows = rows
+    this.cols = cols
+    this.digitRange = digitRange
+    this.numCells = rows * cols
+    this.allValues = allValuesMask(digitRange)
+    this.givenBit = 1 << digitRange
     this.regions = regions
     this.cells = new Int32Array(this.numCells).fill(this.allValues)
     this.constraints = []
     this.nakedSingleQueue = []
     this.givenCount = 0
 
-    this.weakLinks = Array.from({ length: this.numCells * size }, () => new Set<number>())
+    this.weakLinks = Array.from({ length: this.numCells * digitRange }, () => new Set<number>())
     this.linkSources = new Map<number, string>()
     this.buildRegionWeakLinks()
   }
@@ -63,15 +69,15 @@ export class Board {
 
   // ── Candidate index helpers ──────────────────────────────────────────────
   candidateIndex(cell: number, value: number): number {
-    return cell * this.size + value - 1
+    return cell * this.digitRange + value - 1
   }
 
   cellFromCandidate(candidate: number): number {
-    return (candidate / this.size) | 0
+    return (candidate / this.digitRange) | 0
   }
 
   valueFromCandidate(candidate: number): number {
-    return (candidate % this.size) + 1
+    return (candidate % this.digitRange) + 1
   }
 
   candidateMask(cell: number): number {
@@ -87,7 +93,7 @@ export class Board {
     this.weakLinks[candidateA].add(candidateB)
     this.weakLinks[candidateB].add(candidateA)
     if (this.linkSource !== null) {
-      const n = this.numCells * this.size
+      const n = this.numCells * this.digitRange
       this.linkSources.set(candidateA * n + candidateB, this.linkSource)
       this.linkSources.set(candidateB * n + candidateA, this.linkSource)
     }
@@ -101,7 +107,7 @@ export class Board {
   private linkRegion(region: number[]): void {
     for (let i = 0; i < region.length; i += 1) {
       for (let j = i + 1; j < region.length; j += 1) {
-        for (let value = 1; value <= this.size; value += 1) {
+        for (let value = 1; value <= this.digitRange; value += 1) {
           this.addWeakLink(
             this.candidateIndex(region[i], value),
             this.candidateIndex(region[j], value),
@@ -123,7 +129,9 @@ export class Board {
     const copy = Object.create(Board.prototype) as Board
     // Shared immutable structure.
     Object.assign(copy, {
-      size: this.size,
+      rows: this.rows,
+      cols: this.cols,
+      digitRange: this.digitRange,
       numCells: this.numCells,
       allValues: this.allValues,
       givenBit: this.givenBit,
@@ -183,7 +191,7 @@ export class Board {
       const otherCell = this.cellFromCandidate(other)
       const otherValue = this.valueFromCandidate(other)
       if (this.propagationLog !== null && (this.cells[otherCell] & valueBit(otherValue)) !== 0) {
-        const source = this.linkSources.get(other * this.numCells * this.size + candidate)
+        const source = this.linkSources.get(other * this.numCells * this.digitRange + candidate)
         if (source !== undefined) this.propagationLog.push({ cell: otherCell, value: otherValue, source })
       }
       if (!this.clearCandidate(otherCell, otherValue)) return false
@@ -214,7 +222,7 @@ export class Board {
   private applyHiddenSingles(): LogicResult {
     let changed = false
     for (const region of this.regions) {
-      if (region.length !== this.size) continue
+      if (region.length !== this.digitRange) continue
       let atLeastOnce = 0
       let moreThanOnce = 0
       for (const cell of region) {
@@ -273,7 +281,7 @@ export class Board {
   // Minimum-remaining-values: the unsolved cell with the fewest candidates.
   findBranchCell(): number {
     let best = -1
-    let bestCount = this.size + 1
+    let bestCount = this.digitRange + 1
     for (let cell = 0; cell < this.numCells; cell += 1) {
       if (this.isGiven(cell)) continue
       const count = popcount(this.candidateMask(cell))
@@ -349,7 +357,7 @@ export class Board {
     for (let cell = 0; cell < this.numCells; cell += 1) {
       const values: number[] = []
       const mask = this.candidateMask(cell)
-      for (let value = 1; value <= this.size; value += 1) {
+      for (let value = 1; value <= this.digitRange; value += 1) {
         if ((mask & valueBit(value)) !== 0) values.push(value)
       }
       out.push(values)

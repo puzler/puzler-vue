@@ -30,7 +30,7 @@ export default defineModule<QuadrupleSpec>({
       const row = Number(m[1])
       const col = Number(m[2])
       const at = (r: number, c: number): number =>
-        r >= 0 && c >= 0 && r < ctx.size && c < ctx.size ? r * ctx.size + c : -1
+        r >= 0 && c >= 0 && r < ctx.rows && c < ctx.cols ? r * ctx.cols + c : -1
       const tl = at(row - 1, col - 1)
       const tr = at(row - 1, col)
       const bl = at(row, col - 1)

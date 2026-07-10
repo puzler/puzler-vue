@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useEditorStore } from './editor'
+import { useGridStore } from './grid'
 import { usePlayerSettingsStore } from './playerSettings'
 
 // Exercises cellsSeenBySelection: the union->intersection change for multi-select
@@ -129,6 +130,271 @@ describe('errorCells', () => {
     expect(editor.errorCells.has('r0c0')).toBe(false)
     editor.activeGlobalVariants = new Set(['disjoint_sets'])
     expect(editor.errorCells.has('r0c0')).toBe(true)
+  })
+})
+
+describe('cosmetic borders', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('commits a drag as one undoable instance with deduped edges', () => {
+    const editor = useEditorStore()
+    editor.commitBorderInstance(['r0c0|r0c1', 'r0c0|r0c1', 'r1c1|r2c1'])
+    const inst = editor.cosmeticInstances.find((i) => i.type === 'cosmetic_border')
+    expect((inst?.data as { edges: string[] }).edges).toEqual(['r0c0|r0c1', 'r1c1|r2c1'])
+    expect(editor.borderEdgeExists('r0c0|r0c1')).toBe(true)
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(0)
+    editor.redo()
+    expect(editor.cosmeticInstances).toHaveLength(1)
+  })
+
+  it('erases edges across instances and drops emptied ones, one undo step', () => {
+    const editor = useEditorStore()
+    editor.commitBorderInstance(['r0c0|r0c1', 'r1c1|r2c1'])
+    editor.commitBorderInstance(['r4c4|r4c5'])
+    editor.eraseBorderEdges(['r0c0|r0c1', 'r4c4|r4c5'])
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    expect((editor.cosmeticInstances[0].data as { edges: string[] }).edges).toEqual(['r1c1|r2c1'])
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(2)
+  })
+
+  it('borders never contribute to conflicts or seen cells', () => {
+    const editor = useEditorStore()
+    editor.commitBorderInstance(['r0c0|r0c1'])
+    editor.sudokuRulesEnabled = false
+    editor.givenDigits = { r0c0: 5, r0c1: 5 }
+    expect(editor.errorCells.size).toBe(0)
+  })
+})
+
+describe('conflicts on a non-square grid', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('flags row/column duplicates but has no regions to conflict in', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(6, 10)
+    editor.givenDigits = { r0c0: 5, r0c9: 5 } // same row, far apart
+    expect(editor.errorCells.size).toBe(2)
+    editor.givenDigits = { r0c0: 5, r5c0: 5 } // same column
+    expect(editor.errorCells.size).toBe(2)
+    // No standard boxes exist: diagonal cells conflict-free.
+    editor.givenDigits = { r0c0: 5, r1c1: 5 }
+    expect(editor.errorCells.size).toBe(0)
+  })
+
+  it('applies a worker solution with the column stride (regression: rows-as-stride)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(6, 10) // tall-vs-wide asymmetry catches the swap
+    // Row-major solution: cell i holds (i % 10) + 1 → row r reads 1..10.
+    const values = Array.from({ length: 60 }, (_, i) => (i % 10) + 1)
+    editor.applySolverSolution(values)
+    expect(editor.solverCellStates['r0c9']?.value).toBe(10)
+    expect(editor.solverCellStates['r5c0']?.value).toBe(1)
+    expect(editor.solverCellStates['r5c9']?.value).toBe(10)
+    // The wrong stride (rows = 6) would scatter beyond the grid: no such keys.
+    expect(editor.solverCellStates['r9c5']).toBeUndefined()
+  })
+})
+
+// Turning the Sudoku Rules global off removes row/column/region uniqueness from
+// every seesRC-driven surface while variant rules keep applying.
+describe('sudoku rules off', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('stops flagging row, column and box duplicates', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5, r0c5: 5, r4c0: 5, r1c1: 5 } // row, column and box conflicts
+    expect(editor.errorCells.size).toBe(4)
+    editor.sudokuRulesEnabled = false
+    expect(editor.errorCells.size).toBe(0)
+  })
+
+  it("still flags knight's-move duplicates when the variant is active", () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.activeGlobalVariants = new Set(['knights_move'])
+    editor.givenDigits = { r4c4: 5, r2c3: 5 }
+    expect(editor.errorCells.has('r4c4')).toBe(true)
+    expect(editor.errorCells.has('r2c3')).toBe(true)
+  })
+
+  it('empties the seen-cells highlight for a plain selection', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r4c4'])
+    expect(editor.cellsSeenBySelection.size).toBeGreaterThan(0)
+    editor.sudokuRulesEnabled = false
+    expect(editor.cellsSeenBySelection.size).toBe(0)
+  })
+
+  it('drops row digits from the pencil-mark seen sets', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5 }
+    expect(editor.seenDigitsByCell.get('r0c8')?.has(5)).toBe(true)
+    editor.sudokuRulesEnabled = false
+    expect(editor.seenDigitsByCell.get('r0c8')).toBeUndefined()
+  })
+
+  it('setSudokuRulesEnabled is a single undoable step', () => {
+    const editor = useEditorStore()
+    editor.setSudokuRulesEnabled(false)
+    expect(editor.sudokuRulesEnabled).toBe(false)
+    editor.undo()
+    expect(editor.sudokuRulesEnabled).toBe(true)
+    editor.redo()
+    expect(editor.sudokuRulesEnabled).toBe(false)
+  })
+
+  it('reset restores the default (chip present, rules on)', () => {
+    const editor = useEditorStore()
+    editor.setSudokuRulesEnabled(false)
+    editor.removeSudokuRulesConstraint()
+    editor.reset()
+    expect(editor.sudokuRulesEnabled).toBe(true)
+    expect(editor.activeTypes.has('sudoku_rules')).toBe(true)
+  })
+
+  it('new stores start with the chip present and rules on', () => {
+    const editor = useEditorStore()
+    expect(editor.activeTypes.has('sudoku_rules')).toBe(true)
+    expect(editor.sudokuRulesEnabled).toBe(true)
+  })
+
+  it('removing the chip restores the checkbox default, undoably', () => {
+    const editor = useEditorStore()
+    editor.addConstraint('sudoku_rules')
+    editor.setSudokuRulesEnabled(false)
+    editor.removeSudokuRulesConstraint()
+    expect(editor.activeTypes.has('sudoku_rules')).toBe(false)
+    expect(editor.sudokuRulesEnabled).toBe(true)
+    editor.undo()
+    expect(editor.activeTypes.has('sudoku_rules')).toBe(true)
+    expect(editor.sudokuRulesEnabled).toBe(false)
+  })
+
+  it('the chip carries the rule: removing it disables sudoku rules', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5, r0c5: 5 }
+    expect(editor.sudokuRulesActive).toBe(true)
+    expect(editor.errorCells.size).toBe(2)
+    editor.removeSudokuRulesConstraint()
+    // The checkbox resets to true, but without the chip the rules are off.
+    expect(editor.sudokuRulesEnabled).toBe(true)
+    expect(editor.sudokuRulesActive).toBe(false)
+    expect(editor.errorCells.size).toBe(0)
+  })
+})
+
+// Constraint instances whose rule forbids repeats (defs with a `uniqueness`
+// extractor) feed seesRC directly, independent of the Sudoku Rules toggle —
+// overlapping transparent cages are the intended way to define custom "houses"
+// on rules-off grids.
+describe('uniqueness groups from constraint instances', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function instance(type: string, data: unknown) {
+    return { id: crypto.randomUUID(), type, data }
+  }
+
+  it('flags a duplicate inside a killer cage even with sudoku rules off', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    // r0c0 and r4c4 share no row/col/box — only the cage links them.
+    editor.cosmeticInstances = [instance('killer_cage', { cells: ['r0c0', 'r4c4'], sum: null })]
+    editor.givenDigits = { r0c0: 5, r4c4: 5 }
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+    expect(editor.errorCells.has('r4c4')).toBe(true)
+  })
+
+  it('flags a duplicate on a renban line with sudoku rules off', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [instance('renban', { cells: ['r0c0', 'r1c1', 'r2c2'] })]
+    editor.givenDigits = { r0c0: 3, r2c2: 3 }
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+    expect(editor.errorCells.has('r2c2')).toBe(true)
+  })
+
+  it('shows cage-mates in the seen-cells highlight and pencil-mark sets', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [instance('killer_cage', { cells: ['r0c0', 'r4c4', 'r8c8'], sum: 20 })]
+    editor.selection = new Set(['r0c0'])
+    expect(editor.cellsSeenBySelection.has('r4c4')).toBe(true)
+    expect(editor.cellsSeenBySelection.has('r8c8')).toBe(true)
+    expect(editor.cellsSeenBySelection.has('r0c1')).toBe(false) // rules off: row does not see
+    editor.givenDigits = { r4c4: 7 }
+    expect(editor.seenDigitsByCell.get('r0c0')?.has(7)).toBe(true)
+  })
+
+  it('links cage-mates with sudoku rules on too (cross-box cages)', () => {
+    const editor = useEditorStore()
+    editor.cosmeticInstances = [instance('killer_cage', { cells: ['r0c0', 'r4c4'], sum: null })]
+    editor.givenDigits = { r0c0: 5, r4c4: 5 }
+    expect(editor.errorCells.has('r0c0')).toBe(true)
+  })
+
+  it('keeps separate thermo branches mutually unconstrained', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    // Root r4c4 with two one-cell branches (r3c3 and r5c5).
+    editor.cosmeticInstances = [instance('thermometer', {
+      root: 'r4c4',
+      edges: [
+        { from: 'r4c4', to: 'r3c3' },
+        { from: 'r4c4', to: 'r5c5' },
+      ],
+    })]
+    editor.givenDigits = { r3c3: 5, r5c5: 5 } // different branches: legal
+    expect(editor.errorCells.size).toBe(0)
+    editor.givenDigits = { r4c4: 5, r3c3: 5 } // same path: conflict
+    expect(editor.errorCells.size).toBe(2)
+  })
+
+  it('slow thermometers and cosmetic cages contribute nothing', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [
+      instance('slow_thermometer', { root: 'r4c4', edges: [{ from: 'r4c4', to: 'r3c3' }] }),
+      instance('cosmetic_cage', { cells: ['r0c0', 'r8c0'], presetId: 'p1' }),
+    ]
+    editor.givenDigits = { r4c4: 5, r3c3: 5, r0c0: 2, r8c0: 2 }
+    expect(editor.errorCells.size).toBe(0)
+  })
+
+  it('links only the endpoints of a between line', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [instance('between_lines', { cells: ['r0c0', 'r1c1', 'r2c2'] })]
+    editor.givenDigits = { r0c0: 4, r1c1: 4 } // bulb + interior: legal
+    expect(editor.errorCells.size).toBe(0)
+    editor.givenDigits = { r0c0: 4, r2c2: 4 } // the two bulbs: conflict
+    expect(editor.errorCells.size).toBe(2)
+  })
+
+  it('unions overlapping cages', () => {
+    const editor = useEditorStore()
+    editor.sudokuRulesEnabled = false
+    editor.cosmeticInstances = [
+      instance('killer_cage', { cells: ['r0c0', 'r4c4'], sum: null }),
+      instance('killer_cage', { cells: ['r4c4', 'r8c8'], sum: null }),
+    ]
+    editor.selection = new Set(['r4c4'])
+    expect(editor.cellsSeenBySelection.has('r0c0')).toBe(true)
+    expect(editor.cellsSeenBySelection.has('r8c8')).toBe(true)
+    // The two cages do NOT chain: r0c0 and r8c8 share no group.
+    editor.givenDigits = { r0c0: 5, r8c8: 5 }
+    expect(editor.errorCells.size).toBe(0)
   })
 })
 
@@ -595,7 +861,8 @@ describe('fog of war', () => {
 
   function enableFog() {
     const editor = useEditorStore()
-    editor.activeTypes = new Set(['fog'])
+    // Keep the seeded Sudoku Rules chip: these tests rely on row conflicts.
+    editor.activeTypes = new Set(['sudoku_rules', 'fog'])
     editor.activeGlobalVariants = new Set(['fog'])
     return editor
   }

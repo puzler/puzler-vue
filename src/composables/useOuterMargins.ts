@@ -30,8 +30,10 @@ export function useOuterMargins() {
   return computed<OuterMargins>(() => {
     const m: OuterMargins = { left: 0, right: 0, top: 0, bottom: 0 }
 
-    // Click room for the single outer ring.
+    // Click room for the single outer ring. The grid tool opens all four sides
+    // too — its resize controls sit just outside each edge.
     const placing = OUTER_CLUE_TYPES.has(editor.activeTool) || editor.showExternalSpace
+      || editor.activeTool === 'grid'
     if (placing && editor.mode === 'setting') {
       m.left = m.right = m.top = m.bottom = CELL_SIZE
     }

@@ -11,9 +11,19 @@ export interface SolverConstraintSpec {
 }
 
 export interface SolverPuzzle {
+  // The digit range (values run 1..size). For non-square grids this is
+  // max(rows, cols); on square boards it doubles as the side length.
   size: number
-  // Each region is a list of cell indices (row-major: row * size + col) whose
-  // cells must all differ. Includes boxes plus any custom regions.
+  // Grid geometry. Absent = square (`size` × `size`), which keeps every
+  // existing fixture and caller valid. Cell indices are row-major with
+  // stride `cols`.
+  rows?: number
+  cols?: number
+  // Each region is a list of cell indices (row-major: row * cols + col) whose
+  // cells must all differ. Includes boxes plus any custom regions. Sent empty
+  // when sudoku rules are off. Houses whose length equals `size` additionally
+  // get completeness reasoning (hidden singles etc.); shorter houses are
+  // no-repeat only.
   regions: number[][]
   givens: Array<{ cell: number; value: number }>
   // Digits the solver itself has already placed (distinct from author givens) —

@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { serializePuzzle, parsePuzzleImport } from './puzzleExport'
-import { formatPuzzleJson, applyPuzzleJson, scanHexColors, bufferStatus, lineForIssuePath } from './puzzleJson'
+import { formatPuzzleJson, applyPuzzleJson, resizePuzzleGrid, scanHexColors, bufferStatus, lineForIssuePath } from './puzzleJson'
 
 describe('formatPuzzleJson', () => {
   beforeEach(() => {
@@ -128,6 +128,61 @@ describe('applyPuzzleJson', () => {
     editor.undo()
     expect(editor.authorDifficulty).toBe(4)
     expect(editor.solutionCode).toBe('SECRET')
+  })
+})
+
+describe('resizePuzzleGrid', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('is exactly one undo step and restores the whole document', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.givenDigits = { r0c0: 5, r8c8: 9 }
+    editor.cosmeticInstances = [
+      { id: 'k1', type: 'killer_cage', data: { cells: ['r0c0', 'r0c1'], sum: 7 } },
+    ]
+
+    const result = resizePuzzleGrid(editor, grid, 'top', 1)
+    expect(result.ok).toBe(true)
+    expect(grid.rows).toBe(10)
+    expect(editor.givenDigits).toEqual({ r1c0: 5, r9c8: 9 })
+    const cage = editor.cosmeticInstances.find((i) => i.type === 'killer_cage')
+    expect((cage?.data as { cells: string[] }).cells).toEqual(['r1c0', 'r1c1'])
+
+    editor.undo()
+    expect(grid.rows).toBe(9)
+    expect(editor.givenDigits).toEqual({ r0c0: 5, r8c8: 9 })
+    expect((editor.cosmeticInstances[0].data as { cells: string[] }).cells).toEqual(['r0c0', 'r0c1'])
+
+    editor.redo()
+    expect(grid.rows).toBe(10)
+    expect(editor.givenDigits).toEqual({ r1c0: 5, r9c8: 9 })
+  })
+
+  it('refuses to leave the 2..16 range', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(16, 16)
+    expect(resizePuzzleGrid(editor, grid, 'bottom', 1).ok).toBe(false)
+    grid.setDimensions(2, 2)
+    expect(resizePuzzleGrid(editor, grid, 'left', -1).ok).toBe(false)
+    expect(grid.cols).toBe(2)
+  })
+
+  it('shrinking away regioned cells keeps the regions explicit (no box resurrection)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(4, 4)
+    // All cells in one region: shrink once → still one region, never 2×2 boxes.
+    const all: Record<string, string> = {}
+    for (const key of grid.allCellKeys()) all[key] = '1'
+    grid.setCustomCellRegions(all)
+    resizePuzzleGrid(editor, grid, 'bottom', -1)
+    expect(grid.rows).toBe(3)
+    const labels = new Set(grid.cellRegionLabelMap.values())
+    expect(labels).toEqual(new Set(['1']))
   })
 })
 

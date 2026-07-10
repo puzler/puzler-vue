@@ -24,7 +24,7 @@ export default defineModule<NextToNineSpec>({
       if (digits.some((d) => d < 1)) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.size, pos.row, pos.col)
+      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
       if (line.length) specs.push({ kind: 'next_to_nine', line, digits })
     }
     return specs

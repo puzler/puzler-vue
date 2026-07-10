@@ -254,7 +254,7 @@ export function sumCombinationPruneLinked(
 export function cellsCrossLinked(board: Board, cells: number[]): boolean {
   const inGroup = new Set(cells)
   for (const cell of cells) {
-    for (let v = 1; v <= board.size; v += 1) {
+    for (let v = 1; v <= board.digitRange; v += 1) {
       for (const other of board.weakLinks[board.candidateIndex(cell, v)]) {
         const oc = board.cellFromCandidate(other)
         if (oc !== cell && inGroup.has(oc) && board.valueFromCandidate(other) !== v) return true
@@ -410,7 +410,7 @@ export function linkedArrowCombos(
   // per-shaft value set; what remains appears in shaft s in all of them.
   const required = shafts.map(() => -1)
   let sums = 0
-  const size = board.size
+  const size = board.digitRange
   const assigned = new Array<number>(n).fill(0)
   let nodes = 0
   let bailed = false

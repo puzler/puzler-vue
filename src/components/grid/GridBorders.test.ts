@@ -40,4 +40,37 @@ describe('GridBorders', () => {
     expect(total).toBeGreaterThan(0)
     expect(total).toBeLessThan(180)
   })
+
+  it('renders a plain lattice with a frame for an all-regionless grid (non-square default)', () => {
+    const grid = useGridStore()
+    grid.setDimensions(6, 10) // non-square: no standard boxes, every cell regionless
+    const w = render()
+    // Interior lattice as full-length thin lines: 5 horizontal + 9 vertical.
+    expect(w.findAll('g.grid-line-thin line')).toHaveLength(14)
+    // The outer frame: exactly the 4 rectangle sides, no region strokes.
+    expect(w.findAll('g.grid-line-box line')).toHaveLength(4)
+  })
+
+  it('renders a plain lattice when every cell is painted regionless on a square grid', () => {
+    const grid = useGridStore()
+    const all: Record<string, string | null> = {}
+    for (const key of grid.allCellKeys()) all[key] = null
+    grid.setCustomCellRegions(all)
+    const w = render()
+    expect(w.findAll('g.grid-line-thin line')).toHaveLength(16) // 8 + 8 full-length lines
+    expect(w.findAll('g.grid-line-box line')).toHaveLength(4)
+  })
+
+  it('keeps hole-puzzle rendering when at least one region exists', () => {
+    const grid = useGridStore()
+    // One regionless cell in a corner: its outer edge drops, everything else
+    // keeps region-derived rendering.
+    grid.setCustomCellRegions({ r0c0: null })
+    const w = render()
+    const box = w.findAll('g.grid-line-box line')
+    // 72 on a full 9x9; r0c0's two puzzle-edge segments drop, its two interior
+    // borders become 'outer' strokes — net count stays 72, but critically the
+    // lattice fallback (which would give 4) must NOT engage.
+    expect(box.length).toBeGreaterThan(20)
+  })
 })

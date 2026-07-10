@@ -21,7 +21,7 @@ export default defineModule<ChessSpec>({
   build: (board, spec) =>
     new ForbiddenPairsConstraint(
       spec.move === 'king' ? "King's Move" : "Knight's Move",
-      movePairs(board.size, spec.move),
+      movePairs(board.rows, board.cols, spec.move),
       (a, b) => a === b,
       false, // same-value relation — weak links already cover it
     ),

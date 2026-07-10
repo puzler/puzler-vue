@@ -94,6 +94,75 @@ describe('serializePuzzle (format v4)', () => {
     expect((data.cosmetics as Record<string, unknown>).linePresets).toBeDefined()
   })
 
+  it('round-trips cosmetic borders: edges as 1-indexed cell pairs + preset slugs', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.activeTypes = new Set(['cosmetic_border'])
+    editor.cosmeticInstances = [{
+      id: 'b1',
+      type: 'cosmetic_border',
+      data: { edges: ['r0c0|r0c1', 'r1c1|r2c1'], presetId: editor.activeBorderPresetId },
+    }]
+    const data = serializePuzzle(editor, grid)
+    const cosmetics = data.cosmetics as Record<string, unknown>
+    expect(cosmetics.borders).toEqual([
+      { edges: [['r1c1', 'r1c2'], ['r2c2', 'r3c2']], preset: 'border-1' },
+    ])
+    expect(cosmetics.borderPresets).toEqual([
+      expect.objectContaining({ id: 'border-1', style: expect.objectContaining({ color: '#232B3D', strokeWidth: 2.5 }) }),
+    ])
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    const inst = e2.cosmeticInstances.find((i) => i.type === 'cosmetic_border')
+    expect((inst?.data as { edges: string[] }).edges).toEqual(['r0c0|r0c1', 'r1c1|r2c1'])
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
+  it('round-trips sudoku rules: absent = on, {} = chip active, enabled:false = off', () => {
+    // New puzzles seed the chip (rules on): bare presence marker.
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    expect(serializePuzzle(editor, grid).globals).toEqual({ sudokuRules: {} })
+
+    // Without the chip the key disappears — the document form of a rules-off
+    // puzzle (even a stale unchecked box writes nothing).
+    editor.activeTypes = new Set()
+    editor.sudokuRulesEnabled = false
+    expect(serializePuzzle(editor, grid).globals).toBeUndefined()
+    editor.sudokuRulesEnabled = true
+
+    editor.activeTypes = new Set(['sudoku_rules'])
+
+    // Chip on + checkbox off: the soft-disable writes the field.
+    editor.sudokuRulesEnabled = false
+    const off = serializePuzzle(editor, grid)
+    expect(off.globals).toEqual({ sudokuRules: { enabled: false } })
+
+    // Hydrate each shape into fresh stores.
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(off)) as SerializedPuzzle)
+    expect(e2.sudokuRulesEnabled).toBe(false)
+    expect(e2.activeTypes.has('sudoku_rules')).toBe(true)
+    // The flag must not leak into the variants set.
+    expect(e2.activeGlobalVariants.has('sudoku_rules')).toBe(false)
+    expect(serializePuzzle(e2, g2)).toEqual(off)
+
+    // A v4 document without the key hydrates to a rules-OFF puzzle: no chip,
+    // so the (default-true) checkbox has nothing to act on.
+    setActivePinia(createPinia())
+    const e3 = useEditorStore()
+    const g3 = useGridStore()
+    deserializePuzzle(e3, g3, { formatVersion: 4, grid: { rows: 9, cols: 9 } })
+    expect(e3.sudokuRulesEnabled).toBe(true)
+    expect(e3.activeTypes.has('sudoku_rules')).toBe(false)
+    expect(e3.sudokuRulesActive).toBe(false)
+  })
+
   it('round-trips fog: the global toggle and light cells', () => {
     const editor = useEditorStore()
     const grid = useGridStore()
@@ -211,7 +280,9 @@ describe('serializePuzzle (format v4)', () => {
     const grid = useGridStore()
     editor.givenDigits = { r0c0: 5 }
     const data = serializePuzzle(editor, grid) as unknown as Record<string, unknown>
-    expect(Object.keys(data).sort()).toEqual(['formatVersion', 'givenDigits', 'grid'])
+    // globals carries the default Sudoku Rules chip every new puzzle seeds.
+    expect(Object.keys(data).sort()).toEqual(['formatVersion', 'givenDigits', 'globals', 'grid'])
+    expect(data.globals).toEqual({ sudokuRules: {} })
   })
 
   it('round-trips through JSON text without loss', () => {
@@ -381,7 +452,8 @@ describe('migratePuzzleDocument (v3 → v4)', () => {
       xSums: [{ cell: 'r0c4', value: 20 }],
       rossini: [{ cell: 'r10c3', direction: 'increasing' }],
     })
-    expect(doc.globals).toEqual({ antiXv: { x: true, sums: [12] } })
+    // Pre-v4 puzzles are always sudoku: migration adds the Sudoku Rules chip.
+    expect(doc.globals).toEqual({ sudokuRules: {}, antiXv: { x: true, sums: [12] } })
     const cosmetics = doc.cosmetics as Record<string, unknown>
     expect(cosmetics.lines).toEqual([{ cells: ['r7c1', 'r7c2'], preset: 'line-1' }])
     expect(cosmetics.cellColors).toEqual({ r1c6: 'color-1' })

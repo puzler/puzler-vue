@@ -4,6 +4,7 @@ import type { useEditorStore } from '@/stores/editor'
 import type { useGridStore } from '@/stores/grid'
 import { serializePuzzle, hydratePuzzle } from './puzzleExport'
 import type { SerializedPuzzle } from './puzzleExport'
+import { resizeDocument, type ResizeSide } from './resizeDocument'
 
 type EditorStore = ReturnType<typeof useEditorStore>
 type GridStore = ReturnType<typeof useGridStore>
@@ -47,6 +48,30 @@ export function applyPuzzleJson(editor: EditorStore, grid: GridStore, after: Ser
     undo: () => applySnap(before),
   })
   return { ok: true }
+}
+
+// Grid-tool resize: serialize → pure transform → whole-document apply, so an
+// add/remove of a row or column (with all its constraint trimming) is exactly
+// one undoable step. Bounds match the New Grid modal (2–16 per axis).
+export const GRID_MIN = 2
+export const GRID_MAX = 16
+
+export function resizePuzzleGrid(
+  editor: EditorStore,
+  grid: GridStore,
+  side: ResizeSide,
+  delta: 1 | -1,
+): ApplyResult {
+  const axis = side === 'top' || side === 'bottom' ? grid.rows : grid.cols
+  const next = axis + delta
+  if (next < GRID_MIN || next > GRID_MAX) {
+    return { ok: false, error: `Grid dimensions stay between ${GRID_MIN} and ${GRID_MAX}.` }
+  }
+  const result = applyPuzzleJson(editor, grid, resizeDocument(serializePuzzle(editor, grid), side, delta))
+  // The document swap resets the active tool; stay in the Grid tool so the
+  // on-canvas +/- controls survive consecutive clicks.
+  if (result.ok) editor.setActiveTool('grid')
+  return result
 }
 
 // Resolves a validation issue path ("constraints.arrows[0].arrows") to a

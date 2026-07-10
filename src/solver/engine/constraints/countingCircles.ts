@@ -28,7 +28,7 @@ export class CountingCirclesConstraint extends Constraint {
 
   enforce(board: Board, cell: number) {
     if (!this.involved.has(cell)) return true
-    for (let d = 1; d <= board.size; d += 1) {
+    for (let d = 1; d <= board.digitRange; d += 1) {
       const bit = valueBit(d)
       let committed = 0
       let possible = 0
@@ -50,7 +50,7 @@ export class CountingCirclesConstraint extends Constraint {
       cleared.push(cell)
       return false
     }
-    for (let d = 1; d <= board.size; d += 1) {
+    for (let d = 1; d <= board.digitRange; d += 1) {
       const bit = valueBit(d)
       const holders = this.cells.filter((c) => (board.candidateMask(c) & bit) !== 0)
       const committed = this.cells.filter((c) => placed(board, c) === d).length

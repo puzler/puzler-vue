@@ -22,7 +22,7 @@ export default defineModule<BattlefieldSpec>({
       if (clue.type !== 'battlefield' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.size, pos.row, pos.col)
+      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
       if (line.length) specs.push({ kind: 'battlefield', line, target: clue.value })
     }
     return specs

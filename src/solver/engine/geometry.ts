@@ -1,21 +1,24 @@
-// Pure cell-index geometry helpers (row-major: cell = row * size + col). Shared
+// Pure cell-index geometry helpers (row-major: cell = row * cols + col). Shared
 // by constraint modules for neighbour/region computation. No DOM, worker-safe.
+// The row-major STRIDE is the column count — every helper that decodes an index
+// takes `cols`, and bounded walks take `(rows, cols)`. On square boards both
+// equal the old single `size`.
 
-export function rowOf(cell: number, size: number): number {
-  return Math.floor(cell / size)
+export function rowOf(cell: number, cols: number): number {
+  return Math.floor(cell / cols)
 }
 
-export function colOf(cell: number, size: number): number {
-  return cell % size
+export function colOf(cell: number, cols: number): number {
+  return cell % cols
 }
 
-export function cellAt(row: number, col: number, size: number): number {
-  return row * size + col
+export function cellAt(row: number, col: number, cols: number): number {
+  return row * cols + col
 }
 
 // 1-indexed display name: cell 0 → R1C1.
-export function cellName(cell: number, size: number): string {
-  return `R${rowOf(cell, size) + 1}C${colOf(cell, size) + 1}`
+export function cellName(cell: number, cols: number): string {
+  return `R${rowOf(cell, cols) + 1}C${colOf(cell, cols) + 1}`
 }
 
 const ORTHO = [
@@ -36,38 +39,38 @@ const KNIGHT = [
   [1, -2], [1, 2], [2, -1], [2, 1],
 ]
 
-function neighbours(cell: number, size: number, offsets: number[][]): number[] {
-  const r = rowOf(cell, size)
-  const c = colOf(cell, size)
+function neighbours(cell: number, rows: number, cols: number, offsets: number[][]): number[] {
+  const r = rowOf(cell, cols)
+  const c = colOf(cell, cols)
   const out: number[] = []
   for (const [dr, dc] of offsets) {
     const nr = r + dr
     const nc = c + dc
-    if (nr >= 0 && nr < size && nc >= 0 && nc < size) out.push(cellAt(nr, nc, size))
+    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) out.push(cellAt(nr, nc, cols))
   }
   return out
 }
 
-export function orthogonalNeighbours(cell: number, size: number): number[] {
-  return neighbours(cell, size, ORTHO)
+export function orthogonalNeighbours(cell: number, rows: number, cols: number): number[] {
+  return neighbours(cell, rows, cols, ORTHO)
 }
 
-export function kingNeighbours(cell: number, size: number): number[] {
-  return neighbours(cell, size, KING)
+export function kingNeighbours(cell: number, rows: number, cols: number): number[] {
+  return neighbours(cell, rows, cols, KING)
 }
 
-export function knightNeighbours(cell: number, size: number): number[] {
-  return neighbours(cell, size, KNIGHT)
+export function knightNeighbours(cell: number, rows: number, cols: number): number[] {
+  return neighbours(cell, rows, cols, KNIGHT)
 }
 
 // Unordered orthogonally-adjacent cell pairs (each pair once).
-export function orthogonalPairs(size: number): Array<[number, number]> {
+export function orthogonalPairs(rows: number, cols: number): Array<[number, number]> {
   const out: Array<[number, number]> = []
-  for (let r = 0; r < size; r += 1) {
-    for (let c = 0; c < size; c += 1) {
-      const cell = cellAt(r, c, size)
-      if (c + 1 < size) out.push([cell, cellAt(r, c + 1, size)])
-      if (r + 1 < size) out.push([cell, cellAt(r + 1, c, size)])
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const cell = cellAt(r, c, cols)
+      if (c + 1 < cols) out.push([cell, cellAt(r, c + 1, cols)])
+      if (r + 1 < rows) out.push([cell, cellAt(r + 1, c, cols)])
     }
   }
   return out
@@ -87,16 +90,20 @@ export function excludePairs(
 }
 
 // Unordered same-value-forbidding pairs for a move type (king/knight), each once.
-export function movePairs(size: number, move: 'king' | 'knight'): Array<[number, number]> {
+export function movePairs(rows: number, cols: number, move: 'king' | 'knight'): Array<[number, number]> {
   const fn = move === 'king' ? kingNeighbours : knightNeighbours
   const out: Array<[number, number]> = []
-  for (let cell = 0; cell < size * size; cell += 1) {
-    for (const other of fn(cell, size)) {
+  for (let cell = 0; cell < rows * cols; cell += 1) {
+    for (const other of fn(cell, rows, cols)) {
       if (other > cell) out.push([cell, other])
     }
   }
   return out
 }
+
+// ── Square-only helpers ─────────────────────────────────────────────────────
+// Diagonals and standard boxing only exist on square boards; callers gate on
+// rows === cols and pass the side length.
 
 export function mainDiagonalCells(size: number): number[] {
   return Array.from({ length: size }, (_, i) => cellAt(i, i, size))

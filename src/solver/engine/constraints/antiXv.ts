@@ -52,7 +52,7 @@ export default defineModule<AntiXvSpec>({
   build: (board, spec) =>
     new ForbiddenPairsConstraint(
       'Anti-XV',
-      excludePairs(spec.pairs ?? orthogonalPairs(board.size), spec.exempt ?? []),
+      excludePairs(spec.pairs ?? orthogonalPairs(board.rows, board.cols), spec.exempt ?? []),
       (a, b) => a + b === spec.sum,
     ),
   // Negative constraint: the absence of a clue is the information, and a fogged
@@ -63,7 +63,7 @@ export default defineModule<AntiXvSpec>({
     fog: 'cells',
     project: (spec, view) => {
       if (!view.anyFog) return [spec]
-      const pairs = orthogonalPairs(view.size).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
+      const pairs = orthogonalPairs(view.rows, view.cols).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
       return pairs.length > 0 ? [{ ...spec, pairs }] : []
     },
   },

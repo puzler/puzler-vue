@@ -17,21 +17,21 @@ interface IndexCellSpec extends SolverConstraintSpec {
 export default defineModule<IndexCellSpec>({
   kind: 'index_cell',
   fromEditor: (ctx) => {
-    const size = ctx.size
+    const { rows, cols } = ctx
     const specs: IndexCellSpec[] = []
     for (const key of ctx.singleCellMarks['row_index_cells'] ?? []) {
       const cell = ctx.keyToIndex(key)
       if (cell < 0) continue
-      const r = rowOf(cell, size)
-      const line = Array.from({ length: size }, (_, i) => cellAt(r, i, size))
-      specs.push({ kind: 'index_cell', cell, cells: line, indexedValue: colOf(cell, size) + 1 })
+      const r = rowOf(cell, cols)
+      const line = Array.from({ length: cols }, (_, i) => cellAt(r, i, cols))
+      specs.push({ kind: 'index_cell', cell, cells: line, indexedValue: colOf(cell, cols) + 1 })
     }
     for (const key of ctx.singleCellMarks['col_index_cells'] ?? []) {
       const cell = ctx.keyToIndex(key)
       if (cell < 0) continue
-      const c = colOf(cell, size)
-      const line = Array.from({ length: size }, (_, i) => cellAt(i, c, size))
-      specs.push({ kind: 'index_cell', cell, cells: line, indexedValue: rowOf(cell, size) + 1 })
+      const c = colOf(cell, cols)
+      const line = Array.from({ length: rows }, (_, i) => cellAt(i, c, cols))
+      specs.push({ kind: 'index_cell', cell, cells: line, indexedValue: rowOf(cell, cols) + 1 })
     }
     return specs
   },

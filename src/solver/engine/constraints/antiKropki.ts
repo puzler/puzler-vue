@@ -68,7 +68,7 @@ export default defineModule<AntiKropkiSpec>({
         : (a: number, b: number) => a === spec.value * b || b === spec.value * a
     return new ForbiddenPairsConstraint(
       'Anti-Kropki',
-      excludePairs(spec.pairs ?? orthogonalPairs(board.size), spec.exempt ?? []),
+      excludePairs(spec.pairs ?? orthogonalPairs(board.rows, board.cols), spec.exempt ?? []),
       forbidden,
     )
   },
@@ -80,7 +80,7 @@ export default defineModule<AntiKropkiSpec>({
     fog: 'cells',
     project: (spec, view) => {
       if (!view.anyFog) return [spec]
-      const pairs = orthogonalPairs(view.size).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
+      const pairs = orthogonalPairs(view.rows, view.cols).filter(([a, b]) => !view.isFogged(a) || !view.isFogged(b))
       return pairs.length > 0 ? [{ ...spec, pairs }] : []
     },
   },

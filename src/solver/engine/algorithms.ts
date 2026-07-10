@@ -93,7 +93,7 @@ export function trueCandidates(
   start: Board,
   maxSolutionsPerCandidate: number,
 ): TrueCandidatesResult {
-  const size = start.size
+  const size = start.digitRange
   const numCells = start.numCells
   const wantCounts = maxSolutionsPerCandidate > 1
 
@@ -159,7 +159,7 @@ export function logicalCandidates(
   const base = start.clone()
   if (logicalSolve(base, techniques).invalid) return { valid: false, candidates: [] }
 
-  const size = base.size
+  const size = base.digitRange
   const numCells = base.numCells
   const wantCounts = maxSolutionsPerCandidate > 1
   const counts = Array.from({ length: numCells }, () => new Array<number>(size).fill(0))

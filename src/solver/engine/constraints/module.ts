@@ -6,7 +6,8 @@ import type { AdapterContext } from '../../adapterContext'
 // What a player can currently see of the grid under fog of war, at cell
 // granularity (seeing a cell means seeing every glyph feature drawn in it).
 export interface FogView {
-  size: number
+  rows: number
+  cols: number
   // True while ANY cell on the grid is still fogged. Constraints whose meaning
   // depends on the absence of clues elsewhere (e.g. counting circles) can only
   // participate once this is false.

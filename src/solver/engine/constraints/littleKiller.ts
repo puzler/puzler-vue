@@ -21,7 +21,7 @@ export default defineModule<LittleKillerSpec>({
       if (clue.type !== 'little_killers' || clue.value == null || !clue.direction) continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const cells = diagonalLine(ctx.size, pos.row, pos.col, clue.direction)
+      const cells = diagonalLine(ctx.rows, ctx.cols, pos.row, pos.col, clue.direction)
       if (cells.length) specs.push({ kind: 'little_killer', cells, target: clue.value })
     }
     return specs

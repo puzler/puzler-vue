@@ -31,14 +31,55 @@ function vSegs(borderType: 'thin' | 'thick' | 'outer'): Segment[] {
   return segs
 }
 
-const thinH = computed(() => hSegs('thin'))
-const thinV = computed(() => vSegs('thin'))
-const thickH = computed(() => hSegs('thick'))
-const thickV = computed(() => vSegs('thick'))
-const outerH = computed(() => hSegs('outer'))
-const outerV = computed(() => vSegs('outer'))
+// A grid with no regions at all (the default for non-square grids, or after
+// painting every cell regionless) would render as an invisible canvas — the
+// region-derived lists produce nothing. Fall back to a plain lattice: thin
+// strokes on every interior border and the full outer frame. Grids with at
+// least one region keep the region-derived rendering, including its
+// hole-puzzle behavior (regionless cells drop their outer edge).
+const regionless = computed(() => {
+  for (const label of grid.cellRegionLabelMap.values()) {
+    if (label !== null) return false
+  }
+  return true
+})
+
+function latticeH(): Segment[] {
+  const segs: Segment[] = []
+  for (let r = 1; r < grid.rows; r++) {
+    const y = PADDING + r * CELL_SIZE
+    segs.push({ x1: PADDING, y1: y, x2: PADDING + grid.cols * CELL_SIZE, y2: y })
+  }
+  return segs
+}
+
+function latticeV(): Segment[] {
+  const segs: Segment[] = []
+  for (let c = 1; c < grid.cols; c++) {
+    const x = PADDING + c * CELL_SIZE
+    segs.push({ x1: x, y1: PADDING, x2: x, y2: PADDING + grid.rows * CELL_SIZE })
+  }
+  return segs
+}
+
+const thinH = computed(() => (regionless.value ? latticeH() : hSegs('thin')))
+const thinV = computed(() => (regionless.value ? latticeV() : vSegs('thin')))
+const thickH = computed(() => (regionless.value ? [] : hSegs('thick')))
+const thickV = computed(() => (regionless.value ? [] : vSegs('thick')))
+const outerH = computed(() => (regionless.value ? [] : hSegs('outer')))
+const outerV = computed(() => (regionless.value ? [] : vSegs('outer')))
 
 const puzzleEdge = computed<Segment[]>(() => {
+  const right = PADDING + grid.cols * CELL_SIZE
+  const bottom = PADDING + grid.rows * CELL_SIZE
+  if (regionless.value) {
+    return [
+      { x1: PADDING, y1: PADDING, x2: right, y2: PADDING },
+      { x1: PADDING, y1: bottom, x2: right, y2: bottom },
+      { x1: PADDING, y1: PADDING, x2: PADDING, y2: bottom },
+      { x1: right, y1: PADDING, x2: right, y2: bottom },
+    ]
+  }
   const segs: Segment[] = []
   const labels = grid.cellRegionLabelMap
   for (let c = 0; c < grid.cols; c++) {

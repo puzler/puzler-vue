@@ -33,6 +33,29 @@ export interface CosmeticLineData {
   presetId: string
 }
 
+// Cosmetic borders: styled segments drawn along interior cell edges (each edge
+// a canonical borderKey). The default preset matches the thick region-border
+// stroke, so borders can fake region boundaries on grids whose real regions
+// are turned off, or add walls that separate nothing.
+export type BorderStyle = LineStyle
+
+export const DEFAULT_BORDER_STYLE: BorderStyle = {
+  color: '#232B3D', // --color-grid-line-box
+  strokeWidth: 2.5, // BOX_STROKE
+  opacity: 1,
+}
+
+export interface BorderPreset {
+  id: string
+  label: string
+  style: BorderStyle
+}
+
+export interface CosmeticBorderData {
+  edges: string[]
+  presetId: string
+}
+
 export interface CosmeticInstance {
   id: string
   type: string

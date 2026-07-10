@@ -8,6 +8,7 @@ import CosmeticLineComp from '@/components/cosmetics/CosmeticLine.vue'
 import CosmeticShape from '@/components/cosmetics/CosmeticShape.vue'
 import CosmeticText from '@/components/cosmetics/CosmeticText.vue'
 import { cellsToPath } from '@/utils/linePath'
+import CosmeticBorders from '@/components/cosmetics/CosmeticBorders.vue'
 import { DEFAULT_LINE_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, cosmeticPos } from '@/types/constraints'
 import type { CosmeticLineData, LineStyle, ShapeData, TextData } from '@/types/constraints'
 
@@ -135,6 +136,9 @@ const textInstances = computed(() =>
       stroke-dasharray="2 3"
       pointer-events="none"
     />
+
+    <!-- Borders (visually part of the grid chrome: square caps, above GridBorders) -->
+    <CosmeticBorders />
 
     <!-- Lines -->
     <CosmeticLineComp

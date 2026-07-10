@@ -23,7 +23,7 @@ export default defineModule<NumberedRoomsSpec>({
       if (clue.type !== 'numbered_rooms' || clue.value == null || typeof clue.value !== 'number') continue
       const pos = parseOuterKey(key)
       if (!pos) continue
-      const line = outerLine(ctx.size, pos.row, pos.col)
+      const line = outerLine(ctx.rows, ctx.cols, pos.row, pos.col)
       if (line.length) specs.push({ kind: 'numbered_rooms', line, target: clue.value })
     }
     return specs

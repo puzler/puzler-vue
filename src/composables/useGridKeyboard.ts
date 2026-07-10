@@ -204,7 +204,7 @@ export function useGridKeyboard() {
 
     const digit = physicalDigit(event)
 
-    if (editor.activeTool === 'region') {
+    if (editor.activeTool === 'grid') {
       if (event.key === 'Backspace' || event.key === 'Delete') {
         event.preventDefault()
         editor.setRegionForSelection(null)
@@ -269,7 +269,7 @@ export function useGridKeyboard() {
       return
     }
 
-    if (digit !== null && digit >= 1 && digit <= grid.cols) {
+    if (digit !== null && digit >= 1 && digit <= Math.max(grid.rows, grid.cols)) {
       event.preventDefault()
       let modeOverride: SolverInputMode | undefined
       if (editor.mode === 'solving') {

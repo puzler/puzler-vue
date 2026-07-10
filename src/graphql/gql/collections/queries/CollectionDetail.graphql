@@ -16,6 +16,9 @@ query CollectionDetail($id: ID!) {
       id
       entryType
       position
+      gated
+      hidden
+      finale
       puzzle {
         id
         title

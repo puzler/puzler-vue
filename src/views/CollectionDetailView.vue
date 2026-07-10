@@ -3,12 +3,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
 import ContentPage from '@/components/ContentPage.vue'
-import ConfirmModal from '@/components/ConfirmModal.vue'
-import AddPuzzlesModal from '@/components/mypuzzles/AddPuzzlesModal.vue'
 import CollectionEntryList from '@/components/mypuzzles/CollectionEntryList.vue'
 import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
 import CollectionPageEditor from '@/components/mypuzzles/CollectionPageEditor.vue'
-import StoryPageModal from '@/components/mypuzzles/StoryPageModal.vue'
+import CollectionDetailModals from '@/components/mypuzzles/CollectionDetailModals.vue'
 import CollectionDetailDocument from '@/graphql/gql/collections/queries/CollectionDetail.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import DeleteCollectionDocument from '@/graphql/gql/collections/mutations/DeleteCollection.graphql'
@@ -40,7 +38,14 @@ const loading = ref(true)
 const showAdd = ref(false)
 const showDelete = ref(false)
 const editingStory = ref<Entry['storyPage'] | null>(null)
+const editingGates = ref<Entry | null>(null)
 const removingEntry = ref<Entry | null>(null)
+
+function entryLabel(entry: Entry): string {
+  return entry.entryType === 'Puzzle'
+    ? (entry.puzzle?.title ?? 'Puzzle')
+    : (entry.storyPage?.title || 'Untitled story page')
+}
 
 const puzzleIds = computed(() =>
   entries.value.flatMap((entry) => (entry.puzzle ? [ entry.puzzle.id ] : [])))
@@ -183,6 +188,7 @@ onMounted(load)
           @add="showAdd = true"
           @add-story="addStoryPage"
           @edit-story="editingStory = $event.storyPage"
+          @edit-gates="editingGates = $event"
         />
 
         <div class="pt-4 border-t border-line">
@@ -195,31 +201,24 @@ onMounted(load)
         </div>
       </div>
 
-      <AddPuzzlesModal
-        v-if="showAdd && collection"
+      <CollectionDetailModals
         :collection-id="id"
+        :show-add="showAdd && !!collection"
         :exclude-ids="puzzleIds"
+        :editing-story="editingStory"
+        :editing-gates="editingGates"
+        :gates-label="editingGates ? entryLabel(editingGates) : ''"
+        :removing-entry="removingEntry"
+        :show-delete="showDelete"
         @added="load"
-        @close="showAdd = false"
-      />
-      <StoryPageModal
-        v-if="editingStory"
-        :story-page="editingStory"
-        @close="closeStoryModal"
-      />
-      <ConfirmModal
-        v-if="removingEntry"
-        message="Delete this story page? Its text and images are removed for good."
-        confirm-label="Delete"
-        @confirm="removeEntry(removingEntry)"
-        @cancel="removingEntry = null"
-      />
-      <ConfirmModal
-        v-if="showDelete"
-        message="Delete this collection? The puzzles themselves are kept."
-        confirm-label="Delete"
-        @confirm="deleteCollection"
-        @cancel="showDelete = false"
+        @close-add="showAdd = false"
+        @close-story="closeStoryModal"
+        @saved-gates="load"
+        @close-gates="editingGates = null"
+        @confirm-remove="removingEntry && removeEntry(removingEntry)"
+        @cancel-remove="removingEntry = null"
+        @confirm-delete="deleteCollection"
+        @cancel-delete="showDelete = false"
       />
     </div>
   </ContentPage>

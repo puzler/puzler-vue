@@ -22,10 +22,17 @@ fragment CollectionPublicFields on Collection {
     avgRating
     solveCount
   }
+  hasCodewords
   entries {
     id
     entryType
     position
+    locked
+    solved
+    gated
+    hidden
+    finale
+    storyTitle
     puzzle {
       id
     }

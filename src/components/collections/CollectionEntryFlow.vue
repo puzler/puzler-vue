@@ -3,9 +3,9 @@ import { computed } from 'vue'
 import MdiIcon from '@/components/MdiIcon.vue'
 import RichProseBody from '@/components/RichProseBody.vue'
 import CollectionPuzzleRow from '@/components/collections/CollectionPuzzleRow.vue'
-import { mdiLockOutline } from '@mdi/js'
+import { mdiLockOutline, mdiKeyOutline, mdiTrophyOutline } from '@mdi/js'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
-import { entryUnlocked, puzzleOrdinal, type FlowEntry } from '@/utils/collectionEntries'
+import { entryOpen, entrySolved, puzzleOrdinal, type FlowEntry } from '@/utils/collectionEntries'
 
 type EntryPuzzle = { id: string; title: string; avgRating?: number | null; shareToken?: string | null }
 type Entry = FlowEntry
@@ -44,7 +44,7 @@ function puzzleLink(puzzle: EntryPuzzle) {
 }
 
 function isUnlocked(index: number): boolean {
-  return entryUnlocked(props.entries, index, props.isSequence, props.solved)
+  return entryOpen(props.entries, index, props.isSequence, props.solved)
 }
 
 function puzzleNumber(index: number): number {
@@ -53,6 +53,14 @@ function puzzleNumber(index: number): number {
 
 function storyHtml(entry: Entry): string {
   return sanitizeHtml(entry.storyPage?.bodyHtml ?? null)
+}
+
+// Why is this entry locked, in the viewer's terms? Codeword and finale gates
+// beat the plain sequence explanation.
+function lockHint(entry: Entry): { icon: string; text: string } {
+  if (entry.gated) return { icon: mdiKeyOutline, text: 'Enter the codeword to unlock this.' }
+  if (entry.finale) return { icon: mdiTrophyOutline, text: 'The finale unlocks once every other puzzle is solved.' }
+  return { icon: mdiLockOutline, text: 'The story continues once the puzzles above are solved.' }
 }
 </script>
 
@@ -85,11 +93,13 @@ function storyHtml(entry: Entry): string {
           class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line text-faint"
         >
           <MdiIcon
-            :path="mdiLockOutline"
+            :path="lockHint(entry).icon"
             :size="16"
             class="shrink-0"
           />
-          <span class="text-sm italic">The story continues once the puzzles above are solved.</span>
+          <span class="text-sm italic">
+            <template v-if="entry.storyTitle">{{ entry.storyTitle }} · </template>{{ lockHint(entry).text }}
+          </span>
         </div>
       </template>
 
@@ -99,9 +109,10 @@ function storyHtml(entry: Entry): string {
         :puzzle="entryPuzzle(entry)!"
         :link="puzzleLink(entryPuzzle(entry)!)"
         :unlocked="isUnlocked(index)"
-        :show-number="isSequence"
+        :show-number="isSequence || entry.finale === true"
         :number="puzzleNumber(index)"
-        :is-solved="solved.has(entryPuzzle(entry)!.id)"
+        :is-solved="entrySolved(entry, solved)"
+        :lock-icon="lockHint(entry).icon"
       />
     </li>
   </ol>

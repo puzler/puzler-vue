@@ -4,15 +4,17 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
 
 // One puzzle row in a collection's entry flow: a playable link when unlocked,
-// a dashed locked row otherwise.
-defineProps<{
+// a dashed locked row otherwise. `lockIcon` names the reason (sequence lock,
+// codeword gate, finale).
+withDefaults(defineProps<{
   puzzle: { id: string; title: string; avgRating?: number | null }
   link: { name: string; params: Record<string, string>; query: Record<string, string> }
   unlocked: boolean
   showNumber: boolean
   number: number
   isSolved: boolean
-}>()
+  lockIcon?: string
+}>(), { lockIcon: mdiLockOutline })
 </script>
 
 <template>
@@ -44,7 +46,7 @@ defineProps<{
     <span class="text-sm w-5 text-right shrink-0">{{ number }}</span>
     <span class="truncate flex-1">{{ puzzle.title }}</span>
     <MdiIcon
-      :path="mdiLockOutline"
+      :path="lockIcon"
       :size="16"
       class="shrink-0"
     />

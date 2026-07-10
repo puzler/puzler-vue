@@ -1,0 +1,8 @@
+mutation UpdateCollectionEntry($collectionId: ID!, $entryId: ID!, $gates: CollectionEntryGatesInput!) {
+  updateCollectionEntry(input: { collectionId: $collectionId, entryId: $entryId, gates: $gates }) {
+    collection {
+      id
+    }
+    errors
+  }
+}

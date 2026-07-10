@@ -278,10 +278,28 @@ declare module '*/ReorderCollectionPuzzles.graphql' {
 }
     
 
+declare module '*/SubmitCollectionCodeword.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SubmitCollectionCodeword: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UpdateCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateCollectionEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateCollectionEntry: DocumentNode;
 
   export default defaultDocument;
 }

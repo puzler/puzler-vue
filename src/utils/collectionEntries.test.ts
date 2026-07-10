@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { entryUnlocked, puzzleOrdinal, tableOfContents, type FlowEntry } from './collectionEntries'
+import { entryUnlocked, entryOpen, entrySolved, puzzleOrdinal, tableOfContents, type FlowEntry } from './collectionEntries'
 
 function puzzleEntry(id: string): FlowEntry {
   return { id: `e-${id}`, entryType: 'Puzzle', puzzle: { id } }
@@ -49,5 +49,51 @@ describe('tableOfContents', () => {
       { id: 'e-s1', title: 'Prologue', unlocked: true },
       { id: 'e-s3', title: 'Finale', unlocked: false },
     ])
+  })
+
+  it('uses the server storyTitle for locked chapters whose body is withheld', () => {
+    const locked: FlowEntry = { id: 'e-x', entryType: 'StoryPage', locked: true, gated: true, storyTitle: 'Sealed' }
+    expect(tableOfContents([ locked ], false, new Set())).toEqual([
+      { id: 'e-x', title: 'Sealed', unlocked: false },
+    ])
+  })
+})
+
+describe('entryOpen', () => {
+  it('falls back to local logic when the server sent no lock state', () => {
+    expect(entryOpen(ENTRIES, 3, true, new Set([ 'p1' ]))).toBe(true)
+    expect(entryOpen(ENTRIES, 3, true, new Set())).toBe(false)
+  })
+
+  it('trusts an explicit server unlock', () => {
+    const entries: FlowEntry[] = [ { ...puzzleEntry('p1'), locked: false } ]
+    expect(entryOpen(entries, 0, true, new Set())).toBe(true)
+  })
+
+  it('keeps gated and finale locks strict even if local progress disagrees', () => {
+    const gated: FlowEntry = { ...storyEntry('s9', 'Vault'), locked: true, gated: true }
+    const finale: FlowEntry = { ...puzzleEntry('p9'), locked: true, finale: true }
+    expect(entryOpen([ gated ], 0, false, new Set([ 'p1', 'p2' ]))).toBe(false)
+    expect(entryOpen([ finale ], 0, false, new Set([ 'p9' ]))).toBe(false)
+  })
+
+  it('lets local solve history override a plain sequence lock', () => {
+    const entries: FlowEntry[] = [ puzzleEntry('p1'), { ...puzzleEntry('p2'), locked: true } ]
+    expect(entryOpen(entries, 1, true, new Set([ 'p1' ]))).toBe(true)
+    expect(entryOpen(entries, 1, true, new Set())).toBe(false)
+  })
+
+  it('counts server-reported solves toward local sequence checks', () => {
+    const entries: FlowEntry[] = [ { ...puzzleEntry('p1'), solved: true }, { ...puzzleEntry('p2'), locked: true } ]
+    expect(entryOpen(entries, 1, true, new Set())).toBe(true)
+  })
+})
+
+describe('entrySolved', () => {
+  it('merges local and server solve state, puzzles only', () => {
+    expect(entrySolved(puzzleEntry('p1'), new Set([ 'p1' ]))).toBe(true)
+    expect(entrySolved({ ...puzzleEntry('p1'), solved: true }, new Set())).toBe(true)
+    expect(entrySolved(puzzleEntry('p1'), new Set())).toBe(false)
+    expect(entrySolved({ ...storyEntry('s1'), solved: true } as FlowEntry, new Set())).toBe(false)
   })
 })

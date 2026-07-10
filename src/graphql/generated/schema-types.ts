@@ -153,10 +153,16 @@ export type Collection = {
   coverThumbUrl?: Maybe<Scalars['String']['output']>;
   /** Optional short description (plain text, shown on cards) */
   description?: Maybe<Scalars['String']['output']>;
-  /** Ordered entries (puzzles and story pages); non-authors see only publicly-visible puzzles */
+  /**
+   * Ordered entries (puzzles and story pages) with the viewer's lock state
+   * resolved; non-authors see only publicly-visible puzzles, and hidden entries
+   * only once unlocked
+   */
   entries: Array<CollectionEntry>;
   /** Folder this collection is filed in; only visible to the author */
   folder?: Maybe<Folder>;
+  /** Whether any entry is gated by a codeword (drives the codeword input) */
+  hasCodewords: Scalars['Boolean']['output'];
   /** Unique collection ID */
   id: Scalars['ID']['output'];
   /** Ordering mode: unordered or sequence */
@@ -235,14 +241,36 @@ export type CollectionEntry = {
   __typename?: 'CollectionEntry';
   /** What this entry points at: Puzzle or StoryPage */
   entryType: Scalars['String']['output'];
+  /** Whether this entry unlocks only after every other puzzle is solved */
+  finale: Scalars['Boolean']['output'];
+  /** Whether a codeword must be entered to open this entry */
+  gated: Scalars['Boolean']['output'];
+  /** Whether this entry is invisible until its codeword is entered (authors always see it) */
+  hidden: Scalars['Boolean']['output'];
   /** Unique entry ID */
   id: Scalars['ID']['output'];
+  /** Whether this entry is currently locked for the viewer */
+  locked: Scalars['Boolean']['output'];
   /** Order within the collection */
   position: Scalars['Int']['output'];
   /** The puzzle, when this entry is a puzzle */
   puzzle?: Maybe<Puzzle>;
-  /** The story page, when this entry is a story page */
+  /** Whether the viewer has solved this entry's puzzle (always false for story pages) */
+  solved: Scalars['Boolean']['output'];
+  /** The story page with its body, when this entry is an unlocked story page */
   storyPage?: Maybe<StoryPage>;
+  /** The story page's title, present even while the body is locked */
+  storyTitle?: Maybe<Scalars['String']['output']>;
+};
+
+/** Per-entry hunt gates; omitted fields are left untouched */
+export type CollectionEntryGatesInput = {
+  /** Codeword required to open this entry; empty string clears it */
+  codeword?: InputMaybe<Scalars['String']['input']>;
+  /** Unlock only after every other puzzle in the collection is solved */
+  finale?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Hide the entry until its codeword is entered (requires a codeword) */
+  hidden?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** One solver's standing in a timed collection */
@@ -299,8 +327,12 @@ export type CollectionMutations = {
   reorderCollectionEntries?: Maybe<ReorderCollectionEntriesPayload>;
   /** Reorder the puzzles in a collection */
   reorderCollectionPuzzles?: Maybe<ReorderCollectionPuzzlesPayload>;
+  /** Try a codeword against a collection's gated entries */
+  submitCollectionCodeword?: Maybe<SubmitCollectionCodewordPayload>;
   /** Update a collection's metadata */
   updateCollection?: Maybe<UpdateCollectionPayload>;
+  /** Update an entry's hunt gates (codeword, hidden, finale) */
+  updateCollectionEntry?: Maybe<UpdateCollectionEntryPayload>;
   /** Save the rich page body for a collection */
   updateCollectionPageDescription?: Maybe<UpdateCollectionPageDescriptionPayload>;
   /** Update a story page's title or body */
@@ -411,8 +443,20 @@ export type CollectionMutationsReorderCollectionPuzzlesArgs = {
 
 
 /** Mutations for managing folders and collections */
+export type CollectionMutationsSubmitCollectionCodewordArgs = {
+  input: SubmitCollectionCodewordInput;
+};
+
+
+/** Mutations for managing folders and collections */
 export type CollectionMutationsUpdateCollectionArgs = {
   input: UpdateCollectionInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsUpdateCollectionEntryArgs = {
+  input: UpdateCollectionEntryInput;
 };
 
 
@@ -1395,6 +1439,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   setPuzzleVisibility?: Maybe<SetPuzzleVisibilityPayload>;
   /** Start or resume a play session for a published puzzle */
   startPlay?: Maybe<StartPlayPayload>;
+  /** Try a codeword against a collection's gated entries */
+  submitCollectionCodeword?: Maybe<SubmitCollectionCodewordPayload>;
   /** Submit a completed solution for server-side validation */
   submitSolution?: Maybe<SubmitSolutionPayload>;
   /** Claim a solve via the setter's solution code (for off-site solves) */
@@ -1407,6 +1453,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   unpublishPuzzle?: Maybe<UnpublishPuzzlePayload>;
   /** Update a collection's metadata */
   updateCollection?: Maybe<UpdateCollectionPayload>;
+  /** Update an entry's hunt gates (codeword, hidden, finale) */
+  updateCollectionEntry?: Maybe<UpdateCollectionEntryPayload>;
   /** Save the rich page body for a collection */
   updateCollectionPageDescription?: Maybe<UpdateCollectionPageDescriptionPayload>;
   /** Save the sanitized rich description for a puzzle's public page */
@@ -1761,6 +1809,12 @@ export type MutationStartPlayArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSubmitCollectionCodewordArgs = {
+  input: SubmitCollectionCodewordInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationSubmitSolutionArgs = {
   input: SubmitSolutionInput;
 };
@@ -1793,6 +1847,12 @@ export type MutationUnpublishPuzzleArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationUpdateCollectionArgs = {
   input: UpdateCollectionInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationUpdateCollectionEntryArgs = {
+  input: UpdateCollectionEntryInput;
 };
 
 
@@ -3370,6 +3430,31 @@ export type StoryPage = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+/** Autogenerated input type of SubmitCollectionCodeword */
+export type SubmitCollectionCodewordInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The collection */
+  collectionId: Scalars['ID']['input'];
+  /** The codeword to try */
+  guess: Scalars['String']['input'];
+  /** Share token, when the collection was reached by link */
+  shareToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Autogenerated return type of SubmitCollectionCodeword. */
+export type SubmitCollectionCodewordPayload = {
+  __typename?: 'SubmitCollectionCodewordPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The collection with the viewer's refreshed lock state */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** Whether the guess opened anything */
+  matched: Scalars['Boolean']['output'];
+};
+
 /** Autogenerated input type of SubmitSolutionCode */
 export type SubmitSolutionCodeInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3526,6 +3611,29 @@ export type UnpublishPuzzlePayload = {
   errors: Array<Scalars['String']['output']>;
   /** The unpublished puzzle */
   puzzle?: Maybe<Puzzle>;
+};
+
+/** Autogenerated input type of UpdateCollectionEntry */
+export type UpdateCollectionEntryInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The collection */
+  collectionId: Scalars['ID']['input'];
+  /** Entry to update */
+  entryId: Scalars['ID']['input'];
+  /** Gate settings to change */
+  gates: CollectionEntryGatesInput;
+};
+
+/** Autogenerated return type of UpdateCollectionEntry. */
+export type UpdateCollectionEntryPayload = {
+  __typename?: 'UpdateCollectionEntryPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
 };
 
 /** Autogenerated input type of UpdateCollection */

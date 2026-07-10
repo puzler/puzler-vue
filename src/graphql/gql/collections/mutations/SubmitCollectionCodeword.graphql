@@ -1,0 +1,6 @@
+mutation SubmitCollectionCodeword($collectionId: ID!, $guess: String!, $shareToken: String) {
+  submitCollectionCodeword(input: { collectionId: $collectionId, guess: $guess, shareToken: $shareToken }) {
+    matched
+    errors
+  }
+}

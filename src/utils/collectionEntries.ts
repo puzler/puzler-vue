@@ -4,8 +4,19 @@
 export type FlowEntry = {
   id: string
   entryType: string
+  // Per-viewer state resolved by the server (absent in older payloads/tests).
+  locked?: boolean
+  solved?: boolean
+  gated?: boolean
+  hidden?: boolean
+  finale?: boolean
+  storyTitle?: string | null
   puzzle?: { id: string } | null
   storyPage?: { id: string; title?: string | null; bodyHtml?: string | null } | null
+}
+
+function puzzleSolved(entry: FlowEntry, localSolved: Set<string>): boolean {
+  return entry.solved === true || (entry.puzzle != null && localSolved.has(entry.puzzle.id))
 }
 
 // In a sequence collection, an entry unlocks only once every earlier puzzle is
@@ -16,8 +27,26 @@ export function entryUnlocked(
 ): boolean {
   if (!isSequence) return true
   return entries.slice(0, index).every(
-    (entry) => entry.entryType !== 'Puzzle' || (entry.puzzle != null && solved.has(entry.puzzle.id)),
+    (entry) => entry.entryType !== 'Puzzle' || puzzleSolved(entry, solved),
   )
+}
+
+// What the viewer may open right now. The server's per-actor lock is
+// authoritative for gates (codewords, finales); a plain sequence lock may be
+// overridden by local solve history (e.g. guests who solved puzzles before
+// their guest token existed).
+export function entryOpen(
+  entries: FlowEntry[], index: number, isSequence: boolean, localSolved: Set<string>,
+): boolean {
+  const entry = entries[index]
+  if (entry.locked === undefined) return entryUnlocked(entries, index, isSequence, localSolved)
+  if (!entry.locked) return true
+  if (entry.gated || entry.finale) return false
+  return entryUnlocked(entries, index, isSequence, localSolved)
+}
+
+export function entrySolved(entry: FlowEntry, localSolved: Set<string>): boolean {
+  return entry.entryType === 'Puzzle' && puzzleSolved(entry, localSolved)
 }
 
 // 1-based number of the puzzle at `index` counting puzzle entries only, so
@@ -27,11 +56,14 @@ export function puzzleOrdinal(entries: FlowEntry[], index: number): number {
 }
 
 // Titled story entries form the table of contents; untitled interludes don't.
+// Locked chapters keep their title (the server still sends storyTitle).
 export function tableOfContents(
   entries: FlowEntry[], isSequence: boolean, solved: Set<string>,
 ): { id: string; title: string; unlocked: boolean }[] {
   return entries.flatMap((entry, index) => {
-    if (entry.entryType !== 'StoryPage' || !entry.storyPage?.title) return []
-    return [ { id: entry.id, title: entry.storyPage.title, unlocked: entryUnlocked(entries, index, isSequence, solved) } ]
+    if (entry.entryType !== 'StoryPage') return []
+    const title = entry.storyTitle ?? entry.storyPage?.title
+    if (!title) return []
+    return [ { id: entry.id, title, unlocked: entryOpen(entries, index, isSequence, solved) } ]
   })
 }

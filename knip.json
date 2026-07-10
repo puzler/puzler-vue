@@ -7,8 +7,10 @@
   "project": ["src/**/*.{ts,vue}"],
   "ignore": ["src/graphql/generated/**"],
   "ignoreDependencies": [
+    "@fontsource/fraunces",
     "@fontsource/inter",
     "@fontsource/space-grotesk",
+    "@fontsource/space-mono",
     "tailwindcss"
   ]
 }

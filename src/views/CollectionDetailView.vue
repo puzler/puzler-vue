@@ -7,6 +7,7 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import AddPuzzlesModal from '@/components/mypuzzles/AddPuzzlesModal.vue'
 import CollectionPuzzleList from '@/components/mypuzzles/CollectionPuzzleList.vue'
 import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
+import CollectionPageEditor from '@/components/mypuzzles/CollectionPageEditor.vue'
 import CollectionDetailDocument from '@/graphql/gql/collections/queries/CollectionDetail.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import DeleteCollectionDocument from '@/graphql/gql/collections/mutations/DeleteCollection.graphql'
@@ -22,7 +23,8 @@ import type {
 import { CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionDetailQuery['collection']>
-type Attrs = Partial<Pick<UpdateCollectionMutationVariables, 'title' | 'visibility' | 'mode' | 'timed'>>
+type Attrs = Partial<Pick<UpdateCollectionMutationVariables,
+  'title' | 'visibility' | 'mode' | 'timed' | 'accentColor' | 'bgTreatment' | 'titleFont'>>
 
 const route = useRoute()
 const router = useRouter()
@@ -47,6 +49,13 @@ function save(attrs: Attrs) {
   apolloClient.mutate<UpdateCollectionMutation, UpdateCollectionMutationVariables>({
     mutation: UpdateCollectionDocument, variables: { id, ...attrs },
   })
+  // Reflect the change locally so dependent UI (page editor preview) updates.
+  if (collection.value) {
+    const defined = Object.fromEntries(
+      Object.entries(attrs).filter(([ , value ]) => value !== undefined && value !== null),
+    ) as Partial<Collection>
+    collection.value = { ...collection.value, ...defined }
+  }
 }
 
 function move(index: number, delta: number) {
@@ -125,6 +134,16 @@ onMounted(load)
         >
           View public page →
         </RouterLink>
+
+        <CollectionPageEditor
+          :collection-id="id"
+          :cover-image-url="collection.coverImageUrl ?? null"
+          :page-description-html="collection.pageDescriptionHtml ?? null"
+          :accent-color="collection.accentColor"
+          :bg-treatment="collection.bgTreatment"
+          :title-font="collection.titleFont"
+          @save="save"
+        />
 
         <CollectionPuzzleList
           :puzzles="puzzles"

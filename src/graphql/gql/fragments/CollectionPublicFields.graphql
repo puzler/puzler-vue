@@ -2,6 +2,11 @@ fragment CollectionPublicFields on Collection {
   id
   title
   description
+  pageDescriptionHtml
+  coverImageUrl
+  accentColor
+  bgTreatment
+  titleFont
   mode
   timed
   author {

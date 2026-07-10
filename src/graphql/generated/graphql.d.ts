@@ -215,6 +215,15 @@ declare module '*/RecordCollectionSolveTime.graphql' {
 }
     
 
+declare module '*/RemoveCollectionCoverImage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RemoveCollectionCoverImage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RemovePuzzleFromCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -246,6 +255,33 @@ declare module '*/UpdateCollection.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const UpdateCollection: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdateCollectionPageDescription.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateCollectionPageDescription: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UploadCollectionCoverImage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UploadCollectionCoverImage: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UploadCollectionDescriptionImage.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UploadCollectionDescriptionImage: DocumentNode;
 
   export default defaultDocument;
 }

@@ -8,6 +8,10 @@
 @import "@fontsource/space-grotesk/500.css";
 @import "@fontsource/space-grotesk/600.css";
 @import "@fontsource/space-grotesk/700.css";
+/* Curated collection-page title fonts (see "Collection accents" below). */
+@import "@fontsource/fraunces/600.css";
+@import "@fontsource/fraunces/700.css";
+@import "@fontsource/space-mono/700.css";
 
 /* "Ink & Paper" design tokens — see STYLE_GUIDE.md at the repo root.
    Hierarchy by surface: ink chrome → canvas → paper panels → white cards.
@@ -158,3 +162,58 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .driver-popover.puzler-tour, .driver-overlay, .driver-active-element { transition: none !important; }
 }
+
+/* Collection accents — curated per-collection page styling (rich-collections
+   epic). Applied to the collection page root via utils/collectionTheme.ts;
+   the CSS-var cascade re-themes action colors, panel tints, and the display
+   font for everything inside without any component knowing about theming.
+   Keep these sets in sync with Collection's enums (api) and STYLE_GUIDE.md;
+   no new accent value without updating the guide first. */
+.collection-accent-forest {
+  --color-action: #2F7D46;
+  --color-action-deep: #276A3B;
+  --color-action-tint: #E8F3EA;
+}
+.collection-accent-wine {
+  --color-action: #A03352;
+  --color-action-deep: #8B2946;
+  --color-action-tint: #F9EAEE;
+}
+.collection-accent-ocean {
+  --color-action: #0F7490;
+  --color-action-deep: #0C637B;
+  --color-action-tint: #E5F3F6;
+}
+.collection-accent-ember {
+  --color-action: #C2571B;
+  --color-action-deep: #A84A15;
+  --color-action-tint: #FBEDE2;
+}
+.collection-accent-violet {
+  --color-action: #7C3AED;
+  --color-action-deep: #6D28D9;
+  --color-action-tint: #F1EAFD;
+}
+
+/* Background treatments tint the page and card surfaces, subtly. Light theme
+   only (the app opts out of OS dark mode; see color-scheme above). */
+.collection-bg-parchment {
+  --color-paper: #F5EDDA;
+  --color-surface: #FEFBF2;
+  --color-line: #E7DCC2;
+}
+.collection-bg-linen {
+  --color-paper: #EEF0EA;
+  --color-surface: #FBFCF9;
+  --color-line: #DFE3D9;
+}
+.collection-bg-dusk {
+  --color-paper: #E9EAF0;
+  --color-surface: #F8F9FC;
+  --color-line: #D9DCE6;
+}
+
+/* Title fonts swap the display face for the page (headings using
+   font-display pick this up automatically). Self-hosted via @fontsource. */
+.collection-font-serif { --font-display: "Fraunces", Georgia, serif; }
+.collection-font-mono { --font-display: "Space Mono", ui-monospace, monospace; }

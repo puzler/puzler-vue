@@ -1,0 +1,6 @@
+mutation UploadCollectionDescriptionImage($collectionId: ID!, $file: Upload!) {
+  uploadCollectionDescriptionImage(input: { collectionId: $collectionId, file: $file }) {
+    url
+    errors
+  }
+}

@@ -9,14 +9,19 @@ import {
   mdiFormatQuoteClose, mdiLinkVariant, mdiImageOutline,
 } from '@mdi/js'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { usePuzzleStore } from '@/stores/puzzle'
 import { sanitizeHtml } from '@/utils/sanitizeHtml'
 
-// `tall` lets a roomy host (the puzzle-page Manage modal) make the editor fill
-// its container; the default compact sizing is unchanged for other callers.
-const props = defineProps<{ tall?: boolean }>()
+// Host-agnostic rich text editor (puzzle pages, collection pages). The host
+// supplies the initial HTML plus save/upload callbacks; saves are debounced
+// internally and flushed on unmount. `tall` lets a roomy host (the puzzle-page
+// Manage modal) make the editor fill its container.
+const props = defineProps<{
+  initialHtml: string | null
+  tall?: boolean
+  save: (html: string) => Promise<unknown>
+  uploadImage: (file: File) => Promise<string>
+}>()
 
-const puzzle = usePuzzleStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const message = ref<string | null>(null)
@@ -24,7 +29,7 @@ const message = ref<string | null>(null)
 // Sanitize the incoming HTML before TipTap parses it (defence-in-depth; the
 // stored value is already server-sanitized).
 const editor = useEditor({
-  content: sanitizeHtml(puzzle.pageDescriptionHtml) || '',
+  content: sanitizeHtml(props.initialHtml) || '',
   extensions: [
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
     Image,
@@ -52,15 +57,23 @@ function isOn(e: Editor, tool: Tool): boolean {
   return tool.level ? e.isActive(tool.active, { level: tool.level }) : e.isActive(tool.active)
 }
 
+// The HTML is captured at edit time, not at flush time: useEditor destroys
+// the TipTap instance before this component's own unmount hook runs, so a
+// flush-on-unmount that read editor.getHTML() would lose the last edits.
 let timer: ReturnType<typeof setTimeout> | null = null
-function scheduleSave() {
+let pendingHtml: string | null = null
+function scheduleSave({ editor: e }: { editor: Pick<Editor, 'getHTML'> }) {
+  pendingHtml = e.getHTML()
   if (timer) clearTimeout(timer)
   timer = setTimeout(flushSave, 800)
 }
 async function flushSave() {
   if (timer) { clearTimeout(timer); timer = null }
+  if (pendingHtml === null) return
+  const html = pendingHtml
+  pendingHtml = null
   try {
-    await puzzle.updatePageDescription(editor.value?.getHTML() ?? '')
+    await props.save(html)
     message.value = 'Saved'
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Could not save description'
@@ -82,7 +95,7 @@ async function onPickImage(event: Event) {
   uploading.value = true
   message.value = null
   try {
-    const url = await puzzle.uploadDescriptionImage(file)
+    const url = await props.uploadImage(file)
     editor.value?.chain().focus().setImage({ src: url }).run()
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Could not upload image'

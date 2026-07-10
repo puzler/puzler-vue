@@ -1,0 +1,10 @@
+mutation RemoveCollectionCoverImage($collectionId: ID!) {
+  removeCollectionCoverImage(input: { collectionId: $collectionId }) {
+    collection {
+      id
+      coverImageUrl
+      coverThumbUrl
+    }
+    errors
+  }
+}

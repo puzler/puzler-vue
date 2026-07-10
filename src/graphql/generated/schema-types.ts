@@ -116,11 +116,19 @@ export type CheckSolutionPayload = {
 /** An ordered, shareable grouping of puzzles (a series) */
 export type Collection = {
   __typename?: 'Collection';
+  /** Curated accent color for the collection page */
+  accentColor: CollectionAccentColorEnum;
   /** The setter who owns the collection */
   author: User;
   /** Average star rating across member puzzles (1-5 scale) */
   avgRating?: Maybe<Scalars['Float']['output']>;
-  /** Optional description */
+  /** Curated background treatment for the collection page */
+  bgTreatment: CollectionBgTreatmentEnum;
+  /** Hosted URL of the cover image, page-hero size; null when unset */
+  coverImageUrl?: Maybe<Scalars['String']['output']>;
+  /** Hosted URL of the cover image, 16:9 card crop; null when unset */
+  coverThumbUrl?: Maybe<Scalars['String']['output']>;
+  /** Optional short description (plain text, shown on cards) */
   description?: Maybe<Scalars['String']['output']>;
   /** Folder this collection is filed in; only visible to the author */
   folder?: Maybe<Folder>;
@@ -128,6 +136,8 @@ export type Collection = {
   id: Scalars['ID']['output'];
   /** Ordering mode: unordered or sequence */
   mode: CollectionModeEnum;
+  /** Sanitized rich HTML body for the collection page */
+  pageDescriptionHtml?: Maybe<Scalars['String']['output']>;
   /** Number of puzzles the viewer can see in this collection */
   puzzleCount: Scalars['Int']['output'];
   /** Puzzles in order; non-authors see only the publicly-visible ones */
@@ -140,12 +150,29 @@ export type Collection = {
   timed: Scalars['Boolean']['output'];
   /** Collection title */
   title: Scalars['String']['output'];
+  /** Curated display font for the collection page title */
+  titleFont: CollectionTitleFontEnum;
   /** Access mode: private, unlisted, public, patrons_only, subscribers_only, or containers_only */
   visibility: CollectionVisibilityEnum;
 };
 
+/** Curated accent color for a collection page */
+export const CollectionAccentColorEnum = {
+  Default: 'DEFAULT',
+  Ember: 'EMBER',
+  Forest: 'FOREST',
+  Ocean: 'OCEAN',
+  Violet: 'VIOLET',
+  Wine: 'WINE'
+} as const;
+
+export type CollectionAccentColorEnum = typeof CollectionAccentColorEnum[keyof typeof CollectionAccentColorEnum];
 /** Fields that can be updated on a collection */
 export type CollectionAttrsInput = {
+  /** Curated accent color for the collection page */
+  accentColor?: InputMaybe<CollectionAccentColorEnum>;
+  /** Curated background treatment for the collection page */
+  bgTreatment?: InputMaybe<CollectionBgTreatmentEnum>;
   /** Optional description */
   description?: InputMaybe<Scalars['String']['input']>;
   /** Ordering mode: unordered or sequence */
@@ -154,10 +181,21 @@ export type CollectionAttrsInput = {
   timed?: InputMaybe<Scalars['Boolean']['input']>;
   /** Collection title */
   title?: InputMaybe<Scalars['String']['input']>;
+  /** Curated display font for the collection page title */
+  titleFont?: InputMaybe<CollectionTitleFontEnum>;
   /** private, unlisted, public, or containers_only */
   visibility?: InputMaybe<CollectionVisibilityEnum>;
 };
 
+/** Curated background treatment for a collection page */
+export const CollectionBgTreatmentEnum = {
+  Default: 'DEFAULT',
+  Dusk: 'DUSK',
+  Linen: 'LINEN',
+  Parchment: 'PARCHMENT'
+} as const;
+
+export type CollectionBgTreatmentEnum = typeof CollectionBgTreatmentEnum[keyof typeof CollectionBgTreatmentEnum];
 /** A paginated page of collections */
 export type CollectionConnection = {
   __typename?: 'CollectionConnection';
@@ -207,6 +245,8 @@ export type CollectionMutations = {
   movePuzzleToFolder?: Maybe<MovePuzzleToFolderPayload>;
   /** Record a solve time for a timed collection */
   recordCollectionSolveTime?: Maybe<RecordCollectionSolveTimePayload>;
+  /** Remove a collection's cover image */
+  removeCollectionCoverImage?: Maybe<RemoveCollectionCoverImagePayload>;
   /** Remove a puzzle from a collection */
   removePuzzleFromCollection?: Maybe<RemovePuzzleFromCollectionPayload>;
   /** Rename a folder */
@@ -215,6 +255,12 @@ export type CollectionMutations = {
   reorderCollectionPuzzles?: Maybe<ReorderCollectionPuzzlesPayload>;
   /** Update a collection's metadata */
   updateCollection?: Maybe<UpdateCollectionPayload>;
+  /** Save the rich page body for a collection */
+  updateCollectionPageDescription?: Maybe<UpdateCollectionPageDescriptionPayload>;
+  /** Upload or replace a collection's cover image */
+  uploadCollectionCoverImage?: Maybe<UploadCollectionCoverImagePayload>;
+  /** Upload an image for a collection's rich page body */
+  uploadCollectionDescriptionImage?: Maybe<UploadCollectionDescriptionImagePayload>;
 };
 
 
@@ -273,6 +319,12 @@ export type CollectionMutationsRecordCollectionSolveTimeArgs = {
 
 
 /** Mutations for managing folders and collections */
+export type CollectionMutationsRemoveCollectionCoverImageArgs = {
+  input: RemoveCollectionCoverImageInput;
+};
+
+
+/** Mutations for managing folders and collections */
 export type CollectionMutationsRemovePuzzleFromCollectionArgs = {
   input: RemovePuzzleFromCollectionInput;
 };
@@ -293,6 +345,24 @@ export type CollectionMutationsReorderCollectionPuzzlesArgs = {
 /** Mutations for managing folders and collections */
 export type CollectionMutationsUpdateCollectionArgs = {
   input: UpdateCollectionInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsUpdateCollectionPageDescriptionArgs = {
+  input: UpdateCollectionPageDescriptionInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsUploadCollectionCoverImageArgs = {
+  input: UploadCollectionCoverImageInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsUploadCollectionDescriptionImageArgs = {
+  input: UploadCollectionDescriptionImageInput;
 };
 
 /** Folder and collection queries */
@@ -343,6 +413,14 @@ export type CollectionQueriesMyCollectionsArgs = {
   filter?: InputMaybe<ListingFilterInput>;
 };
 
+/** Curated display font for a collection page title */
+export const CollectionTitleFontEnum = {
+  Default: 'DEFAULT',
+  Mono: 'MONO',
+  Serif: 'SERIF'
+} as const;
+
+export type CollectionTitleFontEnum = typeof CollectionTitleFontEnum[keyof typeof CollectionTitleFontEnum];
 /** Who can see a collection: private, unlisted, public, the patron/subscriber tiers, or containers-only */
 export const CollectionVisibilityEnum = {
   ContainersOnly: 'CONTAINERS_ONLY',
@@ -1203,6 +1281,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   recordCollectionSolveTime?: Maybe<RecordCollectionSolveTimePayload>;
   /** Remove the current user's uploaded avatar */
   removeAvatar?: Maybe<RemoveAvatarPayload>;
+  /** Remove a collection's cover image */
+  removeCollectionCoverImage?: Maybe<RemoveCollectionCoverImagePayload>;
   /** Remove a puzzle from a collection */
   removePuzzleFromCollection?: Maybe<RemovePuzzleFromCollectionPayload>;
   /** Remove an entry from a series */
@@ -1241,6 +1321,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   unpublishPuzzle?: Maybe<UnpublishPuzzlePayload>;
   /** Update a collection's metadata */
   updateCollection?: Maybe<UpdateCollectionPayload>;
+  /** Save the rich page body for a collection */
+  updateCollectionPageDescription?: Maybe<UpdateCollectionPageDescriptionPayload>;
   /** Save the sanitized rich description for a puzzle's public page */
   updatePageDescription?: Maybe<UpdatePageDescriptionPayload>;
   /** Update the current user's solver-page preferences (settings and/or color palette) */
@@ -1263,6 +1345,10 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   updateUserTheme?: Maybe<UpdateUserThemePayload>;
   /** Upload and set the current user's avatar */
   uploadAvatar?: Maybe<UploadAvatarPayload>;
+  /** Upload or replace a collection's cover image */
+  uploadCollectionCoverImage?: Maybe<UploadCollectionCoverImagePayload>;
+  /** Upload an image for a collection's rich page body */
+  uploadCollectionDescriptionImage?: Maybe<UploadCollectionDescriptionImagePayload>;
   /** Upload an image for a puzzle's rich description */
   uploadDescriptionImage?: Maybe<UploadDescriptionImagePayload>;
   /** Create or update a constraint on a puzzle */
@@ -1483,6 +1569,12 @@ export type MutationRemoveAvatarArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationRemoveCollectionCoverImageArgs = {
+  input: RemoveCollectionCoverImageInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationRemovePuzzleFromCollectionArgs = {
   input: RemovePuzzleFromCollectionInput;
 };
@@ -1597,6 +1689,12 @@ export type MutationUpdateCollectionArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationUpdateCollectionPageDescriptionArgs = {
+  input: UpdateCollectionPageDescriptionInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationUpdatePageDescriptionArgs = {
   input: UpdatePageDescriptionInput;
 };
@@ -1659,6 +1757,18 @@ export type MutationUpdateUserThemeArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationUploadAvatarArgs = {
   input: UploadAvatarInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationUploadCollectionCoverImageArgs = {
+  input: UploadCollectionCoverImageInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationUploadCollectionDescriptionImageArgs = {
+  input: UploadCollectionDescriptionImageInput;
 };
 
 
@@ -2532,6 +2642,25 @@ export type RemoveAvatarPayload = {
   user?: Maybe<User>;
 };
 
+/** Autogenerated input type of RemoveCollectionCoverImage */
+export type RemoveCollectionCoverImageInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Collection to update */
+  collectionId: Scalars['ID']['input'];
+};
+
+/** Autogenerated return type of RemoveCollectionCoverImage. */
+export type RemoveCollectionCoverImagePayload = {
+  __typename?: 'RemoveCollectionCoverImagePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
 /** Autogenerated input type of RemovePuzzleFromCollection */
 export type RemovePuzzleFromCollectionInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3236,6 +3365,27 @@ export type UpdateCollectionInput = {
   id: Scalars['ID']['input'];
 };
 
+/** Autogenerated input type of UpdateCollectionPageDescription */
+export type UpdateCollectionPageDescriptionInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Collection to update */
+  collectionId: Scalars['ID']['input'];
+  /** Raw TipTap HTML; sanitized server-side before it is stored */
+  html: Scalars['String']['input'];
+};
+
+/** Autogenerated return type of UpdateCollectionPageDescription. */
+export type UpdateCollectionPageDescriptionPayload = {
+  __typename?: 'UpdateCollectionPageDescriptionPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
 /** Autogenerated return type of UpdateCollection. */
 export type UpdateCollectionPayload = {
   __typename?: 'UpdateCollectionPayload';
@@ -3496,6 +3646,48 @@ export type UploadAvatarPayload = {
   errors: Array<Scalars['String']['output']>;
   /** The updated user */
   user?: Maybe<User>;
+};
+
+/** Autogenerated input type of UploadCollectionCoverImage */
+export type UploadCollectionCoverImageInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Collection to update */
+  collectionId: Scalars['ID']['input'];
+  /** The image file (PNG, JPEG, or WebP, max 8MB) */
+  file: Scalars['Upload']['input'];
+};
+
+/** Autogenerated return type of UploadCollectionCoverImage. */
+export type UploadCollectionCoverImagePayload = {
+  __typename?: 'UploadCollectionCoverImagePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
+/** Autogenerated input type of UploadCollectionDescriptionImage */
+export type UploadCollectionDescriptionImageInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Collection to attach the image to */
+  collectionId: Scalars['ID']['input'];
+  /** The image file (PNG, JPEG, or WebP, max 8MB) */
+  file: Scalars['Upload']['input'];
+};
+
+/** Autogenerated return type of UploadCollectionDescriptionImage. */
+export type UploadCollectionDescriptionImagePayload = {
+  __typename?: 'UploadCollectionDescriptionImagePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** Hosted URL of the stored image */
+  url?: Maybe<Scalars['String']['output']>;
 };
 
 /** Autogenerated input type of UploadDescriptionImage */

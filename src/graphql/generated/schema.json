@@ -541,6 +541,22 @@
         "isOneOf": null,
         "fields": [
           {
+            "name": "accentColor",
+            "description": "Curated accent color for the collection page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionAccentColorEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "author",
             "description": "The setter who owns the collection",
             "args": [],
@@ -569,8 +585,48 @@
             "deprecationReason": null
           },
           {
+            "name": "bgTreatment",
+            "description": "Curated background treatment for the collection page",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionBgTreatmentEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "coverImageUrl",
+            "description": "Hosted URL of the cover image, page-hero size; null when unset",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "coverThumbUrl",
+            "description": "Hosted URL of the cover image, 16:9 card crop; null when unset",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "description",
-            "description": "Optional description",
+            "description": "Optional short description (plain text, shown on cards)",
             "args": [],
             "type": {
               "kind": "SCALAR",
@@ -620,6 +676,18 @@
                 "kind": "ENUM",
                 "ofType": null
               }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "pageDescriptionHtml",
+            "description": "Sanitized rich HTML body for the collection page",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -725,6 +793,22 @@
             "deprecationReason": null
           },
           {
+            "name": "titleFont",
+            "description": "Curated display font for the collection page title",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "CollectionTitleFontEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "visibility",
             "description": "Access mode: private, unlisted, public, patrons_only, subscribers_only, or containers_only",
             "args": [],
@@ -747,12 +831,84 @@
         "possibleTypes": null
       },
       {
+        "kind": "ENUM",
+        "name": "CollectionAccentColorEnum",
+        "description": "Curated accent color for a collection page",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "DEFAULT",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "EMBER",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "FOREST",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "OCEAN",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "VIOLET",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "WINE",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
         "kind": "INPUT_OBJECT",
         "name": "CollectionAttrsInput",
         "description": "Fields that can be updated on a collection",
         "isOneOf": false,
         "fields": null,
         "inputFields": [
+          {
+            "name": "accentColor",
+            "description": "Curated accent color for the collection page",
+            "type": {
+              "kind": "ENUM",
+              "name": "CollectionAccentColorEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "bgTreatment",
+            "description": "Curated background treatment for the collection page",
+            "type": {
+              "kind": "ENUM",
+              "name": "CollectionBgTreatmentEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
           {
             "name": "description",
             "description": "Optional description",
@@ -802,6 +958,18 @@
             "deprecationReason": null
           },
           {
+            "name": "titleFont",
+            "description": "Curated display font for the collection page title",
+            "type": {
+              "kind": "ENUM",
+              "name": "CollectionTitleFontEnum",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "visibility",
             "description": "private, unlisted, public, or containers_only",
             "type": {
@@ -816,6 +984,42 @@
         ],
         "interfaces": null,
         "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "CollectionBgTreatmentEnum",
+        "description": "Curated background treatment for a collection page",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "DEFAULT",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "DUSK",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "LINEN",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "PARCHMENT",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
         "possibleTypes": null
       },
       {
@@ -1238,6 +1442,35 @@
             "deprecationReason": null
           },
           {
+            "name": "removeCollectionCoverImage",
+            "description": "Remove a collection's cover image",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RemoveCollectionCoverImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RemoveCollectionCoverImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RemoveCollectionCoverImagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "removePuzzleFromCollection",
             "description": "Remove a puzzle from a collection",
             "args": [
@@ -1348,6 +1581,93 @@
             "type": {
               "kind": "OBJECT",
               "name": "UpdateCollectionPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "updateCollectionPageDescription",
+            "description": "Save the rich page body for a collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UpdateCollectionPageDescription",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UpdateCollectionPageDescriptionInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UpdateCollectionPageDescriptionPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "uploadCollectionCoverImage",
+            "description": "Upload or replace a collection's cover image",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UploadCollectionCoverImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UploadCollectionCoverImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UploadCollectionCoverImagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "uploadCollectionDescriptionImage",
+            "description": "Upload an image for a collection's rich page body",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UploadCollectionDescriptionImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UploadCollectionDescriptionImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UploadCollectionDescriptionImagePayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -1587,6 +1907,36 @@
             "ofType": null
           }
         ]
+      },
+      {
+        "kind": "ENUM",
+        "name": "CollectionTitleFontEnum",
+        "description": "Curated display font for a collection page title",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "DEFAULT",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "MONO",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "SERIF",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
       },
       {
         "kind": "ENUM",
@@ -6893,6 +7243,35 @@
             "deprecationReason": null
           },
           {
+            "name": "removeCollectionCoverImage",
+            "description": "Remove a collection's cover image",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RemoveCollectionCoverImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RemoveCollectionCoverImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RemoveCollectionCoverImagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "removePuzzleFromCollection",
             "description": "Remove a puzzle from a collection",
             "args": [
@@ -7444,6 +7823,35 @@
             "deprecationReason": null
           },
           {
+            "name": "updateCollectionPageDescription",
+            "description": "Save the rich page body for a collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UpdateCollectionPageDescription",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UpdateCollectionPageDescriptionInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UpdateCollectionPageDescriptionPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "updatePageDescription",
             "description": "Save the sanitized rich description for a puzzle's public page",
             "args": [
@@ -7757,6 +8165,64 @@
             "type": {
               "kind": "OBJECT",
               "name": "UploadAvatarPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "uploadCollectionCoverImage",
+            "description": "Upload or replace a collection's cover image",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UploadCollectionCoverImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UploadCollectionCoverImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UploadCollectionCoverImagePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "uploadCollectionDescriptionImage",
+            "description": "Upload an image for a collection's rich page body",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UploadCollectionDescriptionImage",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UploadCollectionDescriptionImageInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UploadCollectionDescriptionImagePayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -12149,6 +12615,106 @@
       },
       {
         "kind": "INPUT_OBJECT",
+        "name": "RemoveCollectionCoverImageInput",
+        "description": "Autogenerated input type of RemoveCollectionCoverImage",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionId",
+            "description": "Collection to update",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "RemoveCollectionCoverImagePayload",
+        "description": "Autogenerated return type of RemoveCollectionCoverImage.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The updated collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
         "name": "RemovePuzzleFromCollectionInput",
         "description": "Autogenerated input type of RemovePuzzleFromCollection",
         "isOneOf": false,
@@ -15770,6 +16336,122 @@
         "possibleTypes": null
       },
       {
+        "kind": "INPUT_OBJECT",
+        "name": "UpdateCollectionPageDescriptionInput",
+        "description": "Autogenerated input type of UpdateCollectionPageDescription",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionId",
+            "description": "Collection to update",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "html",
+            "description": "Raw TipTap HTML; sanitized server-side before it is stored",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UpdateCollectionPageDescriptionPayload",
+        "description": "Autogenerated return type of UpdateCollectionPageDescription.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The updated collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
         "kind": "OBJECT",
         "name": "UpdateCollectionPayload",
         "description": "Autogenerated return type of UpdateCollection.",
@@ -17173,6 +17855,238 @@
             "type": {
               "kind": "OBJECT",
               "name": "User",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "UploadCollectionCoverImageInput",
+        "description": "Autogenerated input type of UploadCollectionCoverImage",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionId",
+            "description": "Collection to update",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "file",
+            "description": "The image file (PNG, JPEG, or WebP, max 8MB)",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Upload",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UploadCollectionCoverImagePayload",
+        "description": "Autogenerated return type of UploadCollectionCoverImage.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The updated collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "UploadCollectionDescriptionImageInput",
+        "description": "Autogenerated input type of UploadCollectionDescriptionImage",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collectionId",
+            "description": "Collection to attach the image to",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "file",
+            "description": "The image file (PNG, JPEG, or WebP, max 8MB)",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Upload",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UploadCollectionDescriptionImagePayload",
+        "description": "Autogenerated return type of UploadCollectionDescriptionImage.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "url",
+            "description": "Hosted URL of the stored image",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
               "ofType": null
             },
             "isDeprecated": false,

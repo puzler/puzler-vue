@@ -57,7 +57,12 @@ async function copyLink() {
       <p class="text-xs text-faint">
         Shown on the puzzle's public page. Supports headings, styles, links, and images.
       </p>
-      <PageDescriptionEditor tall />
+      <PageDescriptionEditor
+        tall
+        :initial-html="puzzle.pageDescriptionHtml"
+        :save="puzzle.updatePageDescription"
+        :upload-image="puzzle.uploadDescriptionImage"
+      />
     </div>
 
     <div

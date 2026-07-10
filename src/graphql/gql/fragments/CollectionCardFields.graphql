@@ -1,6 +1,7 @@
 fragment CollectionCardFields on Collection {
   id
   title
+  coverThumbUrl
   visibility
   mode
   puzzleCount

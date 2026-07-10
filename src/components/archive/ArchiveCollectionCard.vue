@@ -18,6 +18,12 @@ const tierBadge = TIER_LABEL[props.collection.author.setterTier] ?? null
     :to="{ name: 'collection', params: { id: props.collection.id } }"
     class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
   >
+    <img
+      v-if="props.collection.coverThumbUrl"
+      :src="props.collection.coverThumbUrl"
+      alt=""
+      class="w-full aspect-video object-cover rounded-lg mb-3"
+    >
     <div class="flex items-baseline justify-between gap-2">
       <span class="font-medium text-ink-text truncate">{{ props.collection.title }}</span>
       <span

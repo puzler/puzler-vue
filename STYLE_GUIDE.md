@@ -114,6 +114,28 @@ tab at mobile widths (≤430px) before it's done — not as a retrofit.
 - **Verify** with the preview MCP at 320 / 375 / 390 / 430 and the 768 boundary:
   no horizontal overflow (`scrollWidth <= innerWidth`) and screenshot.
 
+## Collection accents (curated per-page styling)
+
+Collections may restyle their own public page from three curated sets
+(rich-collections epic). The classes live in `style.css` ("Collection
+accents"), map from Collection's Rails enums via `utils/collectionTheme.ts`,
+and work by overriding the Ink & Paper CSS vars on the page root — components
+inside need no theming awareness. Keep all three lists in sync: Rails enum ↔
+style.css class ↔ this guide.
+
+- **Accent colors** (override `--color-action/-deep/-tint`): Indigo (default),
+  Forest `#2F7D46`, Wine `#A03352`, Ocean `#0F7490`, Ember `#C2571B`,
+  Violet `#7C3AED`. All chosen to keep white-on-accent buttons readable.
+- **Background treatments** (override `--color-paper/-surface/-line`): Paper
+  (default), Parchment (warm cream), Linen (cool green-gray), Dusk (blue-gray).
+  Subtle tints only — text tokens stay untouched, so contrast holds.
+- **Title fonts** (override `--font-display`): Grotesk (default),
+  Serif (Fraunces 600/700), Mono (Space Mono 700). Self-hosted via
+  `@fontsource` like the base fonts (GDPR note in style.css).
+
+These are the only sanctioned per-collection styling hooks; no free-form
+colors or fonts without updating this guide first.
+
 ## Motion
 
 - Color/hover transitions: 150ms ease-out.

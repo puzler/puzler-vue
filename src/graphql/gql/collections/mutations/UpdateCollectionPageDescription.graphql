@@ -1,0 +1,9 @@
+mutation UpdateCollectionPageDescription($collectionId: ID!, $html: String!) {
+  updateCollectionPageDescription(input: { collectionId: $collectionId, html: $html }) {
+    collection {
+      id
+      pageDescriptionHtml
+    }
+    errors
+  }
+}

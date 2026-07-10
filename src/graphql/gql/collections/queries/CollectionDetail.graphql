@@ -3,6 +3,11 @@ query CollectionDetail($id: ID!) {
     id
     title
     description
+    pageDescriptionHtml
+    coverImageUrl
+    accentColor
+    bgTreatment
+    titleFont
     visibility
     mode
     timed

@@ -1,0 +1,10 @@
+mutation UploadCollectionCoverImage($collectionId: ID!, $file: Upload!) {
+  uploadCollectionCoverImage(input: { collectionId: $collectionId, file: $file }) {
+    collection {
+      id
+      coverImageUrl
+      coverThumbUrl
+    }
+    errors
+  }
+}

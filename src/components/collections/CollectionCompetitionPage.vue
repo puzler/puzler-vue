@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import CollectionEntryFlow from '@/components/collections/CollectionEntryFlow.vue'
 import CompetitionMetaCard from '@/components/competitions/CompetitionMetaCard.vue'
+import CompetitionEnforcedNotice from '@/components/competitions/CompetitionEnforcedNotice.vue'
 import CompetitionStartCard from '@/components/competitions/CompetitionStartCard.vue'
 import CompetitionScoreCard from '@/components/competitions/CompetitionScoreCard.vue'
 import CompetitionLeaderboard from '@/components/competitions/CompetitionLeaderboard.vue'
@@ -71,6 +72,7 @@ async function finishEarly() {
 
     <template v-if="!myRun">
       <CompetitionMetaCard :collection="collection" />
+      <CompetitionEnforcedNotice :enforced-settings="collection.competitionConfig?.enforcedSettings" />
       <p
         v-if="isAuthor"
         class="mt-4 text-sm text-soft"
@@ -93,6 +95,7 @@ async function finishEarly() {
         :solved="submittedIds"
         :collection-id="collection.id"
         :share-token="shareToken"
+        show-points
       />
       <button
         v-if="inRun"

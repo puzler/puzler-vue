@@ -10,6 +10,7 @@ export type FlowEntry = {
   gated?: boolean
   hidden?: boolean
   finale?: boolean
+  points?: number | null
   storyTitle?: string | null
   puzzle?: { id: string } | null
   storyPage?: { id: string; title?: string | null; bodyHtml?: string | null } | null

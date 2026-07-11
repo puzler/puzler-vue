@@ -20,6 +20,8 @@ const props = defineProps<{
   solved: Set<string>
   collectionId: string
   shareToken: string | null
+  // Competition pages surface per-puzzle point values (when the author shows them).
+  showPoints?: boolean
 }>()
 
 const puzzleById = computed(() => new Map(props.puzzles.map((p) => [ p.id, p ])))
@@ -113,6 +115,7 @@ function lockHint(entry: Entry): { icon: string; text: string } {
         :number="puzzleNumber(index)"
         :is-solved="entrySolved(entry, solved)"
         :lock-icon="lockHint(entry).icon"
+        :points="showPoints ? entry.points ?? null : null"
       />
     </li>
   </ol>

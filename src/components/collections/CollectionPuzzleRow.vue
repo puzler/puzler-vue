@@ -14,7 +14,8 @@ withDefaults(defineProps<{
   number: number
   isSolved: boolean
   lockIcon?: string
-}>(), { lockIcon: mdiLockOutline })
+  points?: number | null
+}>(), { lockIcon: mdiLockOutline, points: null })
 </script>
 
 <template>
@@ -28,6 +29,10 @@ withDefaults(defineProps<{
       class="text-sm text-faint w-5 text-right shrink-0"
     >{{ number }}</span>
     <span class="font-medium text-ink-text truncate flex-1">{{ puzzle.title }}</span>
+    <span
+      v-if="points !== null"
+      class="text-xs font-display font-bold text-action shrink-0"
+    >{{ points }} pts</span>
     <MdiIcon
       v-if="isSolved"
       :path="mdiCheckCircle"

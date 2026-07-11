@@ -10,8 +10,8 @@ const props = defineProps<{ collection: Collection }>()
 const config = computed(() => props.collection.competitionConfig)
 const minutes = computed(() =>
   (config.value?.timeLimitSeconds ? Math.round(config.value.timeLimitSeconds / 60) : null))
-const totalPoints = computed(() =>
-  props.collection.entries.reduce((sum, e) => sum + (e.entryType === 'Puzzle' ? e.points : 0), 0))
+// Server-computed: stays accurate even when per-puzzle values are hidden.
+const totalPoints = computed(() => config.value?.totalPoints ?? 0)
 
 const POLICY_COPY: Record<CompetitionSubmissionPolicyEnum, string> = {
   BLIND: "You won't be told whether a submission is correct. Resubmit as often as you like — your last submission per puzzle is what counts.",

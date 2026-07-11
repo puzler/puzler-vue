@@ -261,8 +261,8 @@ export type CollectionEntry = {
   id: Scalars['ID']['output'];
   /** Whether this entry is currently locked for the viewer */
   locked: Scalars['Boolean']['output'];
-  /** Competition scoring weight for this entry's puzzle */
-  points: Scalars['Int']['output'];
+  /** Competition scoring weight; nil for solvers when the author hides point values */
+  points?: Maybe<Scalars['Int']['output']>;
   /** Order within the collection */
   position: Scalars['Int']['output'];
   /** The puzzle, when this entry is a puzzle */
@@ -627,10 +627,14 @@ export type CompetitionConfig = {
   locked: Scalars['Boolean']['output'];
   /** Points lost per incorrect submission (per the submission policy) */
   penaltyPoints: Scalars['Int']['output'];
+  /** Whether solvers see each puzzle's point value */
+  showEntryPoints: Scalars['Boolean']['output'];
   /** How submissions behave: blind, instant, or single */
   submissionPolicy: CompetitionSubmissionPolicyEnum;
   /** The run length; null while the author hasn't set one (competition can't start) */
   timeLimitSeconds?: Maybe<Scalars['Int']['output']>;
+  /** Sum of all entry points — shown even when per-puzzle values are hidden */
+  totalPoints: Scalars['Int']['output'];
 };
 
 /** Competition contest terms; omitted fields are left untouched */
@@ -643,6 +647,8 @@ export type CompetitionConfigInput = {
   enforcedSettings?: InputMaybe<Scalars['JSON']['input']>;
   /** Points lost per incorrect submission */
   penaltyPoints?: InputMaybe<Scalars['Int']['input']>;
+  /** Whether solvers see each puzzle's point value */
+  showEntryPoints?: InputMaybe<Scalars['Boolean']['input']>;
   /** blind, instant, or single */
   submissionPolicy?: InputMaybe<CompetitionSubmissionPolicyEnum>;
   /** Run length in seconds */

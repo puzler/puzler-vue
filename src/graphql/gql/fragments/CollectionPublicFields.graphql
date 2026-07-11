@@ -32,6 +32,8 @@ fragment CollectionPublicFields on Collection {
     penaltyPoints
     bonusPointsPerMinute
     clampScoreAtZero
+    showEntryPoints
+    totalPoints
     enforcedSettings
     locked
   }

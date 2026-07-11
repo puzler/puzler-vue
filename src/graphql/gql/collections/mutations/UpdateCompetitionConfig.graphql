@@ -8,6 +8,7 @@ mutation UpdateCompetitionConfig($id: ID!, $config: CompetitionConfigInput!) {
         penaltyPoints
         bonusPointsPerMinute
         clampScoreAtZero
+        showEntryPoints
         enforcedSettings
         locked
       }

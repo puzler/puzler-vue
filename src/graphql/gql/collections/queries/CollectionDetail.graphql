@@ -19,6 +19,7 @@ query CollectionDetail($id: ID!) {
       penaltyPoints
       bonusPointsPerMinute
       clampScoreAtZero
+      showEntryPoints
       enforcedSettings
       locked
     }

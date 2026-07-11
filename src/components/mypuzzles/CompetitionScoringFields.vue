@@ -9,6 +9,7 @@ type ConfigPatch = {
   bonusPointsPerMinute?: number
   submissionPolicy?: CompetitionSubmissionPolicyEnum
   clampScoreAtZero?: boolean
+  showEntryPoints?: boolean
 }
 
 // The numeric contest knobs + submission policy. Saves each field on change.
@@ -96,6 +97,14 @@ function saveNumber(field: 'penaltyPoints' | 'bonusPointsPerMinute', event: Even
         @change="emit('save', { clampScoreAtZero: ($event.target as HTMLInputElement).checked })"
       >
       Scores can't go below zero
+    </label>
+    <label class="text-sm text-soft flex items-center gap-2">
+      <input
+        type="checkbox"
+        :checked="config.showEntryPoints"
+        @change="emit('save', { showEntryPoints: ($event.target as HTMLInputElement).checked })"
+      >
+      Show each puzzle's point value to solvers
     </label>
   </div>
 </template>

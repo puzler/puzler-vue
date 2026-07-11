@@ -61,3 +61,10 @@ export const PLAYER_SETTING_GROUPS: SettingGroup[] = [
 // fairness), so authors don't get a tri-state for it.
 export const ENFORCEABLE_SETTING_GROUPS: SettingGroup[] =
   PLAYER_SETTING_GROUPS.filter((group) => group.title !== 'Collaboration')
+
+const LABELS = new Map(PLAYER_SETTING_GROUPS.flatMap((g) => g.items.map((i) => [ i.key as string, i.label ])))
+
+/** Human label for a player-setting key; falls back to the key itself. */
+export function settingLabel(key: string): string {
+  return LABELS.get(key) ?? key
+}

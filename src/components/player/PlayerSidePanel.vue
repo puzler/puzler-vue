@@ -24,7 +24,8 @@ const props = withDefaults(defineProps<{
   paused: boolean
   collaborationEnabled: boolean
   variant?: 'player' | 'editor'
-}>(), { variant: 'player' })
+  checkLabel?: string
+}>(), { variant: 'player', checkLabel: 'Check solution' })
 
 const emit = defineEmits<{ 'toggle-pause': []; 'show-rules': []; 'reset': []; 'settings': []; 'check': []; 'collaborate': [] }>()
 
@@ -32,15 +33,15 @@ const ICON_BTN = 'w-9 h-9 flex items-center justify-center rounded-lg text-soft 
 
 type Action = 'show-rules' | 'reset' | 'settings' | 'check'
 const fire = emit as unknown as (e: Action) => void
-const CONTROLS: { icon: string; label: string; title: string; event: Action; end?: boolean }[] = [
-  { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', event: 'show-rules' },
-  { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', event: 'reset' },
-  { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
-  { icon: mdiCheckCircleOutline, label: 'Check solution', title: 'Check solution', event: 'check', end: true },
-]
-const controls = computed(() =>
-  props.variant === 'editor' ? CONTROLS.filter((c) => c.event !== 'reset' && c.event !== 'check') : CONTROLS,
-)
+const controls = computed(() => {
+  const all: { icon: string; label: string; title: string; event: Action; end?: boolean }[] = [
+    { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', event: 'show-rules' },
+    { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', event: 'reset' },
+    { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
+    { icon: mdiCheckCircleOutline, label: props.checkLabel, title: props.checkLabel, event: 'check', end: true },
+  ]
+  return props.variant === 'editor' ? all.filter((c) => c.event !== 'reset' && c.event !== 'check') : all
+})
 </script>
 
 <template>

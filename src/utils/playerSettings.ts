@@ -62,6 +62,20 @@ export function normalizePlayerSettings(raw: unknown): PlayerSettings {
   return out
 }
 
+// An author's enforced-settings map (from a competition config): keep only
+// known keys with boolean values. Unknown keys are dropped, so stale enforced
+// maps can't inject junk into the override layer.
+export function normalizeEnforced(raw: unknown): Partial<PlayerSettings> & Record<string, boolean> {
+  const out: Record<string, boolean> = {}
+  if (raw && typeof raw === 'object') {
+    for (const key of Object.keys(DEFAULT_PLAYER_SETTINGS) as (keyof PlayerSettings)[]) {
+      const value = (raw as Record<string, unknown>)[key]
+      if (typeof value === 'boolean') out[key] = value
+    }
+  }
+  return out
+}
+
 export function loadPlayerSettings(): PlayerSettings {
   try {
     const raw = localStorage.getItem(KEY)

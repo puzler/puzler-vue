@@ -1,0 +1,7 @@
+mutation SubmitCompetitionEntry($collectionId: ID!, $puzzleId: ID!, $cellState: JSON!) {
+  submitCompetitionEntry(input: { collectionId: $collectionId, puzzleId: $puzzleId, cellState: $cellState }) {
+    accepted
+    correct
+    errors
+  }
+}

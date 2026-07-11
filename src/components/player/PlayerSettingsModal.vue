@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { useThemeStore } from '@/stores/theme'
-import type { PlayerSettings } from '@/utils/playerSettings'
+import { PLAYER_SETTING_GROUPS, type SettingMeta } from '@/utils/playerSettingMeta'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import ThemeEditorModal from '@/components/settings/ThemeEditorModal.vue'
 
@@ -12,15 +12,20 @@ const emit = defineEmits<{ close: [] }>()
 const showThemeEditor = ref(false)
 
 // An item reads its on/off via `on()` and flips via `toggle()`, so a row can be backed by the
-// player-settings store OR the theme store (the Enable custom styles gate) uniformly.
+// player-settings store OR the theme store (the Enable custom styles gate) uniformly. Setting
+// rows come from the shared metadata (also used by the competition enforced-settings list):
+// reads go through `effective` so enforced competition values show, writes stay on `settings`
+// (the user's own prefs), and enforced rows are locked with a hint.
 type Item = { label: string; hint?: string; on: () => boolean; toggle: () => void; disabled?: () => boolean }
 
-function ps(key: keyof PlayerSettings, label: string, hint?: string): Item {
+function ps({ key, label, hint }: SettingMeta): Item {
   return {
     label,
-    hint,
-    on: () => player.settings[key],
+    hint: player.isEnforced(key) ? 'Locked during the competition' : hint,
+    on: () => player.effective[key],
     toggle: () => { player.settings[key] = !player.settings[key] },
+    disabled: () => player.isEnforced(key) ||
+      (key === 'hideShareToken' && !player.effective.enableCollaborationMode),
   }
 }
 
@@ -36,51 +41,7 @@ const groups: { title: string; items: Item[] }[] = [
       },
     ],
   },
-  {
-    title: 'Visual',
-    items: [
-      ps('showRowColLabels', 'Row & column labels', 'Number the grid edges'),
-      ps('hideTimer', 'Hide timer'),
-      ps('hideColors', 'Hide cell colours', 'Hide the puzzle’s built-in cell colours'),
-    ],
-  },
-  {
-    title: 'Gameplay',
-    items: [
-      ps('showRulesOnStart', 'Show rules on start'),
-      ps('highlightSeen', 'Highlight seen cells', 'Shade cells the selection can see'),
-    ],
-  },
-  {
-    title: 'Checking',
-    items: [
-      ps('checkOnFinish', 'Check on finish', 'Detect a solve automatically'),
-      ps('revealPartialProgress', 'Reveal partial progress', 'Let “Check” say if you’re correct so far'),
-      ps('highlightConflicts', 'Highlight conflicts', 'Flag repeated digits'),
-      ps('highlightConflictingPencilmarks', 'Highlight conflicting pencil marks'),
-    ],
-  },
-  {
-    title: 'Available Tools',
-    items: [
-      ps('enableLineTool', 'Line tool', 'Draw lines and X/O marks on the grid while solving'),
-      ps('enableLetterTool', 'Letter tool', 'Numpad toggle to enter letters instead of digits'),
-      ps('enablePanTool', 'Pan tool', 'Drag to move around a zoomed board (appears automatically on oversized puzzles)'),
-    ],
-  },
-  {
-    title: 'Collaboration',
-    items: [
-      ps('enableCollaborationMode', 'Enable collaboration mode', 'Share an in-progress puzzle and solve together in real time'),
-      {
-        label: 'Hide share token',
-        hint: 'Keep the raw token hidden (handy when screen-sharing)',
-        on: () => player.settings.hideShareToken,
-        toggle: () => { player.settings.hideShareToken = !player.settings.hideShareToken },
-        disabled: () => !player.settings.enableCollaborationMode,
-      },
-    ],
-  },
+  ...PLAYER_SETTING_GROUPS.map((group) => ({ title: group.title, items: group.items.map(ps) })),
 ]
 </script>
 

@@ -1,9 +1,23 @@
 <script setup lang="ts">
-import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
+import { CollectionKindEnum, CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
 
-defineProps<{ title: string; visibility: CollectionVisibilityEnum; mode: CollectionModeEnum; timed: boolean }>()
+defineProps<{
+  title: string
+  visibility: CollectionVisibilityEnum
+  mode: CollectionModeEnum
+  timed: boolean
+  kind: CollectionKindEnum
+  publicRoute: RouteLocationRaw
+}>()
 const emit = defineEmits<{
-  save: [attrs: { title?: string; visibility?: CollectionVisibilityEnum; mode?: CollectionModeEnum; timed?: boolean }]
+  save: [attrs: {
+    title?: string
+    visibility?: CollectionVisibilityEnum
+    mode?: CollectionModeEnum
+    timed?: boolean
+    kind?: CollectionKindEnum
+  }]
 }>()
 
 function selectValue<T extends string>(event: Event): T {
@@ -33,6 +47,21 @@ function selectValue<T extends string>(event: Event): T {
         </select>
       </label>
       <label class="text-sm text-soft flex items-center gap-2">
+        Type
+        <select
+          :value="kind"
+          class="text-sm px-2 py-1 rounded border border-line bg-surface"
+          @change="emit('save', { kind: selectValue<CollectionKindEnum>($event) })"
+        >
+          <option :value="CollectionKindEnum.Basic">Basic</option>
+          <option :value="CollectionKindEnum.Hunt">Puzzle hunt</option>
+          <option :value="CollectionKindEnum.Competition">Competition</option>
+        </select>
+      </label>
+      <label
+        v-if="kind !== CollectionKindEnum.Competition"
+        class="text-sm text-soft flex items-center gap-2"
+      >
         Order
         <select
           :value="mode"
@@ -43,14 +72,24 @@ function selectValue<T extends string>(event: Event): T {
           <option :value="CollectionModeEnum.Sequence">In sequence</option>
         </select>
       </label>
-      <label class="text-sm text-soft flex items-center gap-2">
+      <label
+        v-if="kind !== CollectionKindEnum.Competition"
+        class="text-sm text-soft flex items-center gap-2"
+      >
         <input
           type="checkbox"
           :checked="timed"
           @change="emit('save', { timed: ($event.target as HTMLInputElement).checked })"
         >
-        Timed (competition)
+        Timed leaderboard
       </label>
     </div>
+    <RouterLink
+      v-if="visibility !== CollectionVisibilityEnum.Private"
+      :to="publicRoute"
+      class="self-start text-sm text-action hover:underline"
+    >
+      View public page →
+    </RouterLink>
   </div>
 </template>

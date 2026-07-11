@@ -1,0 +1,16 @@
+query MyActiveCompetitionRun {
+  myActiveCompetitionRun {
+    id
+    secondsRemaining
+    deadline
+    collection {
+      id
+      title
+      shareToken
+      competitionConfig {
+        submissionPolicy
+        enforcedSettings
+      }
+    }
+  }
+}

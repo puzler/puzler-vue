@@ -147,6 +147,8 @@ export type Collection = {
   avgRating?: Maybe<Scalars['Float']['output']>;
   /** Curated background treatment for the collection page */
   bgTreatment: CollectionBgTreatmentEnum;
+  /** Contest terms; present only for competition collections */
+  competitionConfig?: Maybe<CompetitionConfig>;
   /** Hosted URL of the cover image, page-hero size; null when unset */
   coverImageUrl?: Maybe<Scalars['String']['output']>;
   /** Hosted URL of the cover image, 16:9 card crop; null when unset */
@@ -165,8 +167,12 @@ export type Collection = {
   hasCodewords: Scalars['Boolean']['output'];
   /** Unique collection ID */
   id: Scalars['ID']['output'];
+  /** What this collection is: basic list, hunt, or competition */
+  kind: CollectionKindEnum;
   /** Ordering mode: unordered or sequence */
   mode: CollectionModeEnum;
+  /** The viewer's run on this competition, finalized if it has ended; null before they start */
+  myCompetitionRun?: Maybe<CompetitionRun>;
   /** When the next scheduled entry arrives; null when nothing is pending */
   nextReleaseAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Sanitized rich HTML body for the collection page */
@@ -208,6 +214,8 @@ export type CollectionAttrsInput = {
   bgTreatment?: InputMaybe<CollectionBgTreatmentEnum>;
   /** Optional description */
   description?: InputMaybe<Scalars['String']['input']>;
+  /** basic, hunt, or competition */
+  kind?: InputMaybe<CollectionKindEnum>;
   /** Ordering mode: unordered or sequence */
   mode?: InputMaybe<CollectionModeEnum>;
   /** Competition timing on/off */
@@ -253,6 +261,8 @@ export type CollectionEntry = {
   id: Scalars['ID']['output'];
   /** Whether this entry is currently locked for the viewer */
   locked: Scalars['Boolean']['output'];
+  /** Competition scoring weight for this entry's puzzle */
+  points: Scalars['Int']['output'];
   /** Order within the collection */
   position: Scalars['Int']['output'];
   /** The puzzle, when this entry is a puzzle */
@@ -275,10 +285,20 @@ export type CollectionEntryGatesInput = {
   finale?: InputMaybe<Scalars['Boolean']['input']>;
   /** Hide the entry until its codeword is entered (requires a codeword) */
   hidden?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Competition scoring weight for this entry's puzzle */
+  points?: InputMaybe<Scalars['Int']['input']>;
   /** Scheduled release time; explicit null releases the entry now */
   releasedAt?: InputMaybe<Scalars['ISO8601DateTime']['input']>;
 };
 
+/** What a collection is: a plain list, a rich hunt, or a timed competition */
+export const CollectionKindEnum = {
+  Basic: 'BASIC',
+  Competition: 'COMPETITION',
+  Hunt: 'HUNT'
+} as const;
+
+export type CollectionKindEnum = typeof CollectionKindEnum[keyof typeof CollectionKindEnum];
 /** One solver's standing in a timed collection */
 export type CollectionLeaderboardEntry = {
   __typename?: 'CollectionLeaderboardEntry';
@@ -594,6 +614,155 @@ export type CommentConnection = {
   pageInfo: PageInfo;
 };
 
+/** The contest terms of a competition collection */
+export type CompetitionConfig = {
+  __typename?: 'CompetitionConfig';
+  /** Bonus per whole minute remaining when every puzzle is solved */
+  bonusPointsPerMinute: Scalars['Int']['output'];
+  /** Whether the total score is floored at zero */
+  clampScoreAtZero: Scalars['Boolean']['output'];
+  /** Player settings the author enforces (key => bool); absent keys are the solver's choice */
+  enforcedSettings: Scalars['JSON']['output'];
+  /** Whether the terms are frozen because someone has already competed */
+  locked: Scalars['Boolean']['output'];
+  /** Points lost per incorrect submission (per the submission policy) */
+  penaltyPoints: Scalars['Int']['output'];
+  /** How submissions behave: blind, instant, or single */
+  submissionPolicy: CompetitionSubmissionPolicyEnum;
+  /** The run length; null while the author hasn't set one (competition can't start) */
+  timeLimitSeconds?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Competition contest terms; omitted fields are left untouched */
+export type CompetitionConfigInput = {
+  /** Bonus per whole minute remaining when every puzzle is solved */
+  bonusPointsPerMinute?: InputMaybe<Scalars['Int']['input']>;
+  /** Floor the total score at zero (off allows negative scores) */
+  clampScoreAtZero?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Player settings to enforce (key => bool); absent keys stay the solver's choice */
+  enforcedSettings?: InputMaybe<Scalars['JSON']['input']>;
+  /** Points lost per incorrect submission */
+  penaltyPoints?: InputMaybe<Scalars['Int']['input']>;
+  /** blind, instant, or single */
+  submissionPolicy?: InputMaybe<CompetitionSubmissionPolicyEnum>;
+  /** Run length in seconds */
+  timeLimitSeconds?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** One solver's standing in a competition */
+export type CompetitionLeaderboardEntry = {
+  __typename?: 'CompetitionLeaderboardEntry';
+  /** Puzzles solved correctly */
+  correctCount: Scalars['Int']['output'];
+  /** The solver's display name (shown in the UI) */
+  displayName: Scalars['String']['output'];
+  /** 1-based position (highest score first, faster time breaks ties) */
+  rank: Scalars['Int']['output'];
+  /** How long their run lasted */
+  timeUsedSeconds: Scalars['Int']['output'];
+  /** Final score */
+  totalPoints: Scalars['Int']['output'];
+  /** The solver's unique handle (for linking to their profile) */
+  username: Scalars['String']['output'];
+};
+
+/** Competition mutations */
+export type CompetitionMutations = {
+  /** End your run and get your score */
+  finishCompetitionRun?: Maybe<FinishCompetitionRunPayload>;
+  /** Start your single timed attempt */
+  startCompetitionRun?: Maybe<StartCompetitionRunPayload>;
+  /** Submit a board within your run */
+  submitCompetitionEntry?: Maybe<SubmitCompetitionEntryPayload>;
+};
+
+
+/** Competition mutations */
+export type CompetitionMutationsFinishCompetitionRunArgs = {
+  input: FinishCompetitionRunInput;
+};
+
+
+/** Competition mutations */
+export type CompetitionMutationsStartCompetitionRunArgs = {
+  input: StartCompetitionRunInput;
+};
+
+
+/** Competition mutations */
+export type CompetitionMutationsSubmitCompetitionEntryArgs = {
+  input: SubmitCompetitionEntryInput;
+};
+
+/** Competition queries */
+export type CompetitionQueries = {
+  /** Final standings for a competition (finalized runs only) */
+  competitionLeaderboard: Array<CompetitionLeaderboardEntry>;
+  /** The viewer's currently active competition run, if any (powers the global bar) */
+  myActiveCompetitionRun?: Maybe<CompetitionRun>;
+};
+
+
+/** Competition queries */
+export type CompetitionQueriesCompetitionLeaderboardArgs = {
+  collectionId: Scalars['ID']['input'];
+  shareToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** The viewer's timed attempt at a competition collection */
+export type CompetitionRun = {
+  __typename?: 'CompetitionRun';
+  /** Points from correct puzzles; nil until finalized */
+  basePoints?: Maybe<Scalars['Int']['output']>;
+  /** Time bonus; nil until finalized */
+  bonusPoints?: Maybe<Scalars['Int']['output']>;
+  /** The competition this run belongs to */
+  collection: Collection;
+  /** Correct puzzles; nil until finalized */
+  correctCount?: Maybe<Scalars['Int']['output']>;
+  /** When the run ends */
+  deadline: Scalars['ISO8601DateTime']['output'];
+  /** Whether the score is computed and frozen */
+  finalized: Scalars['Boolean']['output'];
+  /** When the solver finished early; null if they ran the clock */
+  finishedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
+  /** Unique run ID */
+  id: Scalars['ID']['output'];
+  /** Points lost to penalties; nil until finalized */
+  penaltyPoints?: Maybe<Scalars['Int']['output']>;
+  /** Server-computed seconds left on the clock (0 when over) — anchor countdowns to this */
+  secondsRemaining: Scalars['Int']['output'];
+  /** When the run started */
+  startedAt: Scalars['ISO8601DateTime']['output'];
+  /** The viewer's per-puzzle submission states */
+  submissions: Array<CompetitionSubmission>;
+  /** Scored run length; nil until finalized */
+  timeUsedSeconds?: Maybe<Scalars['Int']['output']>;
+  /** Final score; nil until finalized */
+  totalPoints?: Maybe<Scalars['Int']['output']>;
+};
+
+/** The viewer's submission state for one puzzle in a competition run */
+export type CompetitionSubmission = {
+  __typename?: 'CompetitionSubmission';
+  /** The verdict; nil under the blind policy until the run is finalized */
+  correct?: Maybe<Scalars['Boolean']['output']>;
+  /** The submitted puzzle */
+  puzzleId: Scalars['ID']['output'];
+  /** When the latest submission landed */
+  submittedAt: Scalars['ISO8601DateTime']['output'];
+  /** Incorrect submissions so far; nil under the blind policy until finalized */
+  wrongAttempts?: Maybe<Scalars['Int']['output']>;
+};
+
+/** blind (no verdict, resubmit freely, last counts), instant (verdict + per-wrong penalty), or single (one shot per puzzle) */
+export const CompetitionSubmissionPolicyEnum = {
+  Blind: 'BLIND',
+  Instant: 'INSTANT',
+  Single: 'SINGLE'
+} as const;
+
+export type CompetitionSubmissionPolicyEnum = typeof CompetitionSubmissionPolicyEnum[keyof typeof CompetitionSubmissionPolicyEnum];
 /** Autogenerated input type of ConfigurePuzzlePage */
 export type ConfigurePuzzlePageInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -1086,6 +1255,25 @@ export type ExportSudokupadLinkPayload = {
   warnings: Array<Scalars['String']['output']>;
 };
 
+/** Autogenerated input type of FinishCompetitionRun */
+export type FinishCompetitionRunInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The competition collection */
+  collectionId: Scalars['ID']['input'];
+};
+
+/** Autogenerated return type of FinishCompetitionRun. */
+export type FinishCompetitionRunPayload = {
+  __typename?: 'FinishCompetitionRunPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** The finalized run */
+  run?: Maybe<CompetitionRun>;
+};
+
 /** A private folder for organizing a setter's own puzzles and collections */
 export type Folder = {
   __typename?: 'Folder';
@@ -1339,7 +1527,7 @@ export type MovePuzzleToFolderPayload = {
 };
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
+export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMutations & CosmeticMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
   __typename?: 'Mutation';
   /** Add a puzzle to a collection */
   addPuzzleToCollection?: Maybe<AddPuzzleToCollectionPayload>;
@@ -1389,6 +1577,8 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   disconnectOauthProvider?: Maybe<DisconnectOauthProviderPayload>;
   /** Build a short SudokuPad link from a Puzler definition */
   exportSudokupadLink?: Maybe<ExportSudokupadLinkPayload>;
+  /** End your run and get your score */
+  finishCompetitionRun?: Maybe<FinishCompetitionRunPayload>;
   /** Create or fetch the active share token for a play session (owner only) */
   generatePlayShareToken?: Maybe<GeneratePlayShareTokenPayload>;
   /** Grant a user access to a puzzle by username */
@@ -1443,10 +1633,14 @@ export type Mutation = CollectionMutations & ConstraintMutations & CosmeticMutat
   scheduleSeriesEntry?: Maybe<ScheduleSeriesEntryPayload>;
   /** Change a puzzle's access mode */
   setPuzzleVisibility?: Maybe<SetPuzzleVisibilityPayload>;
+  /** Start your single timed attempt */
+  startCompetitionRun?: Maybe<StartCompetitionRunPayload>;
   /** Start or resume a play session for a published puzzle */
   startPlay?: Maybe<StartPlayPayload>;
   /** Try a codeword against a collection's gated entries */
   submitCollectionCodeword?: Maybe<SubmitCollectionCodewordPayload>;
+  /** Submit a board within your run */
+  submitCompetitionEntry?: Maybe<SubmitCompetitionEntryPayload>;
   /** Submit a completed solution for server-side validation */
   submitSolution?: Maybe<SubmitSolutionPayload>;
   /** Claim a solve via the setter's solution code (for off-site solves) */
@@ -1647,6 +1841,12 @@ export type MutationExportSudokupadLinkArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationFinishCompetitionRunArgs = {
+  input: FinishCompetitionRunInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationGeneratePlayShareTokenArgs = {
   input: GeneratePlayShareTokenInput;
 };
@@ -1809,6 +2009,12 @@ export type MutationSetPuzzleVisibilityArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationStartCompetitionRunArgs = {
+  input: StartCompetitionRunInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationStartPlayArgs = {
   input: StartPlayInput;
 };
@@ -1817,6 +2023,12 @@ export type MutationStartPlayArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationSubmitCollectionCodewordArgs = {
   input: SubmitCollectionCodewordInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSubmitCompetitionEntryArgs = {
+  input: SubmitCompetitionEntryInput;
 };
 
 
@@ -2611,7 +2823,7 @@ export const PuzzleVisibilityEnum = {
 
 export type PuzzleVisibilityEnum = typeof PuzzleVisibilityEnum[keyof typeof PuzzleVisibilityEnum];
 /** Root query type — all queries are composed from domain-specific schema modules */
-export type Query = CollectionQueries & PuzzleQueries & SeriesQueries & TagQueries & UserQueries & {
+export type Query = CollectionQueries & CompetitionQueries & PuzzleQueries & SeriesQueries & TagQueries & UserQueries & {
   __typename?: 'Query';
   /** Find a collection by ID, if the current user is allowed to see it */
   collection?: Maybe<Collection>;
@@ -2621,8 +2833,12 @@ export type Query = CollectionQueries & PuzzleQueries & SeriesQueries & TagQueri
   collectionLeaderboard: Array<CollectionLeaderboardEntry>;
   /** Browse the public collection archive with search/filter/sort/pagination */
   collections: CollectionConnection;
+  /** Final standings for a competition (finalized runs only) */
+  competitionLeaderboard: Array<CompetitionLeaderboardEntry>;
   /** The currently authenticated user, or null if unauthenticated */
   me?: Maybe<User>;
+  /** The viewer's currently active competition run, if any (powers the global bar) */
+  myActiveCompetitionRun?: Maybe<CompetitionRun>;
   /** A page of the current user's collections, with search/filter/sort */
   myCollections: CollectionConnection;
   /** The current user's top-level folders; nest via each folder's children */
@@ -2681,6 +2897,13 @@ export type QueryCollectionLeaderboardArgs = {
 /** Root query type — all queries are composed from domain-specific schema modules */
 export type QueryCollectionsArgs = {
   filter?: InputMaybe<ListingFilterInput>;
+};
+
+
+/** Root query type — all queries are composed from domain-specific schema modules */
+export type QueryCompetitionLeaderboardArgs = {
+  collectionId: Scalars['ID']['input'];
+  shareToken?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -3406,6 +3629,27 @@ export type SolvedPuzzleConnection = {
   pageInfo: PageInfo;
 };
 
+/** Autogenerated input type of StartCompetitionRun */
+export type StartCompetitionRunInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The competition collection */
+  collectionId: Scalars['ID']['input'];
+  /** Share token, when the collection was reached by link */
+  shareToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Autogenerated return type of StartCompetitionRun. */
+export type StartCompetitionRunPayload = {
+  __typename?: 'StartCompetitionRunPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** The viewer's run */
+  run?: Maybe<CompetitionRun>;
+};
+
 /** Autogenerated input type of StartPlay */
 export type StartPlayInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3459,6 +3703,31 @@ export type SubmitCollectionCodewordPayload = {
   errors: Array<Scalars['String']['output']>;
   /** Whether the guess opened anything */
   matched: Scalars['Boolean']['output'];
+};
+
+/** Autogenerated input type of SubmitCompetitionEntry */
+export type SubmitCompetitionEntryInput = {
+  /** Final cell state keyed by cell coordinate */
+  cellState: Scalars['JSON']['input'];
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The competition collection */
+  collectionId: Scalars['ID']['input'];
+  /** The puzzle being submitted */
+  puzzleId: Scalars['ID']['input'];
+};
+
+/** Autogenerated return type of SubmitCompetitionEntry. */
+export type SubmitCompetitionEntryPayload = {
+  __typename?: 'SubmitCompetitionEntryPayload';
+  /** Whether the submission was recorded */
+  accepted: Scalars['Boolean']['output'];
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The verdict; always nil under the blind policy */
+  correct?: Maybe<Scalars['Boolean']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
 };
 
 /** Autogenerated input type of SubmitSolutionCode */
@@ -3648,6 +3917,8 @@ export type UpdateCollectionInput = {
   attrs: CollectionAttrsInput;
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Competition contest terms to update */
+  competitionConfig?: InputMaybe<CompetitionConfigInput>;
   /** ID of the collection */
   id: Scalars['ID']['input'];
 };

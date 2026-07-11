@@ -1,0 +1,17 @@
+mutation UpdateCompetitionConfig($id: ID!, $config: CompetitionConfigInput!) {
+  updateCollection(input: { id: $id, attrs: {}, competitionConfig: $config }) {
+    collection {
+      id
+      competitionConfig {
+        timeLimitSeconds
+        submissionPolicy
+        penaltyPoints
+        bonusPointsPerMinute
+        clampScoreAtZero
+        enforcedSettings
+        locked
+      }
+    }
+    errors
+  }
+}

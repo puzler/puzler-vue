@@ -195,7 +195,7 @@ export function useGridKeyboard() {
     }
 
     // '/' toggles the Letter tool's numbers/letters mode (when enabled).
-    if (editor.mode === 'solving' && event.key === '/' && player.settings.enableLetterTool) {
+    if (editor.mode === 'solving' && event.key === '/' && player.effective.enableLetterTool) {
       event.preventDefault()
       editor.setLetterMode(!editor.letterMode)
       return

@@ -1,0 +1,21 @@
+mutation FinishCompetitionRun($collectionId: ID!) {
+  finishCompetitionRun(input: { collectionId: $collectionId }) {
+    run {
+      id
+      finalized
+      basePoints
+      penaltyPoints
+      bonusPoints
+      totalPoints
+      correctCount
+      timeUsedSeconds
+      submissions {
+        puzzleId
+        correct
+        wrongAttempts
+        submittedAt
+      }
+    }
+    errors
+  }
+}

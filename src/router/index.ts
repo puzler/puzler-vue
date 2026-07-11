@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useCompetitionStore } from '@/stores/competition'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -149,6 +150,19 @@ router.beforeEach(async (to) => {
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
     return { name: 'home' }
+  }
+
+  // Soft anti-cheat: the setter (and its built-in solver assistant) is off
+  // limits while a competition run is live — back to the contest instead.
+  if (String(to.name ?? '').startsWith('editor')) {
+    const competition = useCompetitionStore()
+    if (competition.isActive && competition.run) {
+      return {
+        name: 'collection',
+        params: { id: competition.run.collectionId },
+        query: competition.run.shareToken ? { t: competition.run.shareToken } : {},
+      }
+    }
   }
 })
 

@@ -23,7 +23,7 @@ const player = usePlayerSettingsStore()
 
 // Tinting pencil marks red when their digit is already "seen" is a player
 // setting on the solver page; in the setter it always applies (authoring aid).
-const showConflictMarks = computed(() => editor.mode !== 'solving' || player.settings.highlightConflictingPencilmarks)
+const showConflictMarks = computed(() => editor.mode !== 'solving' || player.effective.highlightConflictingPencilmarks)
 
 // A pencil mark's colour: red when it conflicts with a seen digit (if enabled),
 // otherwise the normal indigo. Shared by corner and (as a fallback) centre marks.

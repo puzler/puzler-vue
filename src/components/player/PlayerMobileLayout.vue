@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import ZoomControls from '@/components/grid/ZoomControls.vue'
@@ -15,7 +16,7 @@ import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
 
-defineProps<{
+const props = defineProps<{
   title: string
   author: { username: string; displayName: string } | null
   authorName: string | null
@@ -23,6 +24,7 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
+  checkLabel?: string
 }>()
 
 const emit = defineEmits<{ 'toggle-pause': []; 'reset': []; 'show-rules': []; 'check': []; 'settings': []; 'collaborate': [] }>()
@@ -33,12 +35,17 @@ const BTN = 'w-9 h-9 flex items-center justify-center rounded-lg text-soft hover
 
 type Action = 'show-rules' | 'check' | 'settings' | 'reset'
 const fire = emit as unknown as (e: Action) => void
-const RAIL: { icon: string; label: string; title: string; event: Action }[] = [
+const RAIL = computed<{ icon: string; label: string; title: string; event: Action }[]>(() => [
   { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', event: 'show-rules' },
-  { icon: mdiCheckCircleOutline, label: 'Check solution', title: 'Check solution', event: 'check' },
+  {
+    icon: mdiCheckCircleOutline,
+    label: props.checkLabel ?? 'Check solution',
+    title: props.checkLabel ?? 'Check solution',
+    event: 'check',
+  },
   { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
   { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', event: 'reset' },
-]
+])
 </script>
 
 <template>

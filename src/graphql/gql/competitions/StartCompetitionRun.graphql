@@ -1,0 +1,19 @@
+mutation StartCompetitionRun($collectionId: ID!, $shareToken: String) {
+  startCompetitionRun(input: { collectionId: $collectionId, shareToken: $shareToken }) {
+    run {
+      id
+      startedAt
+      deadline
+      finishedAt
+      finalized
+      secondsRemaining
+      submissions {
+        puzzleId
+        submittedAt
+        correct
+        wrongAttempts
+      }
+    }
+    errors
+  }
+}

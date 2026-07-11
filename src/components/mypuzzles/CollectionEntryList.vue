@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import CollectionEntryRow from '@/components/mypuzzles/CollectionEntryRow.vue'
+import { CollectionKindEnum } from '@/graphql/generated/types'
 import type { CollectionDetailQuery } from '@/graphql/generated/types'
 
 type Entry = NonNullable<CollectionDetailQuery['collection']>['entries'][number]
 
 // The author's ordered entry list: puzzles and story pages in one sequence.
 // Puzzles keep their own running numbers; story rows show a book marker; gate
-// badges mark codeworded, hidden, and finale entries.
-const props = defineProps<{ entries: Entry[] }>()
+// badges mark codeworded, hidden, and finale entries. Story/gate affordances
+// only exist for hunts.
+const props = defineProps<{ entries: Entry[]; kind: CollectionKindEnum }>()
 const emit = defineEmits<{
   move: [index: number, delta: number]
   remove: [entry: Entry]
@@ -15,6 +17,7 @@ const emit = defineEmits<{
   addStory: []
   editStory: [entry: Entry]
   editGates: [entry: Entry]
+  setPoints: [entry: Entry, points: number]
 }>()
 
 function puzzleNumber(index: number): number {
@@ -30,6 +33,7 @@ function puzzleNumber(index: number): number {
       </h2>
       <div class="flex items-center gap-4">
         <button
+          v-if="kind === CollectionKindEnum.Hunt"
           class="text-sm text-action hover:underline"
           @click="emit('addStory')"
         >
@@ -61,10 +65,13 @@ function puzzleNumber(index: number): number {
         :number="puzzleNumber(index)"
         :first="index === 0"
         :last="index === entries.length - 1"
+        :show-gates="kind === CollectionKindEnum.Hunt"
+        :show-points="kind === CollectionKindEnum.Competition"
         @move="emit('move', index, $event)"
         @remove="emit('remove', entry)"
         @edit-story="emit('editStory', entry)"
         @edit-gates="emit('editGates', entry)"
+        @set-points="emit('setPoints', entry, $event)"
       />
     </ul>
   </div>

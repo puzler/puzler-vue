@@ -72,7 +72,7 @@ const fogMaskId = `fog-mask-${++fogMaskSeq}`
 // emerges from the mist, the rest stays hidden — no hard cut at the boundary).
 const fogMask = computed(() => (fogOpaque.value ? `url(#${fogMaskId})` : undefined))
 
-const showLabels = computed(() => player.settings.showRowColLabels)
+const showLabels = computed(() => player.effective.showRowColLabels)
 
 // Registry-derived constraint layers that sit at fixed points in the grid stack.
 const aboveRegionLayers = constraintLayersForSlot('above_regions')

@@ -2,6 +2,7 @@ query CollectionDetail($id: ID!) {
   collection(id: $id) {
     id
     title
+    kind
     description
     pageDescriptionHtml
     coverImageUrl
@@ -12,6 +13,15 @@ query CollectionDetail($id: ID!) {
     mode
     timed
     shareToken
+    competitionConfig {
+      timeLimitSeconds
+      submissionPolicy
+      penaltyPoints
+      bonusPointsPerMinute
+      clampScoreAtZero
+      enforcedSettings
+      locked
+    }
     entries {
       id
       entryType
@@ -20,11 +30,13 @@ query CollectionDetail($id: ID!) {
       hidden
       finale
       releasedAt
+      points
       puzzle {
         id
         title
         status
         visibility
+        constraintTypes
       }
       storyPage {
         id

@@ -10,6 +10,7 @@ import PlayerSettingsModal from '@/components/player/PlayerSettingsModal.vue'
 import SolvedModal from '@/components/player/SolvedModal.vue'
 import CollaborationModal from '@/components/player/CollaborationModal.vue'
 import KickedBanner from '@/components/player/KickedBanner.vue'
+import CompetitionSubmitToast from '@/components/competitions/CompetitionSubmitToast.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +19,7 @@ import { usePuzzleTimer } from '@/composables/usePuzzleTimer'
 import { usePlayerSettingsStore } from '@/stores/playerSettings'
 import { useSolveSessionStore } from '@/stores/solveSession'
 import { usePresenceStore } from '@/stores/presence'
+import { useCompetitionStore } from '@/stores/competition'
 import { apolloClient } from '@/utils/apolloClient'
 import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils/puzzleExport'
 import { hashSolution } from '@/utils/solutionHash'
@@ -47,6 +49,7 @@ import type {
   RecordCollectionSolveTimeMutation,
   RecordCollectionSolveTimeMutationVariables,
 } from '@/graphql/generated/types'
+import { CollectionKindEnum } from '@/graphql/generated/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +59,7 @@ const auth = useAuthStore()
 const player = usePlayerSettingsStore()
 const solveSession = useSolveSessionStore()
 const presence = usePresenceStore()
+const competition = useCompetitionStore()
 const isMobile = useIsMobile()
 
 // Removed by the host mid-session: stop server sync, keep solving locally, and
@@ -101,12 +105,36 @@ const checkResult = ref<CheckResultEnum>('INCORRECT')
 const showSettings = ref(false)
 const showCollaboration = ref(false)
 
+// In a competition run, checking is replaced wholesale by blind/scored
+// submission: the server rejects CheckSolution anyway, so the UI never offers it.
+const inCompetition = computed(() =>
+  (collectionId.value ? competition.isActiveFor(collectionId.value) : false))
+const canSubmit = computed(() =>
+  (puzzleId.value ? competition.canSubmit(puzzleId.value) : false))
+const submitMessage = ref<string | null>(null)
+
+async function runCompetitionSubmit() {
+  if (!puzzleId.value || !canSubmit.value) return
+  const result = await competition.submit(puzzleId.value, boardSnapshot(editor, grid))
+  if (!result.accepted) {
+    submitMessage.value = result.error
+  } else if (result.correct === null) {
+    submitMessage.value = 'Submitted. You can resubmit until time runs out — your last submission counts.'
+  } else {
+    submitMessage.value = result.correct
+      ? 'Correct! This puzzle is in the bank.'
+      : 'Incorrect — that submission cost you the penalty.'
+  }
+  setTimeout(() => { submitMessage.value = null }, 5000)
+}
+
 // Manual "Check Solution": ask the server (which has the solution) for a coarse
 // verdict. A complete-and-correct board routes to the normal win flow; anything
 // else opens the result modal (which honours the reveal-partial-progress
 // setting). Always available, regardless of the auto-check setting.
 async function runCheck() {
   if (!puzzleId.value) return
+  if (inCompetition.value) return runCompetitionSubmit()
   try {
     const { data } = await apolloClient.mutate<CheckSolutionMutation, CheckSolutionMutationVariables>({
       mutation: CheckSolutionDocument,
@@ -164,7 +192,7 @@ const orderedPuzzles = ref<{ id: string; token: string | null }[]>([])
 // its elapsed value to the leaderboard on solve.
 const timer = usePuzzleTimer()
 const { label: timerLabel, paused: timerPaused } = timer
-const showTimer = computed(() => !player.settings.hideTimer)
+const showTimer = computed(() => !player.effective.hideTimer)
 const nextEntry = computed(() => {
   if (!puzzleId.value) return null
   const idx = orderedPuzzles.value.findIndex((p) => p.id === puzzleId.value)
@@ -174,20 +202,25 @@ const nextId = computed(() => nextEntry.value?.id ?? null)
 
 async function loadCollectionOrder() {
   if (!collectionId.value) return
+  let payload: CollectionPublicQuery['collection'] = null
   if (collectionToken.value) {
     const { data } = await apolloClient.query<CollectionByTokenPublicQuery, CollectionByTokenPublicQueryVariables>({
       query: CollectionByTokenPublicDocument, variables: { token: collectionToken.value }, fetchPolicy: 'network-only',
     })
-    collectionTitle.value = data?.collectionByToken?.title ?? ''
-    collectionTimed.value = data?.collectionByToken?.timed ?? false
-    orderedPuzzles.value = data?.collectionByToken?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
+    payload = data?.collectionByToken ?? null
   } else {
     const { data } = await apolloClient.query<CollectionPublicQuery, CollectionPublicQueryVariables>({
       query: CollectionPublicDocument, variables: { id: collectionId.value }, fetchPolicy: 'network-only',
     })
-    collectionTitle.value = data?.collection?.title ?? ''
-    collectionTimed.value = data?.collection?.timed ?? false
-    orderedPuzzles.value = data?.collection?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
+    payload = data?.collection ?? null
+  }
+  collectionTitle.value = payload?.title ?? ''
+  collectionTimed.value = payload?.timed ?? false
+  orderedPuzzles.value = payload?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
+  // Competition context: hydrate the run (enforced settings, submit state)
+  // BEFORE the session/timer starts so overrides apply from the first paint.
+  if (payload?.kind === CollectionKindEnum.Competition) {
+    competition.hydrateFromCollection(payload, collectionToken.value)
   }
 }
 
@@ -214,7 +247,7 @@ function backToCollection() {
 watch(
   () => [editor.givenDigits, editor.solverCellStates],
   () => {
-    if (solved.value || !solutionHash.value || !player.settings.checkOnFinish) return
+    if (solved.value || !solutionHash.value || !player.effective.checkOnFinish) return
     if (hashSolution(boardSnapshot(editor, grid)) === solutionHash.value) onSolved()
   },
   { deep: true },
@@ -328,7 +361,7 @@ async function loadPuzzle() {
     })
     // Greet the solver with the rules on a fresh start (when enabled), pausing
     // the clock until dismissed. Skip on resume and when there's no rules text.
-    if (!resumed && player.settings.showRulesOnStart && editor.puzzleRules) openRules()
+    if (!resumed && player.effective.showRulesOnStart && editor.puzzleRules) openRules()
   } catch (e) {
     errorMessage.value = e instanceof Error ? e.message : 'Could not load this puzzle.'
   } finally {
@@ -397,7 +430,8 @@ onUnmounted(() => {
       :show-timer="showTimer"
       :elapsed-label="timerLabel"
       :paused="timerPaused"
-      :collaboration-enabled="player.settings.enableCollaborationMode"
+      :collaboration-enabled="player.effective.enableCollaborationMode"
+      :check-label="inCompetition ? 'Submit solution' : undefined"
       @toggle-pause="timer.toggle()"
       @reset="showReset = true"
       @show-rules="openRules"
@@ -415,7 +449,8 @@ onUnmounted(() => {
       :show-timer="showTimer"
       :elapsed-label="timerLabel"
       :paused="timerPaused"
-      :collaboration-enabled="player.settings.enableCollaborationMode"
+      :collaboration-enabled="player.effective.enableCollaborationMode"
+      :check-label="inCompetition ? 'Submit solution' : undefined"
       @toggle-pause="timer.toggle()"
       @show-rules="openRules"
       @reset="showReset = true"
@@ -443,7 +478,7 @@ onUnmounted(() => {
     <CheckResultModal
       v-if="showCheckResult"
       :result="checkResult"
-      :reveal-partial="player.settings.revealPartialProgress"
+      :reveal-partial="player.effective.revealPartialProgress"
       @close="showCheckResult = false"
     />
 
@@ -451,12 +486,12 @@ onUnmounted(() => {
       v-if="showSettings"
       @close="showSettings = false"
     />
-
     <CollaborationModal
       v-if="showCollaboration"
       :puzzle-id="puzzleId"
       @close="showCollaboration = false"
     />
+    <CompetitionSubmitToast :message="submitMessage" />
 
     <SolvedModal
       v-if="solved"

@@ -1,0 +1,10 @@
+query CompetitionLeaderboard($collectionId: ID!, $shareToken: String) {
+  competitionLeaderboard(collectionId: $collectionId, shareToken: $shareToken) {
+    rank
+    username
+    displayName
+    totalPoints
+    correctCount
+    timeUsedSeconds
+  }
+}

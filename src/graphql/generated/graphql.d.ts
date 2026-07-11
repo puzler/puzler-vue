@@ -314,6 +314,15 @@ declare module '*/UpdateCollectionPageDescription.graphql' {
 }
     
 
+declare module '*/UpdateCompetitionConfig.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateCompetitionConfig: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/UpdateStoryPage.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -418,6 +427,51 @@ declare module '*/MyFolders.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const MyFolders: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/CompetitionLeaderboard.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const CompetitionLeaderboard: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/FinishCompetitionRun.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const FinishCompetitionRun: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/MyActiveCompetitionRun.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const MyActiveCompetitionRun: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/StartCompetitionRun.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const StartCompetitionRun: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SubmitCompetitionEntry.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SubmitCompetitionEntry: DocumentNode;
 
   export default defaultDocument;
 }

@@ -24,7 +24,7 @@ const isLine = computed(() => editor.effectiveInputMode === 'line')
 // Letters render on the keys only where they can be placed (digit/mark modes).
 const letterKeys = computed(() => editor.letterModeActive && !isColor.value && !isLine.value)
 const showLetterToggle = computed(
-  () => player.settings.enableLetterTool && !isColor.value && !isLine.value,
+  () => player.effective.enableLetterTool && !isColor.value && !isLine.value,
 )
 
 const PEN_TARGETS: { value: PenTarget; label: string }[] = [

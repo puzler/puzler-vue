@@ -19,6 +19,7 @@ defineProps<{
   elapsedLabel: string
   paused: boolean
   collaborationEnabled: boolean
+  checkLabel?: string
 }>()
 
 defineEmits<{
@@ -55,6 +56,7 @@ defineEmits<{
       :elapsed-label="elapsedLabel"
       :paused="paused"
       :collaboration-enabled="collaborationEnabled"
+      :check-label="checkLabel"
       @toggle-pause="$emit('toggle-pause')"
       @show-rules="$emit('show-rules')"
       @reset="$emit('reset')"

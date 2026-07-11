@@ -1,6 +1,6 @@
-mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: CollectionVisibilityEnum, $mode: CollectionModeEnum, $timed: Boolean, $accentColor: CollectionAccentColorEnum, $bgTreatment: CollectionBgTreatmentEnum, $titleFont: CollectionTitleFontEnum) {
+mutation UpdateCollection($id: ID!, $title: String, $description: String, $visibility: CollectionVisibilityEnum, $mode: CollectionModeEnum, $timed: Boolean, $kind: CollectionKindEnum, $accentColor: CollectionAccentColorEnum, $bgTreatment: CollectionBgTreatmentEnum, $titleFont: CollectionTitleFontEnum) {
   updateCollection(
-    input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode, timed: $timed, accentColor: $accentColor, bgTreatment: $bgTreatment, titleFont: $titleFont } }
+    input: { id: $id, attrs: { title: $title, description: $description, visibility: $visibility, mode: $mode, timed: $timed, kind: $kind, accentColor: $accentColor, bgTreatment: $bgTreatment, titleFont: $titleFont } }
   ) {
     collection {
       id
@@ -9,6 +9,7 @@ mutation UpdateCollection($id: ID!, $title: String, $description: String, $visib
       visibility
       mode
       timed
+      kind
       accentColor
       bgTreatment
       titleFont

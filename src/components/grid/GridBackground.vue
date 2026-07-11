@@ -20,10 +20,10 @@ const cs = useConstraintStyles()
 
 // Conflict highlighting is a player setting on the solver page; in the setter
 // it always shows (it's an authoring aid). `seen` highlighting is opt-in only.
-const showConflicts = computed(() => editor.mode !== 'solving' || player.settings.highlightConflicts)
+const showConflicts = computed(() => editor.mode !== 'solving' || player.effective.highlightConflicts)
 // Solvers can hide the puzzle's built-in (author-placed) cell colours so they
 // can recolour freely; the setter always sees its own cosmetics.
-const hideCosmeticColors = computed(() => editor.mode === 'solving' && player.settings.hideColors)
+const hideCosmeticColors = computed(() => editor.mode === 'solving' && player.effective.hideColors)
 
 const totalW = computed(() => PADDING * 2 + grid.cols * CELL_SIZE)
 const totalH = computed(() => PADDING * 2 + grid.rows * CELL_SIZE)
@@ -86,7 +86,7 @@ const errorRects = computed<CellRect[]>(() => {
 
 // Cells the current selection can see — only when the player opts in.
 const seenRects = computed<CellRect[]>(() => {
-  if (!player.settings.highlightSeen) return []
+  if (!player.effective.highlightSeen) return []
   return Array.from(editor.cellsSeenBySelection).flatMap(key => {
     const m = key.match(/r(\d+)c(\d+)/)
     if (!m) return []

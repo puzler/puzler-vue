@@ -99,7 +99,7 @@ export const useEditorStore = defineStore('editor', () => {
   // digit keys become A-J and every unmodified keyboard letter is grid input.
   const letterMode = ref(false)
   const letterModeActive = computed(
-    () => letterMode.value && usePlayerSettingsStore().settings.enableLetterTool,
+    () => letterMode.value && usePlayerSettingsStore().effective.enableLetterTool,
   )
   const cosmeticInstances = ref<CosmeticInstance[]>([])
   const pendingLineCells = ref<string[]>([])
@@ -250,7 +250,7 @@ export const useEditorStore = defineStore('editor', () => {
   // Disabling the line tool in settings degrades cleanly: fall back to digit
   // input rather than stranding the solver in a mode with no UI.
   watch(
-    () => usePlayerSettingsStore().settings.enableLineTool,
+    () => usePlayerSettingsStore().effective.enableLineTool,
     (on) => {
       if (!on && inputMode.value === 'line') setInputMode('digit')
     },
@@ -258,7 +258,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // Same for the letter tool: disabling it reverts the numpad to numbers.
   watch(
-    () => usePlayerSettingsStore().settings.enableLetterTool,
+    () => usePlayerSettingsStore().effective.enableLetterTool,
     (on) => {
       if (!on) letterMode.value = false
     },

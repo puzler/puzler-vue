@@ -30,7 +30,7 @@ export const useViewportStore = defineStore('viewport', () => {
   // SudokuGrid rendered directly before zoom existed).
   const baseBox = computed<ViewRect>(() => {
     const m = margins.value
-    const g = player.settings.showRowColLabels ? LABEL_GUTTER : 0
+    const g = player.effective.showRowColLabels ? LABEL_GUTTER : 0
     const left = m.left + g
     const top = m.top + g
     return {

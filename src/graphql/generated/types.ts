@@ -255,13 +255,14 @@ export type UpdateCollectionMutationVariables = Exact<{
   visibility?: Types.CollectionVisibilityEnum | null | undefined;
   mode?: Types.CollectionModeEnum | null | undefined;
   timed?: boolean | null | undefined;
+  kind?: Types.CollectionKindEnum | null | undefined;
   accentColor?: Types.CollectionAccentColorEnum | null | undefined;
   bgTreatment?: Types.CollectionBgTreatmentEnum | null | undefined;
   titleFont?: Types.CollectionTitleFontEnum | null | undefined;
 }>;
 
 
-export type UpdateCollectionMutation = { updateCollection: { errors: Array<string>, collection: { id: string, title: string, description: string | null, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum } | null } | null };
+export type UpdateCollectionMutation = { updateCollection: { errors: Array<string>, collection: { id: string, title: string, description: string | null, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, kind: Types.CollectionKindEnum, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum } | null } | null };
 
 export type UpdateCollectionEntryMutationVariables = Exact<{
   collectionId: string | number;
@@ -279,6 +280,14 @@ export type UpdateCollectionPageDescriptionMutationVariables = Exact<{
 
 
 export type UpdateCollectionPageDescriptionMutation = { updateCollectionPageDescription: { errors: Array<string>, collection: { id: string, pageDescriptionHtml: string | null } | null } | null };
+
+export type UpdateCompetitionConfigMutationVariables = Exact<{
+  id: string | number;
+  config: Types.CompetitionConfigInput;
+}>;
+
+
+export type UpdateCompetitionConfigMutation = { updateCollection: { errors: Array<string>, collection: { id: string, competitionConfig: { timeLimitSeconds: number | null, submissionPolicy: Types.CompetitionSubmissionPolicyEnum, penaltyPoints: number, bonusPointsPerMinute: number, clampScoreAtZero: boolean, enforcedSettings: unknown, locked: boolean } | null } | null } | null };
 
 export type UpdateStoryPageMutationVariables = Exact<{
   id: string | number;
@@ -318,14 +327,14 @@ export type CollectionByTokenPublicQueryVariables = Exact<{
 }>;
 
 
-export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
+export type CollectionByTokenPublicQuery = { collectionByToken: { id: string, title: string, kind: Types.CollectionKindEnum, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, competitionConfig: { timeLimitSeconds: number | null, submissionPolicy: Types.CompetitionSubmissionPolicyEnum, penaltyPoints: number, bonusPointsPerMinute: number, clampScoreAtZero: boolean, enforcedSettings: unknown, locked: boolean } | null, myCompetitionRun: { id: string, startedAt: string, deadline: string, finishedAt: string | null, finalized: boolean, secondsRemaining: number, basePoints: number | null, penaltyPoints: number | null, bonusPoints: number | null, totalPoints: number | null, correctCount: number | null, timeUsedSeconds: number | null, submissions: Array<{ puzzleId: string, submittedAt: string, correct: boolean | null, wrongAttempts: number | null }> } | null, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, points: number, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionDetailQueryVariables = Exact<{
   id: string | number;
 }>;
 
 
-export type CollectionDetailQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, shareToken: string | null, entries: Array<{ id: string, entryType: string, position: number, gated: boolean, hidden: boolean, finale: boolean, releasedAt: string | null, puzzle: { id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
+export type CollectionDetailQuery = { collection: { id: string, title: string, kind: Types.CollectionKindEnum, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, timed: boolean, shareToken: string | null, competitionConfig: { timeLimitSeconds: number | null, submissionPolicy: Types.CompetitionSubmissionPolicyEnum, penaltyPoints: number, bonusPointsPerMinute: number, clampScoreAtZero: boolean, enforcedSettings: unknown, locked: boolean } | null, entries: Array<{ id: string, entryType: string, position: number, gated: boolean, hidden: boolean, finale: boolean, releasedAt: string | null, points: number, puzzle: { id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, constraintTypes: Array<string> } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionLeaderboardQueryVariables = Exact<{
   collectionId: string | number;
@@ -339,7 +348,7 @@ export type CollectionPublicQueryVariables = Exact<{
 }>;
 
 
-export type CollectionPublicQuery = { collection: { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
+export type CollectionPublicQuery = { collection: { id: string, title: string, kind: Types.CollectionKindEnum, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, competitionConfig: { timeLimitSeconds: number | null, submissionPolicy: Types.CompetitionSubmissionPolicyEnum, penaltyPoints: number, bonusPointsPerMinute: number, clampScoreAtZero: boolean, enforcedSettings: unknown, locked: boolean } | null, myCompetitionRun: { id: string, startedAt: string, deadline: string, finishedAt: string | null, finalized: boolean, secondsRemaining: number, basePoints: number | null, penaltyPoints: number | null, bonusPoints: number | null, totalPoints: number | null, correctCount: number | null, timeUsedSeconds: number | null, submissions: Array<{ puzzleId: string, submittedAt: string, correct: boolean | null, wrongAttempts: number | null }> } | null, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, points: number, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> } | null };
 
 export type CollectionsQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
@@ -367,9 +376,46 @@ export type MyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MyFoldersQuery = { myFolders: Array<{ id: string, name: string, puzzleCount: number }> };
 
+export type CompetitionLeaderboardQueryVariables = Exact<{
+  collectionId: string | number;
+  shareToken?: string | null | undefined;
+}>;
+
+
+export type CompetitionLeaderboardQuery = { competitionLeaderboard: Array<{ rank: number, username: string, displayName: string, totalPoints: number, correctCount: number, timeUsedSeconds: number }> };
+
+export type FinishCompetitionRunMutationVariables = Exact<{
+  collectionId: string | number;
+}>;
+
+
+export type FinishCompetitionRunMutation = { finishCompetitionRun: { errors: Array<string>, run: { id: string, finalized: boolean, basePoints: number | null, penaltyPoints: number | null, bonusPoints: number | null, totalPoints: number | null, correctCount: number | null, timeUsedSeconds: number | null, submissions: Array<{ puzzleId: string, correct: boolean | null, wrongAttempts: number | null, submittedAt: string }> } | null } | null };
+
+export type MyActiveCompetitionRunQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyActiveCompetitionRunQuery = { myActiveCompetitionRun: { id: string, secondsRemaining: number, deadline: string, collection: { id: string, title: string, shareToken: string | null, competitionConfig: { submissionPolicy: Types.CompetitionSubmissionPolicyEnum, enforcedSettings: unknown } | null } } | null };
+
+export type StartCompetitionRunMutationVariables = Exact<{
+  collectionId: string | number;
+  shareToken?: string | null | undefined;
+}>;
+
+
+export type StartCompetitionRunMutation = { startCompetitionRun: { errors: Array<string>, run: { id: string, startedAt: string, deadline: string, finishedAt: string | null, finalized: boolean, secondsRemaining: number, submissions: Array<{ puzzleId: string, submittedAt: string, correct: boolean | null, wrongAttempts: number | null }> } | null } | null };
+
+export type SubmitCompetitionEntryMutationVariables = Exact<{
+  collectionId: string | number;
+  puzzleId: string | number;
+  cellState: unknown;
+}>;
+
+
+export type SubmitCompetitionEntryMutation = { submitCompetitionEntry: { accepted: boolean, correct: boolean | null, errors: Array<string> } | null };
+
 export type CollectionCardFieldsFragment = { id: string, title: string, coverThumbUrl: string | null, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
-export type CollectionPublicFieldsFragment = { id: string, title: string, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> };
+export type CollectionPublicFieldsFragment = { id: string, title: string, kind: Types.CollectionKindEnum, description: string | null, pageDescriptionHtml: string | null, coverImageUrl: string | null, accentColor: Types.CollectionAccentColorEnum, bgTreatment: Types.CollectionBgTreatmentEnum, titleFont: Types.CollectionTitleFontEnum, mode: Types.CollectionModeEnum, timed: boolean, hasCodewords: boolean, nextReleaseAt: string | null, author: { id: string, username: string, displayName: string }, puzzles: Array<{ id: string, title: string, shareToken: string | null, constraintTypes: Array<string>, avgRating: number | null, solveCount: number, sudokupadUrl: string | null }>, competitionConfig: { timeLimitSeconds: number | null, submissionPolicy: Types.CompetitionSubmissionPolicyEnum, penaltyPoints: number, bonusPointsPerMinute: number, clampScoreAtZero: boolean, enforcedSettings: unknown, locked: boolean } | null, myCompetitionRun: { id: string, startedAt: string, deadline: string, finishedAt: string | null, finalized: boolean, secondsRemaining: number, basePoints: number | null, penaltyPoints: number | null, bonusPoints: number | null, totalPoints: number | null, correctCount: number | null, timeUsedSeconds: number | null, submissions: Array<{ puzzleId: string, submittedAt: string, correct: boolean | null, wrongAttempts: number | null }> } | null, entries: Array<{ id: string, entryType: string, position: number, locked: boolean, solved: boolean, gated: boolean, hidden: boolean, finale: boolean, points: number, storyTitle: string | null, puzzle: { id: string } | null, storyPage: { id: string, title: string | null, bodyHtml: string | null } | null }> };
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null };
 

@@ -6,11 +6,13 @@ import ContentPage from '@/components/ContentPage.vue'
 import CollectionEntryList from '@/components/mypuzzles/CollectionEntryList.vue'
 import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
 import CollectionPageEditor from '@/components/mypuzzles/CollectionPageEditor.vue'
+import CompetitionSettingsPanel from '@/components/mypuzzles/CompetitionSettingsPanel.vue'
 import CollectionDetailModals from '@/components/mypuzzles/CollectionDetailModals.vue'
 import CollectionDetailDocument from '@/graphql/gql/collections/queries/CollectionDetail.graphql'
 import UpdateCollectionDocument from '@/graphql/gql/collections/mutations/UpdateCollection.graphql'
 import DeleteCollectionDocument from '@/graphql/gql/collections/mutations/DeleteCollection.graphql'
 import AddStoryPageToCollectionDocument from '@/graphql/gql/collections/mutations/AddStoryPageToCollection.graphql'
+import UpdateCollectionEntryDocument from '@/graphql/gql/collections/mutations/UpdateCollectionEntry.graphql'
 import RemoveCollectionEntryDocument from '@/graphql/gql/collections/mutations/RemoveCollectionEntry.graphql'
 import ReorderCollectionEntriesDocument from '@/graphql/gql/collections/mutations/ReorderCollectionEntries.graphql'
 import type {
@@ -18,10 +20,11 @@ import type {
   UpdateCollectionMutation, UpdateCollectionMutationVariables,
   DeleteCollectionMutation, DeleteCollectionMutationVariables,
   AddStoryPageToCollectionMutation, AddStoryPageToCollectionMutationVariables,
+  UpdateCollectionEntryMutation, UpdateCollectionEntryMutationVariables,
   RemoveCollectionEntryMutation, RemoveCollectionEntryMutationVariables,
   ReorderCollectionEntriesMutation, ReorderCollectionEntriesMutationVariables,
 } from '@/graphql/generated/types'
-import { CollectionVisibilityEnum } from '@/graphql/generated/types'
+import { CollectionKindEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
 
 type Collection = NonNullable<CollectionDetailQuery['collection']>
 type Entry = Collection['entries'][number]
@@ -49,6 +52,7 @@ function entryLabel(entry: Entry): string {
 
 const puzzleIds = computed(() =>
   entries.value.flatMap((entry) => (entry.puzzle ? [ entry.puzzle.id ] : [])))
+const isHunt = computed(() => collection.value?.kind === CollectionKindEnum.Hunt)
 
 async function load() {
   const { data } = await apolloClient.query<CollectionDetailQuery, CollectionDetailQueryVariables>({
@@ -112,6 +116,13 @@ async function closeStoryModal() {
   await load()
 }
 
+function setPoints(entry: Entry, points: number) {
+  apolloClient.mutate<UpdateCollectionEntryMutation, UpdateCollectionEntryMutationVariables>({
+    mutation: UpdateCollectionEntryDocument,
+    variables: { collectionId: id, entryId: entry.id, gates: { points } },
+  })
+}
+
 async function deleteCollection() {
   await apolloClient.mutate<DeleteCollectionMutation, DeleteCollectionMutationVariables>({ mutation: DeleteCollectionDocument, variables: { id } })
   router.push({ name: 'my-puzzles' })
@@ -160,18 +171,13 @@ onMounted(load)
           :visibility="collection.visibility"
           :mode="collection.mode"
           :timed="collection.timed"
+          :kind="collection.kind"
+          :public-route="publicRoute"
           @save="save"
         />
 
-        <RouterLink
-          v-if="collection.visibility !== CollectionVisibilityEnum.Private"
-          :to="publicRoute"
-          class="text-sm text-action hover:underline"
-        >
-          View public page →
-        </RouterLink>
-
         <CollectionPageEditor
+          v-if="isHunt"
           :collection-id="id"
           :cover-image-url="collection.coverImageUrl ?? null"
           :page-description-html="collection.pageDescriptionHtml ?? null"
@@ -181,14 +187,24 @@ onMounted(load)
           @save="save"
         />
 
+        <CompetitionSettingsPanel
+          v-if="collection.kind === CollectionKindEnum.Competition && collection.competitionConfig"
+          :collection-id="id"
+          :config="collection.competitionConfig"
+          :entries="entries"
+          @saved="load"
+        />
+
         <CollectionEntryList
           :entries="entries"
+          :kind="collection.kind"
           @move="move"
           @remove="requestRemove"
           @add="showAdd = true"
           @add-story="addStoryPage"
           @edit-story="editingStory = $event.storyPage"
           @edit-gates="editingGates = $event"
+          @set-points="setPoints"
         />
 
         <div class="pt-4 border-t border-line">

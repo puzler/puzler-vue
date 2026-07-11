@@ -101,17 +101,17 @@ onMounted(() => generate())
         </p>
 
         <template v-if="token">
-          <div :class="player.settings.hideShareToken ? 'flex items-center gap-2' : 'flex flex-col gap-3'">
+          <div :class="player.effective.hideShareToken ? 'flex items-center gap-2' : 'flex flex-col gap-3'">
             <CopyField
               label="Share link"
               :value="shareLink"
-              :hide-value="player.settings.hideShareToken"
+              :hide-value="player.effective.hideShareToken"
             />
             <CopyField
               label="Token"
               :value="token"
               mono
-              :hide-value="player.settings.hideShareToken"
+              :hide-value="player.effective.hideShareToken"
             />
           </div>
 

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useAuthStore } from './auth'
 import {
   loadPlayerSettings,
@@ -18,6 +18,26 @@ import {
 // solver web-worker assistant. Keep the two separate.
 export const usePlayerSettingsStore = defineStore('playerSettings', () => {
   const settings = reactive<PlayerSettings>(loadPlayerSettings())
+
+  // Author-enforced values while the user plays a competition. Kept OUTSIDE
+  // `settings` so the persistence watch below can never observe them: the
+  // user's own prefs survive the competition untouched. Gameplay code reads
+  // `effective`; the settings UI writes `settings`.
+  const overrides = ref<Partial<PlayerSettings>>({})
+
+  const effective = computed<PlayerSettings>(() => ({ ...settings, ...overrides.value }))
+
+  function setOverrides(next: Partial<PlayerSettings>) {
+    overrides.value = { ...next }
+  }
+
+  function clearOverrides() {
+    overrides.value = {}
+  }
+
+  function isEnforced(key: keyof PlayerSettings): boolean {
+    return key in overrides.value
+  }
 
   // The settings JSON we believe the server currently holds, so the auto-sync
   // skips redundant pushes and hydration doesn't echo straight back.
@@ -70,5 +90,5 @@ export const usePlayerSettingsStore = defineStore('playerSettings', () => {
     }
   }, { immediate: true })
 
-  return { settings, reset }
+  return { settings, effective, overrides, setOverrides, clearOverrides, isEnforced, reset }
 })

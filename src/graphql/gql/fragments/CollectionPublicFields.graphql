@@ -1,6 +1,7 @@
 fragment CollectionPublicFields on Collection {
   id
   title
+  kind
   description
   pageDescriptionHtml
   coverImageUrl
@@ -25,6 +26,35 @@ fragment CollectionPublicFields on Collection {
   }
   hasCodewords
   nextReleaseAt
+  competitionConfig {
+    timeLimitSeconds
+    submissionPolicy
+    penaltyPoints
+    bonusPointsPerMinute
+    clampScoreAtZero
+    enforcedSettings
+    locked
+  }
+  myCompetitionRun {
+    id
+    startedAt
+    deadline
+    finishedAt
+    finalized
+    secondsRemaining
+    basePoints
+    penaltyPoints
+    bonusPoints
+    totalPoints
+    correctCount
+    timeUsedSeconds
+    submissions {
+      puzzleId
+      submittedAt
+      correct
+      wrongAttempts
+    }
+  }
   entries {
     id
     entryType
@@ -34,6 +64,7 @@ fragment CollectionPublicFields on Collection {
     gated
     hidden
     finale
+    points
     storyTitle
     puzzle {
       id

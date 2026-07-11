@@ -6,6 +6,12 @@
     "CollectionQueries": [
       "Query"
     ],
+    "CompetitionMutations": [
+      "Mutation"
+    ],
+    "CompetitionQueries": [
+      "Query"
+    ],
     "ConstraintMutations": [
       "Mutation"
     ],

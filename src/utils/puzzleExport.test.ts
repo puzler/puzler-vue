@@ -152,6 +152,28 @@ describe('serializePuzzle (format v4)', () => {
     expect(serializePuzzle(e2, g2)).toEqual(data)
   })
 
+  it('round-trips mixed-case labels in ASCII order (digits < uppercase < lowercase)', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    grid.setDimensions(4, 4)
+    const overrides: Record<string, string[]> = {}
+    for (const key of grid.allCellKeys()) overrides[key] = []
+    overrides.r0c0 = ['9']
+    overrides.r0c1 = ['A']
+    overrides.r0c2 = ['a']
+    grid.setCustomCellRegions(overrides)
+    const data = serializePuzzle(editor, grid)
+    expect(Object.keys(data.grid.regions ?? {})).toEqual(['9', 'A', 'a'])
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    expect(g2.cellRegionLabelMap.get('r0c2')).toEqual(['a'])
+    expect(g2.areSameRegion('r0c1', 'r0c2')).toBe(false) // 'A' and 'a' stay distinct
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
   it('round-trips grid.digits: absent = automatic, explicit value survives', () => {
     const editor = useEditorStore()
     const grid = useGridStore()

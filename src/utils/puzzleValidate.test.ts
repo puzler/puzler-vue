@@ -187,6 +187,15 @@ describe('validatePuzzle errors (functionally broken)', () => {
 })
 
 describe('validatePuzzle warnings (weird but allowed)', () => {
+  it('warns on region labels outside single-char 0-9A-Za-z without blocking', () => {
+    const { errors, warnings } = validatePuzzle(doc({
+      grid: { rows: 9, cols: 9, regions: { a: ['r1c1'], AA: ['r1c2'] } },
+    }))
+    expect(errors).toHaveLength(0)
+    expect(paths(warnings)).toContain('grid.regions.AA')
+    expect(paths(warnings)).not.toContain('grid.regions.a')
+  })
+
   it('warns on stacked same-location connectors and outer clues', () => {
     const { errors, warnings } = validatePuzzle(doc({
       constraints: {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useGridStore } from './grid'
+import { boxIndexToLabel, useGridStore } from './grid'
 
 // The multi-label region model: cells may belong to several regions
 // (conjoined grids overlap their boxes), and borders/uniqueness derive from
@@ -58,5 +58,15 @@ describe('multi-label regions', () => {
     expect(grid.effectiveDigitRange).toBe(6)
     grid.setDimensions(48, 48)
     expect(grid.effectiveDigitRange).toBe(9)
+  })
+
+  it('standard box labels run 1-9, A-Z, then a-z (62 labels total with 0)', () => {
+    expect(boxIndexToLabel(0)).toBe('1')
+    expect(boxIndexToLabel(8)).toBe('9')
+    expect(boxIndexToLabel(9)).toBe('A')
+    expect(boxIndexToLabel(34)).toBe('Z')
+    expect(boxIndexToLabel(35)).toBe('a')
+    expect(boxIndexToLabel(60)).toBe('z')
+    expect(boxIndexToLabel(61)).toBe('?')
   })
 })

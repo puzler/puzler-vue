@@ -164,6 +164,12 @@ function validateGrid(ctx: Ctx, doc: SerializedPuzzle): void {
   // are suspect (warned above).
   for (const [label, cells] of Object.entries(regions)) {
     const path = `grid.regions.${label}`
+    if (!/^[0-9A-Za-z]$/.test(label)) {
+      ctx.warnings.push({
+        path,
+        message: 'region labels are a single character 0-9, A-Z, or a-z; other labels may sort and display unexpectedly',
+      })
+    }
     if (!checkCellArray(ctx, cells, path)) continue
     warnDuplicateCells(ctx, cells, path)
   }

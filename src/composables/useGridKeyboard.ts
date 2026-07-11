@@ -263,10 +263,11 @@ export function useGridKeyboard() {
         editor.setRegionForSelection(String(digit))
         return
       }
-      const letter = event.key.toUpperCase()
-      if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
+      // Case as typed: plain key paints a lowercase label, Shift an uppercase
+      // one. Modifier chords (Cmd+C etc.) must fall through to the browser.
+      if (/^[a-zA-Z]$/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault()
-        editor.setRegionForSelection(letter)
+        editor.setRegionForSelection(event.key)
         return
       }
       return

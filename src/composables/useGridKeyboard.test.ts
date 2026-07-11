@@ -163,6 +163,36 @@ describe('useGridKeyboard', () => {
     })
   })
 
+  describe('grid tool region labels', () => {
+    beforeEach(() => {
+      editor.setActiveTool('grid')
+      editor.selectCell('r0c0')
+    })
+
+    it('paints letter labels case as typed: plain is lowercase, Shift uppercase', () => {
+      press('q', { code: 'KeyQ' })
+      expect(grid.customCellRegions?.['r0c0']).toContain('q')
+      press('Q', { code: 'KeyQ', shiftKey: true })
+      // 'q' and 'Q' are distinct regions; both stick to the cell
+      expect(grid.customCellRegions?.['r0c0']).toContain('Q')
+      expect(grid.customCellRegions?.['r0c0']).toContain('q')
+    })
+
+    it('modifier chords fall through instead of painting a label', () => {
+      press('c', { code: 'KeyC', metaKey: true }) // Cmd+C must stay a copy
+      press('c', { code: 'KeyC', ctrlKey: true })
+      expect(grid.customCellRegions).toBeNull()
+    })
+
+    it('WASD keeps navigating; the lowercase w/a/s/d labels come from the panel buttons', () => {
+      press('d', { code: 'KeyD' })
+      expect([...editor.selection]).toEqual(['r0c1'])
+      expect(grid.customCellRegions).toBeNull()
+      press('D', { code: 'KeyD', shiftKey: true })
+      expect(grid.customCellRegions?.['r0c1']).toContain('D')
+    })
+  })
+
   it('places a digit on the selected cell while solving', () => {
     editor.setMode('solving')
     editor.setInputMode('digit')

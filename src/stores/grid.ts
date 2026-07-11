@@ -31,8 +31,9 @@ export function regionsForSize(size: number): number[][] {
 
 export function boxIndexToLabel(index: number): string {
   if (index < 9) return String(index + 1)
-  const code = 'A'.charCodeAt(0) + (index - 9)
-  return code <= 90 ? String.fromCharCode(code) : '?'
+  if (index < 35) return String.fromCharCode('A'.charCodeAt(0) + (index - 9))
+  if (index < 61) return String.fromCharCode('a'.charCodeAt(0) + (index - 35))
+  return '?'
 }
 
 export const useGridStore = defineStore('grid', () => {
@@ -52,7 +53,7 @@ export const useGridStore = defineStore('grid', () => {
 
   // null = all cells use standard default labels
   // Record: per-cell override — the SORTED list of region labels ('0'–'9',
-  // 'A'–'Z') the cell belongs to. Cells may belong to several regions
+  // 'A'–'Z', 'a'–'z') the cell belongs to. Cells may belong to several regions
   // (conjoined grids overlap their boxes); an empty list excludes the cell
   // from regions entirely.
   const customCellRegions = ref<Record<string, string[]> | null>(null)

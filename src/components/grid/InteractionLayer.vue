@@ -431,9 +431,23 @@ let dragSelection: Set<string> | null = null
 // not leave a stray cell selected under the first finger.
 let selectionBeforeDrag: Set<string> | null = null
 
+// A press on dead space (a void cell, or the outer margin ring where the
+// capture rect keeps the svg's click.self from firing) counts as "outside the
+// grid": it clears the selection just like the space around the grid does.
+// selectionBeforeDrag still latches so an aborted gesture (second finger
+// starting a pinch) restores what was cleared.
+function clearSelectionOnMiss() {
+  if (props.selection.size === 0) return
+  selectionBeforeDrag = new Set(props.selection)
+  emit('update:selection', new Set())
+}
+
 function beginSelectionDrag(event: PointerEvent) {
   const key = hitCell(event)
-  if (!key) return
+  if (!key) {
+    clearSelectionOnMiss()
+    return
+  }
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
   isDragging.value = true
   selectionBeforeDrag = new Set(props.selection)
@@ -728,7 +742,10 @@ function onPointerDown(event: PointerEvent) {
   }
 
   const key = hitCell(event)
-  if (!key) return
+  if (!key) {
+    clearSelectionOnMiss()
+    return
+  }
 
   if (ARROW_TYPES.has(editor.activeTool)) {
     const hit = findArrowAt(key)

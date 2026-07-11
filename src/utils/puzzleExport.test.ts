@@ -94,6 +94,38 @@ describe('serializePuzzle (format v4)', () => {
     expect((data.cosmetics as Record<string, unknown>).linePresets).toBeDefined()
   })
 
+  it('round-trips average arrows under their own document key', () => {
+    const editor = useEditorStore()
+    const grid = useGridStore()
+    editor.cosmeticInstances = [
+      {
+        id: 'a1',
+        type: 'average_arrow',
+        data: {
+          bulbCells: ['r0c0'],
+          arrows: [{ cells: ['r0c0', 'r0c1', 'r0c2'] }, { cells: ['r0c0', 'r1c0'] }],
+          bulbStrokeColor: '#336699',
+        },
+      },
+    ]
+    const data = serializePuzzle(editor, grid)
+    expect(data.constraints).toEqual({
+      averageArrows: [{
+        bulbCells: ['r1c1'],
+        arrows: [['r1c1', 'r1c2', 'r1c3'], ['r1c1', 'r2c1']],
+        bulbStrokeColor: '#336699',
+      }],
+    })
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    const g2 = useGridStore()
+    deserializePuzzle(e2, g2, JSON.parse(JSON.stringify(data)) as SerializedPuzzle)
+    const inst = e2.cosmeticInstances.find((i) => i.type === 'average_arrow')
+    expect(inst?.data).toMatchObject({ bulbCells: ['r0c0'], bulbStrokeColor: '#336699' })
+    expect(serializePuzzle(e2, g2)).toEqual(data)
+  })
+
   it('round-trips overlapping regions (cells under several labels)', () => {
     const editor = useEditorStore()
     const grid = useGridStore()

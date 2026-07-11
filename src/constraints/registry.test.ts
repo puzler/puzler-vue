@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, CONNECTOR_DOT_TYPES, BORDER_CONNECTOR_TYPES,
+  CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, ARROW_TYPES, CONNECTOR_DOT_TYPES, BORDER_CONNECTOR_TYPES,
   OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, LOCAL_TOOL_TYPES,
   SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS, GLOBAL_VARIANTS,
   CONSTRAINT_ICONS, CONSTRAINT_STYLE_REGISTRY, CONSTRAINT_FILTER_GROUPS,
@@ -18,11 +18,12 @@ describe('constraint registry derivations', () => {
     expect(CONSTRAINT_LINE_TYPES).toEqual(new Set(['renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum', 'entropic_lines', 'modular_lines', 'nabner_lines', 'zipper_lines', 'between_lines', 'lockout_lines']))
     expect(UNBRANCHABLE_LINE_TYPES).toEqual(new Set(['lockout_lines']))
     expect(THERMO_TYPES).toEqual(new Set(['thermometer', 'slow_thermometer']))
+    expect(ARROW_TYPES).toEqual(new Set(['arrow', 'average_arrow']))
     expect(CONNECTOR_DOT_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots']))
     expect(BORDER_CONNECTOR_TYPES).toEqual(new Set(['difference_dots', 'ratio_dots', 'xv', 'inequality', 'quadruples']))
     expect(OUTER_CLUE_TYPES).toEqual(new Set(['x_sums', 'sandwich_sums', 'skyscrapers', 'little_killers', 'numbered_rooms', 'battlefield', 'next_to_nine', 'rossini']))
     expect(SINGLE_CELL_TYPES).toEqual(new Set(['odd_cells', 'even_cells', 'minimums', 'maximums', 'counting_circles', 'row_index_cells', 'col_index_cells', 'fog_lights']))
-    expect(LOCAL_TOOL_TYPES.size).toBe(39)
+    expect(LOCAL_TOOL_TYPES.size).toBe(40)
     expect(LOCAL_TOOL_TYPES.has('house')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('killer_cage')).toBe(true)
     expect(LOCAL_TOOL_TYPES.has('diagonals')).toBe(false)
@@ -69,9 +70,9 @@ describe('constraint registry derivations', () => {
     expect(CONSTRAINT_ICONS.quadruples.rotate).toBe(45)
   })
 
-  it('derives the theme style registry with all 41 themeable keys', () => {
+  it('derives the theme style registry with all 42 themeable keys', () => {
     const keys = Object.keys(CONSTRAINT_STYLE_REGISTRY)
-    expect(keys).toHaveLength(41)
+    expect(keys).toHaveLength(42)
     expect(CONSTRAINT_STYLE_REGISTRY.german_whispers).toEqual({ family: 'line', category: 'lines', label: 'German whispers' })
     expect(CONSTRAINT_STYLE_REGISTRY.renban.label).toBe('Renban')
     expect(CONSTRAINT_STYLE_REGISTRY.positive_diagonal.family).toBe('diagonal')
@@ -80,7 +81,7 @@ describe('constraint registry derivations', () => {
     expect(keys.filter(k => CONSTRAINT_STYLE_REGISTRY[k as keyof typeof CONSTRAINT_STYLE_REGISTRY].category === 'lines')).toEqual([
       'renban', 'german_whispers', 'dutch_whispers', 'palindrome', 'region_sum',
       'entropic_lines', 'modular_lines', 'nabner_lines', 'zipper_lines', 'between_lines',
-      'lockout_lines', 'thermometer', 'slow_thermometer', 'arrow',
+      'lockout_lines', 'thermometer', 'slow_thermometer', 'arrow', 'average_arrow',
     ])
   })
 
@@ -90,7 +91,7 @@ describe('constraint registry derivations', () => {
     ])
     const lines = CONSTRAINT_FILTER_GROUPS[0].options.map(o => o.value)
     expect(lines).toEqual([
-      'thermometer', 'slow_thermometer', 'arrow', 'renban', 'german_whispers',
+      'thermometer', 'slow_thermometer', 'arrow', 'average_arrow', 'renban', 'german_whispers',
       'dutch_whispers', 'palindrome', 'region_sum', 'entropic_lines', 'modular_lines',
       'nabner_lines', 'zipper_lines', 'between_lines', 'lockout_lines',
     ])
@@ -108,7 +109,7 @@ describe('constraint registry derivations', () => {
     ])
     const multiCell = LOCAL_PICKER_GROUPS.find(g => g.key === 'multi_cell')!
     expect(multiCell.options.map(o => o.type).sort()).toEqual(
-      ['arrow', 'clone', 'extra_regions', 'killer_cage', 'slow_thermometer', 'thermometer'],
+      ['arrow', 'average_arrow', 'clone', 'extra_regions', 'killer_cage', 'slow_thermometer', 'thermometer'],
     )
     expect(multiCell.options.find(o => o.type === 'thermometer')!.label).toBe('Thermometers')
   })
@@ -127,6 +128,7 @@ describe('constraint registry derivations', () => {
     expect(toolboxCategory('killer_cage')).toBe('region')
     expect(toolboxCategory('kings_move')).toBeUndefined()
     expect(panelForTool('slow_thermometer')).toMatchObject({ id: 'thermo', props: { title: 'Slow Thermometers' } })
+    expect(panelForTool('average_arrow')).toMatchObject({ id: 'arrow', props: { title: 'Average Arrows' } })
     expect(panelForTool('diagonals')?.id).toBe('global')
     expect(panelForTool('fog')?.id).toBe('fog')
     expect(panelForTool('fog_lights')?.id).toBe('fog')
@@ -180,6 +182,7 @@ describe('constraint registry derivations', () => {
       thermometer: 'thermometers',
       slow_thermometer: 'slowThermometers',
       arrow: 'arrows',
+      average_arrow: 'averageArrows',
       difference_dots: 'differenceDots',
       ratio_dots: 'ratioDots',
       xv: 'xv',

@@ -125,6 +125,17 @@ describe('validatePuzzle errors (functionally broken)', () => {
     expect(errors).toEqual([])
   })
 
+  it('rejects a multi-cell average-arrow bulb', () => {
+    const { errors } = validatePuzzle(doc({
+      constraints: {
+        averageArrows: [{ bulbCells: ['r2c1', 'r2c2'], arrows: [['r2c1', 'r3c1']] }],
+      },
+    }))
+    expect(errors.map((e) => `${e.path}: ${e.message}`)).toEqual([
+      'constraints.averageArrows[0].bulbCells: average arrow bulbs must be a single cell',
+    ])
+  })
+
   it('reports a flat cell list where cell paths belong as a type mismatch', () => {
     // bulbCells is flat, so writing one arrow's path directly is the natural
     // hand-editing mistake; the got-type points at the missing nesting.

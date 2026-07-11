@@ -17,7 +17,7 @@ import { cellCenter, cellsToPath } from '@/utils/linePath'
 import { CELL_SIZE, PADDING, cellRect } from '@/composables/useGrid'
 import { borderMidpoint } from '@/components/grid/constraints/connectorLayerShared'
 import { computeInsetOutlinePaths } from '@/utils/insetOutline'
-import { borderKey } from '@/types/constraints'
+import { borderKey, AVERAGE_ARROW_STYLE } from '@/types/constraints'
 
 const props = defineProps<{ theme: Theme; focus: 'overview' | 'chrome' | 'grid' | ConstraintStyleKey }>()
 
@@ -34,7 +34,7 @@ const chrome = (k: keyof typeof CHROME_DEFAULTS) => eff.value.appearance.chrome[
 const ov = (k: ConstraintStyleKey) => eff.value.constraints[k]
 
 interface PathPrim { kind: 'path'; d: string; stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; dash?: string }
-interface CirclePrim { kind: 'circle'; cx: number; cy: number; r: number; fill?: string; stroke?: string; strokeWidth?: number }
+interface CirclePrim { kind: 'circle'; cx: number; cy: number; r: number; fill?: string; stroke?: string; strokeWidth?: number; dash?: string }
 interface RectPrim { kind: 'rect'; x: number; y: number; w: number; h: number; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }
 interface TextPrim { kind: 'text'; x: number; y: number; text: string; fill: string; size: number; weight?: number; anchor?: string; baseline?: string }
 type Prim = PathPrim | CirclePrim | RectPrim | TextPrim
@@ -155,11 +155,17 @@ function constraintPrims(key: ConstraintStyleKey): Prim[] {
     const tip = cellCenter('r0c2')
     const wing = a.headLength * a.headSpread
     const head = `M ${tip.x - a.headLength} ${tip.y - wing} L ${tip.x} ${tip.y} L ${tip.x - a.headLength} ${tip.y + wing}`
-    return [
+    const prims: Prim[] = [
       { kind: 'path', d: cellsToPath(['r0c0', 'r0c1', 'r0c2']), stroke: a.color, strokeWidth: a.lineWidth },
       { kind: 'path', d: head, stroke: a.color, strokeWidth: a.lineWidth },
       { kind: 'circle', cx: bulb.x, cy: bulb.y, r: a.bulbRadius, fill: grid('grid-cell'), stroke: a.color, strokeWidth: a.outlineWidth },
     ]
+    if (key === 'average_arrow') {
+      const r = a.bulbRadius - AVERAGE_ARROW_STYLE.bulbInset
+      const dash = (2 * Math.PI * r) / 32
+      prims.push({ kind: 'circle', cx: bulb.x, cy: bulb.y, r, stroke: a.color, strokeWidth: a.outlineWidth, dash: `${dash} ${dash}` })
+    }
+    return prims
   }
   // minmax
   const mm = resolveMinMaxStyle(key as MinMaxKey, ov(key), true)
@@ -243,6 +249,7 @@ const prims = computed<Prim[]>(() => {
         :fill="p.fill ?? 'none'"
         :stroke="p.stroke"
         :stroke-width="p.strokeWidth"
+        :stroke-dasharray="p.dash"
       />
       <rect
         v-else-if="p.kind === 'rect'"

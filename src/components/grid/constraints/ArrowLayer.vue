@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { cellCenter, cellsToPath } from '@/utils/linePath'
 import { CELL_SIZE } from '@/composables/useGrid'
-import { ARROW_STYLE } from '@/types/constraints'
+import { ARROW_STYLE, AVERAGE_ARROW_STYLE, ARROW_TYPES } from '@/types/constraints'
 import type { ArrowData } from '@/types/constraints'
 import { useConstraintStyles } from '@/composables/useConstraintStyles'
 
@@ -11,11 +11,22 @@ const editor = useEditorStore()
 const cs = useConstraintStyles()
 
 // Only the color is themeable in v1 (default ⊕ override, gated); the bulb/line geometry below
-// stays at the ARROW_STYLE defaults.
+// stays at the ARROW_STYLE defaults. Average arrows share the geometry and add a
+// dashed ring inset inside the bulb.
 const arrowColor = computed(() => cs.arrowStyle().color)
+const averageArrowColor = computed(() => cs.averageArrowStyle().color)
 
 const BULB_OUTER = ARROW_STYLE.bulbRadius * 2
 const BULB_INNER = BULB_OUTER - ARROW_STYLE.outlineWidth * 2
+
+// Dashed inner ring of an average-arrow bulb. The dash length divides the
+// circumference into an even number of dash+gap pairs so the pattern closes
+// cleanly where the circle joins up.
+const INSET_RADIUS = ARROW_STYLE.bulbRadius - AVERAGE_ARROW_STYLE.bulbInset
+const INSET_DASH = (() => {
+  const dash = (2 * Math.PI * INSET_RADIUS) / 32
+  return `${dash} ${dash}`
+})()
 
 type Point = { x: number; y: number }
 
@@ -115,6 +126,7 @@ function arrowHeadPath(cells: string[]): string | null {
 
 interface RenderedArrowInstance {
   id: string
+  insetRing: boolean
   bulbCircle: { x: number; y: number } | null
   bulbPath: string | null
   bulbBox: { x: number; y: number; width: number; height: number } | null
@@ -152,15 +164,17 @@ function shaftEndRadius(multiBulb: boolean): number {
   return (bandInner + capR + bandOuter) / 2
 }
 
-function renderInstance(id: string, data: ArrowData): RenderedArrowInstance {
+function renderInstance(id: string, data: ArrowData, type: string): RenderedArrowInstance {
   const multiBulb = data.bulbCells.length > 1
   const bulbSet = new Set(data.bulbCells)
   // Spine of the bulb silhouette (its cell centers), used to inset shafts that
   // leave the bulb. Shafts anchored elsewhere (branches) pass null.
   const bulbSpine = data.bulbCells.map(cellCenter)
   const endRadius = shaftEndRadius(multiBulb)
+  const themeColor = type === 'average_arrow' ? averageArrowColor.value : arrowColor.value
   return {
     id,
+    insetRing: type === 'average_arrow',
     bulbCircle: data.bulbCells.length === 1 ? cellCenter(data.bulbCells[0]) : null,
     bulbPath: multiBulb ? cellsToPath(data.bulbCells) : null,
     bulbBox: multiBulb ? bulbBox(data.bulbCells) : null,
@@ -169,27 +183,29 @@ function renderInstance(id: string, data: ArrowData): RenderedArrowInstance {
     // Per-instance setter colors beat the theme style; specific beats the
     // generic `color`. The bulb interior stays transparent unless a fill
     // color is set; the generic `color` reaches the outline and the arrows.
-    lineColor: data.arrowColor ?? data.color ?? arrowColor.value,
+    lineColor: data.arrowColor ?? data.color ?? themeColor,
     bulbFillColor: data.bulbFillColor ?? 'transparent',
-    bulbStrokeColor: data.bulbStrokeColor ?? data.color ?? arrowColor.value,
+    bulbStrokeColor: data.bulbStrokeColor ?? data.color ?? themeColor,
   }
 }
 
 const arrowInstances = computed<RenderedArrowInstance[]>(() =>
   editor.cosmeticInstances
-    .filter(i => i.type === 'arrow')
-    .map(i => renderInstance(i.id, i.data as ArrowData)),
+    .filter(i => ARROW_TYPES.has(i.type))
+    .map(i => renderInstance(i.id, i.data as ArrowData, i.type)),
 )
 
 const pending = computed<RenderedArrowInstance | null>(() => {
-  if (editor.activeTool !== 'arrow') return null
+  if (!ARROW_TYPES.has(editor.activeTool)) return null
   const cells = editor.pendingLineCells
   if (cells.length === 0) return null
   if (editor.pendingArrowParentId) {
     if (cells.length < 2) return null
-    return renderInstance('pending', { bulbCells: [], arrows: [{ cells }] })
+    return renderInstance('pending', { bulbCells: [], arrows: [{ cells }] }, editor.activeTool)
   }
-  return renderInstance('pending', { bulbCells: cells, arrows: [] })
+  // Average-arrow bulbs clamp to a single cell on commit; preview the same.
+  const bulbCells = editor.activeTool === 'average_arrow' ? [cells[0]] : cells
+  return renderInstance('pending', { bulbCells, arrows: [] }, editor.activeTool)
 })
 </script>
 
@@ -233,6 +249,17 @@ const pending = computed<RenderedArrowInstance | null>(() => {
         :fill="inst.bulbFillColor"
         :stroke="inst.bulbStrokeColor"
         :stroke-width="ARROW_STYLE.outlineWidth"
+      />
+      <!-- Average arrow: dashed ring inset inside the bulb -->
+      <circle
+        v-if="inst.bulbCircle && inst.insetRing"
+        :cx="inst.bulbCircle.x"
+        :cy="inst.bulbCircle.y"
+        :r="INSET_RADIUS"
+        fill="none"
+        :stroke="inst.bulbStrokeColor"
+        :stroke-width="ARROW_STYLE.outlineWidth"
+        :stroke-dasharray="INSET_DASH"
       />
       <template v-if="inst.bulbPath && inst.bulbBox">
         <!-- Fill: painted only when a fill color is set (transparent by default) -->

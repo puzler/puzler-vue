@@ -46,6 +46,52 @@
       ],
       "type": "object"
     },
+    "AverageArrowDoc": {
+      "additionalProperties": false,
+      "properties": {
+        "arrowColor": {
+          "description": "Recolors just the arrow shafts and heads.",
+          "type": "string"
+        },
+        "arrows": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "bulbCells": {
+          "description": "Exactly one cell.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1,
+          "type": "array"
+        },
+        "bulbFillColor": {
+          "description": "Fills the bulb interior (transparent by default).",
+          "type": "string"
+        },
+        "bulbStrokeColor": {
+          "description": "Recolors just the bulb outline.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Paints the bulb outline and the arrows. The bulb interior stays transparent unless bulbFillColor is set. 6 or 8 digit hex.",
+          "examples": [
+            "#2b7de2"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "bulbCells",
+        "arrows"
+      ],
+      "type": "object"
+    },
     "BetweenLineDoc": {
       "additionalProperties": false,
       "properties": {
@@ -678,6 +724,12 @@
             "arrows": {
               "items": {
                 "$ref": "#/definitions/ArrowDoc"
+              },
+              "type": "array"
+            },
+            "averageArrows": {
+              "items": {
+                "$ref": "#/definitions/AverageArrowDoc"
               },
               "type": "array"
             },

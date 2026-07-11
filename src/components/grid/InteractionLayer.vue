@@ -7,7 +7,7 @@ import { CELL_SIZE, PADDING, pointerToCell, pointerToSvgPoint, cellKey, keyToRow
 import { nearestPenNode, penClickTarget, nodesAdjacent, straightPath } from '@/utils/pen'
 import type { PenTarget } from '@/types/grid'
 import { computeSelectAllSame } from '@/composables/useSelectAllSame'
-import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, OUTER_RUN_STEP, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep, outerClueDirections } from '@/types/constraints'
+import { CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, ARROW_TYPES, BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES, OUTER_RUN_STEP, borderKey, cornerKey, outerKey, cosmeticPos, validLittleKillerDirections, littleKillerStep, outerClueDirections } from '@/types/constraints'
 import { useOuterMargins } from '@/composables/useOuterMargins'
 import type { CosmeticLineData, ConstraintLineData, ThermometerData, CosmeticPos, ShapeData, TextData, BorderConnectorType, ArrowData, KillerCageData, ExtraRegionData, CloneData, OuterClueType, LittleKillerDirection, OuterClueRunDirection } from '@/types/constraints'
 
@@ -36,7 +36,7 @@ const panToolOn = computed(() =>
   (editor.mode === 'solving' && editor.inputMode === 'pan') ||
   (editor.mode === 'setting' && viewport.panLock))
 
-const DRAWING_TOOLS = new Set(['cosmetic_line', ...THERMO_TYPES, 'arrow', ...CONSTRAINT_LINE_TYPES])
+const DRAWING_TOOLS = new Set(['cosmetic_line', ...THERMO_TYPES, ...ARROW_TYPES, ...CONSTRAINT_LINE_TYPES])
 const BRUSH_TOOLS = new Set(['cell_color'])
 
 const isDrawing = computed(() => DRAWING_TOOLS.has(editor.activeTool))
@@ -200,7 +200,7 @@ function findCageAtCell(key: string, type: string): string | null {
 function findArrowAt(key: string): { id: string; kind: 'bulb' | 'arrow' } | null {
   for (let i = editor.cosmeticInstances.length - 1; i >= 0; i--) {
     const inst = editor.cosmeticInstances[i]
-    if (inst.type !== 'arrow') continue
+    if (inst.type !== editor.activeTool) continue
     const data = inst.data as ArrowData
     if (data.bulbCells.includes(key)) return { id: inst.id, kind: 'bulb' }
     if (data.arrows.some(p => p.cells.slice(1).includes(key))) return { id: inst.id, kind: 'arrow' }
@@ -730,7 +730,7 @@ function onPointerDown(event: PointerEvent) {
   const key = hitCell(event)
   if (!key) return
 
-  if (editor.activeTool === 'arrow') {
+  if (ARROW_TYPES.has(editor.activeTool)) {
     const hit = findArrowAt(key)
     const mode = event.shiftKey ? 'arrow' : editor.effectiveArrowDrawMode
     if (mode === 'arrow') {

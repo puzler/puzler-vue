@@ -83,6 +83,29 @@ export interface ArrowDoc {
   arrowColor?: string
 }
 
+// Same shape as ArrowDoc, but the bulb is always exactly one cell: its digit
+// is the average of each arrow's digits, so a multi-digit pill is meaningless.
+export interface AverageArrowDoc {
+  /**
+   * Exactly one cell.
+   * @maxItems 1
+   */
+  bulbCells: string[]
+  arrows: string[][]
+  /**
+   * Paints the bulb outline and the arrows. The bulb interior stays
+   * transparent unless bulbFillColor is set. 6 or 8 digit hex.
+   * @example "#2b7de2"
+   */
+  color?: string
+  /** Fills the bulb interior (transparent by default). */
+  bulbFillColor?: string
+  /** Recolors just the bulb outline. */
+  bulbStrokeColor?: string
+  /** Recolors just the arrow shafts and heads. */
+  arrowColor?: string
+}
+
 export interface KillerCageDoc {
   cells: string[]
   sum?: number
@@ -402,6 +425,7 @@ export interface SerializedPuzzleSchema {
     thermometers?: ThermometerDoc[]
     slowThermometers?: ThermometerDoc[]
     arrows?: ArrowDoc[]
+    averageArrows?: AverageArrowDoc[]
     differenceDots?: DotDoc[]
     ratioDots?: DotDoc[]
     xv?: XvDoc[]

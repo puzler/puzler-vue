@@ -310,6 +310,7 @@ export function useConstraintStyles() {
     thermoStyle: () => resolveThermoStyle(ov('thermometer'), theme.enableCustomStyles),
     slowThermoStyle: () => resolveThermoStyle(ov('slow_thermometer'), theme.enableCustomStyles),
     arrowStyle: () => resolveArrowStyle(ov('arrow'), theme.enableCustomStyles),
+    averageArrowStyle: () => resolveArrowStyle(ov('average_arrow'), theme.enableCustomStyles),
     // Tool-selector icon color: line constraints follow the theme (and the gate); others static.
     iconColor: (type: string): string | undefined =>
       LINE_ICON_TYPES.has(type)

@@ -4,7 +4,7 @@ import type { useGridStore } from '@/stores/grid'
 import { cellKey } from '@/composables/useGrid'
 import {
   TYPE_TO_JSON_KEY, JSON_KEY_TO_TYPE, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
-  toolboxCategory, THERMO_TYPES, GLOBAL_VARIANT_EXCLUSIONS, INSTANCE_COLOR_FIELDS,
+  toolboxCategory, THERMO_TYPES, ARROW_TYPES, GLOBAL_VARIANT_EXCLUSIONS, INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
 import { cosmeticPos, DEFAULT_SHAPE_STYLE, OUTER_RUN_DIRECTIONS } from '@/types/constraints'
 import type {
@@ -284,7 +284,7 @@ function docConstraintEntry(snap: PuzzleSnapshot, type: string): unknown {
       const data = i.data as ThermometerData
       return { bulb: docCell(data.root), lines: thermoEdgesToLines(data.root, data.edges).map(docCells), ...colors }
     }
-    if (type === 'arrow') {
+    if (ARROW_TYPES.has(type)) {
       const data = i.data as ArrowData
       return { bulbCells: docCells(data.bulbCells), arrows: data.arrows.map((p) => docCells(p.cells)), ...colors }
     }
@@ -732,7 +732,7 @@ function instanceDataFromDoc(type: string, inst: DocInstance): unknown {
     const lines = (inst.lines ?? []).map(internalCells)
     return { root: internalCell(inst.bulb ?? ''), edges: thermoLinesToEdges(lines) } satisfies ThermometerData
   }
-  if (type === 'arrow') {
+  if (ARROW_TYPES.has(type)) {
     return {
       bulbCells: internalCells(inst.bulbCells ?? []),
       arrows: (inst.arrows ?? []).map((cells) => ({ cells: internalCells(cells) })),

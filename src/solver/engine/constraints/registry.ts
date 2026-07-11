@@ -24,6 +24,7 @@ import renban from './renban'
 import thermometer from './thermometer'
 import slowThermometer from './slowThermometer'
 import arrow from './arrow'
+import averageArrow from './averageArrow'
 import betweenLine from './betweenLine'
 import regionSumLine from './regionSumLine'
 import groupCycleLine from './groupCycleLine'
@@ -71,6 +72,7 @@ export const MODULES: ConstraintModule[] = [
   thermometer,
   slowThermometer,
   arrow,
+  averageArrow,
   betweenLine,
   regionSumLine,
   groupCycleLine,

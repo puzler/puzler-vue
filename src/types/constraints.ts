@@ -5,7 +5,7 @@ import { keyToRowCol } from '@/composables/useGrid'
 // frontend knows about each constraint type. Re-exported here so consumers keep one
 // import site for constraint data shapes + membership.
 export {
-  CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, ARROW_STYLE,
+  CONSTRAINT_LINE_TYPES, UNBRANCHABLE_LINE_TYPES, THERMO_TYPES, ARROW_TYPES, ARROW_STYLE, AVERAGE_ARROW_STYLE,
   BORDER_CONNECTOR_TYPES, OUTER_CLUE_TYPES, SINGLE_CELL_TYPES,
   SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS, GLOBAL_VARIANTS,
 } from '@/constraints/registry'

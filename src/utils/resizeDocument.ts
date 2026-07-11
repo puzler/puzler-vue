@@ -1,5 +1,5 @@
 import type { SerializedPuzzle } from './puzzleExport'
-import { TYPE_TO_JSON_KEY, toolboxCategory, THERMO_TYPES, constraintDef } from '@/constraints/registry'
+import { TYPE_TO_JSON_KEY, toolboxCategory, THERMO_TYPES, ARROW_TYPES, constraintDef } from '@/constraints/registry'
 import { regionsForSize, boxIndexToLabel } from '@/stores/grid'
 
 // Pure resize of a serialized puzzle document (doc space, 1-indexed): add or
@@ -295,7 +295,7 @@ function resizeConstraintEntry(ctx: ResizeContext, oldRows: number, oldCols: num
   if (category === 'connector') return resizeConnectors(ctx, entries)
   if (category === 'outer') return resizeOuterClues(ctx, oldRows, oldCols, entries)
   if (THERMO_TYPES.has(type)) return resizeThermos(ctx, entries)
-  if (type === 'arrow') return resizeArrows(ctx, entries)
+  if (ARROW_TYPES.has(type)) return resizeArrows(ctx, entries)
   if (type === 'between_lines' || type === 'lockout_lines') return resizeEndpointLines(ctx, entries)
   if (type === 'clone') return resizeClones(ctx, entries)
   if (category === 'region') return resizeCellGroups(ctx, entries)

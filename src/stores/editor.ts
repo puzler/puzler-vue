@@ -13,7 +13,7 @@ import { sortMarks } from '@/utils/cellValues'
 import type { CellState, CellValue, SolverInputMode, PenState, PenTarget, PenMark } from '@/types/grid'
 import { TYPE_TO_JSON_KEY, constraintDef, toolboxCategory } from '@/constraints/registry'
 import { fogCellHash, computeFoggedCells } from '@/utils/fog'
-import { DEFAULT_LINE_STYLE, DEFAULT_BORDER_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, OUTER_RUN_DIRECTIONS, cosmeticPos, parseOuterKey, validLittleKillerDirections, outerClueDirections } from '@/types/constraints'
+import { DEFAULT_LINE_STYLE, DEFAULT_BORDER_STYLE, DEFAULT_SHAPE_STYLE, DEFAULT_TEXT_STYLE, DEFAULT_CELL_COLOR, DEFAULT_CAGE_COSMETIC_STYLE, GLOBAL_VARIANT_EXCLUSIONS, SINGLE_CELL_EXCLUSIONS, QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, THERMO_TYPES, ARROW_TYPES, OUTER_RUN_DIRECTIONS, cosmeticPos, parseOuterKey, validLittleKillerDirections, outerClueDirections } from '@/types/constraints'
 import type {
   CosmeticInstance, CosmeticLineData, ConstraintLineData, ThermometerData, ThermoEdge, LinePreset, LineStyle,
   BorderPreset, BorderStyle, CosmeticBorderData,
@@ -1605,7 +1605,7 @@ export const useEditorStore = defineStore('editor', () => {
   function commitPendingLine() {
     const cells = [...pendingLineCells.value]
 
-    if (activeTool.value === 'arrow') {
+    if (ARROW_TYPES.has(activeTool.value)) {
       commitPendingArrow(cells)
       return
     }
@@ -1757,12 +1757,14 @@ export const useEditorStore = defineStore('editor', () => {
       return
     }
 
-    // Bulb — a plain click makes a single-cell bulb, dragging a multi-cell one
+    // Bulb — a plain click makes a single-cell bulb, dragging a multi-cell one.
+    // Average-arrow bulbs hold a single averaged digit, so they clamp to one cell.
     if (cells.length === 0) return
-    const bulbCells = [...new Set(cells)]
+    const type = activeTool.value
+    const bulbCells = type === 'average_arrow' ? [cells[0]] : [...new Set(cells)]
     const instance: CosmeticInstance = {
       id: crypto.randomUUID(),
-      type: 'arrow',
+      type,
       data: { bulbCells, arrows: [] } satisfies ArrowData,
     }
     execute({

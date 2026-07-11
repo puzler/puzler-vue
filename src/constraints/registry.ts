@@ -38,6 +38,7 @@ import {
 export * from './types'
 export { THERMO_STYLE } from './definitions/thermometer'
 export { ARROW_STYLE } from './definitions/arrow'
+export { AVERAGE_ARROW_STYLE } from './definitions/averageArrow'
 export { BETWEEN_LINE_STYLE } from './definitions/betweenLines'
 export { LOCKOUT_LINE_STYLE } from './definitions/lockoutLines'
 export { CAGE_STYLE } from './definitions/killerCage'
@@ -64,6 +65,7 @@ import lockoutLines from './definitions/lockoutLines'
 import thermometer from './definitions/thermometer'
 import slowThermometer from './definitions/slowThermometer'
 import arrow from './definitions/arrow'
+import averageArrow from './definitions/averageArrow'
 // Connectors
 import differenceDots from './definitions/differenceDots'
 import ratioDots from './definitions/ratioDots'
@@ -123,6 +125,7 @@ const DEFS = [
   thermometer,
   slowThermometer,
   arrow,
+  averageArrow,
   differenceDots,
   ratioDots,
   xv,
@@ -196,6 +199,7 @@ export const CONSTRAINT_LINE_TYPES = typesWhere((d) => d.draw === 'line')
 // Line tools whose shape needs exactly two endpoints, so Branch mode is disabled.
 export const UNBRANCHABLE_LINE_TYPES = typesWhere((d) => d.draw === 'line' && d.branchable === false)
 export const THERMO_TYPES = typesWhere((d) => d.draw === 'thermo')
+export const ARROW_TYPES = typesWhere((d) => d.draw === 'arrow')
 export const CONNECTOR_DOT_TYPES = typesWhere((d) => d.connector === 'dot')
 export const BORDER_CONNECTOR_TYPES = typesWhere((d) => d.connector !== undefined)
 export const OUTER_CLUE_TYPES = typesWhere((d) => d.toolbox?.category === 'outer')
@@ -298,6 +302,7 @@ const EXTRA_INSTANCE_COLOR_FIELDS: Record<string, readonly string[]> = {
   thermometer: ['bulbColor', 'lineColor'],
   slow_thermometer: ['bulbColor', 'lineColor'],
   arrow: ['bulbFillColor', 'bulbStrokeColor', 'arrowColor'],
+  average_arrow: ['bulbFillColor', 'bulbStrokeColor', 'arrowColor'],
   killer_cage: ['cageColor', 'textColor'],
   difference_dots: ['fillColor', 'outlineColor', 'textColor'],
   ratio_dots: ['fillColor', 'outlineColor', 'textColor'],

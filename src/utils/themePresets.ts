@@ -210,6 +210,7 @@ const HIGH_CONTRAST: Theme = {
     thermometer: { color: '#3A3A3A' },
     slow_thermometer: { color: '#3A3A3A' },
     arrow: { color: '#3A3A3A' },
+    average_arrow: { color: '#3A3A3A' },
     between_lines: { color: '#333333', outlineColor: '#333333' },
     odd_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },
     even_cells: { fillColor: '#7A7A7A', outlineColor: '#7A7A7A' },

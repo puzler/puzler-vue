@@ -246,6 +246,24 @@ export function sumCombinationPruneLinked(
   return { invalid: false, required, complete: true }
 }
 
+// True when every pair of `cells` is weak-linked on every shared candidate value,
+// i.e. the group provably holds pairwise-distinct digits (all in one house, or
+// covered by overlapping houses/constraints). Lets sum reasoning switch to the
+// budget-free distinct value-set DP when the joint weak-link enumeration would
+// blow its node budget (the long-arrow-in-one-row case).
+export function cellsAllDistinct(board: Board, cells: number[]): boolean {
+  for (let i = 0; i < cells.length; i += 1) {
+    for (let j = i + 1; j < cells.length; j += 1) {
+      for (const v of valuesList(board.candidateMask(cells[i]) & board.candidateMask(cells[j]))) {
+        if (!board.weakLinks[board.candidateIndex(cells[i], v)].has(board.candidateIndex(cells[j], v))) {
+          return false
+        }
+      }
+    }
+  }
+  return true
+}
+
 // True when some constraint links two of `cells` on *different* values — a
 // thermometer's ordering, an XV sum, a Kropki dot, … — as opposed to the plain
 // same-value all-different links every group already carries. Such links mean a
@@ -392,10 +410,13 @@ export function clearSeenByForcedGroup(
 // A node budget guards the rare wide case (many long lightly-linked shafts); on
 // exceeding it the function returns null and the caller falls back to plain range
 // bounds, so a big arrow degrades gracefully instead of stalling the solver.
+// `multipliers` scales the per-shaft target: shaft s must sum to
+// t * multipliers[s] instead of t (average arrows: bulb × shaft length).
 export function linkedArrowCombos(
   board: Board,
   shafts: number[][],
   targetMask: number,
+  multipliers?: number[],
   budget = COMBINATION_NODE_BUDGET,
 ): { allowed: number[][]; sums: number; required: number[] } | null {
   // Flatten cells, remembering which shaft each belongs to and how many cells
@@ -417,7 +438,7 @@ export function linkedArrowCombos(
 
   for (let t = 1; t <= size; t += 1) {
     if ((targetMask & valueBit(t)) === 0) continue
-    const need = shafts.map(() => t) // remaining sum each shaft must still reach
+    const need = shafts.map((_, i) => t * (multipliers?.[i] ?? 1)) // remaining sum each shaft must still reach
 
     const recurse = (k: number): void => {
       if (bailed) return

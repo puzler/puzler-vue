@@ -2,7 +2,7 @@ import { Constraint, ConstraintResult } from '../constraint'
 import type { Board } from '../board'
 import { minValue, maxValue, valueBit, valuesList } from '../bitmask'
 import { cellName } from '../geometry'
-import { sumRangePrune, linkedArrowCombos, clearSeenByForcedGroup, realizableValues, COMBINATION_NODE_BUDGET } from './sumGroup'
+import { sumRangePrune, linkedArrowCombos, clearSeenByForcedGroup, realizableValues, COMBINATION_NODE_BUDGET, cellsAllDistinct, distinctSumAllowed, sumCombinationDistinct } from './sumGroup'
 
 // Value of a committed cell, or 0 if not yet placed.
 export function placed(board: Board, cell: number): number {
@@ -278,31 +278,47 @@ export class BetweenLineConstraint extends Constraint {
 
 // Arrow: the digits along each shaft sum to the number in the bulb (a multi-cell
 // bulb reads as a base-10 number). Range-pruned on every placement.
+// With `average` set, the bulb is instead the arithmetic mean of each shaft's
+// digits independently — every shaft sums to bulb × its own length, so the whole
+// sum machinery runs with a per-shaft multiplier (average-arrow bulbs are always
+// a single cell).
 export class ArrowConstraint extends Constraint {
   private bulb: number[]
   private shafts: number[][]
   private involved: Set<number>
+  private average: boolean
 
-  constructor(bulb: number[], shafts: number[][]) {
-    super('Arrow')
+  constructor(bulb: number[], shafts: number[][], average = false) {
+    super(average ? 'Average arrow' : 'Arrow')
     this.bulb = bulb
     this.shafts = shafts
+    this.average = average
     this.involved = new Set([...bulb, ...shafts.flat()])
   }
 
-  // A single-cell bulb equals each shaft's sum, so parity(bulb) = parity(Σ shaft):
-  // XOR of {bulb, ...shaft} parities is 0. (Multi-cell bulbs are base-10 numbers,
-  // whose parity isn't a clean XOR, so they contribute nothing.)
+  // Per-shaft target multiplier: shaft s sums to bulb × mult(s).
+  private mult(shaft: number[]): number {
+    return this.average ? shaft.length : 1
+  }
+
+  // A single-cell bulb: parity(bulb × mult) = parity(Σ shaft). With mult odd
+  // that is XOR of {bulb, ...shaft} parities = 0; with mult even the bulb drops
+  // out and the shaft sum is even regardless. (Multi-cell bulbs are base-10
+  // numbers, whose parity isn't a clean XOR, so they contribute nothing.)
   parityClues() {
     if (this.bulb.length !== 1) return []
-    return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: [this.bulb[0], ...shaft], rhs: 0 }))
+    return this.shafts.filter((s) => s.length > 0).map((shaft) =>
+      this.mult(shaft) % 2 === 0
+        ? { cells: [...shaft], rhs: 0 }
+        : { cells: [this.bulb[0], ...shaft], rhs: 0 },
+    )
   }
 
   // With a single-cell bulb committed, each shaft is an exact-sum group.
   sumClues(board: Board) {
     if (this.bulb.length !== 1 || !board.isGiven(this.bulb[0])) return []
     const target = placed(board, this.bulb[0])
-    return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: shaft, sum: target }))
+    return this.shafts.filter((s) => s.length > 0).map((shaft) => ({ cells: shaft, sum: target * this.mult(shaft) }))
   }
 
   enforce(board: Board, cell: number) {
@@ -318,7 +334,8 @@ export class ArrowConstraint extends Constraint {
         if (v === 0) empties += 1
         else sum += v
       }
-      if (target < sum + empties || target > sum + empties * board.digitRange) return false
+      const t = target * this.mult(shaft)
+      if (t < sum + empties || t > sum + empties * board.digitRange) return false
     }
     return true
   }
@@ -336,16 +353,25 @@ export class ArrowConstraint extends Constraint {
     if (shafts.length === 0) return ConstraintResult.UNCHANGED
 
     // Joint weak-link combination prune; null when its effort budget is exceeded
-    // (a very wide arrow), in which case the range bounds below still apply.
-    const combo = linkedArrowCombos(board, shafts, board.candidateMask(bulbCell))
+    // (a very wide arrow). In that case the range bounds below still apply,
+    // sharpened per shaft by the budget-free distinct value-set DP whenever the
+    // shaft is provably all-different (a long arrow inside one house) — e.g. a
+    // full-row average arrow's shaft holds 8 distinct digits summing to 36–44,
+    // pinning the bulb to 5 with no enumeration.
+    const multipliers = this.average ? shafts.map((s) => s.length) : undefined
+    const combo = linkedArrowCombos(board, shafts, board.candidateMask(bulbCell), multipliers)
     if (combo && combo.sums === 0) {
-      desc.push('Arrow shaft cannot reach the bulb')
+      desc.push(`${this.name} shaft cannot reach the bulb`)
       return ConstraintResult.INVALID
     }
+    const distinctShafts = combo ? [] : shafts.map((s) => cellsAllDistinct(board, s))
 
-    // Step 1: narrow the bulb to sums its shafts can actually make.
+    // Step 1: narrow the bulb to sums (× the shaft multiplier) its shafts can
+    // actually make.
     let keepBulb = board.candidateMask(bulbCell)
-    for (const shaft of shafts) {
+    for (let s = 0; s < shafts.length; s += 1) {
+      const shaft = shafts[s]
+      const m = this.mult(shaft)
       let sMin = 0
       let sMax = 0
       for (const c of shaft) {
@@ -354,17 +380,27 @@ export class ArrowConstraint extends Constraint {
       }
       let inRange = 0
       for (const v of valuesList(keepBulb)) {
-        if (v >= sMin && v <= sMax) inRange |= valueBit(v)
+        if (v * m >= sMin && v * m <= sMax) inRange |= valueBit(v)
       }
       keepBulb &= inRange
+      if (distinctShafts[s]) {
+        // Exact per-shaft feasibility: keep bulb values whose scaled target some
+        // distinct assignment of the shaft actually reaches.
+        const masks = shaft.map((c) => board.candidateMask(c))
+        let reachable = 0
+        for (const v of valuesList(keepBulb)) {
+          if (distinctSumAllowed(masks, v * m).feasible) reachable |= valueBit(v)
+        }
+        keepBulb &= reachable
+      }
     }
     if (combo) keepBulb &= combo.sums
     if (keepBulb !== board.candidateMask(bulbCell)) {
       if (board.keepMask(bulbCell, keepBulb) === ConstraintResult.INVALID) {
-        desc.push('Arrow bulb has no candidates')
+        desc.push(`${this.name} bulb has no candidates`)
         return ConstraintResult.INVALID
       }
-      desc.push('Arrow bulb')
+      desc.push(`${this.name} bulb`)
       return ConstraintResult.CHANGED
     }
 
@@ -372,10 +408,26 @@ export class ArrowConstraint extends Constraint {
     const cleared: number[] = []
     const bMin = minValue(board.candidateMask(bulbCell))
     const bMax = maxValue(board.candidateMask(bulbCell))
-    for (const shaft of shafts) {
-      if (sumRangePrune(board, shaft, bMin, bMax, cleared)) {
-        desc.push('Arrow shaft cannot reach the bulb')
+    for (let s = 0; s < shafts.length; s += 1) {
+      const shaft = shafts[s]
+      const m = this.mult(shaft)
+      if (sumRangePrune(board, shaft, bMin * m, bMax * m, cleared)) {
+        desc.push(`${this.name} shaft cannot reach the bulb`)
         return ConstraintResult.INVALID
+      }
+      // With the bulb settled and the combo prune bailed, an all-different shaft
+      // still gets the exact cage-style prune (per-cell allowed values plus
+      // clearing forced values from cells that see the whole shaft).
+      if (distinctShafts[s] && bMin === bMax) {
+        const exact = sumCombinationDistinct(board, shaft, bMin * m, cleared)
+        if (exact.invalid) {
+          desc.push(`${this.name} shaft has no valid combination`)
+          return ConstraintResult.INVALID
+        }
+        if (clearSeenByForcedGroup(board, shaft, exact.required, cleared)) {
+          desc.push(`${this.name} forces a value with no room`)
+          return ConstraintResult.INVALID
+        }
       }
     }
     if (combo) {
@@ -384,7 +436,7 @@ export class ArrowConstraint extends Constraint {
           const cell = shafts[s][i]
           if ((board.candidateMask(cell) & ~combo.allowed[s][i]) === 0) continue
           if (board.keepMask(cell, combo.allowed[s][i]) === ConstraintResult.INVALID) {
-            desc.push('Arrow shaft has no valid combination')
+            desc.push(`${this.name} shaft has no valid combination`)
             return ConstraintResult.INVALID
           }
           cleared.push(cell)
@@ -392,13 +444,13 @@ export class ArrowConstraint extends Constraint {
         // A value forced to appear somewhere in this shaft can't go in any cell
         // that sees the whole shaft (is weak-linked to every shaft cell on it).
         if (clearSeenByForcedGroup(board, shafts[s], combo.required[s], cleared)) {
-          desc.push('Arrow forces a value with no room')
+          desc.push(`${this.name} forces a value with no room`)
           return ConstraintResult.INVALID
         }
       }
     }
     if (cleared.length === 0) return ConstraintResult.UNCHANGED
-    desc.push('Arrow shaft')
+    desc.push(`${this.name} shaft`)
     return ConstraintResult.CHANGED
   }
 }

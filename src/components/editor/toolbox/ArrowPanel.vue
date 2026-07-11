@@ -5,7 +5,14 @@ import type { ArrowData } from '@/types/constraints'
 import ModeSwitcher from './ModeSwitcher.vue'
 import FogSolverHelpersSection from './FogSolverHelpersSection.vue'
 
+// Arrows and average arrows share this panel — only the heading and the bulb
+// hint differ (average-arrow bulbs are always a single cell), and the fog
+// solver helpers apply to plain arrows only.
+withDefaults(defineProps<{ title?: string }>(), { title: 'Arrows' })
+
 const editor = useEditorStore()
+
+const isAverage = computed(() => editor.activeTool === 'average_arrow')
 
 const MODES = [
   { key: 'bulb', label: 'Bulb' },
@@ -43,7 +50,7 @@ const HELPER_OPTIONS = computed(() => [
   <div class="flex flex-col items-center justify-start flex-1 p-4">
     <div class="w-full max-w-[11rem] flex flex-col gap-3">
       <p class="text-[10px] font-semibold uppercase tracking-widest text-soft">
-        Arrows
+        {{ title }}
       </p>
 
       <ModeSwitcher
@@ -53,13 +60,18 @@ const HELPER_OPTIONS = computed(() => [
       />
 
       <p class="text-[11px] text-soft leading-snug text-center">
-        Bulb: click or drag to place a bulb · tap a bulb or arrow to remove it
+        {{ isAverage
+          ? 'Bulb: click to place a bulb · tap a bulb or arrow to remove it'
+          : 'Bulb: click or drag to place a bulb · tap a bulb or arrow to remove it' }}
       </p>
       <p class="text-[11px] text-soft leading-snug text-center">
         Arrow: drag from a bulb or arrow to draw · drag from an arrow's tip to extend it · holding Shift switches to Arrow
       </p>
 
-      <FogSolverHelpersSection :options="HELPER_OPTIONS" />
+      <FogSolverHelpersSection
+        v-if="!isAverage"
+        :options="HELPER_OPTIONS"
+      />
     </div>
   </div>
 </template>

@@ -1,6 +1,6 @@
 import {
   JSON_KEY_TO_TYPE, TYPE_TO_JSON_KEY, PRESETS_KEY_BY_TYPE, GLOBAL_GROUPS_JSON,
-  toolboxCategory, THERMO_TYPES, SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS,
+  toolboxCategory, THERMO_TYPES, ARROW_TYPES, SINGLE_CELL_EXCLUSIONS, GLOBAL_VARIANT_EXCLUSIONS,
   INSTANCE_COLOR_FIELDS,
 } from '@/constraints/registry'
 import { QUADRUPLE_MAX_DIGITS, MAX_COSMETIC_TEXT_LEN, OUTER_RUN_DIRECTIONS, outerClueDirections, validLittleKillerDirections } from '@/types/constraints'
@@ -392,8 +392,13 @@ function validateInstanceEntry(ctx: Ctx, type: string, e: DocRecord, p: string):
     })
     return
   }
-  if (type === 'arrow') {
+  if (ARROW_TYPES.has(type)) {
     if (!checkCellArray(ctx, e.bulbCells, `${p}.bulbCells`)) return
+    // An average-arrow bulb holds a single averaged digit, never a multi-cell pill.
+    if (type === 'average_arrow' && (e.bulbCells as string[]).length > 1) {
+      ctx.errors.push({ path: `${p}.bulbCells`, message: 'average arrow bulbs must be a single cell' })
+      return
+    }
     if (!checkCellPathList(ctx, e.arrows, `${p}.arrows`)) return
     const anchors = new Set<string>(e.bulbCells as string[])
     for (const arrowCells of e.arrows as unknown[]) {

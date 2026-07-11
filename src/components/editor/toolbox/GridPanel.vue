@@ -3,6 +3,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import SpinnerChevronButton from '../SpinnerChevronButton.vue'
 import ModeSwitcher from './ModeSwitcher.vue'
+import GridHousesSection from './GridHousesSection.vue'
 
 // The Grid tool: region painting on the real grid plus the on-canvas resize
 // controls (GridResizeControls renders +/- pairs on each side while this tool
@@ -110,15 +111,6 @@ function bumpDigits(delta: number) {
       </p>
     </template>
 
-    <template v-else>
-      <p class="text-[10px] font-semibold uppercase tracking-widest text-faint pt-1">
-        Houses
-      </p>
-      <p class="text-[11px] text-faint leading-snug">
-        Hidden groups of cells that must not repeat digits, like custom rows or columns.
-        Drag to paint a house · click a house to remove it · houses may overlap freely.
-        Visible only while this tool is open.
-      </p>
-    </template>
+    <GridHousesSection v-else />
   </div>
 </template>

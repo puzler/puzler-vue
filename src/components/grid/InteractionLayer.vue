@@ -909,7 +909,26 @@ function processPointerMove(event: PointerEvent) {
 
   if (editor.activeTool === 'house') {
     const key = hitCell(event)
-    if (!key || brushCells.value.has(key)) return
+    if (!key) return
+    if (editor.effectiveHouseDrawMode === 'auto') {
+      // Auto-draw: the brush is the full anchor→cursor rectangle, recomputed
+      // each move so backtracking shrinks it. Pointerup reads the corners
+      // back out of the brush (min/max), so no extra state is needed.
+      if (!houseDownCell.value) return
+      const anchor = keyToRowCol(houseDownCell.value)
+      const cursor = keyToRowCol(key)
+      const rect = new Set<string>()
+      for (let r = Math.min(anchor.row, cursor.row); r <= Math.max(anchor.row, cursor.row); r++) {
+        for (let c = Math.min(anchor.col, cursor.col); c <= Math.max(anchor.col, cursor.col); c++) {
+          rect.add(cellKey(r, c))
+        }
+      }
+      if (rect.size > 1) houseDragged.value = true
+      brushCells.value = rect
+      editor.setPendingRegionBrushCells(Array.from(rect))
+      return
+    }
+    if (brushCells.value.has(key)) return
     // No membership skip: houses overlap freely.
     houseDragged.value = true
     brushCells.value = new Set([...brushCells.value, key])
@@ -1056,6 +1075,24 @@ function onPointerUp(event: PointerEvent) {
     // anything else commits the brush (the store drops < 2 cells).
     if (!houseDragged.value && houseDownCell.value && editor.findHouseAt(houseDownCell.value)) {
       editor.removeHouseAt(houseDownCell.value)
+    } else if (editor.effectiveHouseDrawMode === 'auto') {
+      // One house per row and per column of the dragged rectangle, committed
+      // as a single undo step. 1-cell strips are dropped by the store.
+      const coords = Array.from(brushCells.value, keyToRowCol)
+      if (coords.length > 0) {
+        const r1 = Math.min(...coords.map(p => p.row))
+        const r2 = Math.max(...coords.map(p => p.row))
+        const c1 = Math.min(...coords.map(p => p.col))
+        const c2 = Math.max(...coords.map(p => p.col))
+        const sets: string[][] = []
+        for (let r = r1; r <= r2; r++) {
+          sets.push(Array.from({ length: c2 - c1 + 1 }, (_, i) => cellKey(r, c1 + i)))
+        }
+        for (let c = c1; c <= c2; c++) {
+          sets.push(Array.from({ length: r2 - r1 + 1 }, (_, i) => cellKey(r1 + i, c)))
+        }
+        editor.commitHouses(sets)
+      }
     } else {
       editor.commitHouse(Array.from(brushCells.value))
     }

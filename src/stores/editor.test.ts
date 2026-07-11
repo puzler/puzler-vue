@@ -498,6 +498,58 @@ describe('house painting', () => {
     expect(editor.cosmeticInstances).toHaveLength(2)
   })
 
+  it('commitHouses pushes a batch as one undo step, filtering tiny sets', () => {
+    const editor = useEditorStore()
+    editor.commitHouses([
+      ['r0c0', 'r0c1', 'r0c2'],
+      ['r1c0', 'r1c1', 'r1c2'],
+      ['r5c5'], // dropped: fewer than two cells
+      ['r2c0', 'r2c1', 'r2c0'], // deduped to two cells
+    ])
+    expect(editor.cosmeticInstances).toHaveLength(3)
+    expect(editor.cosmeticInstances[2].data).toEqual({ cells: ['r2c0', 'r2c1'] })
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(0)
+    editor.redo()
+    expect(editor.cosmeticInstances).toHaveLength(3)
+  })
+
+  it('commitHouses skips sets identical to existing houses', () => {
+    const editor = useEditorStore()
+    editor.commitHouse(['r0c0', 'r0c1'])
+    editor.commitHouses([
+      ['r0c1', 'r0c0'], // same cells as the existing house, different order
+      ['r1c0', 'r1c1'],
+      ['r1c1', 'r1c0'], // duplicate within the batch
+    ])
+    expect(editor.cosmeticInstances).toHaveLength(2)
+    // An all-duplicates batch is a no-op with no undo entry
+    editor.commitHouses([['r0c0', 'r0c1']])
+    expect(editor.cosmeticInstances).toHaveLength(2)
+    editor.undo()
+    expect(editor.cosmeticInstances).toHaveLength(1)
+  })
+
+  it('clearHouses removes all houses in one undo step, leaving other types', () => {
+    const editor = useEditorStore()
+    editor.cosmeticInstances = [
+      { id: 'e1', type: 'extra_regions', data: { cells: ['r0c0', 'r0c1'] } },
+    ]
+    editor.commitHouse(['r0c0', 'r0c1'])
+    editor.commitHouse(['r1c0', 'r1c1'])
+    editor.clearHouses()
+    expect(editor.cosmeticInstances).toHaveLength(1)
+    expect(editor.cosmeticInstances[0].type).toBe('extra_regions')
+    editor.undo()
+    expect(editor.cosmeticInstances.filter(i => i.type === 'house')).toHaveLength(2)
+    // No houses -> no-op, no undo entry
+    editor.clearHouses()
+    editor.clearHouses()
+    expect(editor.cosmeticInstances.filter(i => i.type === 'house')).toHaveLength(0)
+    editor.undo()
+    expect(editor.cosmeticInstances.filter(i => i.type === 'house')).toHaveLength(2)
+  })
+
   it('findHouseAt ignores other instance types and misses', () => {
     const editor = useEditorStore()
     editor.cosmeticInstances = [

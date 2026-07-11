@@ -12,11 +12,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-1 p-1 rounded-lg bg-line/40">
+  <!-- flex-1 keeps segments equal when labels fit, but lets a longer label
+       (e.g. Auto-Grid) widen its segment instead of wrapping or overflowing -->
+  <div class="flex gap-1 p-1 rounded-lg bg-line/40">
     <button
       v-for="mode in modes"
       :key="mode.key"
-      class="py-1.5 rounded-md text-sm font-medium transition-colors"
+      class="flex-1 py-1.5 px-1 rounded-md text-sm font-medium whitespace-nowrap transition-colors"
       :class="active === mode.key
         ? 'bg-surface text-action shadow-sm'
         : 'text-soft hover:text-ink-text'"

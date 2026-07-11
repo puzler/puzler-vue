@@ -118,6 +118,9 @@ export const useEditorStore = defineStore('editor', () => {
   const lineDrawMode = ref<'draw' | 'branch'>('draw')
   const connectorMode = ref<'place' | 'select'>('place')
   const cloneMode = ref<'paint' | 'clone'>('paint')
+  // Houses mode: paint cells one house at a time, or drag corner-to-corner to
+  // auto-create a house per row and column of the rectangle (conjoined grids).
+  const houseDrawMode = ref<'paint' | 'auto'>('paint')
   // When on, a plain pointer click toggles a single cell's membership in the
   // selection (like ctrl-click) instead of replacing it — a keyboard-free way
   // to multi-select. Surfaced as a toggle on the solver numpad.
@@ -141,6 +144,9 @@ export const useEditorStore = defineStore('editor', () => {
   )
   const effectiveCloneMode = computed<'paint' | 'clone'>(() =>
     shiftHeld.value ? 'clone' : cloneMode.value,
+  )
+  const effectiveHouseDrawMode = computed<'paint' | 'auto'>(() =>
+    shiftHeld.value ? 'auto' : houseDrawMode.value,
   )
   // Live preview of a clone-copy drag: the offset the copy would land at
   const pendingCloneDrag = ref<{ instanceId: string; copyIndex: number | null; dRow: number; dCol: number } | null>(null)
@@ -592,6 +598,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setCloneMode(mode: 'paint' | 'clone') {
     cloneMode.value = mode
+  }
+
+  function setHouseDrawMode(mode: 'paint' | 'auto') {
+    houseDrawMode.value = mode
   }
 
   function setMultiSelectMode(enabled: boolean) {
@@ -2025,6 +2035,7 @@ export const useEditorStore = defineStore('editor', () => {
     lineDrawMode.value = 'draw'
     connectorMode.value = 'place'
     cloneMode.value = 'paint'
+    houseDrawMode.value = 'paint'
     multiSelectMode.value = false
     pendingCloneDrag.value = null
     activeGlobalVariants.value = new Set()
@@ -2407,6 +2418,45 @@ export const useEditorStore = defineStore('editor', () => {
     execute({
       execute: () => { cosmeticInstances.value.push(instance) },
       undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.id !== instance.id) },
+    })
+  }
+
+  // Batch form used by auto-draw: one undo step for the whole rectangle. Sets
+  // matching an existing house cell-for-cell are skipped so re-dragging the
+  // same grid doesn't stack duplicates.
+  function commitHouses(cellSets: string[][]) {
+    pendingRegionBrushCells.value = []
+    const existing = new Set(
+      cosmeticInstances.value
+        .filter(i => i.type === 'house')
+        .map(i => [...((i.data as { cells?: string[] }).cells ?? [])].sort().join(',')),
+    )
+    const instances: CosmeticInstance[] = []
+    for (const cells of cellSets) {
+      const unique = [...new Set(cells)]
+      if (unique.length < 2) continue
+      const signature = [...unique].sort().join(',')
+      if (existing.has(signature)) continue
+      existing.add(signature)
+      instances.push({ id: crypto.randomUUID(), type: 'house', data: { cells: unique } })
+    }
+    if (instances.length === 0) return
+    const ids = new Set(instances.map(i => i.id))
+    execute({
+      execute: () => { cosmeticInstances.value.push(...instances) },
+      undo: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => !ids.has(i.id)) },
+    })
+  }
+
+  // Remove every house in one undo step (houses aren't an activeTypes chip,
+  // so removeCosmeticType's guard would skip them).
+  function clearHouses() {
+    pendingRegionBrushCells.value = []
+    const removed = cosmeticInstances.value.filter(i => i.type === 'house')
+    if (removed.length === 0) return
+    execute({
+      execute: () => { cosmeticInstances.value = cosmeticInstances.value.filter(i => i.type !== 'house') },
+      undo: () => { cosmeticInstances.value = [...cosmeticInstances.value, ...removed] },
     })
   }
 
@@ -2968,8 +3018,13 @@ export const useEditorStore = defineStore('editor', () => {
     setPendingRegionBrushCells,
     commitExtraRegion,
     commitHouse,
+    commitHouses,
+    clearHouses,
     findHouseAt,
     removeHouseAt,
+    houseDrawMode,
+    effectiveHouseDrawMode,
+    setHouseDrawMode,
     cloneMode,
     effectiveCloneMode,
     setCloneMode,

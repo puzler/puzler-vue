@@ -707,29 +707,40 @@ export const useEditorStore = defineStore('editor', () => {
     return givenDigits.value[key] !== undefined && !foggedCells.value.has(key)
   }
 
+  // Pressing a digit every selected cell already holds clears it from all of
+  // them (marks/colors survive; only the explicit null clear deletes the cell).
   function setSolverValueForSelection(digit: CellValue | null) {
     const keys = Array.from(selection.value).filter((k) => givenDigits.value[k] === undefined)
     if (!keys.length) return
     const before = snapshotCells(keys)
+    const allHave =
+      digit !== null && keys.every((k) => solverCellStates.value[k]?.value === digit)
     const after: Record<string, CellState | null> = {}
     for (const k of keys) {
-      after[k] = digit === null ? null : { ...(before[k] ?? blankCell()), value: digit }
+      const cur = before[k] ?? blankCell()
+      after[k] = digit === null ? null : { ...cur, value: allHave ? null : digit }
     }
     execute({ kind: 'solverDiff', before, after })
   }
 
+  // Mark toggles share the cell-color semantics: if every eligible selected
+  // cell already has the digit, remove it from all; otherwise add it only to
+  // the cells missing it.
   function toggleCornerMarkForSelection(digit: CellValue) {
     const keys = Array.from(selection.value).filter(
       (k) => !givenBlocksMarks(k) && !solverCellStates.value[k]?.value,
     )
     if (!keys.length) return
     const before = snapshotCells(keys)
+    const allHave = keys.every((k) => solverCellStates.value[k]?.cornerMarks.includes(digit))
     const after: Record<string, CellState | null> = {}
     for (const k of keys) {
       const cur = before[k] ?? blankCell()
-      const marks = cur.cornerMarks.includes(digit)
+      const marks = allHave
         ? cur.cornerMarks.filter((m) => m !== digit)
-        : sortMarks([...cur.cornerMarks, digit])
+        : cur.cornerMarks.includes(digit)
+          ? cur.cornerMarks
+          : sortMarks([...cur.cornerMarks, digit])
       after[k] = { ...cur, cornerMarks: marks }
     }
     execute({ kind: 'solverDiff', before, after })
@@ -741,12 +752,15 @@ export const useEditorStore = defineStore('editor', () => {
     )
     if (!keys.length) return
     const before = snapshotCells(keys)
+    const allHave = keys.every((k) => solverCellStates.value[k]?.centerMarks.includes(digit))
     const after: Record<string, CellState | null> = {}
     for (const k of keys) {
       const cur = before[k] ?? blankCell()
-      const marks = cur.centerMarks.includes(digit)
+      const marks = allHave
         ? cur.centerMarks.filter((m) => m !== digit)
-        : sortMarks([...cur.centerMarks, digit])
+        : cur.centerMarks.includes(digit)
+          ? cur.centerMarks
+          : sortMarks([...cur.centerMarks, digit])
       after[k] = { ...cur, centerMarks: marks }
     }
     execute({ kind: 'solverDiff', before, after })

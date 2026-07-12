@@ -648,6 +648,95 @@ describe('solver-state undo/redo (diff-based)', () => {
   })
 })
 
+// All four basic inputs share the same selection semantics: if every eligible
+// selected cell already holds the value, remove it from all; otherwise add it
+// to the cells missing it (never remove-and-add in one press).
+describe('all/none/some input semantics', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('digits: a mixed selection fills the gaps, a uniform one clears', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(3)
+    editor.selection = new Set(['r0c1'])
+    editor.setSolverValueForSelection(5)
+    editor.selection = new Set(['r0c0', 'r0c1', 'r0c2'])
+    editor.setSolverValueForSelection(5) // some have 5 -> all become 5
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+    expect(editor.solverCellStates['r0c1'].value).toBe(5)
+    expect(editor.solverCellStates['r0c2'].value).toBe(5)
+    editor.setSolverValueForSelection(5) // all have 5 -> clear all
+    expect(editor.solverCellStates['r0c0'].value).toBeNull()
+    expect(editor.solverCellStates['r0c1'].value).toBeNull()
+    expect(editor.solverCellStates['r0c2'].value).toBeNull()
+  })
+
+  it('digit toggle-off preserves marks and colors, and is undoable', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(1)
+    editor.toggleCellColorForSelection('a')
+    editor.setSolverValueForSelection(5)
+    editor.setSolverValueForSelection(5) // toggle off
+    expect(editor.solverCellStates['r0c0'].value).toBeNull()
+    expect(editor.solverCellStates['r0c0'].cornerMarks).toEqual([1])
+    expect(editor.solverCellStates['r0c0'].colors).toEqual(['a'])
+    editor.undo()
+    expect(editor.solverCellStates['r0c0'].value).toBe(5)
+  })
+
+  it('digits: given cells in the selection do not block the toggle-off', () => {
+    const editor = useEditorStore()
+    editor.givenDigits = { r0c0: 5 }
+    editor.selection = new Set(['r0c1'])
+    editor.setSolverValueForSelection(5)
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.setSolverValueForSelection(5) // every eligible cell has 5 -> clear
+    expect(editor.solverCellStates['r0c1'].value).toBeNull()
+    expect(editor.givenDigits['r0c0']).toBe(5)
+  })
+
+  it('corner marks: mixed selection only adds; uniform selection removes', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCornerMarkForSelection(3)
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.toggleCornerMarkForSelection(3) // some have it -> add to r0c1 only
+    expect(editor.solverCellStates['r0c0'].cornerMarks).toEqual([3])
+    expect(editor.solverCellStates['r0c1'].cornerMarks).toEqual([3])
+    editor.toggleCornerMarkForSelection(3) // all have it -> remove from both
+    expect(editor.solverCellStates['r0c0'].cornerMarks).toEqual([])
+    expect(editor.solverCellStates['r0c1'].cornerMarks).toEqual([])
+  })
+
+  it('center marks: mixed selection only adds; uniform selection removes', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.toggleCenterMarkForSelection(7)
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.toggleCenterMarkForSelection(7)
+    expect(editor.solverCellStates['r0c0'].centerMarks).toEqual([7])
+    expect(editor.solverCellStates['r0c1'].centerMarks).toEqual([7])
+    editor.toggleCenterMarkForSelection(7)
+    expect(editor.solverCellStates['r0c0'].centerMarks).toEqual([])
+    expect(editor.solverCellStates['r0c1'].centerMarks).toEqual([])
+  })
+
+  it('marks: cells blocked by a placed value are excluded from allHave', () => {
+    const editor = useEditorStore()
+    editor.selection = new Set(['r0c0'])
+    editor.setSolverValueForSelection(9) // r0c0 holds a value, marks blocked
+    editor.selection = new Set(['r0c1'])
+    editor.toggleCornerMarkForSelection(4)
+    editor.selection = new Set(['r0c0', 'r0c1'])
+    editor.toggleCornerMarkForSelection(4) // eligible cells all have it -> remove
+    expect(editor.solverCellStates['r0c1'].cornerMarks).toEqual([])
+    expect(editor.solverCellStates['r0c0'].cornerMarks ?? []).toEqual([])
+  })
+})
+
 // Dragging a line back over a cell already in the current stroke should
 // backtrack: erase every segment after that cell, leaving it as the endpoint.
 describe('extendPendingLine backtracking', () => {

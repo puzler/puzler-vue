@@ -47,6 +47,9 @@ export interface BeginOptions {
   solutionHash: string | null
   timer: SolverTimerLike & { start: () => void }
   joinToken?: string | null
+  // Puzzle share token (?t=), required for StartPlay to reach an
+  // unlisted/container-only puzzle.
+  shareToken?: string | null
 }
 
 function pickNewer(a: SolveSnapshot | null, b: SolveSnapshot | null): SolveSnapshot | null {
@@ -97,10 +100,10 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
 
   // Find-or-create the user's server play. Returns its snapshot, 'solved' if the
   // session is already complete, or null if none / unauthenticated. Sets playId.
-  async function fetchServerPlay(puzzleId: string): Promise<SolveSnapshot | 'solved' | null> {
+  async function fetchServerPlay(puzzleId: string, shareToken: string | null): Promise<SolveSnapshot | 'solved' | null> {
     const { data } = await apolloClient.mutate<StartPlayMutation, StartPlayMutationVariables>({
       mutation: StartPlayDocument,
-      variables: { puzzleId },
+      variables: { puzzleId, shareToken },
     })
     const play = data?.startPlay?.puzzlePlay
     if (!play) return null
@@ -188,7 +191,9 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       } else {
         // Resume our server play: a logged-in user's, or a guest's already-promoted
         // guest-hosted play. Returns null for a solo guest -> stay on the local snap.
-        const server = await fetchServerPlay(opts.puzzleId)
+        // A server failure must not cost us the local snapshot, so degrade to
+        // local-only resume instead of throwing past applySession.
+        const server = await fetchServerPlay(opts.puzzleId, opts.shareToken ?? null).catch(() => null)
         if (server === 'solved') {
           resumedSolved = true
           opts.timer.start()
@@ -435,7 +440,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
           }
           playId.value = null
           lastServerJson = null
-          const server = await fetchServerPlay(session.puzzleId)
+          const server = await fetchServerPlay(session.puzzleId, session.shareToken ?? null)
           if (server !== 'solved' && (!server || isEmptySnapshot(server))) {
             await pushServer()
           }

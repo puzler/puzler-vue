@@ -593,6 +593,7 @@ export type SetPuzzleVisibilityMutation = { setPuzzleVisibility: { errors: Array
 
 export type StartPlayMutationVariables = Exact<{
   puzzleId: string | number;
+  shareToken?: string | null | undefined;
 }>;
 
 

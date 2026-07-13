@@ -1,5 +1,5 @@
-mutation StartPlay($puzzleId: ID!) {
-  startPlay(input: { puzzleId: $puzzleId }) {
+mutation StartPlay($puzzleId: ID!, $shareToken: String) {
+  startPlay(input: { puzzleId: $puzzleId, shareToken: $shareToken }) {
     puzzlePlay {
       id
       cellState

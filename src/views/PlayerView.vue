@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import PlayerMobileLayout from '@/components/player/PlayerMobileLayout.vue'
-import PlayerDesktopLayout from '@/components/player/PlayerDesktopLayout.vue'
+import PlayerLayout from '@/components/player/PlayerLayout.vue'
 import ResetConfirmModal from '@/components/player/ResetConfirmModal.vue'
 import RulesIntroModal from '@/components/player/RulesIntroModal.vue'
 import CheckResultModal from '@/components/player/CheckResultModal.vue'
@@ -10,7 +9,7 @@ import PlayerSettingsModal from '@/components/player/PlayerSettingsModal.vue'
 import SolvedModal from '@/components/player/SolvedModal.vue'
 import CollaborationModal from '@/components/player/CollaborationModal.vue'
 import KickedBanner from '@/components/player/KickedBanner.vue'
-import CompetitionSubmitToast from '@/components/competitions/CompetitionSubmitToast.vue'
+import CompetitionSolveBanner from '@/components/competitions/CompetitionSolveBanner.vue'
 import { useEditorStore } from '@/stores/editor'
 import { useGridStore } from '@/stores/grid'
 import { useAuthStore } from '@/stores/auth'
@@ -25,6 +24,7 @@ import { deserializePuzzle, boardSnapshot, type SerializedPuzzle } from '@/utils
 import { hashSolution } from '@/utils/solutionHash'
 import { markSolved } from '@/utils/solveProgress'
 import { useGridKeyboard } from '@/composables/useGridKeyboard'
+import { cellKey } from '@/composables/useGrid'
 import PuzzleForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleForPlay.graphql'
 import PuzzleByTokenForPlayDocument from '@/graphql/gql/puzzles/queries/PuzzleByTokenForPlay.graphql'
 import SubmitSolutionDocument from '@/graphql/gql/puzzles/mutations/SubmitSolution.graphql'
@@ -109,24 +109,23 @@ const showCollaboration = ref(false)
 // submission: the server rejects CheckSolution anyway, so the UI never offers it.
 const inCompetition = computed(() =>
   (collectionId.value ? competition.isActiveFor(collectionId.value) : false))
-const canSubmit = computed(() =>
-  (puzzleId.value ? competition.canSubmit(puzzleId.value) : false))
-const submitMessage = ref<string | null>(null)
+// The competition banner owns the whole submit flow (confirm step, toast); the
+// check button routes into it via this ref.
+const competitionUi = ref<InstanceType<typeof CompetitionSolveBanner> | null>(null)
 
-async function runCompetitionSubmit() {
-  if (!puzzleId.value || !canSubmit.value) return
-  const result = await competition.submit(puzzleId.value, boardSnapshot(editor, grid))
-  if (!result.accepted) {
-    submitMessage.value = result.error
-  } else if (result.correct === null) {
-    submitMessage.value = 'Submitted. You can resubmit until time runs out — your last submission counts.'
-  } else {
-    submitMessage.value = result.correct
-      ? 'Correct! This puzzle is in the bank.'
-      : 'Incorrect — that submission cost you the penalty.'
+// Empty = a live (non-void) cell with neither a given nor a placed digit.
+// Pencil marks don't count; that's exactly the trap the confirm modal exists for.
+const emptyCellCount = computed(() => {
+  let empty = 0
+  for (let r = 0; r < grid.rows; r++) {
+    for (let c = 0; c < grid.cols; c++) {
+      const key = cellKey(r, c)
+      if (grid.isVoid(key)) continue
+      if ((editor.givenDigits[key] ?? editor.solverCellStates[key]?.value ?? null) === null) empty++
+    }
   }
-  setTimeout(() => { submitMessage.value = null }, 5000)
-}
+  return empty
+})
 
 // Manual "Check Solution": ask the server (which has the solution) for a coarse
 // verdict. A complete-and-correct board routes to the normal win flow; anything
@@ -134,7 +133,7 @@ async function runCompetitionSubmit() {
 // setting). Always available, regardless of the auto-check setting.
 async function runCheck() {
   if (!puzzleId.value) return
-  if (inCompetition.value) return runCompetitionSubmit()
+  if (inCompetition.value) return competitionUi.value?.requestSubmit()
   try {
     const { data } = await apolloClient.mutate<CheckSolutionMutation, CheckSolutionMutationVariables>({
       mutation: CheckSolutionDocument,
@@ -187,6 +186,13 @@ const collectionTimed = ref(false)
 // Puzzles in collection order, each with its own share token (present for
 // container-only puzzles) so next-puzzle navigation can build a working link.
 const orderedPuzzles = ref<{ id: string; token: string | null }[]>([])
+// Entry points by puzzle id; null when the author hides per-puzzle points.
+const puzzlePoints = ref<Record<string, number | null>>({})
+
+// Competition banner data.
+const competitionPoints = computed(() =>
+  (puzzleId.value ? puzzlePoints.value[puzzleId.value] ?? null : null))
+const collectionPuzzleIds = computed(() => orderedPuzzles.value.map((p) => p.id))
 
 // Pausable solving timer — runs for every puzzle. Timed collections also feed
 // its elapsed value to the leaderboard on solve.
@@ -217,6 +223,9 @@ async function loadCollectionOrder() {
   collectionTitle.value = payload?.title ?? ''
   collectionTimed.value = payload?.timed ?? false
   orderedPuzzles.value = payload?.puzzles.map((p) => ({ id: p.id, token: p.shareToken ?? null })) ?? []
+  puzzlePoints.value = Object.fromEntries(
+    (payload?.entries ?? []).filter((e) => e.puzzle).map((e) => [e.puzzle!.id, e.points ?? null]),
+  )
   // Competition context: hydrate the run (enforced settings, submit state)
   // BEFORE the session/timer starts so overrides apply from the first paint.
   if (payload?.kind === CollectionKindEnum.Competition) {
@@ -358,6 +367,7 @@ async function loadPuzzle() {
       solutionHash: solutionHash.value,
       timer,
       joinToken: joinToken.value,
+      shareToken: shareToken.value,
     })
     // Greet the solver with the rules on a fresh start (when enabled), pausing
     // the clock until dismissed. Skip on resume and when there's no rules text.
@@ -415,6 +425,16 @@ onUnmounted(() => {
       @dismiss="dismissedKick = true"
     />
 
+    <CompetitionSolveBanner
+      ref="competitionUi"
+      :puzzle-id="puzzleId"
+      :collection-id="collectionId"
+      :puzzle-ids="collectionPuzzleIds"
+      :points="competitionPoints"
+      :empty-cell-count="emptyCellCount"
+      :board="() => boardSnapshot(editor, grid)"
+    />
+
     <div
       v-if="loading || errorMessage"
       class="flex-1 flex items-center justify-center text-soft"
@@ -422,26 +442,9 @@ onUnmounted(() => {
       {{ loading ? 'Loading…' : errorMessage }}
     </div>
 
-    <PlayerMobileLayout
-      v-else-if="isMobile"
-      :title="title"
-      :author="author"
-      :author-name="authorCredit"
-      :show-timer="showTimer"
-      :elapsed-label="timerLabel"
-      :paused="timerPaused"
-      :collaboration-enabled="player.effective.enableCollaborationMode"
-      :check-label="inCompetition ? 'Submit solution' : undefined"
-      @toggle-pause="timer.toggle()"
-      @reset="showReset = true"
-      @show-rules="openRules"
-      @check="runCheck"
-      @settings="showSettings = true"
-      @collaborate="showCollaboration = true"
-    />
-
-    <PlayerDesktopLayout
+    <PlayerLayout
       v-else
+      :is-mobile="isMobile"
       :title="title"
       :author="author"
       :author-name="authorCredit"
@@ -452,10 +455,10 @@ onUnmounted(() => {
       :collaboration-enabled="player.effective.enableCollaborationMode"
       :check-label="inCompetition ? 'Submit solution' : undefined"
       @toggle-pause="timer.toggle()"
-      @show-rules="openRules"
       @reset="showReset = true"
-      @settings="showSettings = true"
+      @show-rules="openRules"
       @check="runCheck"
+      @settings="showSettings = true"
       @collaborate="showCollaboration = true"
     />
 
@@ -491,7 +494,6 @@ onUnmounted(() => {
       :puzzle-id="puzzleId"
       @close="showCollaboration = false"
     />
-    <CompetitionSubmitToast :message="submitMessage" />
 
     <SolvedModal
       v-if="solved"

@@ -150,11 +150,19 @@ export const useCompetitionStore = defineStore('competition', () => {
   async function submit(puzzleId: string, cellState: Record<string, unknown>):
   Promise<{ accepted: boolean; correct: boolean | null; error: string | null }> {
     if (!run.value) return { accepted: false, correct: null, error: 'No active run' }
-    const { data } = await apolloClient.mutate<SubmitCompetitionEntryMutation, SubmitCompetitionEntryMutationVariables>({
-      mutation: SubmitCompetitionEntryDocument,
-      variables: { collectionId: run.value.collectionId, puzzleId, cellState },
-    })
-    const result = data?.submitCompetitionEntry
+    // Never let a failed mutation throw past the caller: an unsurfaced error
+    // here looks exactly like a successful submission to the player.
+    let result: SubmitCompetitionEntryMutation['submitCompetitionEntry']
+    try {
+      const { data } = await apolloClient.mutate<SubmitCompetitionEntryMutation, SubmitCompetitionEntryMutationVariables>({
+        mutation: SubmitCompetitionEntryDocument,
+        variables: { collectionId: run.value.collectionId, puzzleId, cellState },
+      })
+      result = data?.submitCompetitionEntry ?? null
+    } catch (e) {
+      const message = (e as { graphQLErrors?: { message: string }[] })?.graphQLErrors?.[0]?.message
+      return { accepted: false, correct: null, error: message ?? 'Could not submit. Check your connection and try again.' }
+    }
     if (!result?.accepted) return { accepted: false, correct: null, error: result?.errors?.[0] ?? 'Could not submit' }
     const previous = run.value.submissions[puzzleId]
     run.value.submissions[puzzleId] = {
@@ -175,10 +183,18 @@ export const useCompetitionStore = defineStore('competition', () => {
     hydrateRun(null)
   }
 
+  // Why a submission for this puzzle would be refused right now, or null when
+  // it can go ahead. The message doubles as user-facing feedback.
+  function submitBlockReason(puzzleId: string): string | null {
+    if (!isActive.value || !run.value) return 'Time is up. This competition run is over.'
+    if (run.value.policy === 'SINGLE' && puzzleId in run.value.submissions) {
+      return 'Already submitted. This competition allows one submission per puzzle.'
+    }
+    return null
+  }
+
   function canSubmit(puzzleId: string): boolean {
-    if (!isActive.value || !run.value) return false
-    if (run.value.policy === 'SINGLE' && puzzleId in run.value.submissions) return false
-    return true
+    return submitBlockReason(puzzleId) === null
   }
 
   function submissionState(puzzleId: string): 'none' | 'submitted' | 'correct' | 'incorrect' {
@@ -200,6 +216,6 @@ export const useCompetitionStore = defineStore('competition', () => {
   return {
     run, isActive, isActiveFor, remainingSeconds, remainingLabel,
     hydrateFromCollection, refreshActiveRun, start, submit, finish,
-    canSubmit, submissionState,
+    canSubmit, submitBlockReason, submissionState,
   }
 })

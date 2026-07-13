@@ -107,4 +107,38 @@ describe('competition store', () => {
     expect(competition.submissionState('p1')).toBe('submitted')
     expect(competition.submissionState('p2')).toBe('none')
   })
+
+  it('surfaces a thrown mutation as a rejected submission instead of throwing', async () => {
+    const competition = useCompetitionStore()
+    competition.hydrateFromCollection(collectionPayload())
+    mockMutate.mockRejectedValue({ graphQLErrors: [{ message: 'Authentication required' }] })
+
+    const result = await competition.submit('p1', { r0c0: 1 })
+    expect(result).toEqual({ accepted: false, correct: null, error: 'Authentication required' })
+    expect(competition.submissionState('p1')).toBe('none')
+  })
+
+  it('falls back to a generic error message for network failures', async () => {
+    const competition = useCompetitionStore()
+    competition.hydrateFromCollection(collectionPayload())
+    mockMutate.mockRejectedValue(new Error('Failed to fetch'))
+
+    const result = await competition.submit('p1', { r0c0: 1 })
+    expect(result.accepted).toBe(false)
+    expect(result.error).toBe('Could not submit. Check your connection and try again.')
+  })
+
+  it('explains why a submission is blocked', async () => {
+    const competition = useCompetitionStore()
+    competition.hydrateFromCollection(collectionPayload({
+      competitionConfig: { submissionPolicy: CompetitionSubmissionPolicyEnum.Single, enforcedSettings: {} },
+    }))
+    mockMutate.mockResolvedValue({ data: { submitCompetitionEntry: { accepted: true, correct: null, errors: [] } } })
+
+    expect(competition.submitBlockReason('p1')).toBeNull()
+    await competition.submit('p1', { r0c0: 1 })
+    expect(competition.submitBlockReason('p1')).toContain('one submission per puzzle')
+    await vi.advanceTimersByTimeAsync(121_000)
+    expect(competition.submitBlockReason('p2')).toContain('Time is up')
+  })
 })

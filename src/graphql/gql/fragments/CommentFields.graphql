@@ -4,6 +4,16 @@ fragment CommentFields on Comment {
   createdAt
   commenterSolved
   isAuthor
+  isSpoiler
+  spoilersRedacted
+  spoilerMarkedBySetter
+  canDelete
+  canMarkSpoiler
+  segments {
+    spoiler
+    redacted
+    text
+  }
   user {
     id
     username

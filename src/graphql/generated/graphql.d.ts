@@ -242,15 +242,6 @@ declare module '*/RemoveCollectionEntry.graphql' {
 }
     
 
-declare module '*/RemovePuzzleFromCollection.graphql' {
-  import { DocumentNode } from 'graphql';
-  const defaultDocument: DocumentNode;
-  export const RemovePuzzleFromCollection: DocumentNode;
-
-  export default defaultDocument;
-}
-    
-
 declare module '*/RenameFolder.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -264,15 +255,6 @@ declare module '*/ReorderCollectionEntries.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const ReorderCollectionEntries: DocumentNode;
-
-  export default defaultDocument;
-}
-    
-
-declare module '*/ReorderCollectionPuzzles.graphql' {
-  import { DocumentNode } from 'graphql';
-  const defaultDocument: DocumentNode;
-  export const ReorderCollectionPuzzles: DocumentNode;
 
   export default defaultDocument;
 }
@@ -720,15 +702,6 @@ declare module '*/PublishPuzzleVersion.graphql' {
 }
     
 
-declare module '*/RevealSolveMessage.graphql' {
-  import { DocumentNode } from 'graphql';
-  const defaultDocument: DocumentNode;
-  export const RevealSolveMessage: DocumentNode;
-
-  export default defaultDocument;
-}
-    
-
 declare module '*/RevokePlaySession.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -1017,15 +990,6 @@ declare module '*/MySeries.graphql' {
 }
     
 
-declare module '*/MySubscriptions.graphql' {
-  import { DocumentNode } from 'graphql';
-  const defaultDocument: DocumentNode;
-  export const MySubscriptions: DocumentNode;
-
-  export default defaultDocument;
-}
-    
-
 declare module '*/PublicSeries.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -1080,10 +1044,28 @@ declare module '*/CreateComment.graphql' {
 }
     
 
+declare module '*/DeleteComment.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const DeleteComment: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RatePuzzle.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const RatePuzzle: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SetCommentSpoiler.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SetCommentSpoiler: DocumentNode;
 
   export default defaultDocument;
 }

@@ -12,12 +12,6 @@
     "CompetitionQueries": [
       "Query"
     ],
-    "ConstraintMutations": [
-      "Mutation"
-    ],
-    "CosmeticMutations": [
-      "Mutation"
-    ],
     "PlayMutations": [
       "Mutation"
     ],

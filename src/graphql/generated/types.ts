@@ -207,14 +207,6 @@ export type RemoveCollectionEntryMutationVariables = Exact<{
 
 export type RemoveCollectionEntryMutation = { removeCollectionEntry: { errors: Array<string>, collection: { id: string } | null } | null };
 
-export type RemovePuzzleFromCollectionMutationVariables = Exact<{
-  collectionId: string | number;
-  puzzleId: string | number;
-}>;
-
-
-export type RemovePuzzleFromCollectionMutation = { removePuzzleFromCollection: { errors: Array<string>, collection: { id: string, puzzles: Array<{ id: string, title: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum }> } | null } | null };
-
 export type RenameFolderMutationVariables = Exact<{
   id: string | number;
   name: string;
@@ -230,14 +222,6 @@ export type ReorderCollectionEntriesMutationVariables = Exact<{
 
 
 export type ReorderCollectionEntriesMutation = { reorderCollectionEntries: { errors: Array<string>, collection: { id: string } | null } | null };
-
-export type ReorderCollectionPuzzlesMutationVariables = Exact<{
-  collectionId: string | number;
-  orderedPuzzleIds: Array<string | number> | string | number;
-}>;
-
-
-export type ReorderCollectionPuzzlesMutation = { reorderCollectionPuzzles: { errors: Array<string>, collection: { id: string, puzzles: Array<{ id: string }> } | null } | null };
 
 export type SubmitCollectionCodewordMutationVariables = Exact<{
   collectionId: string | number;
@@ -419,7 +403,7 @@ export type CollectionPublicFieldsFragment = { id: string, title: string, kind: 
 
 export type CollectionSummaryFragment = { id: string, title: string, visibility: Types.CollectionVisibilityEnum, mode: Types.CollectionModeEnum, puzzleCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, folder: { id: string, name: string } | null };
 
-export type CommentFieldsFragment = { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } };
+export type CommentFieldsFragment = { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } };
 
 export type PageInfoFieldsFragment = { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean };
 
@@ -429,7 +413,7 @@ export type PuzzleAdminFieldsFragment = { id: string, status: Types.PuzzleStatus
 
 export type PuzzleCardFieldsFragment = { id: string, title: string, constraintTypes: Array<string>, avgRating: number | null, effectiveDifficulty: number | null, solveCount: number, featured: boolean, authorName: string | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
-export type PuzzleDescriptionFieldsFragment = { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> };
+export type PuzzleDescriptionFieldsFragment = { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> };
 
 export type SeriesCardFieldsFragment = { id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, author: { id: string, username: string, displayName: string, setterTier: Types.SetterTierEnum } };
 
@@ -536,15 +520,6 @@ export type PublishPuzzleVersionMutationVariables = Exact<{
 
 
 export type PublishPuzzleVersionMutation = { publishPuzzleVersion: { errors: Array<string>, puzzle: { id: string, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, pageDescriptionHtml: string | null, commentsRequireSolveOverride: boolean | null, publishedVersion: { id: string } | null, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null } | null };
-
-export type RevealSolveMessageMutationVariables = Exact<{
-  puzzleId: string | number;
-  solutionHash: string;
-  shareToken?: string | null | undefined;
-}>;
-
-
-export type RevealSolveMessageMutation = { revealSolveMessage: { correct: boolean, solveMessage: string | null } | null };
 
 export type RevokePlaySessionMutationVariables = Exact<{
   puzzlePlayId: string | number;
@@ -677,14 +652,14 @@ export type PuzzleDescriptionQueryVariables = Exact<{
 }>;
 
 
-export type PuzzleDescriptionQuery = { puzzle: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, commentsRequireSolveOverride: boolean | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
+export type PuzzleDescriptionQuery = { puzzle: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, commentsRequireSolveOverride: boolean | null, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, grantedUsers: Array<{ id: string, username: string, displayName: string }> } | null };
 
 export type PuzzleDescriptionByTokenQueryVariables = Exact<{
   token: string;
 }>;
 
 
-export type PuzzleDescriptionByTokenQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
+export type PuzzleDescriptionByTokenQuery = { puzzleByToken: { id: string, title: string, authorName: string | null, description: string | null, pageDescriptionHtml: string | null, status: Types.PuzzleStatusEnum, visibility: Types.PuzzleVisibilityEnum, shareToken: string | null, publishedAt: string | null, effectiveDifficulty: number | null, avgRating: number | null, solveCount: number, favoriteCount: number, constraintTypes: Array<string>, sudokupadUrl: string | null, sudokupadIncludesSolution: boolean, commentsRequireSolveEffective: boolean, viewerHasSolved: boolean, hasSolutionCode: boolean, isFavorited: boolean, grid: { rows: number, cols: number }, author: { id: string, username: string, displayName: string, avatarUrl: string | null }, publishedVersion: { id: string, definition: unknown, solutionHash: string | null } | null, myRating: { stars: number | null, difficultyVote: number | null } | null, comments: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, replies: Array<{ id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }>, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } }> } | null };
 
 export type PuzzleForEditQueryVariables = Exact<{
   id: string | number;
@@ -796,11 +771,6 @@ export type MySeriesQueryVariables = Exact<{
 
 export type MySeriesQuery = { mySeries: { nodes: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null }>, pageInfo: { page: number, perPage: number, totalCount: number, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean } } };
 
-export type MySubscriptionsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type MySubscriptionsQuery = { mySubscriptions: Array<{ id: string, title: string, visibility: Types.SeriesVisibilityEnum, entryCount: number, subscriberCount: number, avgRating: number | null, solveCount: number, shareToken: string | null, author: { id: string, username: string, displayName: string } }> };
-
 export type PublicSeriesQueryVariables = Exact<{
   filter?: Types.ListingFilterInput | null | undefined;
 }>;
@@ -838,10 +808,18 @@ export type CreateCommentMutationVariables = Exact<{
   puzzleId: string | number;
   body: string;
   parentId?: string | number | null | undefined;
+  spoiler?: boolean | null | undefined;
 }>;
 
 
-export type CreateCommentMutation = { createComment: { errors: Array<string>, comment: { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, user: { id: string, username: string, displayName: string, avatarUrl: string | null } } | null } | null };
+export type CreateCommentMutation = { createComment: { errors: Array<string>, comment: { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } } | null } | null };
+
+export type DeleteCommentMutationVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type DeleteCommentMutation = { deleteComment: { success: boolean } | null };
 
 export type RatePuzzleMutationVariables = Exact<{
   puzzleId: string | number;
@@ -851,6 +829,14 @@ export type RatePuzzleMutationVariables = Exact<{
 
 
 export type RatePuzzleMutation = { ratePuzzle: { errors: Array<string>, rating: { id: string, stars: number | null, difficultyVote: number | null } | null } | null };
+
+export type SetCommentSpoilerMutationVariables = Exact<{
+  id: string | number;
+  spoiler: boolean;
+}>;
+
+
+export type SetCommentSpoilerMutation = { setCommentSpoiler: { errors: Array<string>, comment: { id: string, body: string, createdAt: string, commenterSolved: boolean, isAuthor: boolean, isSpoiler: boolean, spoilersRedacted: boolean, spoilerMarkedBySetter: boolean, canDelete: boolean, canMarkSpoiler: boolean, segments: Array<{ spoiler: boolean, redacted: boolean, text: string | null }>, user: { id: string, username: string, displayName: string, avatarUrl: string | null } } | null } | null };
 
 export type ToggleFavoriteMutationVariables = Exact<{
   puzzleId: string | number;

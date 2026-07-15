@@ -1,0 +1,10 @@
+#import "../../fragments/CommentFields.graphql"
+
+mutation SetCommentSpoiler($id: ID!, $spoiler: Boolean!) {
+  setCommentSpoiler(input: { id: $id, spoiler: $spoiler }) {
+    comment {
+      ...CommentFields
+    }
+    errors
+  }
+}

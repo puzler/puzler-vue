@@ -3,6 +3,7 @@ import CommentItem from './CommentItem.vue'
 import type { PuzzleDescriptionFieldsFragment } from '@/graphql/generated/types'
 
 defineProps<{ comments: PuzzleDescriptionFieldsFragment['comments'] }>()
+const emit = defineEmits<{ changed: [] }>()
 </script>
 
 <template>
@@ -21,7 +22,10 @@ defineProps<{ comments: PuzzleDescriptionFieldsFragment['comments'] }>()
       :key="comment.id"
       class="p-4 rounded-xl border border-line"
     >
-      <CommentItem :comment="comment" />
+      <CommentItem
+        :comment="comment"
+        @changed="emit('changed')"
+      />
       <ul
         v-if="comment.replies.length"
         class="mt-3 ml-6 flex flex-col gap-3 border-l border-line pl-4"
@@ -30,7 +34,10 @@ defineProps<{ comments: PuzzleDescriptionFieldsFragment['comments'] }>()
           v-for="reply in comment.replies"
           :key="reply.id"
         >
-          <CommentItem :comment="reply" />
+          <CommentItem
+            :comment="reply"
+            @changed="emit('changed')"
+          />
         </li>
       </ul>
     </li>

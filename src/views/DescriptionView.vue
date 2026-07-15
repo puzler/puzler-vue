@@ -142,6 +142,7 @@ watch(() => [route.params.id, route.query.t], load)
           <PuzzleComments
             :puzzle="puzzle"
             @posted="load"
+            @changed="load"
           />
         </div>
       </div>

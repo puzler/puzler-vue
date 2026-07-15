@@ -345,14 +345,10 @@ export type CollectionMutations = {
   removeCollectionCoverImage?: Maybe<RemoveCollectionCoverImagePayload>;
   /** Remove an entry from a collection */
   removeCollectionEntry?: Maybe<RemoveCollectionEntryPayload>;
-  /** Remove a puzzle from a collection */
-  removePuzzleFromCollection?: Maybe<RemovePuzzleFromCollectionPayload>;
   /** Rename a folder */
   renameFolder?: Maybe<RenameFolderPayload>;
   /** Reorder all entries in a collection */
   reorderCollectionEntries?: Maybe<ReorderCollectionEntriesPayload>;
-  /** Reorder the puzzles in a collection */
-  reorderCollectionPuzzles?: Maybe<ReorderCollectionPuzzlesPayload>;
   /** Try a codeword against a collection's gated entries */
   submitCollectionCodeword?: Maybe<SubmitCollectionCodewordPayload>;
   /** Update a collection's metadata */
@@ -445,12 +441,6 @@ export type CollectionMutationsRemoveCollectionEntryArgs = {
 
 
 /** Mutations for managing folders and collections */
-export type CollectionMutationsRemovePuzzleFromCollectionArgs = {
-  input: RemovePuzzleFromCollectionInput;
-};
-
-
-/** Mutations for managing folders and collections */
 export type CollectionMutationsRenameFolderArgs = {
   input: RenameFolderInput;
 };
@@ -459,12 +449,6 @@ export type CollectionMutationsRenameFolderArgs = {
 /** Mutations for managing folders and collections */
 export type CollectionMutationsReorderCollectionEntriesArgs = {
   input: ReorderCollectionEntriesInput;
-};
-
-
-/** Mutations for managing folders and collections */
-export type CollectionMutationsReorderCollectionPuzzlesArgs = {
-  input: ReorderCollectionPuzzlesInput;
 };
 
 
@@ -585,8 +569,12 @@ export type CollectionVisibilityEnum = typeof CollectionVisibilityEnum[keyof typ
 /** A comment on a puzzle */
 export type Comment = {
   __typename?: 'Comment';
-  /** Comment text */
+  /** Comment text; spoiler content is redacted for viewers who have not solved the puzzle */
   body: Scalars['String']['output'];
+  /** Whether the current viewer may delete this comment */
+  canDelete: Scalars['Boolean']['output'];
+  /** Whether the current viewer may mark or unmark this comment as a spoiler */
+  canMarkSpoiler: Scalars['Boolean']['output'];
   /** Whether the commenter has completed this puzzle (drives the 'solved' badge) */
   commenterSolved: Scalars['Boolean']['output'];
   /** When the comment was posted */
@@ -595,12 +583,20 @@ export type Comment = {
   id: Scalars['ID']['output'];
   /** Whether the commenter is the puzzle's author */
   isAuthor: Scalars['Boolean']['output'];
+  /** Whether the whole comment is flagged as a spoiler */
+  isSpoiler: Scalars['Boolean']['output'];
   /** ID of the parent comment if this is a reply */
   parentId?: Maybe<Scalars['ID']['output']>;
   /** The puzzle this comment is on */
   puzzle: Puzzle;
   /** Direct replies to this comment */
   replies: Array<Comment>;
+  /** The body split into text and spoiler runs, spoilers redacted per viewer */
+  segments: Array<CommentSegment>;
+  /** Whether the spoiler flag was applied by someone other than the commenter (the setter or an admin) */
+  spoilerMarkedBySetter: Scalars['Boolean']['output'];
+  /** True when this viewer cannot see the comment's spoiler content */
+  spoilersRedacted: Scalars['Boolean']['output'];
   /** User who posted the comment */
   user: User;
 };
@@ -612,6 +608,17 @@ export type CommentConnection = {
   nodes: Array<Comment>;
   /** Pagination metadata */
   pageInfo: PageInfo;
+};
+
+/** One run of a comment body: plain text, or a spoiler span whose text is withheld from viewers who have not solved the puzzle */
+export type CommentSegment = {
+  __typename?: 'CommentSegment';
+  /** True when the span's text was withheld server-side */
+  redacted: Scalars['Boolean']['output'];
+  /** Whether this span is a spoiler (render click-to-reveal even when text is present) */
+  spoiler: Scalars['Boolean']['output'];
+  /** The span's text; null exactly when redacted */
+  text?: Maybe<Scalars['String']['output']>;
 };
 
 /** The contest terms of a competition collection */
@@ -790,109 +797,6 @@ export type ConfigurePuzzlePagePayload = {
   puzzle?: Maybe<Puzzle>;
 };
 
-/** A logical constraint on a puzzle (killer cage, thermometer, etc.) */
-export type Constraint = {
-  __typename?: 'Constraint';
-  /** Constraint type identifier */
-  constraintType: Scalars['String']['output'];
-  /** Constraint-specific configuration data */
-  data: Scalars['JSON']['output'];
-  /** Render order among constraints */
-  displayOrder: Scalars['Int']['output'];
-  /** Unique constraint ID */
-  id: Scalars['ID']['output'];
-};
-
-/** Attributes for creating or updating a constraint */
-export type ConstraintAttrsInput = {
-  /** Constraint type identifier (e.g. killer_cage, thermometer) */
-  constraintType: Scalars['String']['input'];
-  /** Constraint-specific configuration data */
-  data: Scalars['JSON']['input'];
-  /** Render order among constraints on this puzzle */
-  displayOrder?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** Mutations for managing puzzle constraints */
-export type ConstraintMutations = {
-  /** Delete a constraint from a puzzle */
-  deleteConstraint?: Maybe<DeleteConstraintPayload>;
-  /** Create or update a constraint on a puzzle */
-  upsertConstraint?: Maybe<UpsertConstraintPayload>;
-};
-
-
-/** Mutations for managing puzzle constraints */
-export type ConstraintMutationsDeleteConstraintArgs = {
-  input: DeleteConstraintInput;
-};
-
-
-/** Mutations for managing puzzle constraints */
-export type ConstraintMutationsUpsertConstraintArgs = {
-  input: UpsertConstraintInput;
-};
-
-/** A visual decoration on a puzzle (cell color, line, shape, or text label) */
-export type Cosmetic = {
-  __typename?: 'Cosmetic';
-  /** Cosmetic type identifier */
-  cosmeticType: CosmeticTypeEnum;
-  /** Type-specific extra data */
-  data: Scalars['JSON']['output'];
-  /** Render order among cosmetics */
-  displayOrder: Scalars['Int']['output'];
-  /** Unique cosmetic ID */
-  id: Scalars['ID']['output'];
-  /** Position descriptor — cell, edge, or corner with associated cell keys */
-  position: Scalars['JSON']['output'];
-  /** Visual style properties */
-  style: Scalars['JSON']['output'];
-};
-
-/** Attributes for creating or updating a cosmetic */
-export type CosmeticAttrsInput = {
-  /** Cosmetic type identifier (line, cell_color, shape, text) */
-  cosmeticType: CosmeticTypeEnum;
-  /** Type-specific extra data (e.g. path for lines, shapeType for shapes) */
-  data?: InputMaybe<Scalars['JSON']['input']>;
-  /** Render order among cosmetics on this puzzle */
-  displayOrder?: InputMaybe<Scalars['Int']['input']>;
-  /** Position descriptor — cell, edge, or corner with associated cell keys */
-  position: Scalars['JSON']['input'];
-  /** Visual style properties (color, opacity, strokeWidth, etc.) */
-  style: Scalars['JSON']['input'];
-};
-
-/** Mutations for managing puzzle cosmetics */
-export type CosmeticMutations = {
-  /** Delete a cosmetic from a puzzle */
-  deleteCosmetic?: Maybe<DeleteCosmeticPayload>;
-  /** Create or update a cosmetic on a puzzle */
-  upsertCosmetic?: Maybe<UpsertCosmeticPayload>;
-};
-
-
-/** Mutations for managing puzzle cosmetics */
-export type CosmeticMutationsDeleteCosmeticArgs = {
-  input: DeleteCosmeticInput;
-};
-
-
-/** Mutations for managing puzzle cosmetics */
-export type CosmeticMutationsUpsertCosmeticArgs = {
-  input: UpsertCosmeticInput;
-};
-
-/** Kind of cosmetic: line, cell_color, shape, or text */
-export const CosmeticTypeEnum = {
-  CellColor: 'CELL_COLOR',
-  Line: 'LINE',
-  Shape: 'SHAPE',
-  Text: 'TEXT'
-} as const;
-
-export type CosmeticTypeEnum = typeof CosmeticTypeEnum[keyof typeof CosmeticTypeEnum];
 /** Autogenerated input type of CreateCollection */
 export type CreateCollectionInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -928,6 +832,8 @@ export type CreateCommentInput = {
   parentId?: InputMaybe<Scalars['ID']['input']>;
   /** ID of the puzzle being commented on */
   puzzleId: Scalars['ID']['input'];
+  /** Mark the whole comment as a spoiler, hidden from viewers who have not solved the puzzle */
+  spoiler?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** Autogenerated return type of CreateComment. */
@@ -1085,40 +991,6 @@ export type DeleteCommentPayload = {
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: Maybe<Scalars['String']['output']>;
   /** True when the comment was successfully deleted */
-  success: Scalars['Boolean']['output'];
-};
-
-/** Autogenerated input type of DeleteConstraint */
-export type DeleteConstraintInput = {
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the constraint to delete */
-  id: Scalars['ID']['input'];
-};
-
-/** Autogenerated return type of DeleteConstraint. */
-export type DeleteConstraintPayload = {
-  __typename?: 'DeleteConstraintPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** True when the constraint was successfully deleted */
-  success: Scalars['Boolean']['output'];
-};
-
-/** Autogenerated input type of DeleteCosmetic */
-export type DeleteCosmeticInput = {
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the cosmetic to delete */
-  id: Scalars['ID']['input'];
-};
-
-/** Autogenerated return type of DeleteCosmetic. */
-export type DeleteCosmeticPayload = {
-  __typename?: 'DeleteCosmeticPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** True when the cosmetic was successfully deleted */
   success: Scalars['Boolean']['output'];
 };
 
@@ -1533,7 +1405,7 @@ export type MovePuzzleToFolderPayload = {
 };
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMutations & CosmeticMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
+export type Mutation = CollectionMutations & CompetitionMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
   __typename?: 'Mutation';
   /** Add a puzzle to a collection */
   addPuzzleToCollection?: Maybe<AddPuzzleToCollectionPayload>;
@@ -1565,10 +1437,6 @@ export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMu
   deleteCollection?: Maybe<DeleteCollectionPayload>;
   /** Delete a comment posted by the current user */
   deleteComment?: Maybe<DeleteCommentPayload>;
-  /** Delete a constraint from a puzzle */
-  deleteConstraint?: Maybe<DeleteConstraintPayload>;
-  /** Delete a cosmetic from a puzzle */
-  deleteCosmetic?: Maybe<DeleteCosmeticPayload>;
   /** Delete a folder */
   deleteFolder?: Maybe<DeleteFolderPayload>;
   /** Permanently delete a puzzle */
@@ -1613,20 +1481,14 @@ export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMu
   removeCollectionCoverImage?: Maybe<RemoveCollectionCoverImagePayload>;
   /** Remove an entry from a collection */
   removeCollectionEntry?: Maybe<RemoveCollectionEntryPayload>;
-  /** Remove a puzzle from a collection */
-  removePuzzleFromCollection?: Maybe<RemovePuzzleFromCollectionPayload>;
   /** Remove an entry from a series */
   removeSeriesEntry?: Maybe<RemoveSeriesEntryPayload>;
   /** Rename a folder */
   renameFolder?: Maybe<RenameFolderPayload>;
   /** Reorder all entries in a collection */
   reorderCollectionEntries?: Maybe<ReorderCollectionEntriesPayload>;
-  /** Reorder the puzzles in a collection */
-  reorderCollectionPuzzles?: Maybe<ReorderCollectionPuzzlesPayload>;
   /** Reorder the entries in a series */
   reorderSeriesEntries?: Maybe<ReorderSeriesEntriesPayload>;
-  /** Reveal a puzzle's custom solve message for a correct solution */
-  revealSolveMessage?: Maybe<RevealSolveMessagePayload>;
   /** Stop sharing a play session and remove collaborators (owner only) */
   revokePlaySession?: Maybe<RevokePlaySessionPayload>;
   /** Revoke a user's access to a puzzle */
@@ -1637,6 +1499,8 @@ export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMu
   savePuzzleVersion?: Maybe<SavePuzzleVersionPayload>;
   /** Set or clear a series entry's scheduled release time */
   scheduleSeriesEntry?: Maybe<ScheduleSeriesEntryPayload>;
+  /** Mark or unmark a comment as a spoiler */
+  setCommentSpoiler?: Maybe<SetCommentSpoilerPayload>;
   /** Change a puzzle's access mode */
   setPuzzleVisibility?: Maybe<SetPuzzleVisibilityPayload>;
   /** Start your single timed attempt */
@@ -1695,10 +1559,6 @@ export type Mutation = CollectionMutations & CompetitionMutations & ConstraintMu
   uploadDescriptionImage?: Maybe<UploadDescriptionImagePayload>;
   /** Upload an image for a story page's rich body */
   uploadStoryPageImage?: Maybe<UploadStoryPageImagePayload>;
-  /** Create or update a constraint on a puzzle */
-  upsertConstraint?: Maybe<UpsertConstraintPayload>;
-  /** Create or update a cosmetic on a puzzle */
-  upsertCosmetic?: Maybe<UpsertCosmeticPayload>;
 };
 
 
@@ -1789,18 +1649,6 @@ export type MutationDeleteCollectionArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationDeleteCommentArgs = {
   input: DeleteCommentInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationDeleteConstraintArgs = {
-  input: DeleteConstraintInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationDeleteCosmeticArgs = {
-  input: DeleteCosmeticInput;
 };
 
 
@@ -1937,12 +1785,6 @@ export type MutationRemoveCollectionEntryArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationRemovePuzzleFromCollectionArgs = {
-  input: RemovePuzzleFromCollectionInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationRemoveSeriesEntryArgs = {
   input: RemoveSeriesEntryInput;
 };
@@ -1961,20 +1803,8 @@ export type MutationReorderCollectionEntriesArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationReorderCollectionPuzzlesArgs = {
-  input: ReorderCollectionPuzzlesInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationReorderSeriesEntriesArgs = {
   input: ReorderSeriesEntriesInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationRevealSolveMessageArgs = {
-  input: RevealSolveMessageInput;
 };
 
 
@@ -2005,6 +1835,12 @@ export type MutationSavePuzzleVersionArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationScheduleSeriesEntryArgs = {
   input: ScheduleSeriesEntryInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSetCommentSpoilerArgs = {
+  input: SetCommentSpoilerInput;
 };
 
 
@@ -2181,18 +2017,6 @@ export type MutationUploadStoryPageImageArgs = {
   input: UploadStoryPageImageInput;
 };
 
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationUpsertConstraintArgs = {
-  input: UpsertConstraintInput;
-};
-
-
-/** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type MutationUpsertCosmeticArgs = {
-  input: UpsertCosmeticInput;
-};
-
 /** Filter by the current viewer's relationship to the puzzle */
 export const MyStatusEnum = {
   /** Puzzles the viewer has favorited */
@@ -2242,8 +2066,6 @@ export type PlayMutations = {
   joinPlaySession?: Maybe<JoinPlaySessionPayload>;
   /** Remove a collaborator from a play session (host only) */
   kickParticipant?: Maybe<KickParticipantPayload>;
-  /** Reveal a puzzle's custom solve message for a correct solution */
-  revealSolveMessage?: Maybe<RevealSolveMessagePayload>;
   /** Stop sharing a play session and remove collaborators (owner only) */
   revokePlaySession?: Maybe<RevokePlaySessionPayload>;
   /** Persist the current cell state for an in-progress session */
@@ -2278,12 +2100,6 @@ export type PlayMutationsJoinPlaySessionArgs = {
 /** Mutations for playing puzzles */
 export type PlayMutationsKickParticipantArgs = {
   input: KickParticipantInput;
-};
-
-
-/** Mutations for playing puzzles */
-export type PlayMutationsRevealSolveMessageArgs = {
-  input: RevealSolveMessageInput;
 };
 
 
@@ -2467,10 +2283,6 @@ export type Puzzle = {
   commentsRequireSolveOverride?: Maybe<Scalars['Boolean']['output']>;
   /** Constraint-type tags from the published version, for archive filtering */
   constraintTypes: Array<Scalars['String']['output']>;
-  /** Logical constraints attached to this puzzle */
-  constraints: Array<Constraint>;
-  /** Visual decorations attached to this puzzle */
-  cosmetics: Array<Cosmetic>;
   /** Optional description or story text */
   description?: Maybe<Scalars['String']['output']>;
   /**
@@ -2851,8 +2663,6 @@ export type Query = CollectionQueries & CompetitionQueries & PuzzleQueries & Ser
   myPuzzles: PuzzleConnection;
   /** A page of the current user's series, with search/filter/sort */
   mySeries: SeriesConnection;
-  /** Series the current user is subscribed to, newest subscription first */
-  mySubscriptions: Array<Series>;
   /** Browse the public series archive with search/filter/sort/pagination */
   publicSeries: SeriesConnection;
   /** Find a puzzle by ID, if the current user is allowed to see it */
@@ -3093,27 +2903,6 @@ export type RemoveCollectionEntryPayload = {
   errors: Array<Scalars['String']['output']>;
 };
 
-/** Autogenerated input type of RemovePuzzleFromCollection */
-export type RemovePuzzleFromCollectionInput = {
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** The collection */
-  collectionId: Scalars['ID']['input'];
-  /** Puzzle to remove */
-  puzzleId: Scalars['ID']['input'];
-};
-
-/** Autogenerated return type of RemovePuzzleFromCollection. */
-export type RemovePuzzleFromCollectionPayload = {
-  __typename?: 'RemovePuzzleFromCollectionPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** The updated collection */
-  collection?: Maybe<Collection>;
-  /** Validation errors, if any */
-  errors: Array<Scalars['String']['output']>;
-};
-
 /** Autogenerated input type of RemoveSeriesEntry */
 export type RemoveSeriesEntryInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3175,27 +2964,6 @@ export type ReorderCollectionEntriesPayload = {
   errors: Array<Scalars['String']['output']>;
 };
 
-/** Autogenerated input type of ReorderCollectionPuzzles */
-export type ReorderCollectionPuzzlesInput = {
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** The collection */
-  collectionId: Scalars['ID']['input'];
-  /** Puzzle IDs in the desired order; sets each position by its index */
-  orderedPuzzleIds: Array<Scalars['ID']['input']>;
-};
-
-/** Autogenerated return type of ReorderCollectionPuzzles. */
-export type ReorderCollectionPuzzlesPayload = {
-  __typename?: 'ReorderCollectionPuzzlesPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** The reordered collection */
-  collection?: Maybe<Collection>;
-  /** Validation errors, if any */
-  errors: Array<Scalars['String']['output']>;
-};
-
 /** Autogenerated input type of ReorderSeriesEntries */
 export type ReorderSeriesEntriesInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3215,29 +2983,6 @@ export type ReorderSeriesEntriesPayload = {
   errors: Array<Scalars['String']['output']>;
   /** The reordered series */
   series?: Maybe<Series>;
-};
-
-/** Autogenerated input type of RevealSolveMessage */
-export type RevealSolveMessageInput = {
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the solved puzzle */
-  puzzleId: Scalars['ID']['input'];
-  /** Share token, required to reach an unlisted puzzle */
-  shareToken?: InputMaybe<Scalars['String']['input']>;
-  /** SHA-256 of the submitted board; must match the published solution */
-  solutionHash: Scalars['String']['input'];
-};
-
-/** Autogenerated return type of RevealSolveMessage. */
-export type RevealSolveMessagePayload = {
-  __typename?: 'RevealSolveMessagePayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** Whether the submitted hash matches the solution */
-  correct: Scalars['Boolean']['output'];
-  /** The author's custom message, present only on a correct solve with a non-blank message */
-  solveMessage?: Maybe<Scalars['String']['output']>;
 };
 
 /** Autogenerated input type of RevokePlaySession */
@@ -3490,8 +3235,6 @@ export type SeriesMutationsUpdateSeriesArgs = {
 export type SeriesQueries = {
   /** A page of the current user's series, with search/filter/sort */
   mySeries: SeriesConnection;
-  /** Series the current user is subscribed to, newest subscription first */
-  mySubscriptions: Array<Series>;
   /** Browse the public series archive with search/filter/sort/pagination */
   publicSeries: SeriesConnection;
   /** Find a series by ID, if the current user is allowed to see it */
@@ -3537,6 +3280,27 @@ export const SeriesVisibilityEnum = {
 } as const;
 
 export type SeriesVisibilityEnum = typeof SeriesVisibilityEnum[keyof typeof SeriesVisibilityEnum];
+/** Autogenerated input type of SetCommentSpoiler */
+export type SetCommentSpoilerInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the comment */
+  id: Scalars['ID']['input'];
+  /** True to mark as a spoiler, false to unmark */
+  spoiler: Scalars['Boolean']['input'];
+};
+
+/** Autogenerated return type of SetCommentSpoiler. */
+export type SetCommentSpoilerPayload = {
+  __typename?: 'SetCommentSpoilerPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated comment */
+  comment?: Maybe<Comment>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
 /** Autogenerated input type of SetPuzzleVisibility */
 export type SetPuzzleVisibilityInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3574,6 +3338,8 @@ export type SocialMutations = {
   deleteComment?: Maybe<DeleteCommentPayload>;
   /** Rate a puzzle or cast a difficulty vote */
   ratePuzzle?: Maybe<RatePuzzlePayload>;
+  /** Mark or unmark a comment as a spoiler */
+  setCommentSpoiler?: Maybe<SetCommentSpoilerPayload>;
   /** Add or remove a puzzle from the current user's favorites */
   toggleFavorite?: Maybe<ToggleFavoritePayload>;
 };
@@ -3594,6 +3360,12 @@ export type SocialMutationsDeleteCommentArgs = {
 /** Social interaction mutations */
 export type SocialMutationsRatePuzzleArgs = {
   input: RatePuzzleInput;
+};
+
+
+/** Social interaction mutations */
+export type SocialMutationsSetCommentSpoilerArgs = {
+  input: SetCommentSpoilerInput;
 };
 
 
@@ -4313,52 +4085,6 @@ export type UploadStoryPageImagePayload = {
   errors: Array<Scalars['String']['output']>;
   /** Hosted URL of the stored image */
   url?: Maybe<Scalars['String']['output']>;
-};
-
-/** Autogenerated input type of UpsertConstraint */
-export type UpsertConstraintInput = {
-  /** Constraint attributes to create or update */
-  attrs: ConstraintAttrsInput;
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the constraint to update; omit to create a new one */
-  id?: InputMaybe<Scalars['ID']['input']>;
-  /** ID of the puzzle this constraint belongs to */
-  puzzleId: Scalars['ID']['input'];
-};
-
-/** Autogenerated return type of UpsertConstraint. */
-export type UpsertConstraintPayload = {
-  __typename?: 'UpsertConstraintPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** The created or updated constraint */
-  constraint?: Maybe<Constraint>;
-  /** Validation errors, if any */
-  errors: Array<Scalars['String']['output']>;
-};
-
-/** Autogenerated input type of UpsertCosmetic */
-export type UpsertCosmeticInput = {
-  /** Cosmetic attributes to create or update */
-  attrs: CosmeticAttrsInput;
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the cosmetic to update; omit to create a new one */
-  id?: InputMaybe<Scalars['ID']['input']>;
-  /** ID of the puzzle this cosmetic belongs to */
-  puzzleId: Scalars['ID']['input'];
-};
-
-/** Autogenerated return type of UpsertCosmetic. */
-export type UpsertCosmeticPayload = {
-  __typename?: 'UpsertCosmeticPayload';
-  /** A unique identifier for the client performing the mutation. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** The created or updated cosmetic */
-  cosmetic?: Maybe<Cosmetic>;
-  /** Validation errors, if any */
-  errors: Array<Scalars['String']['output']>;
 };
 
 /** A registered user */

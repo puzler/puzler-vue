@@ -4,7 +4,7 @@ import PuzzleCommentList from './PuzzleCommentList.vue'
 import type { PuzzleDescriptionFieldsFragment } from '@/graphql/generated/types'
 
 defineProps<{ puzzle: PuzzleDescriptionFieldsFragment }>()
-const emit = defineEmits<{ posted: [] }>()
+const emit = defineEmits<{ posted: [], changed: [] }>()
 </script>
 
 <template>
@@ -19,6 +19,9 @@ const emit = defineEmits<{ posted: [] }>()
       :viewer-has-solved="puzzle.viewerHasSolved"
       @posted="emit('posted')"
     />
-    <PuzzleCommentList :comments="puzzle.comments" />
+    <PuzzleCommentList
+      :comments="puzzle.comments"
+      @changed="emit('changed')"
+    />
   </section>
 </template>

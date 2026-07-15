@@ -1,5 +1,5 @@
-mutation PrepareOauthConnect($provider: String!) {
-  prepareOauthConnect(input: { provider: $provider }) {
+mutation PrepareOauthConnect($provider: String!, $intent: String) {
+  prepareOauthConnect(input: { provider: $provider, intent: $intent }) {
     url
     errors
   }

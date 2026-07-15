@@ -155,6 +155,8 @@ export type Collection = {
   coverThumbUrl?: Maybe<Scalars['String']['output']>;
   /** Optional short description (plain text, shown on cards) */
   description?: Maybe<Scalars['String']['output']>;
+  /** When this became (or becomes) available: the scheduled release, else creation */
+  effectiveReleaseAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /**
    * Ordered entries (puzzles and story pages) with the viewer's lock state
    * resolved; non-authors see only publicly-visible puzzles, and hidden entries
@@ -167,6 +169,8 @@ export type Collection = {
   hasCodewords: Scalars['Boolean']['output'];
   /** Unique collection ID */
   id: Scalars['ID']['output'];
+  /** Whether the scheduled release moment has passed (always true when unscheduled) */
+  isReleased: Scalars['Boolean']['output'];
   /** What this collection is: basic list, hunt, or competition */
   kind: CollectionKindEnum;
   /** Ordering mode: unordered or sequence */
@@ -177,10 +181,16 @@ export type Collection = {
   nextReleaseAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Sanitized rich HTML body for the collection page */
   pageDescriptionHtml?: Maybe<Scalars['String']['output']>;
+  /** The viewer's standing against the patron gate; null unless patrons_only */
+  patronAccess?: Maybe<PatronAccess>;
+  /** Who qualifies when patrons_only; null means the default gate (any paying patron) */
+  patronGate?: Maybe<PatronGate>;
   /** Number of puzzles the viewer can see in this collection */
   puzzleCount: Scalars['Int']['output'];
   /** Puzzles in order; non-authors see only the publicly-visible ones */
   puzzles: Array<Puzzle>;
+  /** Scheduled release time; only visible to the author */
+  releasedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Unguessable share key for unlisted access; only visible to the author */
   shareToken?: Maybe<Scalars['String']['output']>;
   /** Total solves across member puzzles */
@@ -261,6 +271,8 @@ export type CollectionEntry = {
   id: Scalars['ID']['output'];
   /** Whether this entry is currently locked for the viewer */
   locked: Scalars['Boolean']['output'];
+  /** Whether this entry's puzzle is patron-gated beyond the viewer's membership (a locked teaser row) */
+  patronLocked: Scalars['Boolean']['output'];
   /** Competition scoring weight; nil for solvers when the author hides point values */
   points?: Maybe<Scalars['Int']['output']>;
   /** Order within the collection */
@@ -349,6 +361,10 @@ export type CollectionMutations = {
   renameFolder?: Maybe<RenameFolderPayload>;
   /** Reorder all entries in a collection */
   reorderCollectionEntries?: Maybe<ReorderCollectionEntriesPayload>;
+  /** Schedule or clear a collection's release moment */
+  scheduleCollectionRelease?: Maybe<ScheduleCollectionReleasePayload>;
+  /** Configure who qualifies for a patrons-only collection */
+  setCollectionPatronGate?: Maybe<SetCollectionPatronGatePayload>;
   /** Try a codeword against a collection's gated entries */
   submitCollectionCodeword?: Maybe<SubmitCollectionCodewordPayload>;
   /** Update a collection's metadata */
@@ -449,6 +465,18 @@ export type CollectionMutationsRenameFolderArgs = {
 /** Mutations for managing folders and collections */
 export type CollectionMutationsReorderCollectionEntriesArgs = {
   input: ReorderCollectionEntriesInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsScheduleCollectionReleaseArgs = {
+  input: ScheduleCollectionReleaseInput;
+};
+
+
+/** Mutations for managing folders and collections */
+export type CollectionMutationsSetCollectionPatronGateArgs = {
+  input: SetCollectionPatronGateInput;
 };
 
 
@@ -1405,7 +1433,7 @@ export type MovePuzzleToFolderPayload = {
 };
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
-export type Mutation = CollectionMutations & CompetitionMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
+export type Mutation = CollectionMutations & CompetitionMutations & PatreonMutations & PlayMutations & PuzzleMutations & SeriesMutations & SocialMutations & UserMutations & {
   __typename?: 'Mutation';
   /** Add a puzzle to a collection */
   addPuzzleToCollection?: Maybe<AddPuzzleToCollectionPayload>;
@@ -1475,6 +1503,8 @@ export type Mutation = CollectionMutations & CompetitionMutations & PlayMutation
   ratePuzzle?: Maybe<RatePuzzlePayload>;
   /** Record a solve time for a timed collection */
   recordCollectionSolveTime?: Maybe<RecordCollectionSolveTimePayload>;
+  /** Re-sync which creators the current user supports on Patreon */
+  refreshPatreonMemberships?: Maybe<RefreshPatreonMembershipsPayload>;
   /** Remove the current user's uploaded avatar */
   removeAvatar?: Maybe<RemoveAvatarPayload>;
   /** Remove a collection's cover image */
@@ -1497,10 +1527,18 @@ export type Mutation = CollectionMutations & CompetitionMutations & PlayMutation
   saveProgress?: Maybe<SaveProgressPayload>;
   /** Save the editor state as a new immutable version */
   savePuzzleVersion?: Maybe<SavePuzzleVersionPayload>;
+  /** Schedule or clear a collection's release moment */
+  scheduleCollectionRelease?: Maybe<ScheduleCollectionReleasePayload>;
+  /** Schedule or clear a puzzle's release moment */
+  schedulePuzzleRelease?: Maybe<SchedulePuzzleReleasePayload>;
   /** Set or clear a series entry's scheduled release time */
   scheduleSeriesEntry?: Maybe<ScheduleSeriesEntryPayload>;
+  /** Configure who qualifies for a patrons-only collection */
+  setCollectionPatronGate?: Maybe<SetCollectionPatronGatePayload>;
   /** Mark or unmark a comment as a spoiler */
   setCommentSpoiler?: Maybe<SetCommentSpoilerPayload>;
+  /** Configure who qualifies for a patrons-only puzzle */
+  setPuzzlePatronGate?: Maybe<SetPuzzlePatronGatePayload>;
   /** Change a puzzle's access mode */
   setPuzzleVisibility?: Maybe<SetPuzzleVisibilityPayload>;
   /** Start your single timed attempt */
@@ -1515,6 +1553,8 @@ export type Mutation = CollectionMutations & CompetitionMutations & PlayMutation
   submitSolution?: Maybe<SubmitSolutionPayload>;
   /** Claim a solve via the setter's solution code (for off-site solves) */
   submitSolutionCode?: Maybe<SubmitSolutionCodePayload>;
+  /** Re-mirror the current user's Patreon campaign, tiers, and webhook */
+  syncPatreonCampaign?: Maybe<SyncPatreonCampaignPayload>;
   /** Add or remove a puzzle from the current user's favorites */
   toggleFavorite?: Maybe<ToggleFavoritePayload>;
   /** Subscribe to or unsubscribe from a series */
@@ -1529,6 +1569,8 @@ export type Mutation = CollectionMutations & CompetitionMutations & PlayMutation
   updateCollectionPageDescription?: Maybe<UpdateCollectionPageDescriptionPayload>;
   /** Save the sanitized rich description for a puzzle's public page */
   updatePageDescription?: Maybe<UpdatePageDescriptionPayload>;
+  /** Update the current user's Puzler-side Patreon campaign settings */
+  updatePatreonCampaignSettings?: Maybe<UpdatePatreonCampaignSettingsPayload>;
   /** Update the current user's solver-page preferences (settings and/or color palette) */
   updatePlayerPrefs?: Maybe<UpdatePlayerPrefsPayload>;
   /** Update the current user's profile information */
@@ -1767,6 +1809,12 @@ export type MutationRecordCollectionSolveTimeArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationRefreshPatreonMembershipsArgs = {
+  input: RefreshPatreonMembershipsInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationRemoveAvatarArgs = {
   input: RemoveAvatarInput;
 };
@@ -1833,14 +1881,38 @@ export type MutationSavePuzzleVersionArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationScheduleCollectionReleaseArgs = {
+  input: ScheduleCollectionReleaseInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSchedulePuzzleReleaseArgs = {
+  input: SchedulePuzzleReleaseInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationScheduleSeriesEntryArgs = {
   input: ScheduleSeriesEntryInput;
 };
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSetCollectionPatronGateArgs = {
+  input: SetCollectionPatronGateInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationSetCommentSpoilerArgs = {
   input: SetCommentSpoilerInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSetPuzzlePatronGateArgs = {
+  input: SetPuzzlePatronGateInput;
 };
 
 
@@ -1887,6 +1959,12 @@ export type MutationSubmitSolutionCodeArgs = {
 
 
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationSyncPatreonCampaignArgs = {
+  input: SyncPatreonCampaignInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationToggleFavoriteArgs = {
   input: ToggleFavoriteInput;
 };
@@ -1925,6 +2003,12 @@ export type MutationUpdateCollectionPageDescriptionArgs = {
 /** Root mutation type — all mutations are composed from domain-specific schema modules */
 export type MutationUpdatePageDescriptionArgs = {
   input: UpdatePageDescriptionInput;
+};
+
+
+/** Root mutation type — all mutations are composed from domain-specific schema modules */
+export type MutationUpdatePatreonCampaignSettingsArgs = {
+  input: UpdatePatreonCampaignSettingsInput;
 };
 
 
@@ -2021,6 +2105,8 @@ export type MutationUploadStoryPageImageArgs = {
 export const MyStatusEnum = {
   /** Puzzles the viewer has favorited */
   Favorited: 'FAVORITED',
+  /** Patron-only content from creators the viewer supports on Patreon */
+  PatronContent: 'PATRON_CONTENT',
   /** Private puzzles other users have shared with the viewer */
   SharedWithMe: 'SHARED_WITH_ME',
   /** Puzzles the viewer has solved */
@@ -2056,6 +2142,218 @@ export type PageInfo = {
   totalPages: Scalars['Int']['output'];
 };
 
+/** The current user's linked Patreon campaign (creator side) */
+export type PatreonCampaign = {
+  __typename?: 'PatreonCampaign';
+  /** When the campaign and tiers were last mirrored from Patreon */
+  campaignSyncedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
+  /** Campaign currency code (e.g. USD) */
+  currency?: Maybe<Scalars['String']['output']>;
+  /** Puzler's ID for the mirrored campaign */
+  id: Scalars['ID']['output'];
+  /** When the full member list was last reconciled */
+  membersSyncedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
+  /** Link health: active, token_stale (reconnect recommended), disconnected, or removed */
+  status: PatreonCampaignStatusEnum;
+  /** Whether non-patrons see locked previews of this campaign's gated content */
+  teasersEnabled: Scalars['Boolean']['output'];
+  /** The campaign's tiers (kept ones only), cheapest first */
+  tiers: Array<PatreonTier>;
+  /** Campaign name on Patreon */
+  title?: Maybe<Scalars['String']['output']>;
+  /** The campaign's patreon.com page */
+  url?: Maybe<Scalars['String']['output']>;
+  /** Whether our member webhook is registered and unpaused */
+  webhookActive: Scalars['Boolean']['output'];
+};
+
+/** A supported Patreon campaign, as seen by a patron */
+export type PatreonCampaignRef = {
+  __typename?: 'PatreonCampaignRef';
+  /** The Puzler username of the campaign's creator */
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  /** Campaign currency code */
+  currency?: Maybe<Scalars['String']['output']>;
+  /** Campaign name on Patreon */
+  title?: Maybe<Scalars['String']['output']>;
+  /** The campaign's patreon.com page */
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+/** Health of the mirrored Patreon campaign link */
+export const PatreonCampaignStatusEnum = {
+  Active: 'ACTIVE',
+  Disconnected: 'DISCONNECTED',
+  Removed: 'REMOVED',
+  TokenStale: 'TOKEN_STALE'
+} as const;
+
+export type PatreonCampaignStatusEnum = typeof PatreonCampaignStatusEnum[keyof typeof PatreonCampaignStatusEnum];
+/** Which Patreon features the current user's OAuth grant covers */
+export type PatreonCapabilities = {
+  __typename?: 'PatreonCapabilities';
+  /** Whether the grant can read the user's own campaign (creator features) */
+  creator: Scalars['Boolean']['output'];
+  /** Whether the grant can read the user's memberships (patron features) */
+  memberships: Scalars['Boolean']['output'];
+};
+
+/** The current user's Patreon membership in a Puzler creator's campaign */
+export type PatreonMembership = {
+  __typename?: 'PatreonMembership';
+  /** The supported campaign */
+  campaign: PatreonCampaignRef;
+  /** Current pledge entitlement in the campaign currency's minor units */
+  entitledAmountCents: Scalars['Int']['output'];
+  /** Membership row ID */
+  id: Scalars['ID']['output'];
+  /** Standing: active_patron, declined_patron, former_patron, or unknown */
+  patronStatus: PatronStatusEnum;
+  /** When this membership was last synced from Patreon */
+  syncedAt: Scalars['ISO8601DateTime']['output'];
+};
+
+/** Patreon link and campaign mutations */
+export type PatreonMutations = {
+  /** Re-sync which creators the current user supports on Patreon */
+  refreshPatreonMemberships?: Maybe<RefreshPatreonMembershipsPayload>;
+  /** Re-mirror the current user's Patreon campaign, tiers, and webhook */
+  syncPatreonCampaign?: Maybe<SyncPatreonCampaignPayload>;
+  /** Update the current user's Puzler-side Patreon campaign settings */
+  updatePatreonCampaignSettings?: Maybe<UpdatePatreonCampaignSettingsPayload>;
+};
+
+
+/** Patreon link and campaign mutations */
+export type PatreonMutationsRefreshPatreonMembershipsArgs = {
+  input: RefreshPatreonMembershipsInput;
+};
+
+
+/** Patreon link and campaign mutations */
+export type PatreonMutationsSyncPatreonCampaignArgs = {
+  input: SyncPatreonCampaignInput;
+};
+
+
+/** Patreon link and campaign mutations */
+export type PatreonMutationsUpdatePatreonCampaignSettingsArgs = {
+  input: UpdatePatreonCampaignSettingsInput;
+};
+
+/** Patreon patron-content queries */
+export type PatreonQueries = {
+  /**
+   * Newest patron releases (puzzles and collections) from campaigns the viewer
+   * actively supports, newest first. Locked items list as teasers per the
+   * creator's and viewer's teaser settings.
+   */
+  patronReleases: Array<PatronRelease>;
+};
+
+/** A reward tier on a creator's Patreon campaign, mirrored from the API */
+export type PatreonTier = {
+  __typename?: 'PatreonTier';
+  /** The tier's price in the campaign currency's minor units */
+  amountCents: Scalars['Int']['output'];
+  /** Whether this tier has been deleted on Patreon (kept here because gates may reference it) */
+  discarded: Scalars['Boolean']['output'];
+  /** Puzler's ID for the mirrored tier */
+  id: Scalars['ID']['output'];
+  /** Patreon's stable tier ID */
+  patreonId: Scalars['String']['output'];
+  /** Whether the tier is published on Patreon */
+  published: Scalars['Boolean']['output'];
+  /** Tier name as shown on Patreon */
+  title: Scalars['String']['output'];
+};
+
+/** The current viewer's access to a patrons-only puzzle or collection */
+export type PatronAccess = {
+  __typename?: 'PatronAccess';
+  /** The gating creator's campaign name */
+  campaignTitle?: Maybe<Scalars['String']['output']>;
+  /** The creator's patreon.com page (the become-a-patron link) */
+  campaignUrl?: Maybe<Scalars['String']['output']>;
+  /** Whether the viewer can open the item */
+  hasAccess: Scalars['Boolean']['output'];
+  /** Why the viewer is locked out; null when hasAccess */
+  lockedReason?: Maybe<PatronLockReasonEnum>;
+  /** The gate's effective minimum pledge, when one applies */
+  requiredAmountCents?: Maybe<Scalars['Int']['output']>;
+  /** The minimum tier's name, when the gate is tier-based */
+  requiredTierTitle?: Maybe<Scalars['String']['output']>;
+};
+
+/** Who qualifies for a patrons-only puzzle or collection */
+export type PatronGate = {
+  __typename?: 'PatronGate';
+  /** Minimum pledge in the campaign currency's minor units (min_amount mode) */
+  minAmountCents?: Maybe<Scalars['Int']['output']>;
+  /** The minimum qualifying tier (min_tier mode); null means any paying patron */
+  minTier?: Maybe<PatreonTier>;
+  /** How qualification is decided: min_tier, tier_list, or min_amount */
+  mode: PatronGateModeEnum;
+  /** Back-catalog lock: only patrons who were already supporting at release time qualify */
+  patronsSinceRelease: Scalars['Boolean']['output'];
+  /** The qualifying tiers (tier_list mode) */
+  tiers: Array<PatreonTier>;
+};
+
+/** Patron gate configuration for a patrons-only puzzle or collection */
+export type PatronGateInput = {
+  /** Minimum pledge in the campaign currency's minor units (min_amount mode) */
+  minAmountCents?: InputMaybe<Scalars['Int']['input']>;
+  /** Puzler ID of the minimum qualifying tier (min_tier mode); omit for any paying patron */
+  minTierId?: InputMaybe<Scalars['ID']['input']>;
+  /** How qualification is decided: min_tier, tier_list, or min_amount */
+  mode: PatronGateModeEnum;
+  /** Back-catalog lock: only patrons who were already supporting at release time qualify */
+  patronsSinceRelease?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Puzler IDs of the qualifying tiers (tier_list mode; any number) */
+  tierIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/**
+ * How a patron gate decides who qualifies: minimum tier (with pledge-amount
+ * fallback), an explicit tier list, or a minimum pledge amount
+ */
+export const PatronGateModeEnum = {
+  MinAmount: 'MIN_AMOUNT',
+  MinTier: 'MIN_TIER',
+  TierList: 'TIER_LIST'
+} as const;
+
+export type PatronGateModeEnum = typeof PatronGateModeEnum[keyof typeof PatronGateModeEnum];
+/** Why the viewer can't open this patron-gated content */
+export const PatronLockReasonEnum = {
+  /** The creator's Patreon campaign is no longer available */
+  CreatorUnavailable: 'CREATOR_UNAVAILABLE',
+  /** The viewer's Patreon payment is currently declined */
+  Declined: 'DECLINED',
+  /** An active patron, but below this release's gate */
+  InsufficientTier: 'INSUFFICIENT_TIER',
+  /** This release was reserved for patrons at the time it came out */
+  JoinedAfterRelease: 'JOINED_AFTER_RELEASE',
+  /** The viewer has no Patreon account linked (or is logged out) */
+  NotLinked: 'NOT_LINKED',
+  /** Linked, but not an active patron of this creator */
+  NotPatron: 'NOT_PATRON'
+} as const;
+
+export type PatronLockReasonEnum = typeof PatronLockReasonEnum[keyof typeof PatronLockReasonEnum];
+/** A patron release: a patrons-only puzzle or collection */
+export type PatronRelease = Collection | Puzzle;
+
+/** The member's standing on Patreon: active, payment-declined, or former */
+export const PatronStatusEnum = {
+  ActivePatron: 'ACTIVE_PATRON',
+  DeclinedPatron: 'DECLINED_PATRON',
+  FormerPatron: 'FORMER_PATRON',
+  Unknown: 'UNKNOWN'
+} as const;
+
+export type PatronStatusEnum = typeof PatronStatusEnum[keyof typeof PatronStatusEnum];
 /** Mutations for playing puzzles */
 export type PlayMutations = {
   /** Check an in-progress board, returning solved / correct-so-far / incorrect */
@@ -2136,6 +2434,8 @@ export type PlayMutationsSubmitSolutionCodeArgs = {
 export type PrepareOauthConnectInput = {
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Patreon scope preset: patron (default, read own memberships) or creator (also read campaign/members + manage our webhook) */
+  intent?: InputMaybe<Scalars['String']['input']>;
   /** Provider to connect: google or patreon */
   provider: Scalars['String']['input'];
 };
@@ -2209,8 +2509,10 @@ export type ProfileVisibility = {
   subscriptions: Scalars['Boolean']['output'];
 };
 
-/** Public-profile visibility preferences */
+/** Public-profile visibility and privacy preferences */
 export type ProfileVisibilityInput = {
+  /** Hide locked patron-only content from browsing surfaces */
+  hidePatronTeasers?: InputMaybe<Scalars['Boolean']['input']>;
   /** Show the recent activity feed */
   showActivity?: InputMaybe<Scalars['Boolean']['input']>;
   /** Show the favorited puzzles tab */
@@ -2290,6 +2592,8 @@ export type Puzzle = {
    * votes, otherwise the setter's value; null until either exists
    */
   effectiveDifficulty?: Maybe<Scalars['Float']['output']>;
+  /** When this became (or becomes) available: the scheduled release, else the publish time */
+  effectiveReleaseAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Number of times this puzzle has been favorited */
   favoriteCount: Scalars['Int']['output'];
   /** Whether an admin has featured this puzzle */
@@ -2308,16 +2612,22 @@ export type Puzzle = {
   id: Scalars['ID']['output'];
   /** Whether the current user has favorited this puzzle */
   isFavorited: Scalars['Boolean']['output'];
+  /** Whether the scheduled release moment has passed (always true when unscheduled) */
+  isReleased: Scalars['Boolean']['output'];
   /** Current user's rating for this puzzle */
   myRating?: Maybe<Rating>;
   /** Sanitized rich author description (HTML) shown on the public puzzle page */
   pageDescriptionHtml?: Maybe<Scalars['String']['output']>;
-  /** Linked Patreon campaign for future patron integration */
-  patreonCampaignId?: Maybe<Scalars['String']['output']>;
+  /** The viewer's standing against the patron gate; null unless patrons_only */
+  patronAccess?: Maybe<PatronAccess>;
+  /** Who qualifies when patrons_only; null means the default gate (any paying patron) */
+  patronGate?: Maybe<PatronGate>;
   /** When this puzzle was published */
   publishedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** The version currently published to solvers */
   publishedVersion?: Maybe<PuzzleVersion>;
+  /** Scheduled release time; only visible to the author */
+  releasedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
   /** Boolean variant flags (diagonals, knights_move, etc.) */
   ruleset: Scalars['JSON']['output'];
   /** Unguessable share/solve URL key; only visible to the author */
@@ -2371,6 +2681,10 @@ export type PuzzleMutations = {
   revokePuzzleAccess?: Maybe<RevokePuzzleAccessPayload>;
   /** Save the editor state as a new immutable version */
   savePuzzleVersion?: Maybe<SavePuzzleVersionPayload>;
+  /** Schedule or clear a puzzle's release moment */
+  schedulePuzzleRelease?: Maybe<SchedulePuzzleReleasePayload>;
+  /** Configure who qualifies for a patrons-only puzzle */
+  setPuzzlePatronGate?: Maybe<SetPuzzlePatronGatePayload>;
   /** Change a puzzle's access mode */
   setPuzzleVisibility?: Maybe<SetPuzzleVisibilityPayload>;
   /** Return a published puzzle to draft */
@@ -2437,6 +2751,18 @@ export type PuzzleMutationsRevokePuzzleAccessArgs = {
 /** Mutations for creating and managing puzzles */
 export type PuzzleMutationsSavePuzzleVersionArgs = {
   input: SavePuzzleVersionInput;
+};
+
+
+/** Mutations for creating and managing puzzles */
+export type PuzzleMutationsSchedulePuzzleReleaseArgs = {
+  input: SchedulePuzzleReleaseInput;
+};
+
+
+/** Mutations for creating and managing puzzles */
+export type PuzzleMutationsSetPuzzlePatronGateArgs = {
+  input: SetPuzzlePatronGateInput;
 };
 
 
@@ -2637,7 +2963,7 @@ export const PuzzleVisibilityEnum = {
 
 export type PuzzleVisibilityEnum = typeof PuzzleVisibilityEnum[keyof typeof PuzzleVisibilityEnum];
 /** Root query type — all queries are composed from domain-specific schema modules */
-export type Query = CollectionQueries & CompetitionQueries & PuzzleQueries & SeriesQueries & TagQueries & UserQueries & {
+export type Query = CollectionQueries & CompetitionQueries & PatreonQueries & PuzzleQueries & SeriesQueries & TagQueries & UserQueries & {
   __typename?: 'Query';
   /** Find a collection by ID, if the current user is allowed to see it */
   collection?: Maybe<Collection>;
@@ -2663,6 +2989,12 @@ export type Query = CollectionQueries & CompetitionQueries & PuzzleQueries & Ser
   myPuzzles: PuzzleConnection;
   /** A page of the current user's series, with search/filter/sort */
   mySeries: SeriesConnection;
+  /**
+   * Newest patron releases (puzzles and collections) from campaigns the viewer
+   * actively supports, newest first. Locked items list as teasers per the
+   * creator's and viewer's teaser settings.
+   */
+  patronReleases: Array<PatronRelease>;
   /** Browse the public series archive with search/filter/sort/pagination */
   publicSeries: SeriesConnection;
   /** Find a puzzle by ID, if the current user is allowed to see it */
@@ -2844,6 +3176,23 @@ export type RecordCollectionSolveTimePayload = {
   errors: Array<Scalars['String']['output']>;
   /** Whether a time was recorded */
   recorded: Scalars['Boolean']['output'];
+};
+
+/** Autogenerated input type of RefreshPatreonMemberships */
+export type RefreshPatreonMembershipsInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Autogenerated return type of RefreshPatreonMemberships. */
+export type RefreshPatreonMembershipsPayload = {
+  __typename?: 'RefreshPatreonMembershipsPayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** The refreshed user */
+  user?: Maybe<User>;
 };
 
 /** Autogenerated input type of RemoveAvatar */
@@ -3071,6 +3420,48 @@ export type SavePuzzleVersionPayload = {
   version?: Maybe<PuzzleVersion>;
 };
 
+/** Autogenerated input type of ScheduleCollectionRelease */
+export type ScheduleCollectionReleaseInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the collection */
+  id: Scalars['ID']['input'];
+  /** When the collection becomes available; null releases immediately */
+  releasedAt?: InputMaybe<Scalars['ISO8601DateTime']['input']>;
+};
+
+/** Autogenerated return type of ScheduleCollectionRelease. */
+export type ScheduleCollectionReleasePayload = {
+  __typename?: 'ScheduleCollectionReleasePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
+/** Autogenerated input type of SchedulePuzzleRelease */
+export type SchedulePuzzleReleaseInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the puzzle */
+  id: Scalars['ID']['input'];
+  /** When the puzzle becomes available; null releases immediately */
+  releasedAt?: InputMaybe<Scalars['ISO8601DateTime']['input']>;
+};
+
+/** Autogenerated return type of SchedulePuzzleRelease. */
+export type SchedulePuzzleReleasePayload = {
+  __typename?: 'SchedulePuzzleReleasePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** The updated puzzle */
+  puzzle?: Maybe<Puzzle>;
+};
+
 /** Autogenerated input type of ScheduleSeriesEntry */
 export type ScheduleSeriesEntryInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3280,6 +3671,27 @@ export const SeriesVisibilityEnum = {
 } as const;
 
 export type SeriesVisibilityEnum = typeof SeriesVisibilityEnum[keyof typeof SeriesVisibilityEnum];
+/** Autogenerated input type of SetCollectionPatronGate */
+export type SetCollectionPatronGateInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The gate configuration; omit/null to clear back to the default gate */
+  gate?: InputMaybe<PatronGateInput>;
+  /** ID of the collection */
+  id: Scalars['ID']['input'];
+};
+
+/** Autogenerated return type of SetCollectionPatronGate. */
+export type SetCollectionPatronGatePayload = {
+  __typename?: 'SetCollectionPatronGatePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** The updated collection */
+  collection?: Maybe<Collection>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
 /** Autogenerated input type of SetCommentSpoiler */
 export type SetCommentSpoilerInput = {
   /** A unique identifier for the client performing the mutation. */
@@ -3301,13 +3713,34 @@ export type SetCommentSpoilerPayload = {
   errors: Array<Scalars['String']['output']>;
 };
 
+/** Autogenerated input type of SetPuzzlePatronGate */
+export type SetPuzzlePatronGateInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** The gate configuration; omit/null to clear back to the default gate */
+  gate?: InputMaybe<PatronGateInput>;
+  /** ID of the puzzle */
+  id: Scalars['ID']['input'];
+};
+
+/** Autogenerated return type of SetPuzzlePatronGate. */
+export type SetPuzzlePatronGatePayload = {
+  __typename?: 'SetPuzzlePatronGatePayload';
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+  /** The updated puzzle */
+  puzzle?: Maybe<Puzzle>;
+};
+
 /** Autogenerated input type of SetPuzzleVisibility */
 export type SetPuzzleVisibilityInput = {
   /** A unique identifier for the client performing the mutation. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** ID of the puzzle */
   id: Scalars['ID']['input'];
-  /** private, unlisted, public, or containers_only */
+  /** private, unlisted, public, containers_only, or patrons_only (creators only) */
   visibility: PuzzleVisibilityEnum;
 };
 
@@ -3575,6 +4008,23 @@ export type SubscriptionProgressUpdatedArgs = {
   puzzlePlayId: Scalars['ID']['input'];
 };
 
+/** Autogenerated input type of SyncPatreonCampaign */
+export type SyncPatreonCampaignInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Autogenerated return type of SyncPatreonCampaign. */
+export type SyncPatreonCampaignPayload = {
+  __typename?: 'SyncPatreonCampaignPayload';
+  /** The refreshed campaign; null when the user isn't a Patreon creator */
+  campaign?: Maybe<PatreonCampaign>;
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
+};
+
 /** A tag used to categorize puzzles in the archive */
 export type Tag = {
   __typename?: 'Tag';
@@ -3750,6 +4200,25 @@ export type UpdatePageDescriptionPayload = {
   errors: Array<Scalars['String']['output']>;
   /** The updated puzzle */
   puzzle?: Maybe<Puzzle>;
+};
+
+/** Autogenerated input type of UpdatePatreonCampaignSettings */
+export type UpdatePatreonCampaignSettingsInput = {
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Whether non-patrons see locked previews (teasers) of this campaign's gated content */
+  teasersEnabled: Scalars['Boolean']['input'];
+};
+
+/** Autogenerated return type of UpdatePatreonCampaignSettings. */
+export type UpdatePatreonCampaignSettingsPayload = {
+  __typename?: 'UpdatePatreonCampaignSettingsPayload';
+  /** The updated campaign */
+  campaign?: Maybe<PatreonCampaign>;
+  /** A unique identifier for the client performing the mutation. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Validation errors, if any */
+  errors: Array<Scalars['String']['output']>;
 };
 
 /** Autogenerated input type of UpdatePlayerPrefs */
@@ -4110,12 +4579,19 @@ export type User = {
   enableCustomStyles?: Maybe<Scalars['Boolean']['output']>;
   /** Puzzles this user has favorited; empty unless visible to the viewer */
   favoritedPuzzles: PuzzleConnection;
+  /** Whether locked patron-only content is hidden from the user's browsing surfaces (only visible to the user themselves) */
+  hidePatronTeasers?: Maybe<Scalars['Boolean']['output']>;
   /** Unique user ID */
   id: Scalars['ID']['output'];
   /** Linked OAuth providers (only visible to the user themselves) */
   oauthConnections?: Maybe<Array<OauthIdentity>>;
   /** Whether the user has set a password they know (only visible to the user themselves) */
   passwordSet?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * The user's Patreon standing: own campaign, supported creators, and grant
+   * capabilities (only visible to the user themselves)
+   */
+  patreon?: Maybe<UserPatreon>;
   /** The user's solver-page settings (only visible to the user themselves) */
   playerSettings?: Maybe<Scalars['JSON']['output']>;
   /** Aggregate public metrics; null unless visible to the viewer */
@@ -4303,6 +4779,17 @@ export type UserMutationsUpdateUserThemeArgs = {
 /** User account mutations */
 export type UserMutationsUploadAvatarArgs = {
   input: UploadAvatarInput;
+};
+
+/** The current user's Patreon link: campaign, memberships, and grant capabilities */
+export type UserPatreon = {
+  __typename?: 'UserPatreon';
+  /** The user's own campaign, when they are a creator */
+  campaign?: Maybe<PatreonCampaign>;
+  /** Which Patreon features the stored OAuth grant covers; null when Patreon isn't linked */
+  capabilities?: Maybe<PatreonCapabilities>;
+  /** The creators this user supports on Patreon */
+  memberships: Array<PatreonMembership>;
 };
 
 /** User profile queries */

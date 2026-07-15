@@ -13,4 +13,7 @@ fragment CollectionCardFields on Collection {
     displayName
     setterTier
   }
+  patronAccess {
+    hasAccess
+  }
 }

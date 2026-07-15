@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { PuzzleVisibilityEnum } from '@/graphql/generated/types'
+import { patronGateForm, patronGateInput } from '@/constants/patreon'
 import PuzzleSettingsModalShell from './PuzzleSettingsModalShell.vue'
 import PuzzleSettingsPanels from './PuzzleSettingsPanels.vue'
 
@@ -16,6 +17,7 @@ const puzzle = usePuzzleStore()
 
 const activeTab = ref('description')
 const selectedMode = ref<PuzzleVisibilityEnum>(puzzle.visibility)
+const patronGate = ref(patronGateForm(puzzle.patronGate, puzzle.releasedAt))
 type CommentGate = 'inherit' | 'required' | 'open'
 const commentGate = ref<CommentGate>(
   puzzle.commentsRequireSolveOverride == null ? 'inherit' : puzzle.commentsRequireSolveOverride ? 'required' : 'open',
@@ -41,12 +43,18 @@ async function run(action: () => Promise<unknown>) {
   }
 }
 
-// Apply the visibility + comment-gate fields (only what changed). The rich
-// description autosaves on its own via PageDescriptionEditor.
+// Apply the visibility + comment-gate + patron-gate fields (only what
+// changed). The rich description autosaves on its own via PageDescriptionEditor.
 function save() {
   run(async () => {
     if (selectedMode.value !== puzzle.visibility) await puzzle.setVisibility(selectedMode.value)
     if (commentGateValue() !== puzzle.commentsRequireSolveOverride) await puzzle.configurePuzzlePage(commentGateValue())
+    if (selectedMode.value === PuzzleVisibilityEnum.PatronsOnly) {
+      await puzzle.setPatronGate(patronGateInput(patronGate.value))
+    }
+    if ((patronGate.value.releasedAt ?? null) !== (puzzle.releasedAt ?? null)) {
+      await puzzle.scheduleRelease(patronGate.value.releasedAt)
+    }
     saved.value = true
     setTimeout(() => { saved.value = false }, 2000)
   })
@@ -63,6 +71,7 @@ function save() {
     <PuzzleSettingsPanels
       v-model:mode="selectedMode"
       v-model:comment-gate="commentGate"
+      v-model:patron-gate="patronGate"
       :active-tab="activeTab"
       :puzzle-id="puzzleId"
       :busy="busy"

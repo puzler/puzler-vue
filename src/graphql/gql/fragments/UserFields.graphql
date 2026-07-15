@@ -31,4 +31,40 @@ fragment UserFields on User {
     provider
     createdAt
   }
+  hidePatronTeasers
+  patreon {
+    capabilities {
+      memberships
+      creator
+    }
+    campaign {
+      id
+      title
+      url
+      currency
+      status
+      teasersEnabled
+      campaignSyncedAt
+      tiers {
+        id
+        patreonId
+        title
+        amountCents
+        published
+        discarded
+      }
+    }
+    memberships {
+      id
+      patronStatus
+      entitledAmountCents
+      syncedAt
+      campaign {
+        title
+        url
+        currency
+        creatorUsername
+      }
+    }
+  }
 }

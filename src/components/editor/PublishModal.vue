@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
 import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
+import { patronGateForm, patronGateInput } from '@/constants/patreon'
 import PuzzleSettingsModalShell from '@/components/puzzle/PuzzleSettingsModalShell.vue'
 import PuzzleSettingsPanels from '@/components/puzzle/PuzzleSettingsPanels.vue'
 
@@ -13,6 +14,7 @@ const puzzle = usePuzzleStore()
 
 const activeTab = ref('visibility')
 const selectedMode = ref<PuzzleVisibilityEnum>(puzzle.visibility)
+const patronGate = ref(patronGateForm(puzzle.patronGate, puzzle.releasedAt))
 type CommentGate = 'inherit' | 'required' | 'open'
 const commentGate = ref<CommentGate>(
   puzzle.commentsRequireSolveOverride == null ? 'inherit' : puzzle.commentsRequireSolveOverride ? 'required' : 'open',
@@ -48,6 +50,12 @@ function publish() {
     // Cache the publish-page settings (comment gate + SudokuPad links) after the
     // version is live.
     await puzzle.configurePuzzlePage(commentGateValue())
+    if (selectedMode.value === PuzzleVisibilityEnum.PatronsOnly) {
+      await puzzle.setPatronGate(patronGateInput(patronGate.value))
+    }
+    if ((patronGate.value.releasedAt ?? null) !== (puzzle.releasedAt ?? null)) {
+      await puzzle.scheduleRelease(patronGate.value.releasedAt)
+    }
   })
 }
 </script>
@@ -62,6 +70,7 @@ function publish() {
     <PuzzleSettingsPanels
       v-model:mode="selectedMode"
       v-model:comment-gate="commentGate"
+      v-model:patron-gate="patronGate"
       :active-tab="activeTab"
       :puzzle-id="puzzle.serverPuzzleId ?? ''"
       :busy="busy"

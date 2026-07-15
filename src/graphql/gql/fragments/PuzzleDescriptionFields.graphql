@@ -46,4 +46,25 @@ fragment PuzzleDescriptionFields on Puzzle {
       ...CommentFields
     }
   }
+  patronGate {
+    mode
+    minTier {
+      title
+      amountCents
+    }
+    tiers {
+      title
+      amountCents
+    }
+    minAmountCents
+    patronsSinceRelease
+  }
+  patronAccess {
+    hasAccess
+    lockedReason
+    requiredTierTitle
+    requiredAmountCents
+    campaignTitle
+    campaignUrl
+  }
 }

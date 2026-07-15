@@ -53,10 +53,37 @@ declare module '*/PrepareOauthConnect.graphql' {
 }
     
 
+declare module '*/RefreshPatreonMemberships.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const RefreshPatreonMemberships: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/RemoveAvatar.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const RemoveAvatar: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SyncPatreonCampaign.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SyncPatreonCampaign: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/UpdatePatreonCampaignSettings.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePatreonCampaignSettings: DocumentNode;
 
   export default defaultDocument;
 }
@@ -255,6 +282,24 @@ declare module '*/ReorderCollectionEntries.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const ReorderCollectionEntries: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/ScheduleCollectionRelease.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ScheduleCollectionRelease: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SetCollectionPatronGate.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SetCollectionPatronGate: DocumentNode;
 
   export default defaultDocument;
 }
@@ -738,6 +783,24 @@ declare module '*/SavePuzzleVersion.graphql' {
 }
     
 
+declare module '*/SchedulePuzzleRelease.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SchedulePuzzleRelease: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/SetPuzzlePatronGate.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const SetPuzzlePatronGate: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/SetPuzzleVisibility.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -1075,6 +1138,15 @@ declare module '*/ToggleFavorite.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const ToggleFavorite: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/PatronFeed.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const PatronFeed: DocumentNode;
 
   export default defaultDocument;
 }

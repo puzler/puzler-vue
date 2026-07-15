@@ -1,0 +1,9 @@
+mutation ScheduleCollectionRelease($id: ID!, $releasedAt: ISO8601DateTime) {
+  scheduleCollectionRelease(input: { id: $id, releasedAt: $releasedAt }) {
+    collection {
+      id
+      releasedAt
+    }
+    errors
+  }
+}

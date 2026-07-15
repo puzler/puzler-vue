@@ -2,9 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { apolloClient } from '@/utils/apolloClient'
+import { useAuthStore } from '@/stores/auth'
 import ContentPage from '@/components/ContentPage.vue'
 import CollectionEntryList from '@/components/mypuzzles/CollectionEntryList.vue'
 import CollectionSettings from '@/components/mypuzzles/CollectionSettings.vue'
+import CollectionPatronSettings from '@/components/mypuzzles/CollectionPatronSettings.vue'
 import CollectionPageEditor from '@/components/mypuzzles/CollectionPageEditor.vue'
 import CompetitionSettingsPanel from '@/components/mypuzzles/CompetitionSettingsPanel.vue'
 import CollectionDetailModals from '@/components/mypuzzles/CollectionDetailModals.vue'
@@ -62,6 +64,25 @@ async function load() {
   entries.value = collection.value ? [ ...collection.value.entries ] : []
   loading.value = false
 }
+
+const auth = useAuthStore()
+
+const patronSettingsProps = computed(() => ({
+  collectionId: id,
+  gate: collection.value!.patronGate ?? null,
+  releasedAt: (collection.value!.releasedAt as string | null) ?? null,
+}))
+
+// Bundled so the template stays under the line cap.
+const settingsProps = computed(() => ({
+  title: collection.value!.title,
+  visibility: collection.value!.visibility,
+  mode: collection.value!.mode,
+  timed: collection.value!.timed,
+  kind: collection.value!.kind,
+  publicRoute: publicRoute.value,
+  allowPatrons: auth.isPatreonCreator,
+}))
 
 function save(attrs: Attrs) {
   apolloClient.mutate<UpdateCollectionMutation, UpdateCollectionMutationVariables>({
@@ -167,13 +188,13 @@ onMounted(load)
         class="mt-4 flex flex-col gap-6"
       >
         <CollectionSettings
-          :title="collection.title"
-          :visibility="collection.visibility"
-          :mode="collection.mode"
-          :timed="collection.timed"
-          :kind="collection.kind"
-          :public-route="publicRoute"
+          v-bind="settingsProps"
           @save="save"
+        />
+
+        <CollectionPatronSettings
+          v-if="collection.visibility === CollectionVisibilityEnum.PatronsOnly"
+          v-bind="patronSettingsProps"
         />
 
         <CollectionPageEditor

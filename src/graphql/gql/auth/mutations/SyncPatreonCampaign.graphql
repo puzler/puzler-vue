@@ -1,0 +1,8 @@
+mutation SyncPatreonCampaign {
+  syncPatreonCampaign(input: {}) {
+    campaign {
+      id
+    }
+    errors
+  }
+}

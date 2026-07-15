@@ -2,6 +2,7 @@
 import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
 import DifficultyPips from '@/components/DifficultyPips.vue'
+import PatronBadge from '@/components/patreon/PatronBadge.vue'
 import { SetterTierEnum } from '@/graphql/generated/types'
 import type { PuzzleCardFieldsFragment } from '@/graphql/generated/types'
 
@@ -12,12 +13,18 @@ const TIER_LABEL: Record<string, string> = {
   [SetterTierEnum.Experienced]: 'Experienced setter',
 }
 const tierBadge = TIER_LABEL[props.puzzle.author.setterTier] ?? null
+
+// Patron content: badged, and muted when the viewer's tier doesn't cover it
+// (the card still links to the puzzle's lock panel).
+const isPatron = !!props.puzzle.patronAccess
+const patronLocked = isPatron && !props.puzzle.patronAccess!.hasAccess
 </script>
 
 <template>
   <RouterLink
     :to="{ name: 'puzzle', params: { id: props.puzzle.id } }"
     class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
+    :class="patronLocked ? 'opacity-75 border-dashed' : ''"
   >
     <div class="flex items-baseline justify-between gap-2">
       <span class="font-medium text-ink-text truncate">{{ props.puzzle.title }}</span>
@@ -43,6 +50,10 @@ const tierBadge = TIER_LABEL[props.puzzle.author.setterTier] ?? null
       </span>
     </div>
     <div class="mt-2 flex flex-wrap items-center gap-1">
+      <PatronBadge
+        v-if="isPatron"
+        :locked="patronLocked"
+      />
       <span
         v-if="props.puzzle.featured"
         class="text-[10px] px-1.5 py-0.5 rounded bg-spark-tint text-spark font-medium"

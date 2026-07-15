@@ -7,6 +7,7 @@ import PuzzlePlayRail from '@/components/puzzle/PuzzlePlayRail.vue'
 import PuzzleDescriptionBody from '@/components/puzzle/PuzzleDescriptionBody.vue'
 import PuzzleComments from '@/components/puzzle/PuzzleComments.vue'
 import ManagePuzzleModal from '@/components/puzzle/ManagePuzzleModal.vue'
+import PatronLockPanel from '@/components/patreon/PatronLockPanel.vue'
 import { apolloClient } from '@/utils/apolloClient'
 import { useAuthStore } from '@/stores/auth'
 import { usePuzzleStore } from '@/stores/puzzle'
@@ -54,6 +55,12 @@ const playTo = computed(() => ({
 }))
 
 const descriptionHtml = computed(() => sanitizeHtml(puzzle.value?.pageDescriptionHtml))
+
+// The server resolved this puzzle in teaser mode: content fields are withheld
+// and the lock panel replaces the play rail/body/comments.
+const patronLocked = computed(
+  () => !!puzzle.value?.patronAccess && !puzzle.value.patronAccess.hasAccess,
+)
 
 // The play-safe published definition (solution stripped) renders the start
 // position thumbnail.
@@ -122,7 +129,24 @@ watch(() => [route.params.id, route.query.t], load)
          not the banner (which would otherwise inflate with empty space). -->
     <div v-else>
       <PuzzleBanner :puzzle="puzzle" />
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start">
+
+      <!-- Patron teaser: meta renders above, content is server-withheld. -->
+      <div
+        v-if="patronLocked"
+        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12"
+      >
+        <PatronLockPanel
+          :access="puzzle.patronAccess!"
+          kind="puzzle"
+          :author-name="puzzle.authorName || puzzle.author.displayName"
+          @recheck="load"
+        />
+      </div>
+
+      <div
+        v-else
+        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start"
+      >
         <PuzzlePlayRail
           class="lg:order-last lg:w-80 lg:shrink-0 lg:sticky lg:top-6"
           :puzzle="puzzle"

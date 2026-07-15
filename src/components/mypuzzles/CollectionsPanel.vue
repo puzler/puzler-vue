@@ -11,7 +11,8 @@ import FilterPanel from '@/components/ui/FilterPanel.vue'
 import RowMeta from './RowMeta.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import type { FolderNode } from './folderTree'
-import { COLLECTION_VISIBILITY_OPTIONS } from '@/constants/visibility'
+import { collectionVisibilityOptions } from '@/constants/visibility'
+import { useAuthStore } from '@/stores/auth'
 import MyCollectionsDocument from '@/graphql/gql/collections/queries/MyCollections.graphql'
 import MyFolderTreeDocument from '@/graphql/gql/collections/queries/MyFolderTree.graphql'
 import MyFoldersDocument from '@/graphql/gql/collections/queries/MyFolders.graphql'
@@ -23,6 +24,10 @@ import type {
   MoveCollectionToFolderMutation, MoveCollectionToFolderMutationVariables,
 } from '@/graphql/generated/types'
 import { CollectionModeEnum, CollectionVisibilityEnum } from '@/graphql/generated/types'
+
+const auth = useAuthStore()
+// Patreon creators also get the Patrons visibility.
+const visibilityOptions = computed(() => collectionVisibilityOptions(auth.isPatreonCreator))
 
 type MyCollection = MyCollectionsQuery['myCollections']['nodes'][number]
 
@@ -94,7 +99,7 @@ onMounted(loadFolders)
         v-model:match-mode="list.matchMode.value"
         v-model:visibilities="list.visibilities.value"
         v-model:constraint-types="list.constraintTypes.value"
-        :visibility-options="COLLECTION_VISIBILITY_OPTIONS"
+        :visibility-options="visibilityOptions"
       >
         <template #lead>
           <MobileFilterButton
@@ -139,7 +144,7 @@ onMounted(loadFolders)
             :entity-id="collection.id"
             :visibility="collection.visibility"
             :share-token="collection.shareToken"
-            :visibility-options="COLLECTION_VISIBILITY_OPTIONS"
+            :visibility-options="visibilityOptions"
             @update-visibility="changeVisibility(collection, $event)"
           />
           <FolderSelect

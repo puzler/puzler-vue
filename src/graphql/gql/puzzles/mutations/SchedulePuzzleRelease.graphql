@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation SchedulePuzzleRelease($id: ID!, $releasedAt: ISO8601DateTime) {
+  schedulePuzzleRelease(input: { id: $id, releasedAt: $releasedAt }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

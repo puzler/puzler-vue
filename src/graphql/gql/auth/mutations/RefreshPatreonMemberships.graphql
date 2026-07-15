@@ -1,0 +1,10 @@
+#import "../../fragments/UserFields.graphql"
+
+mutation RefreshPatreonMemberships {
+  refreshPatreonMemberships(input: {}) {
+    user {
+      ...UserFields
+    }
+    errors
+  }
+}

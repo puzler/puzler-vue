@@ -24,44 +24,49 @@
       <div
         v-for="provider in PROVIDERS"
         :key="provider.key"
-        class="flex items-center justify-between py-3"
+        class="py-3"
       >
-        <div>
-          <p class="text-sm font-medium text-ink-text">
-            {{ provider.label }}
-          </p>
-          <p class="text-xs text-faint">
-            {{
-              connectionFor(provider.key)
-                ? `Connected ${formatDate(connectionFor(provider.key)!.createdAt)}`
-                : 'Not connected'
-            }}
-          </p>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-ink-text">
+              {{ provider.label }}
+            </p>
+            <p class="text-xs text-faint">
+              {{
+                connectionFor(provider.key)
+                  ? `Connected ${formatDate(connectionFor(provider.key)!.createdAt)}`
+                  : 'Not connected'
+              }}
+            </p>
+          </div>
+          <button
+            v-if="connectionFor(provider.key)"
+            type="button"
+            :disabled="!canDisconnect"
+            :title="canDisconnect ? undefined : 'Set a password first so you can still sign in'"
+            class="px-3 py-1.5 rounded-lg text-sm border border-line text-soft hover:bg-line/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="confirmDisconnect = provider.key"
+          >
+            Disconnect
+          </button>
+          <button
+            v-else
+            type="button"
+            class="px-3 py-1.5 rounded-lg text-sm bg-action text-on-action font-medium hover:bg-action-deep transition-colors"
+            @click="connect(provider.key)"
+          >
+            Connect
+          </button>
         </div>
-        <button
-          v-if="connectionFor(provider.key)"
-          type="button"
-          :disabled="!canDisconnect"
-          :title="canDisconnect ? undefined : 'Set a password first so you can still sign in'"
-          class="px-3 py-1.5 rounded-lg text-sm border border-line text-soft hover:bg-line/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="confirmDisconnect = provider.key"
-        >
-          Disconnect
-        </button>
-        <button
-          v-else
-          type="button"
-          class="px-3 py-1.5 rounded-lg text-sm bg-action text-on-action font-medium hover:bg-action-deep transition-colors"
-          @click="connect(provider.key)"
-        >
-          Connect
-        </button>
+
+        <!-- Patreon detail: creator/patron standing, re-auth prompts, sync. -->
+        <PatreonStatusCard v-if="provider.key === 'patreon' && connectionFor('patreon')" />
       </div>
     </div>
 
     <ConfirmModal
       v-if="confirmDisconnect"
-      :message="`Disconnect ${labelFor(confirmDisconnect)}? You'll no longer be able to sign in with it.`"
+      :message="disconnectMessage(confirmDisconnect)"
       confirm-label="Disconnect"
       @confirm="disconnect(confirmDisconnect)"
       @cancel="confirmDisconnect = null"
@@ -75,6 +80,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore, type OauthProvider } from '@/stores/auth'
 import { ApiError } from '@/utils/api'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import PatreonStatusCard from '@/components/settings/PatreonStatusCard.vue'
 
 const PROVIDERS = [
   { key: 'google' as const, label: 'Google' },
@@ -100,6 +106,12 @@ const canDisconnect = computed(() => {
 
 function labelFor(provider: OauthProvider) {
   return PROVIDERS.find((p) => p.key === provider)?.label ?? provider
+}
+
+function disconnectMessage(provider: OauthProvider) {
+  const base = `Disconnect ${labelFor(provider)}? You'll no longer be able to sign in with it.`
+  if (provider !== 'patreon') return base
+  return `${base} Patron-only puzzles you can access will lock, and you won't be able to publish to patrons until you reconnect.`
 }
 
 function connectionFor(provider: OauthProvider) {
@@ -142,10 +154,19 @@ onMounted(async () => {
   if (connected) {
     notice.value = `${labelFor(connected as OauthProvider)} connected.`
     await auth.fetchCurrentUser()
+    // Connect flows started from a patron teaser page stashed where the
+    // viewer was; bounce them back now that their membership can resolve.
+    const returnTo = sessionStorage.getItem('puzler:patreonReturnTo')
+    if (connected === 'patreon' && returnTo) {
+      sessionStorage.removeItem('puzler:patreonReturnTo')
+      router.replace(returnTo)
+      return
+    }
   }
   if (connectError) {
     error.value =
       CONNECT_ERROR_MESSAGES[connectError] ?? `Connection failed: ${connectError.replaceAll('_', ' ')}`
+    sessionStorage.removeItem('puzler:patreonReturnTo')
   }
   if (connected || connectError) {
     router.replace({ query: {} })

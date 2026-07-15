@@ -773,6 +773,18 @@
             "deprecationReason": null
           },
           {
+            "name": "effectiveReleaseAt",
+            "description": "When this became (or becomes) available: the scheduled release, else creation",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "entries",
             "description": "Ordered entries (puzzles and story pages) with the viewer's lock state\nresolved; non-authors see only publicly-visible puzzles, and hidden entries\nonly once unlocked",
             "args": [],
@@ -833,6 +845,22 @@
               "name": null,
               "ofType": {
                 "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "isReleased",
+            "description": "Whether the scheduled release moment has passed (always true when unscheduled)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
                 "kind": "SCALAR",
                 "ofType": null
               }
@@ -909,6 +937,30 @@
             "deprecationReason": null
           },
           {
+            "name": "patronAccess",
+            "description": "The viewer's standing against the patron gate; null unless patrons_only",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatronAccess",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronGate",
+            "description": "Who qualifies when patrons_only; null means the default gate (any paying patron)",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatronGate",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "puzzleCount",
             "description": "Number of puzzles the viewer can see in this collection",
             "args": [],
@@ -944,6 +996,18 @@
                   }
                 }
               }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "releasedAt",
+            "description": "Scheduled release time; only visible to the author",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -1391,6 +1455,22 @@
           {
             "name": "locked",
             "description": "Whether this entry is currently locked for the viewer",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronLocked",
+            "description": "Whether this entry's puzzle is patron-gated beyond the viewer's membership (a locked teaser row)",
             "args": [],
             "type": {
               "kind": "NON_NULL",
@@ -2111,6 +2191,64 @@
             "type": {
               "kind": "OBJECT",
               "name": "ReorderCollectionEntriesPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "scheduleCollectionRelease",
+            "description": "Schedule or clear a collection's release moment",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for ScheduleCollectionRelease",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "ScheduleCollectionReleaseInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "ScheduleCollectionReleasePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setCollectionPatronGate",
+            "description": "Configure who qualifies for a patrons-only collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SetCollectionPatronGate",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SetCollectionPatronGateInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SetCollectionPatronGatePayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -8347,6 +8485,35 @@
             "deprecationReason": null
           },
           {
+            "name": "refreshPatreonMemberships",
+            "description": "Re-sync which creators the current user supports on Patreon",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RefreshPatreonMemberships",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RefreshPatreonMembershipsInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RefreshPatreonMembershipsPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "removeAvatar",
             "description": "Remove the current user's uploaded avatar",
             "args": [
@@ -8666,6 +8833,64 @@
             "deprecationReason": null
           },
           {
+            "name": "scheduleCollectionRelease",
+            "description": "Schedule or clear a collection's release moment",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for ScheduleCollectionRelease",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "ScheduleCollectionReleaseInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "ScheduleCollectionReleasePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "schedulePuzzleRelease",
+            "description": "Schedule or clear a puzzle's release moment",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SchedulePuzzleRelease",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SchedulePuzzleReleaseInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SchedulePuzzleReleasePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "scheduleSeriesEntry",
             "description": "Set or clear a series entry's scheduled release time",
             "args": [
@@ -8695,6 +8920,35 @@
             "deprecationReason": null
           },
           {
+            "name": "setCollectionPatronGate",
+            "description": "Configure who qualifies for a patrons-only collection",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SetCollectionPatronGate",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SetCollectionPatronGateInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SetCollectionPatronGatePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "setCommentSpoiler",
             "description": "Mark or unmark a comment as a spoiler",
             "args": [
@@ -8718,6 +8972,35 @@
             "type": {
               "kind": "OBJECT",
               "name": "SetCommentSpoilerPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setPuzzlePatronGate",
+            "description": "Configure who qualifies for a patrons-only puzzle",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SetPuzzlePatronGate",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SetPuzzlePatronGateInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SetPuzzlePatronGatePayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -8927,6 +9210,35 @@
             "deprecationReason": null
           },
           {
+            "name": "syncPatreonCampaign",
+            "description": "Re-mirror the current user's Patreon campaign, tiers, and webhook",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SyncPatreonCampaign",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SyncPatreonCampaignInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SyncPatreonCampaignPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "toggleFavorite",
             "description": "Add or remove a puzzle from the current user's favorites",
             "args": [
@@ -9124,6 +9436,35 @@
             "type": {
               "kind": "OBJECT",
               "name": "UpdatePageDescriptionPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "updatePatreonCampaignSettings",
+            "description": "Update the current user's Puzler-side Patreon campaign settings",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UpdatePatreonCampaignSettings",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UpdatePatreonCampaignSettingsInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UpdatePatreonCampaignSettingsPayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -9579,6 +9920,11 @@
           },
           {
             "kind": "INTERFACE",
+            "name": "PatreonMutations",
+            "ofType": null
+          },
+          {
+            "kind": "INTERFACE",
             "name": "PlayMutations",
             "ofType": null
           },
@@ -9618,6 +9964,12 @@
           {
             "name": "FAVORITED",
             "description": "Puzzles the viewer has favorited",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "PATRON_CONTENT",
+            "description": "Patron-only content from creators the viewer supports on Patreon",
             "isDeprecated": false,
             "deprecationReason": null
           },
@@ -9792,6 +10144,1053 @@
         "inputFields": null,
         "interfaces": [],
         "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatreonCampaign",
+        "description": "The current user's linked Patreon campaign (creator side)",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaignSyncedAt",
+            "description": "When the campaign and tiers were last mirrored from Patreon",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "currency",
+            "description": "Campaign currency code (e.g. USD)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "Puzler's ID for the mirrored campaign",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "membersSyncedAt",
+            "description": "When the full member list was last reconciled",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "status",
+            "description": "Link health: active, token_stale (reconnect recommended), disconnected, or removed",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PatreonCampaignStatusEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "teasersEnabled",
+            "description": "Whether non-patrons see locked previews of this campaign's gated content",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "tiers",
+            "description": "The campaign's tiers (kept ones only), cheapest first",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "PatreonTier",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "title",
+            "description": "Campaign name on Patreon",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "url",
+            "description": "The campaign's patreon.com page",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "webhookActive",
+            "description": "Whether our member webhook is registered and unpaused",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatreonCampaignRef",
+        "description": "A supported Patreon campaign, as seen by a patron",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "creatorUsername",
+            "description": "The Puzler username of the campaign's creator",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "currency",
+            "description": "Campaign currency code",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "title",
+            "description": "Campaign name on Patreon",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "url",
+            "description": "The campaign's patreon.com page",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "PatreonCampaignStatusEnum",
+        "description": "Health of the mirrored Patreon campaign link",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "ACTIVE",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "DISCONNECTED",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "REMOVED",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "TOKEN_STALE",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatreonCapabilities",
+        "description": "Which Patreon features the current user's OAuth grant covers",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "creator",
+            "description": "Whether the grant can read the user's own campaign (creator features)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "memberships",
+            "description": "Whether the grant can read the user's memberships (patron features)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatreonMembership",
+        "description": "The current user's Patreon membership in a Puzler creator's campaign",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaign",
+            "description": "The supported campaign",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PatreonCampaignRef",
+                "kind": "OBJECT",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "entitledAmountCents",
+            "description": "Current pledge entitlement in the campaign currency's minor units",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "Membership row ID",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronStatus",
+            "description": "Standing: active_patron, declined_patron, former_patron, or unknown",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PatronStatusEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "syncedAt",
+            "description": "When this membership was last synced from Patreon",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ISO8601DateTime",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INTERFACE",
+        "name": "PatreonMutations",
+        "description": "Patreon link and campaign mutations",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "refreshPatreonMemberships",
+            "description": "Re-sync which creators the current user supports on Patreon",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for RefreshPatreonMemberships",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "RefreshPatreonMembershipsInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "RefreshPatreonMembershipsPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "syncPatreonCampaign",
+            "description": "Re-mirror the current user's Patreon campaign, tiers, and webhook",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SyncPatreonCampaign",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SyncPatreonCampaignInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SyncPatreonCampaignPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "updatePatreonCampaignSettings",
+            "description": "Update the current user's Puzler-side Patreon campaign settings",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for UpdatePatreonCampaignSettings",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "UpdatePatreonCampaignSettingsInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UpdatePatreonCampaignSettingsPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": [
+          {
+            "kind": "OBJECT",
+            "name": "Mutation",
+            "ofType": null
+          }
+        ]
+      },
+      {
+        "kind": "INTERFACE",
+        "name": "PatreonQueries",
+        "description": "Patreon patron-content queries",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "patronReleases",
+            "description": "Newest patron releases (puzzles and collections) from campaigns the viewer\nactively supports, newest first. Locked items list as teasers per the\ncreator's and viewer's teaser settings.",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "PatronRelease",
+                    "kind": "UNION",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": [
+          {
+            "kind": "OBJECT",
+            "name": "Query",
+            "ofType": null
+          }
+        ]
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatreonTier",
+        "description": "A reward tier on a creator's Patreon campaign, mirrored from the API",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "amountCents",
+            "description": "The tier's price in the campaign currency's minor units",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Int",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "discarded",
+            "description": "Whether this tier has been deleted on Patreon (kept here because gates may reference it)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "Puzler's ID for the mirrored tier",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patreonId",
+            "description": "Patreon's stable tier ID",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "published",
+            "description": "Whether the tier is published on Patreon",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "title",
+            "description": "Tier name as shown on Patreon",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatronAccess",
+        "description": "The current viewer's access to a patrons-only puzzle or collection",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaignTitle",
+            "description": "The gating creator's campaign name",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "campaignUrl",
+            "description": "The creator's patreon.com page (the become-a-patron link)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "hasAccess",
+            "description": "Whether the viewer can open the item",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "lockedReason",
+            "description": "Why the viewer is locked out; null when hasAccess",
+            "args": [],
+            "type": {
+              "kind": "ENUM",
+              "name": "PatronLockReasonEnum",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "requiredAmountCents",
+            "description": "The gate's effective minimum pledge, when one applies",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "requiredTierTitle",
+            "description": "The minimum tier's name, when the gate is tier-based",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "PatronGate",
+        "description": "Who qualifies for a patrons-only puzzle or collection",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "minAmountCents",
+            "description": "Minimum pledge in the campaign currency's minor units (min_amount mode)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "minTier",
+            "description": "The minimum qualifying tier (min_tier mode); null means any paying patron",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatreonTier",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "mode",
+            "description": "How qualification is decided: min_tier, tier_list, or min_amount",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PatronGateModeEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronsSinceRelease",
+            "description": "Back-catalog lock: only patrons who were already supporting at release time qualify",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "tiers",
+            "description": "The qualifying tiers (tier_list mode)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "PatreonTier",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "PatronGateInput",
+        "description": "Patron gate configuration for a patrons-only puzzle or collection",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "minAmountCents",
+            "description": "Minimum pledge in the campaign currency's minor units (min_amount mode)",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "minTierId",
+            "description": "Puzler ID of the minimum qualifying tier (min_tier mode); omit for any paying patron",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "mode",
+            "description": "How qualification is decided: min_tier, tier_list, or min_amount",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "PatronGateModeEnum",
+                "kind": "ENUM",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronsSinceRelease",
+            "description": "Back-catalog lock: only patrons who were already supporting at release time qualify",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            },
+            "defaultValue": "false",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "tierIds",
+            "description": "Puzler IDs of the qualifying tiers (tier_list mode; any number)",
+            "type": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ID",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "PatronGateModeEnum",
+        "description": "How a patron gate decides who qualifies: minimum tier (with pledge-amount\nfallback), an explicit tier list, or a minimum pledge amount",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "MIN_AMOUNT",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "MIN_TIER",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "TIER_LIST",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
+        "kind": "ENUM",
+        "name": "PatronLockReasonEnum",
+        "description": "Why the viewer can't open this patron-gated content",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "CREATOR_UNAVAILABLE",
+            "description": "The creator's Patreon campaign is no longer available",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "DECLINED",
+            "description": "The viewer's Patreon payment is currently declined",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "INSUFFICIENT_TIER",
+            "description": "An active patron, but below this release's gate",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "JOINED_AFTER_RELEASE",
+            "description": "This release was reserved for patrons at the time it came out",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "NOT_LINKED",
+            "description": "The viewer has no Patreon account linked (or is logged out)",
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "NOT_PATRON",
+            "description": "Linked, but not an active patron of this creator",
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "possibleTypes": null
+      },
+      {
+        "kind": "UNION",
+        "name": "PatronRelease",
+        "description": "A patron release: a patrons-only puzzle or collection",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": [
+          {
+            "kind": "OBJECT",
+            "name": "Collection",
+            "ofType": null
+          },
+          {
+            "kind": "OBJECT",
+            "name": "Puzzle",
+            "ofType": null
+          }
+        ]
+      },
+      {
+        "kind": "ENUM",
+        "name": "PatronStatusEnum",
+        "description": "The member's standing on Patreon: active, payment-declined, or former",
+        "isOneOf": null,
+        "fields": null,
+        "inputFields": null,
+        "interfaces": null,
+        "enumValues": [
+          {
+            "name": "ACTIVE_PATRON",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "DECLINED_PATRON",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "FORMER_PATRON",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "UNKNOWN",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
         "possibleTypes": null
       },
       {
@@ -10083,6 +11482,18 @@
           {
             "name": "clientMutationId",
             "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "intent",
+            "description": "Patreon scope preset: patron (default, read own memberships) or creator (also read campaign/members + manage our webhook)",
             "type": {
               "kind": "SCALAR",
               "name": "String",
@@ -10486,10 +11897,22 @@
       {
         "kind": "INPUT_OBJECT",
         "name": "ProfileVisibilityInput",
-        "description": "Public-profile visibility preferences",
+        "description": "Public-profile visibility and privacy preferences",
         "isOneOf": false,
         "fields": null,
         "inputFields": [
+          {
+            "name": "hidePatronTeasers",
+            "description": "Hide locked patron-only content from browsing surfaces",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
           {
             "name": "showActivity",
             "description": "Show the recent activity feed",
@@ -10938,6 +12361,18 @@
             "deprecationReason": null
           },
           {
+            "name": "effectiveReleaseAt",
+            "description": "When this became (or becomes) available: the scheduled release, else the publish time",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "favoriteCount",
             "description": "Number of times this puzzle has been favorited",
             "args": [],
@@ -11086,6 +12521,22 @@
             "deprecationReason": null
           },
           {
+            "name": "isReleased",
+            "description": "Whether the scheduled release moment has passed (always true when unscheduled)",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "myRating",
             "description": "Current user's rating for this puzzle",
             "args": [],
@@ -11110,12 +12561,24 @@
             "deprecationReason": null
           },
           {
-            "name": "patreonCampaignId",
-            "description": "Linked Patreon campaign for future patron integration",
+            "name": "patronAccess",
+            "description": "The viewer's standing against the patron gate; null unless patrons_only",
             "args": [],
             "type": {
-              "kind": "SCALAR",
-              "name": "String",
+              "kind": "OBJECT",
+              "name": "PatronAccess",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patronGate",
+            "description": "Who qualifies when patrons_only; null means the default gate (any paying patron)",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatronGate",
               "ofType": null
             },
             "isDeprecated": false,
@@ -11140,6 +12603,18 @@
             "type": {
               "kind": "OBJECT",
               "name": "PuzzleVersion",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "releasedAt",
+            "description": "Scheduled release time; only visible to the author",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
               "ofType": null
             },
             "isDeprecated": false,
@@ -11649,6 +13124,64 @@
             "type": {
               "kind": "OBJECT",
               "name": "SavePuzzleVersionPayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "schedulePuzzleRelease",
+            "description": "Schedule or clear a puzzle's release moment",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SchedulePuzzleRelease",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SchedulePuzzleReleaseInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SchedulePuzzleReleasePayload",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "setPuzzlePatronGate",
+            "description": "Configure who qualifies for a patrons-only puzzle",
+            "args": [
+              {
+                "name": "input",
+                "description": "Parameters for SetPuzzlePatronGate",
+                "type": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "name": "SetPuzzlePatronGateInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null,
+                "isDeprecated": false,
+                "deprecationReason": null
+              }
+            ],
+            "type": {
+              "kind": "OBJECT",
+              "name": "SetPuzzlePatronGatePayload",
               "ofType": null
             },
             "isDeprecated": false,
@@ -13034,6 +14567,30 @@
             "deprecationReason": null
           },
           {
+            "name": "patronReleases",
+            "description": "Newest patron releases (puzzles and collections) from campaigns the viewer\nactively supports, newest first. Locked items list as teasers per the\ncreator's and viewer's teaser settings.",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "PatronRelease",
+                    "kind": "UNION",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "publicSeries",
             "description": "Browse the public series archive with search/filter/sort/pagination",
             "args": [
@@ -13348,6 +14905,11 @@
           {
             "kind": "INTERFACE",
             "name": "CompetitionQueries",
+            "ofType": null
+          },
+          {
+            "kind": "INTERFACE",
+            "name": "PatreonQueries",
             "ofType": null
           },
           {
@@ -13708,6 +15270,90 @@
                 "kind": "SCALAR",
                 "ofType": null
               }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "RefreshPatreonMembershipsInput",
+        "description": "Autogenerated input type of RefreshPatreonMemberships",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "RefreshPatreonMembershipsPayload",
+        "description": "Autogenerated return type of RefreshPatreonMemberships.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "user",
+            "description": "The refreshed user",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "User",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -14960,6 +16606,230 @@
       },
       {
         "kind": "INPUT_OBJECT",
+        "name": "ScheduleCollectionReleaseInput",
+        "description": "Autogenerated input type of ScheduleCollectionRelease",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "ID of the collection",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "releasedAt",
+            "description": "When the collection becomes available; null releases immediately",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "ScheduleCollectionReleasePayload",
+        "description": "Autogenerated return type of ScheduleCollectionRelease.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The updated collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "SchedulePuzzleReleaseInput",
+        "description": "Autogenerated input type of SchedulePuzzleRelease",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "ID of the puzzle",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "releasedAt",
+            "description": "When the puzzle becomes available; null releases immediately",
+            "type": {
+              "kind": "SCALAR",
+              "name": "ISO8601DateTime",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "SchedulePuzzleReleasePayload",
+        "description": "Autogenerated return type of SchedulePuzzleRelease.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "puzzle",
+            "description": "The updated puzzle",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Puzzle",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
         "name": "ScheduleSeriesEntryInput",
         "description": "Autogenerated input type of ScheduleSeriesEntry",
         "isOneOf": false,
@@ -15968,6 +17838,118 @@
       },
       {
         "kind": "INPUT_OBJECT",
+        "name": "SetCollectionPatronGateInput",
+        "description": "Autogenerated input type of SetCollectionPatronGate",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "gate",
+            "description": "The gate configuration; omit/null to clear back to the default gate",
+            "type": {
+              "kind": "INPUT_OBJECT",
+              "name": "PatronGateInput",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "ID of the collection",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "SetCollectionPatronGatePayload",
+        "description": "Autogenerated return type of SetCollectionPatronGate.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "collection",
+            "description": "The updated collection",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Collection",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
         "name": "SetCommentSpoilerInput",
         "description": "Autogenerated input type of SetCommentSpoiler",
         "isOneOf": false,
@@ -16084,6 +18066,118 @@
       },
       {
         "kind": "INPUT_OBJECT",
+        "name": "SetPuzzlePatronGateInput",
+        "description": "Autogenerated input type of SetPuzzlePatronGate",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "gate",
+            "description": "The gate configuration; omit/null to clear back to the default gate",
+            "type": {
+              "kind": "INPUT_OBJECT",
+              "name": "PatronGateInput",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "id",
+            "description": "ID of the puzzle",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "SetPuzzlePatronGatePayload",
+        "description": "Autogenerated return type of SetPuzzlePatronGate.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "puzzle",
+            "description": "The updated puzzle",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "Puzzle",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
         "name": "SetPuzzleVisibilityInput",
         "description": "Autogenerated input type of SetPuzzleVisibility",
         "isOneOf": false,
@@ -16119,7 +18213,7 @@
           },
           {
             "name": "visibility",
-            "description": "private, unlisted, public, or containers_only",
+            "description": "private, unlisted, public, containers_only, or patrons_only (creators only)",
             "type": {
               "kind": "NON_NULL",
               "name": null,
@@ -17492,6 +19586,90 @@
         "possibleTypes": null
       },
       {
+        "kind": "INPUT_OBJECT",
+        "name": "SyncPatreonCampaignInput",
+        "description": "Autogenerated input type of SyncPatreonCampaign",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "SyncPatreonCampaignPayload",
+        "description": "Autogenerated return type of SyncPatreonCampaign.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaign",
+            "description": "The refreshed campaign; null when the user isn't a Patreon creator",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatreonCampaign",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
         "kind": "OBJECT",
         "name": "Tag",
         "description": "A tag used to categorize puzzles in the archive",
@@ -18419,6 +20597,106 @@
               "kind": "OBJECT",
               "name": "Puzzle",
               "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "INPUT_OBJECT",
+        "name": "UpdatePatreonCampaignSettingsInput",
+        "description": "Autogenerated input type of UpdatePatreonCampaignSettings",
+        "isOneOf": false,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "teasersEnabled",
+            "description": "Whether non-patrons see locked previews (teasers) of this campaign's gated content",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            },
+            "defaultValue": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "interfaces": null,
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UpdatePatreonCampaignSettingsPayload",
+        "description": "Autogenerated return type of UpdatePatreonCampaignSettings.",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaign",
+            "description": "The updated campaign",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatreonCampaign",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "clientMutationId",
+            "description": "A unique identifier for the client performing the mutation.",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "errors",
+            "description": "Validation errors, if any",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              }
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -20421,6 +22699,18 @@
             "deprecationReason": null
           },
           {
+            "name": "hidePatronTeasers",
+            "description": "Whether locked patron-only content is hidden from the user's browsing surfaces (only visible to the user themselves)",
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "id",
             "description": "Unique user ID",
             "args": [],
@@ -20463,6 +22753,18 @@
             "type": {
               "kind": "SCALAR",
               "name": "Boolean",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "patreon",
+            "description": "The user's Patreon standing: own campaign, supported creators, and grant\ncapabilities (only visible to the user themselves)",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "UserPatreon",
               "ofType": null
             },
             "isDeprecated": false,
@@ -21233,6 +23535,66 @@
             "ofType": null
           }
         ]
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UserPatreon",
+        "description": "The current user's Patreon link: campaign, memberships, and grant capabilities",
+        "isOneOf": null,
+        "fields": [
+          {
+            "name": "campaign",
+            "description": "The user's own campaign, when they are a creator",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatreonCampaign",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "capabilities",
+            "description": "Which Patreon features the stored OAuth grant covers; null when Patreon isn't linked",
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "PatreonCapabilities",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "memberships",
+            "description": "The creators this user supports on Patreon",
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "name": null,
+                "kind": "LIST",
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "PatreonMembership",
+                    "kind": "OBJECT",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
       },
       {
         "kind": "INTERFACE",

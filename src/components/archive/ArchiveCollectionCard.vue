@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import AuthorAttribution from '@/components/AuthorAttribution.vue'
+import PatronBadge from '@/components/patreon/PatronBadge.vue'
 import { SetterTierEnum, CollectionModeEnum } from '@/graphql/generated/types'
 import type { CollectionCardFieldsFragment } from '@/graphql/generated/types'
 
@@ -11,12 +12,17 @@ const TIER_LABEL: Record<string, string> = {
   [SetterTierEnum.Experienced]: 'Experienced setter',
 }
 const tierBadge = TIER_LABEL[props.collection.author.setterTier] ?? null
+
+// Patron content: badged, muted when locked (links to the lock panel).
+const isPatron = !!props.collection.patronAccess
+const patronLocked = isPatron && !props.collection.patronAccess!.hasAccess
 </script>
 
 <template>
   <RouterLink
     :to="{ name: 'collection', params: { id: props.collection.id } }"
     class="block p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
+    :class="patronLocked ? 'opacity-75 border-dashed' : ''"
   >
     <img
       v-if="props.collection.coverThumbUrl"
@@ -41,6 +47,10 @@ const tierBadge = TIER_LABEL[props.collection.author.setterTier] ?? null
       </span>
     </div>
     <div class="mt-2 flex flex-wrap items-center gap-1">
+      <PatronBadge
+        v-if="isPatron"
+        :locked="patronLocked"
+      />
       <span
         v-if="props.collection.mode === CollectionModeEnum.Sequence"
         class="text-[10px] px-1.5 py-0.5 rounded bg-line text-soft"

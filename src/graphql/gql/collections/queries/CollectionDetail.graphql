@@ -13,6 +13,18 @@ query CollectionDetail($id: ID!) {
     mode
     timed
     shareToken
+    releasedAt
+    patronGate {
+      mode
+      minTier {
+        id
+      }
+      tiers {
+        id
+      }
+      minAmountCents
+      patronsSinceRelease
+    }
     competitionConfig {
       timeLimitSeconds
       submissionPolicy

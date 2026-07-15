@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import MdiIcon from '@/components/MdiIcon.vue'
+import PatronBadge from '@/components/patreon/PatronBadge.vue'
 import { mdiLockOutline, mdiCheckCircle } from '@mdi/js'
 
 // One puzzle row in a collection's entry flow: a playable link when unlocked,
 // a dashed locked row otherwise. `lockIcon` names the reason (sequence lock,
-// codeword gate, finale).
+// codeword gate, finale). Patron-locked rows stay links — they land on the
+// puzzle's lock panel with its become-a-patron path.
 withDefaults(defineProps<{
   puzzle: { id: string; title: string; avgRating?: number | null }
   link: { name: string; params: Record<string, string>; query: Record<string, string> }
@@ -15,12 +17,25 @@ withDefaults(defineProps<{
   isSolved: boolean
   lockIcon?: string
   points?: number | null
-}>(), { lockIcon: mdiLockOutline, points: null })
+  patronLocked?: boolean
+}>(), { lockIcon: mdiLockOutline, points: null, patronLocked: false })
 </script>
 
 <template>
   <RouterLink
-    v-if="unlocked"
+    v-if="patronLocked"
+    :to="link"
+    class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line text-faint opacity-75 hover:opacity-100 transition-opacity"
+  >
+    <span
+      v-if="showNumber"
+      class="text-sm w-5 text-right shrink-0"
+    >{{ number }}</span>
+    <span class="truncate flex-1">{{ puzzle.title }}</span>
+    <PatronBadge locked />
+  </RouterLink>
+  <RouterLink
+    v-else-if="unlocked"
     :to="link"
     class="flex items-center gap-3 p-4 rounded-xl border border-line bg-surface hover:border-action hover:bg-action-tint transition-colors"
   >

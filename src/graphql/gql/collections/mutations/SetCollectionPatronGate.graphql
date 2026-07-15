@@ -1,0 +1,19 @@
+mutation SetCollectionPatronGate($id: ID!, $gate: PatronGateInput) {
+  setCollectionPatronGate(input: { id: $id, gate: $gate }) {
+    collection {
+      id
+      patronGate {
+        mode
+        minTier {
+          id
+        }
+        tiers {
+          id
+        }
+        minAmountCents
+        patronsSinceRelease
+      }
+    }
+    errors
+  }
+}

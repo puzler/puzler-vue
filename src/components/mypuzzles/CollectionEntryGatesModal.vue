@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
+import { toLocalInput, fromLocalInput } from '@/utils/datetimeLocal'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import UpdateCollectionEntryDocument from '@/graphql/gql/collections/mutations/UpdateCollectionEntry.graphql'
 import type {
@@ -19,13 +20,6 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [], saved: [] }>()
 
 type Gates = { codeword?: string; hidden?: boolean; finale?: boolean; releasedAt?: string | null }
-
-function toLocalInput(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const date = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
 
 const codeword = ref('')
 const hidden = ref(props.entry.hidden)
@@ -57,7 +51,7 @@ async function apply(gates: Gates) {
 async function save() {
   const gates: Gates = { hidden: hidden.value, finale: finale.value }
   if (codeword.value.trim()) gates.codeword = codeword.value
-  const release = releaseInput.value ? new Date(releaseInput.value).toISOString() : null
+  const release = fromLocalInput(releaseInput.value)
   if (release !== (props.entry.releasedAt ?? null)) gates.releasedAt = release
   if (await apply(gates)) emit('close')
 }

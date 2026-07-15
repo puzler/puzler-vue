@@ -1,0 +1,9 @@
+mutation UpdatePatreonCampaignSettings($teasersEnabled: Boolean!) {
+  updatePatreonCampaignSettings(input: { teasersEnabled: $teasersEnabled }) {
+    campaign {
+      id
+      teasersEnabled
+    }
+    errors
+  }
+}

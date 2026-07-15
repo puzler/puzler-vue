@@ -6,6 +6,9 @@ export type FlowEntry = {
   entryType: string
   // Per-viewer state resolved by the server (absent in older payloads/tests).
   locked?: boolean
+  // Patron-gated beyond the viewer's membership: a locked teaser row that
+  // links to the puzzle's lock panel.
+  patronLocked?: boolean
   solved?: boolean
   gated?: boolean
   hidden?: boolean

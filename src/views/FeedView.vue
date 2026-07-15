@@ -3,38 +3,40 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
 import MdiIcon from '@/components/MdiIcon.vue'
+import PatronBadge from '@/components/patreon/PatronBadge.vue'
 import { mdiPuzzle, mdiFolderMultiple } from '@mdi/js'
 import { apolloClient } from '@/utils/apolloClient'
+import { useAuthStore } from '@/stores/auth'
+import { seriesFeedRows, patronFeedRows, mergeFeeds, type FeedRow } from '@/utils/feedMerge'
 import SeriesFeedDocument from '@/graphql/gql/series/queries/SeriesFeed.graphql'
-import type { SeriesFeedQuery, SeriesFeedQueryVariables } from '@/graphql/generated/types'
+import PatronFeedDocument from '@/graphql/gql/social/queries/PatronFeed.graphql'
+import type { SeriesFeedQuery, PatronFeedQuery } from '@/graphql/generated/types'
 
-type FeedItem = SeriesFeedQuery['seriesFeed'][number]
-
-const items = ref<FeedItem[]>([])
+// The Updates page: one merged, newest-first list of releases from series the
+// viewer follows and creators they support on Patreon.
+const auth = useAuthStore()
+const items = ref<FeedRow[]>([])
 const loading = ref(true)
 
-function itemLink(item: FeedItem) {
-  // Container-only targets carry their own share token so the target resolves.
-  if (item.entryType === 'Collection') {
-    const token = item.collection?.shareToken
-    return { name: 'collection', params: { id: item.collection!.id }, query: token ? { t: token } : {} }
-  }
-  const token = item.puzzle?.shareToken
-  return { name: 'puzzle', params: { id: item.puzzle!.id }, query: token ? { t: token } : {} }
-}
-
-function title(item: FeedItem): string {
-  return item.entryType === 'Collection' ? (item.collection?.title ?? 'Collection') : (item.puzzle?.title ?? 'Puzzle')
-}
-
-function when(item: FeedItem): string {
-  if (!item.releasedAt) return ''
-  return new Date(item.releasedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+function when(iso: string): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 async function load() {
-  const { data } = await apolloClient.query<SeriesFeedQuery, SeriesFeedQueryVariables>({ query: SeriesFeedDocument, fetchPolicy: 'network-only' })
-  items.value = data?.seriesFeed ?? []
+  // The patron query only runs for viewers with memberships — zero extra
+  // requests for everyone else.
+  const wantsPatron = auth.patronMemberships.length > 0
+  const [seriesResult, patronResult] = await Promise.all([
+    apolloClient.query<SeriesFeedQuery>({ query: SeriesFeedDocument, fetchPolicy: 'network-only' }),
+    wantsPatron
+      ? apolloClient.query<PatronFeedQuery>({ query: PatronFeedDocument, fetchPolicy: 'network-only' })
+      : Promise.resolve(null),
+  ])
+  items.value = mergeFeeds(
+    seriesFeedRows(seriesResult.data?.seriesFeed ?? []),
+    patronFeedRows(patronResult?.data?.patronReleases ?? []),
+  )
   loading.value = false
 }
 
@@ -48,10 +50,10 @@ onMounted(load)
         data-tour="feed-intro"
         class="font-display text-2xl font-bold"
       >
-        New in your series
+        Updates
       </h1>
       <p class="text-sm text-soft mt-1">
-        Recently released puzzles and collections from series you follow.
+        New releases from series you follow and creators you support.
       </p>
 
       <p
@@ -64,7 +66,7 @@ onMounted(load)
         v-else-if="!items.length"
         class="text-soft mt-6"
       >
-        Nothing new yet. Subscribe to a series to see its releases here.
+        Nothing new yet. Subscribe to a series or support a creator on Patreon to see releases here.
       </p>
       <ul
         v-else
@@ -73,22 +75,26 @@ onMounted(load)
       >
         <li
           v-for="item in items"
-          :key="item.id"
+          :key="item.key"
         >
           <RouterLink
-            :to="itemLink(item)"
+            :to="item.link"
             class="flex items-center gap-3 p-4 rounded-xl border border-line hover:border-action hover:bg-action-tint transition-colors"
           >
             <MdiIcon
-              :path="item.entryType === 'Collection' ? mdiFolderMultiple : mdiPuzzle"
+              :path="item.kind === 'collection' ? mdiFolderMultiple : mdiPuzzle"
               :size="16"
               class="text-faint shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <span class="block font-medium text-ink-text truncate">{{ title(item) }}</span>
-              <span class="block text-xs text-soft truncate">{{ item.seriesTitle }}</span>
+              <span class="block font-medium text-ink-text truncate">{{ item.title }}</span>
+              <span class="block text-xs text-soft truncate">{{ item.sourceLabel }}</span>
             </div>
-            <span class="text-xs text-faint shrink-0">{{ when(item) }}</span>
+            <PatronBadge
+              v-if="item.patron"
+              :locked="item.locked"
+            />
+            <span class="text-xs text-faint shrink-0">{{ when(item.releasedAt) }}</span>
           </RouterLink>
         </li>
       </ul>

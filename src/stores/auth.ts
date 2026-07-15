@@ -18,6 +18,9 @@ import DeleteUserThemeDocument from '@/graphql/gql/auth/mutations/DeleteUserThem
 import UpdateThemePreferencesDocument from '@/graphql/gql/auth/mutations/UpdateThemePreferences.graphql'
 import UpdateProfileVisibilityDocument from '@/graphql/gql/auth/mutations/UpdateProfileVisibility.graphql'
 import UpdatePuzzlePreferencesDocument from '@/graphql/gql/auth/mutations/UpdatePuzzlePreferences.graphql'
+import SyncPatreonCampaignDocument from '@/graphql/gql/auth/mutations/SyncPatreonCampaign.graphql'
+import RefreshPatreonMembershipsDocument from '@/graphql/gql/auth/mutations/RefreshPatreonMemberships.graphql'
+import UpdatePatreonCampaignSettingsDocument from '@/graphql/gql/auth/mutations/UpdatePatreonCampaignSettings.graphql'
 import type {
   MeQuery,
   UserFieldsFragment,
@@ -51,6 +54,10 @@ import type {
   UpdatePuzzlePreferencesMutation,
   UpdatePuzzlePreferencesMutationVariables,
   PuzzlePreferencesInput,
+  SyncPatreonCampaignMutation,
+  RefreshPatreonMembershipsMutation,
+  UpdatePatreonCampaignSettingsMutation,
+  UpdatePatreonCampaignSettingsMutationVariables,
   UserThemeFieldsFragment,
   UserThemeAttrsInput,
 } from '@/graphql/generated/types'
@@ -80,6 +87,28 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(tokenStorage.getToken())
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
+
+  // --- Patreon derivations (self-only data from the Me query) ---
+
+  const patreonConnection = computed(
+    () => user.value?.oauthConnections?.find((c) => c.provider === 'patreon') ?? null,
+  )
+  // Linked before the patron feature shipped: signed in with Patreon but the
+  // stored grant can't read memberships. The UI prompts a reconnect.
+  const patreonNeedsReauth = computed(
+    () => !!patreonConnection.value && !user.value?.patreon?.capabilities?.memberships,
+  )
+  const patreonCampaign = computed(() => user.value?.patreon?.campaign ?? null)
+  // Creator features stay on while the token is merely stale (cached data
+  // keeps serving); disconnected/removed turn them off.
+  const isPatreonCreator = computed(() => {
+    const status = patreonCampaign.value?.status
+    return status === 'ACTIVE' || status === 'TOKEN_STALE'
+  })
+  const patronMemberships = computed(() => user.value?.patreon?.memberships ?? [])
+  const supportsAnyCreator = computed(() =>
+    patronMemberships.value.some((m) => m.patronStatus === 'ACTIVE_PATRON'),
+  )
 
   function setToken(newToken: string) {
     token.value = newToken
@@ -185,10 +214,13 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.href = `${API_URL}/users/auth/${PROVIDER_ROUTES[provider]}`
   }
 
-  async function connectProvider(provider: OauthProvider) {
+  // `intent` selects the Patreon scope preset: 'patron' (default, read own
+  // memberships) or 'creator' (also read campaign/members for gating).
+  // Re-running the flow on an already-linked account just upgrades scopes.
+  async function connectProvider(provider: OauthProvider, intent?: 'patron' | 'creator') {
     const { data } = await apolloClient.mutate<PrepareOauthConnectMutation, PrepareOauthConnectMutationVariables>({
       mutation: PrepareOauthConnectDocument,
-      variables: { provider },
+      variables: { provider, intent },
     })
     const result = data?.prepareOauthConnect
     if (!result?.url) {
@@ -207,6 +239,46 @@ export const useAuthStore = defineStore('auth', () => {
       throw new ApiError(422, result?.errors ?? ['Something went wrong'])
     }
     if (result.user) user.value = result.user
+  }
+
+  // --- Patreon sync (the store owns `user`, so user-mutating actions live here) ---
+
+  // Creator-side "sync now": re-mirror campaign, tiers, and webhook, then
+  // refresh the user so the settings card shows the new state.
+  async function syncPatreonCampaign() {
+    const { data } = await apolloClient.mutate<SyncPatreonCampaignMutation>({
+      mutation: SyncPatreonCampaignDocument,
+    })
+    const result = data?.syncPatreonCampaign
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    await fetchCurrentUser()
+  }
+
+  // Patron-side "re-check access": re-sync which creators the user supports.
+  // Server-side throttled; safe to call from teaser pages.
+  async function refreshPatreonMemberships() {
+    const { data } = await apolloClient.mutate<RefreshPatreonMembershipsMutation>({
+      mutation: RefreshPatreonMembershipsDocument,
+    })
+    const result = data?.refreshPatreonMemberships
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    if (result.user) user.value = result.user
+  }
+
+  async function updatePatreonCampaignSettings(attrs: { teasersEnabled: boolean }) {
+    const { data } = await apolloClient.mutate<UpdatePatreonCampaignSettingsMutation, UpdatePatreonCampaignSettingsMutationVariables>({
+      mutation: UpdatePatreonCampaignSettingsDocument,
+      variables: attrs,
+    })
+    const result = data?.updatePatreonCampaignSettings
+    if (!result || result.errors.length > 0) {
+      throw new ApiError(422, result?.errors ?? ['Something went wrong'])
+    }
+    await fetchCurrentUser()
   }
 
   // --- Profile (the store owns `user`, so user-mutating actions live here) ---
@@ -376,6 +448,15 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     isAuthenticated,
+    patreonConnection,
+    patreonNeedsReauth,
+    patreonCampaign,
+    isPatreonCreator,
+    patronMemberships,
+    supportsAnyCreator,
+    syncPatreonCampaign,
+    refreshPatreonMemberships,
+    updatePatreonCampaignSettings,
     setToken,
     clearAuth,
     fetchCurrentUser,

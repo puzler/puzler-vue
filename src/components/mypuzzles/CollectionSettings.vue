@@ -9,6 +9,9 @@ defineProps<{
   timed: boolean
   kind: CollectionKindEnum
   publicRoute: RouteLocationRaw
+  // Patreon creators only: offers the Patrons visibility (the API rejects it
+  // for anyone else).
+  allowPatrons?: boolean
 }>()
 const emit = defineEmits<{
   save: [attrs: {
@@ -44,6 +47,10 @@ function selectValue<T extends string>(event: Event): T {
           <option :value="CollectionVisibilityEnum.Unlisted">Unlisted</option>
           <option :value="CollectionVisibilityEnum.ContainersOnly">In series only</option>
           <option :value="CollectionVisibilityEnum.Public">Public</option>
+          <option
+            v-if="allowPatrons || visibility === CollectionVisibilityEnum.PatronsOnly"
+            :value="CollectionVisibilityEnum.PatronsOnly"
+          >Patrons</option>
         </select>
       </label>
       <label class="text-sm text-soft flex items-center gap-2">

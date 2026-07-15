@@ -1,22 +1,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { usePuzzleStore } from '@/stores/puzzle'
+import { useAuthStore } from '@/stores/auth'
 import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
+import type { PatronGateForm } from '@/constants/patreon'
 import VisibilityField from '@/components/editor/VisibilityField.vue'
 import AccessManager from '@/components/editor/AccessManager.vue'
+import PatronGateFields from '@/components/patreon/PatronGateFields.vue'
 import PageDescriptionEditor from '@/components/editor/PageDescriptionEditor.vue'
 import CommentPolicyField from '@/components/editor/CommentPolicyField.vue'
 
 // The tab panels shared by the Manage and Publish & Share modals. Split out so
 // each modal shell stays under the template line cap. Visibility + comment gate
-// flow back via v-model; Unpublish is emitted so the shell's error handling
-// stays central; the rich description autosaves itself and the share field is
-// self-contained.
+// + patron gate flow back via v-model; Unpublish is emitted so the shell's
+// error handling stays central; the rich description autosaves itself and the
+// share field is self-contained.
 const props = defineProps<{ activeTab: string; puzzleId: string; busy: boolean }>()
 defineEmits<{ unpublish: [] }>()
 const puzzle = usePuzzleStore()
+const auth = useAuthStore()
 const mode = defineModel<PuzzleVisibilityEnum>('mode', { required: true })
 const commentGate = defineModel<'inherit' | 'required' | 'open'>('commentGate', { required: true })
+const patronGate = defineModel<PatronGateForm>('patronGate', { required: true })
 
 const isPublished = computed(() => puzzle.status === PuzzleStatusEnum.Published)
 const shareUrl = computed(() =>
@@ -37,8 +42,15 @@ async function copyLink() {
       role="tabpanel"
       class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4"
     >
-      <VisibilityField v-model="mode" />
+      <VisibilityField
+        v-model="mode"
+        :allow-patrons="auth.isPatreonCreator"
+      />
       <AccessManager v-if="mode === PuzzleVisibilityEnum.Private" />
+      <PatronGateFields
+        v-if="mode === PuzzleVisibilityEnum.PatronsOnly"
+        v-model="patronGate"
+      />
       <button
         v-if="isPublished"
         class="self-start px-3 py-2 rounded-xl border border-line text-sm hover:border-red-400 hover:text-red-600 disabled:opacity-50"

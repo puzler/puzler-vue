@@ -203,6 +203,97 @@ describe('auth store', () => {
 
       expect(location.href).toBe('http://api/users/auth/google_oauth2?connect_token=x')
     })
+
+    it('passes the Patreon scope intent through', async () => {
+      mockMutate.mockResolvedValue({
+        data: { prepareOauthConnect: { url: 'http://api/users/auth/patreon?connect_token=x&intent=creator', errors: [] } },
+      })
+      vi.stubGlobal('location', { href: '' })
+
+      const auth = useAuthStore()
+      await auth.connectProvider('patreon', 'creator')
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ variables: { provider: 'patreon', intent: 'creator' } }),
+      )
+    })
+  })
+
+  describe('patreon derivations', () => {
+    function userWithPatreon(patreon: unknown, connections = [{ provider: 'patreon', createdAt: 'now' }]) {
+      return { ...ME, oauthConnections: connections, patreon } as never
+    }
+
+    it('flags identities linked before the patron feature for re-auth', () => {
+      const auth = useAuthStore()
+      auth.user = userWithPatreon({ capabilities: { memberships: false, creator: false }, campaign: null, memberships: [] })
+      expect(auth.patreonNeedsReauth).toBe(true)
+    })
+
+    it('does not prompt re-auth when memberships scope is granted', () => {
+      const auth = useAuthStore()
+      auth.user = userWithPatreon({ capabilities: { memberships: true, creator: false }, campaign: null, memberships: [] })
+      expect(auth.patreonNeedsReauth).toBe(false)
+    })
+
+    it('treats active and token_stale campaigns as creator, others not', () => {
+      const auth = useAuthStore()
+      const base = { capabilities: { memberships: true, creator: true }, memberships: [] }
+
+      auth.user = userWithPatreon({ ...base, campaign: { status: 'ACTIVE' } })
+      expect(auth.isPatreonCreator).toBe(true)
+      auth.user = userWithPatreon({ ...base, campaign: { status: 'TOKEN_STALE' } })
+      expect(auth.isPatreonCreator).toBe(true)
+      auth.user = userWithPatreon({ ...base, campaign: { status: 'DISCONNECTED' } })
+      expect(auth.isPatreonCreator).toBe(false)
+      auth.user = userWithPatreon({ ...base, campaign: null })
+      expect(auth.isPatreonCreator).toBe(false)
+    })
+
+    it('reports supported creators from active memberships only', () => {
+      const auth = useAuthStore()
+      auth.user = userWithPatreon({
+        capabilities: { memberships: true, creator: false },
+        campaign: null,
+        memberships: [{ id: '1', patronStatus: 'FORMER_PATRON' }],
+      })
+      expect(auth.supportsAnyCreator).toBe(false)
+
+      auth.user = userWithPatreon({
+        capabilities: { memberships: true, creator: false },
+        campaign: null,
+        memberships: [{ id: '1', patronStatus: 'ACTIVE_PATRON' }],
+      })
+      expect(auth.supportsAnyCreator).toBe(true)
+    })
+
+    it('is inert for users without Patreon linked', () => {
+      const auth = useAuthStore()
+      auth.user = { ...ME } as never
+      expect(auth.patreonNeedsReauth).toBe(false)
+      expect(auth.isPatreonCreator).toBe(false)
+      expect(auth.patronMemberships).toEqual([])
+    })
+  })
+
+  describe('refreshPatreonMemberships', () => {
+    it('adopts the refreshed user', async () => {
+      const refreshed = { ...ME, username: 'refreshed' }
+      mockMutate.mockResolvedValue({ data: { refreshPatreonMemberships: { user: refreshed, errors: [] } } })
+
+      const auth = useAuthStore()
+      await auth.refreshPatreonMemberships()
+      expect(auth.user?.username).toBe('refreshed')
+    })
+
+    it('throws ApiError with server messages on failure', async () => {
+      mockMutate.mockResolvedValue({
+        data: { refreshPatreonMemberships: { user: null, errors: ['Reconnect Patreon to enable membership checks'] } },
+      })
+
+      const auth = useAuthStore()
+      await expect(auth.refreshPatreonMemberships()).rejects.toThrow(ApiError)
+    })
   })
 
   describe('deleteAccount', () => {

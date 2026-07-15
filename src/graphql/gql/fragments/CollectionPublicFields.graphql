@@ -62,6 +62,7 @@ fragment CollectionPublicFields on Collection {
     entryType
     position
     locked
+    patronLocked
     solved
     gated
     hidden
@@ -76,5 +77,26 @@ fragment CollectionPublicFields on Collection {
       title
       bodyHtml
     }
+  }
+  patronGate {
+    mode
+    minTier {
+      title
+      amountCents
+    }
+    tiers {
+      title
+      amountCents
+    }
+    minAmountCents
+    patronsSinceRelease
+  }
+  patronAccess {
+    hasAccess
+    lockedReason
+    requiredTierTitle
+    requiredAmountCents
+    campaignTitle
+    campaignUrl
   }
 }

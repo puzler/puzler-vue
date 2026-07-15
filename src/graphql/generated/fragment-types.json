@@ -12,6 +12,16 @@
     "CompetitionQueries": [
       "Query"
     ],
+    "PatreonMutations": [
+      "Mutation"
+    ],
+    "PatreonQueries": [
+      "Query"
+    ],
+    "PatronRelease": [
+      "Collection",
+      "Puzzle"
+    ],
     "PlayMutations": [
       "Mutation"
     ],

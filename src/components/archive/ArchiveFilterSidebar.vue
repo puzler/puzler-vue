@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { apolloClient } from '@/utils/apolloClient'
+import { useAuthStore } from '@/stores/auth'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { mdiRhombus, mdiRhombusOutline } from '@mdi/js'
 import FacetSelect from './FacetSelect.vue'
 import TagFilter from '@/components/listing/TagFilter.vue'
-import { TIME_RANGES, SETTER_TIERS, MY_STATUS_OPTIONS, MIN_RATING_OPTIONS, DIFFICULTY_LEVELS } from '@/constants/archive'
+import { TIME_RANGES, SETTER_TIERS, myStatusOptions, MIN_RATING_OPTIONS, DIFFICULTY_LEVELS } from '@/constants/archive'
 import TagsDocument from '@/graphql/gql/tags/queries/Tags.graphql'
 import PuzzleGridSizesDocument from '@/graphql/gql/puzzles/queries/PuzzleGridSizes.graphql'
 import type {
@@ -14,6 +15,10 @@ import type {
 } from '@/graphql/generated/types'
 
 const props = defineProps<{ showMyStatus: boolean }>()
+
+const auth = useAuthStore()
+// Patrons get the "From creators you support" narrowing.
+const statusOptions = computed(() => myStatusOptions(auth.supportsAnyCreator))
 
 const timeRange = defineModel<TimeRangeEnum | null>('timeRange', { required: true })
 const setterTier = defineModel<SetterTierEnum | null>('setterTier', { required: true })
@@ -141,7 +146,7 @@ function toggleGridSize(value: string) {
       v-if="props.showMyStatus"
       v-model="myStatus"
       label="My status"
-      :options="MY_STATUS_OPTIONS"
+      :options="statusOptions"
       any-label="Any"
     />
   </div>

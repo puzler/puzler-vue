@@ -13,4 +13,16 @@ fragment PuzzleAdminFields on Puzzle {
     username
     displayName
   }
+  releasedAt
+  patronGate {
+    mode
+    minTier {
+      id
+    }
+    tiers {
+      id
+    }
+    minAmountCents
+    patronsSinceRelease
+  }
 }

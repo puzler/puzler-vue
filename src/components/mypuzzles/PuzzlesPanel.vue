@@ -11,7 +11,8 @@ import MobileFilterButton from '@/components/listing/MobileFilterButton.vue'
 import FilterPanel from '@/components/ui/FilterPanel.vue'
 import { useFilterableList } from '@/composables/useFilterableList'
 import type { FolderNode } from './folderTree'
-import { PUZZLE_VISIBILITY_OPTIONS, PUZZLE_VISIBILITY_FILTER_OPTIONS } from '@/constants/visibility'
+import { puzzleVisibilityOptions, puzzleVisibilityFilterOptions } from '@/constants/visibility'
+import { useAuthStore } from '@/stores/auth'
 import MyPuzzlesDocument from '@/graphql/gql/puzzles/queries/MyPuzzles.graphql'
 import MyFolderTreeDocument from '@/graphql/gql/collections/queries/MyFolderTree.graphql'
 import MyFoldersDocument from '@/graphql/gql/collections/queries/MyFolders.graphql'
@@ -27,6 +28,12 @@ import type {
 import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/types'
 
 type MyPuzzle = MyPuzzlesQuery['myPuzzles']['nodes'][number]
+
+const auth = useAuthStore()
+// Patreon creators also get the Patrons visibility (the API rejects it for
+// anyone else).
+const visibilityOptions = computed(() => puzzleVisibilityOptions(auth.isPatreonCreator))
+const visibilityFilterOptions = computed(() => puzzleVisibilityFilterOptions(auth.isPatreonCreator))
 
 const list = useFilterableList<MyPuzzlesQuery, MyPuzzle>({
   query: MyPuzzlesDocument,
@@ -109,7 +116,7 @@ onMounted(loadFolders)
         v-model:visibilities="list.visibilities.value"
         v-model:constraint-types="list.constraintTypes.value"
         :supports-constraints="true"
-        :visibility-options="PUZZLE_VISIBILITY_FILTER_OPTIONS"
+        :visibility-options="visibilityFilterOptions"
       >
         <template #lead>
           <MobileFilterButton
@@ -142,7 +149,7 @@ onMounted(loadFolders)
           :key="puzzle.id"
           :puzzle="puzzle"
           :folders="flatFolders"
-          :visibility-options="PUZZLE_VISIBILITY_OPTIONS"
+          :visibility-options="visibilityOptions"
           @change-visibility="changeVisibility(puzzle, $event)"
           @move-to-folder="moveToFolder(puzzle, $event)"
           @delete="deleteTarget = puzzle"

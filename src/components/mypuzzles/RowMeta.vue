@@ -5,7 +5,7 @@ import MdiIcon from '@/components/MdiIcon.vue'
 import ListMenu from './ListMenu.vue'
 import {
   mdiContentCopy, mdiCheck, mdiEarth, mdiLinkVariant, mdiLockOutline,
-  mdiFolderMultipleOutline, mdiEyeOutline,
+  mdiFolderMultipleOutline, mdiEyeOutline, mdiHeartOutline,
 } from '@mdi/js'
 
 const props = defineProps<{
@@ -27,6 +27,9 @@ const VIS_ICON: Record<string, string> = {
   UNLISTED: mdiLinkVariant,
   CONTAINERS_ONLY: mdiFolderMultipleOutline,
   PUBLIC: mdiEarth,
+  // Inline switch applies the default gate (any paying patron); the full gate
+  // config lives in the Manage modal / collection settings.
+  PATRONS_ONLY: mdiHeartOutline,
 }
 
 const ROUTE_SEGMENT: Record<typeof props.kind, string> = {

@@ -12,6 +12,7 @@ interface VisibilityForm {
   showFavorites: boolean
   showSubscriptions: boolean
   showActivity: boolean
+  hidePatronTeasers: boolean
 }
 
 const form = reactive<VisibilityForm>({
@@ -20,6 +21,7 @@ const form = reactive<VisibilityForm>({
   showFavorites: false,
   showSubscriptions: false,
   showActivity: false,
+  hidePatronTeasers: false,
 })
 
 const errors = ref<string[]>([])
@@ -39,6 +41,15 @@ watch(
   { immediate: true, deep: true },
 )
 
+// Viewer-side browsing preference; lives on the user, saved with the same form.
+watch(
+  () => auth.user?.hidePatronTeasers,
+  (value) => {
+    form.hidePatronTeasers = !!value
+  },
+  { immediate: true },
+)
+
 const SOLVE_OPTIONS = [
   { value: SolveHistoryVisibilityEnum.Hidden, label: 'Hidden', hint: 'Reveal nothing about the puzzles you have solved.' },
   { value: SolveHistoryVisibilityEnum.Count, label: 'Count only', hint: 'Show how many puzzles you have solved, but not which ones.' },
@@ -55,6 +66,11 @@ const TOGGLES = [
   { key: 'showFavorites', label: 'Favorites', hint: 'The puzzles you have favorited.' },
   { key: 'showSubscriptions', label: 'Subscribed series', hint: 'The series you follow.' },
   { key: 'showActivity', label: 'Activity feed', hint: 'Your recent puzzles, reviews, and solves.' },
+  {
+    key: 'hidePatronTeasers',
+    label: 'Hide locked patron content',
+    hint: 'Remove patron-only items you can\'t access from the archive, feeds, and collections.',
+  },
 ] as const
 
 async function save() {

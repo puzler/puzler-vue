@@ -111,6 +111,7 @@ function lockHint(entry: Entry): { icon: string; text: string } {
         :puzzle="entryPuzzle(entry)!"
         :link="puzzleLink(entryPuzzle(entry)!)"
         :unlocked="isUnlocked(index)"
+        :patron-locked="entry.patronLocked === true"
         :show-number="isSequence || entry.finale === true"
         :number="puzzleNumber(index)"
         :is-solved="entrySolved(entry, solved)"

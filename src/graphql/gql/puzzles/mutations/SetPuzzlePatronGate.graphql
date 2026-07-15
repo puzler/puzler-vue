@@ -1,0 +1,10 @@
+#import "../../fragments/PuzzleAdminFields.graphql"
+
+mutation SetPuzzlePatronGate($id: ID!, $gate: PatronGateInput) {
+  setPuzzlePatronGate(input: { id: $id, gate: $gate }) {
+    puzzle {
+      ...PuzzleAdminFields
+    }
+    errors
+  }
+}

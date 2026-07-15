@@ -1,0 +1,29 @@
+query PatronFeed {
+  patronReleases {
+    ... on Puzzle {
+      id
+      title
+      effectiveReleaseAt
+      author {
+        username
+        displayName
+      }
+      patronAccess {
+        hasAccess
+      }
+    }
+    ... on Collection {
+      id
+      title
+      puzzleCount
+      effectiveReleaseAt
+      author {
+        username
+        displayName
+      }
+      patronAccess {
+        hasAccess
+      }
+    }
+  }
+}

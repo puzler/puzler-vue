@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import ContentPage from '@/components/ContentPage.vue'
+import PatronLockPanel from '@/components/patreon/PatronLockPanel.vue'
 import CollectionHuntPage from '@/components/collections/CollectionHuntPage.vue'
 import CollectionBasicPage from '@/components/collections/CollectionBasicPage.vue'
 import CollectionCompetitionPage from '@/components/collections/CollectionCompetitionPage.vue'
@@ -35,6 +36,12 @@ const themeClasses = computed(() =>
     ? collectionThemeClasses(collection.value)
     : []))
 const bodyHtml = computed(() => sanitizeHtml(collection.value?.pageDescriptionHtml ?? null))
+
+// Server-resolved teaser mode: entries/body are withheld; show the lock panel
+// instead of dispatching to a kind page.
+const patronLocked = computed(
+  () => !!collection.value?.patronAccess && !collection.value.patronAccess.hasAccess,
+)
 
 async function load() {
   const id = typeof route.params.id === 'string' ? route.params.id : null
@@ -81,6 +88,20 @@ onMounted(load)
         >
           This collection isn’t available.
         </p>
+        <div
+          v-else-if="patronLocked"
+          class="py-8"
+        >
+          <h1 class="font-display text-2xl font-bold text-ink-text text-center mb-6">
+            {{ collection.title }}
+          </h1>
+          <PatronLockPanel
+            :access="collection.patronAccess!"
+            kind="collection"
+            :author-name="collection.author.displayName"
+            @recheck="load"
+          />
+        </div>
         <CollectionHuntPage
           v-else-if="kind === CollectionKindEnum.Hunt"
           :collection="collection"

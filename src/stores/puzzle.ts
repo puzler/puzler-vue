@@ -15,6 +15,8 @@ import UpdatePageDescriptionDocument from '@/graphql/gql/puzzles/mutations/Updat
 import UploadDescriptionImageDocument from '@/graphql/gql/puzzles/mutations/UploadDescriptionImage.graphql'
 import UnpublishPuzzleDocument from '@/graphql/gql/puzzles/mutations/UnpublishPuzzle.graphql'
 import SetPuzzleVisibilityDocument from '@/graphql/gql/puzzles/mutations/SetPuzzleVisibility.graphql'
+import SetPuzzlePatronGateDocument from '@/graphql/gql/puzzles/mutations/SetPuzzlePatronGate.graphql'
+import SchedulePuzzleReleaseDocument from '@/graphql/gql/puzzles/mutations/SchedulePuzzleRelease.graphql'
 import GrantPuzzleAccessDocument from '@/graphql/gql/puzzles/mutations/GrantPuzzleAccess.graphql'
 import RevokePuzzleAccessDocument from '@/graphql/gql/puzzles/mutations/RevokePuzzleAccess.graphql'
 import PuzzleForEditDocument from '@/graphql/gql/puzzles/queries/PuzzleForEdit.graphql'
@@ -44,6 +46,11 @@ import type {
   UnpublishPuzzleMutationVariables,
   SetPuzzleVisibilityMutation,
   SetPuzzleVisibilityMutationVariables,
+  SetPuzzlePatronGateMutation,
+  SetPuzzlePatronGateMutationVariables,
+  SchedulePuzzleReleaseMutation,
+  SchedulePuzzleReleaseMutationVariables,
+  PatronGateInput,
   GrantPuzzleAccessMutation,
   GrantPuzzleAccessMutationVariables,
   RevokePuzzleAccessMutation,
@@ -57,6 +64,7 @@ import { PuzzleStatusEnum, PuzzleVisibilityEnum } from '@/graphql/generated/type
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export type GrantedUser = PuzzleAdminFieldsFragment['grantedUsers'][number]
+export type PatronGate = PuzzleAdminFieldsFragment['patronGate']
 
 // Server-persistence layer for the editor: owns the current puzzle id, its
 // version history, and the save/restore actions. The editor and grid stores
@@ -72,6 +80,9 @@ export const usePuzzleStore = defineStore('puzzle', () => {
   // null = inherit the author's account default; true/false = per-puzzle override.
   const commentsRequireSolveOverride = ref<boolean | null>(null)
   const grantedUsers = ref<GrantedUser[]>([])
+  // Patron gate config + scheduled release (null gate = the default gate).
+  const patronGate = ref<PatronGate>(null)
+  const releasedAt = ref<string | null>(null)
   const versions = ref<VersionSummaryFragment[]>([])
   const saveStatus = ref<SaveStatus>('idle')
   const errorMessage = ref<string | null>(null)
@@ -86,6 +97,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     pageDescriptionHtml.value = null
     commentsRequireSolveOverride.value = null
     grantedUsers.value = []
+    patronGate.value = null
+    releasedAt.value = null
     versions.value = []
     saveStatus.value = 'idle'
     errorMessage.value = null
@@ -103,6 +116,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     commentsRequireSolveOverride.value = puzzle.commentsRequireSolveOverride ?? null
     publishedVersionId.value = puzzle.publishedVersion?.id ?? null
     grantedUsers.value = [...puzzle.grantedUsers]
+    patronGate.value = puzzle.patronGate ?? null
+    releasedAt.value = (puzzle.releasedAt as string | null) ?? null
     versions.value = versions.value.map((v) => ({ ...v, isPublished: v.id === publishedVersionId.value }))
   }
 
@@ -314,6 +329,33 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     applyAdminFields(result.puzzle)
   }
 
+  // Persist the patron gate config (null clears back to the default gate:
+  // any paying patron). Only meaningful while visibility is patrons_only,
+  // but the config survives visibility flips untouched.
+  async function setPatronGate(gate: PatronGateInput | null) {
+    if (!serverPuzzleId.value) throw new Error('Save the puzzle first')
+    const { data } = await apolloClient.mutate<SetPuzzlePatronGateMutation, SetPuzzlePatronGateMutationVariables>({
+      mutation: SetPuzzlePatronGateDocument,
+      variables: { id: serverPuzzleId.value, gate },
+    })
+    const result = data?.setPuzzlePatronGate
+    if (!result?.puzzle) throw new Error(result?.errors?.[0] ?? 'Could not save the patron gate')
+    applyAdminFields(result.puzzle)
+  }
+
+  // Schedule (or clear) the lazy release moment. Until it passes, the puzzle
+  // is invisible to everyone but the author.
+  async function scheduleRelease(releaseAt: string | null) {
+    if (!serverPuzzleId.value) throw new Error('Save the puzzle first')
+    const { data } = await apolloClient.mutate<SchedulePuzzleReleaseMutation, SchedulePuzzleReleaseMutationVariables>({
+      mutation: SchedulePuzzleReleaseDocument,
+      variables: { id: serverPuzzleId.value, releasedAt: releaseAt },
+    })
+    const result = data?.schedulePuzzleRelease
+    if (!result?.puzzle) throw new Error(result?.errors?.[0] ?? 'Could not schedule the release')
+    applyAdminFields(result.puzzle)
+  }
+
   async function grantAccess(username: string) {
     if (!serverPuzzleId.value) throw new Error('Save the puzzle first')
     const { data } = await apolloClient.mutate<GrantPuzzleAccessMutation, GrantPuzzleAccessMutationVariables>({
@@ -346,6 +388,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     pageDescriptionHtml,
     commentsRequireSolveOverride,
     grantedUsers,
+    patronGate,
+    releasedAt,
     versions,
     saveStatus,
     errorMessage,
@@ -362,6 +406,8 @@ export const usePuzzleStore = defineStore('puzzle', () => {
     configurePuzzlePage,
     unpublish,
     setVisibility,
+    setPatronGate,
+    scheduleRelease,
     grantAccess,
     revokeAccess,
   }

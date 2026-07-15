@@ -2,7 +2,7 @@
 // document lives in one readable, reviewable file. An inline segment is plain
 // text or a link; a paragraph is a string (common case) or segments (when it
 // contains links).
-export type Inline = string | { text: string; href: string }
+type Inline = string | { text: string; href: string }
 export type Paragraph = string | Inline[]
 
 export type Block =
@@ -10,7 +10,7 @@ export type Block =
   | { ul: Paragraph[] }
   | { table: { head: string[]; rows: string[][] } }
 
-export interface Section {
+interface Section {
   heading: string
   blocks: Block[]
 }

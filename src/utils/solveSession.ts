@@ -36,7 +36,7 @@ const VALID_INPUT_MODES: SolverInputMode[] = ['digit', 'center', 'corner', 'colo
 // set while the rules modal is open) are dropped — the UI re-applies them.
 const PERSISTENT_HOLDS = new Set(['manual'])
 
-export interface SolveProgress {
+interface SolveProgress {
   schemaVersion: number
   savedAt: number
   solutionHash: string | null
@@ -336,7 +336,7 @@ function normalizeHistory(raw: unknown): SerializedHistory {
   return { undo: normalizeDiffArray(r.undo), redo: normalizeDiffArray(r.redo) }
 }
 
-export function normalizeProgress(raw: unknown): SolveProgress {
+function normalizeProgress(raw: unknown): SolveProgress {
   const r = isObject(raw) ? raw : {}
   const rawMode = r.inputMode
   const inputMode: SolverInputMode =
@@ -411,11 +411,6 @@ export function readLocalSnapshot(puzzleId: string): SolveSnapshot | null {
   } catch {
     return null
   }
-}
-
-export function removeLocalSnapshot(puzzleId: string): void {
-  removeSnapshotKey(puzzleId)
-  writeIndex(readIndex().filter((e) => e.id !== puzzleId))
 }
 
 // Write a snapshot, evicting the least-recently-saved puzzles to stay within the

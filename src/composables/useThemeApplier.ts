@@ -38,7 +38,7 @@ function applyMeta(theme: Theme): void {
 
 // Apply a theme to the document. Idempotent: tokens the theme (or the gate) doesn't define are
 // REMOVED, so there are never orphan overrides left from a previously-active theme.
-export function applyAppearance(theme: Theme, enableCustomStyles: boolean): void {
+function applyAppearance(theme: Theme, enableCustomStyles: boolean): void {
   const el = document.documentElement
   const tokens: Record<string, string> = { ...theme.appearance.chrome }
   if (enableCustomStyles) Object.assign(tokens, theme.appearance.grid)

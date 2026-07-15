@@ -14,7 +14,7 @@ import { regionsForSize, boxIndexToLabel } from '@/stores/grid'
 
 const CELL_RE = /^r(-?\d+)c(-?\d+)$/
 
-export function shiftCellKey(key: string, delta: number): string {
+function shiftCellKey(key: string, delta: number): string {
   const m = CELL_RE.exec(key)
   if (!m) return key // malformed keys pass through; validation reports them
   return `r${Number(m[1]) + delta}c${Number(m[2]) + delta}`
@@ -132,7 +132,7 @@ export function thermoLinesToEdges(lines: string[][]): ThermoEdge[] {
 
 // Standard box label for an internal cell, or null when the grid has none
 // (non-square grids have no default layout).
-export function standardRegionLabel(rows: number, cols: number, row: number, col: number): string | null {
+function standardRegionLabel(rows: number, cols: number, row: number, col: number): string | null {
   if (rows !== cols) return null
   return boxIndexToLabel(regionsForSize(rows)[row][col])
 }
@@ -140,7 +140,7 @@ export function standardRegionLabel(rows: number, cols: number, row: number, col
 // Effective per-cell labels under the sparse override map (mirrors the grid
 // store's cellRegionLabelMap, usable outside a Pinia context). Sorted; empty
 // = regionless.
-export function effectiveRegionLabels(
+function effectiveRegionLabels(
   overrides: Record<string, string[]> | null | undefined,
   rows: number,
   cols: number,

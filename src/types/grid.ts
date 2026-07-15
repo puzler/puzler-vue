@@ -1,4 +1,4 @@
-export type CellKey = string
+type CellKey = string
 
 export type GridMode = 'edit' | 'play'
 

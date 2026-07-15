@@ -22,7 +22,7 @@ export function colorToCss(c: Color): string {
 
 // ── Family-shaped style defaults ─────────────────────────────────────────────────
 
-export interface ConstraintLineStyleDef {
+interface ConstraintLineStyleDef {
   color: Color
   width: number // fraction of cell size
 }
@@ -93,7 +93,7 @@ export interface GlobalVariant {
 
 export type LayerSlot = 'background' | 'constraint' | 'above_regions' | 'above_digits'
 
-export const LAYER_SPECS = {
+const LAYER_SPECS = {
   // GridBackground (under grid lines)
   constraint_backgrounds: { slot: 'background', order: 10 },
   // ConstraintLayer (between cosmetics and selections)

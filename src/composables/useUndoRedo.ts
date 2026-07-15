@@ -4,7 +4,7 @@ import type { CellState, PenMark } from '@/types/grid'
 // A reversible action. Setting-mode tools (constraints, cosmetics, regions, …)
 // use closure-based commands: they mutate complex editor state that isn't worth
 // serializing and only matters while editing, never while solving.
-export interface Command {
+interface Command {
   execute: () => void
   undo: () => void
 }

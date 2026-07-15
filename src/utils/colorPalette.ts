@@ -57,9 +57,9 @@ const ALL_KEYS = [
 ]
 
 export const MAX_PAGES = 5
-export const MIN_PAGES = 1
-export const PAGE_SIZE = 10
-export const DEFAULT_PALETTE_COLOR = 'rgb(255, 255, 255)'
+const MIN_PAGES = 1
+const PAGE_SIZE = 10
+const DEFAULT_PALETTE_COLOR = 'rgb(255, 255, 255)'
 
 export class ColorPalette {
   colors: Record<string, string>
@@ -194,7 +194,7 @@ export function transparentFill(colorString: string | undefined): string | null 
 
 // A small CSS checkerboard, shown behind swatches so any transparency reads as
 // transparent rather than as a solid colour.
-export const CHECKER_BG = 'repeating-conic-gradient(#cbd0d6 0% 25%, #ffffff 0% 50%) 50% / 12px 12px'
+const CHECKER_BG = 'repeating-conic-gradient(#cbd0d6 0% 25%, #ffffff 0% 50%) 50% / 12px 12px'
 
 // CSS `background` for a swatch: the (possibly translucent) colour layered over
 // the checkerboard, so opaque colours look solid and translucent ones reveal

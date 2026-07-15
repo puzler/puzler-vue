@@ -115,7 +115,7 @@ export interface ThermometerData {
 
 // ── Arrows ────────────────────────────────────────────────────────────────────
 
-export interface ArrowPath {
+interface ArrowPath {
   // cells[0] anchors the arrow on a bulb cell or another arrow's cell; the
   // rest is the drawn path, ending at the arrowhead
   cells: string[]
@@ -153,7 +153,7 @@ export interface FogSolverHelpers {
 
 // ── Cell connectors (difference / ratio dots, XV, quadruples) ────────────────
 
-export type ConnectorDotType = 'difference_dots' | 'ratio_dots'
+type ConnectorDotType = 'difference_dots' | 'ratio_dots'
 export type BorderConnectorType = ConnectorDotType | 'xv' | 'quadruples' | 'inequality'
 export type XvValue = 'X' | 'V'
 // '<' means the border's FIRST cell in canonical key order (left / top) is the
@@ -430,7 +430,7 @@ export interface ShapeData {
 
 // Anchor → offset (in cells) from a cell centre. Kept for migrating legacy
 // shape data (cell + anchor) to a free `pos`.
-export const SHAPE_ANCHOR_OFFSET: Record<ShapeAnchor, { dr: number; dc: number }> = {
+const SHAPE_ANCHOR_OFFSET: Record<ShapeAnchor, { dr: number; dc: number }> = {
   'center': { dr: 0, dc: 0 },
   'top': { dr: -0.5, dc: 0 },
   'bottom': { dr: 0.5, dc: 0 },

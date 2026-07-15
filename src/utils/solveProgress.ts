@@ -15,10 +15,6 @@ export function solvedIds(): Set<string> {
   return read()
 }
 
-export function isSolved(id: string): boolean {
-  return read().has(id)
-}
-
 export function markSolved(id: string): void {
   const set = read()
   set.add(id)

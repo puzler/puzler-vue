@@ -16,7 +16,7 @@ interface CountingCirclesSpec extends SolverConstraintSpec {
   cells: number[]
 }
 
-export class CountingCirclesConstraint extends Constraint {
+class CountingCirclesConstraint extends Constraint {
   private cells: number[]
   private involved: Set<number>
 

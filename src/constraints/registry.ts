@@ -21,7 +21,6 @@ import {
   type ConstraintDef,
   type ConstraintIconDef,
   type ConstraintIcon,
-  type ConstraintLineStyleDef,
   type ConstraintPanelRef,
   type ConstraintShapeStyle,
   type ConstraintStyleFamily,
@@ -169,8 +168,7 @@ const DEFS = [
 // property access awkward); type-level derivations below use the const tuple.
 const ALL: readonly ConstraintDef[] = DEFS
 
-export type AnyConstraintDef = (typeof DEFS)[number]
-export type ConstraintType = AnyConstraintDef['type']
+type AnyConstraintDef = (typeof DEFS)[number]
 
 // Types that carry a theme facet — the exact key set of CONSTRAINT_STYLE_REGISTRY.
 export type ConstraintStyleKey = Extract<AnyConstraintDef, { theme: unknown }>['type']
@@ -252,10 +250,6 @@ export const TYPE_TO_JSON_KEY: ReadonlyMap<string, string> = new Map(
 export const JSON_KEY_TO_TYPE: ReadonlyMap<string, string> = new Map(
   Array.from(TYPE_TO_JSON_KEY, ([type, key]) => [key, type]),
 )
-
-export function jsonKeyFor(type: string): string | undefined {
-  return TYPE_TO_JSON_KEY.get(type)
-}
 
 // Presets array key for cosmetic kinds (the document sibling of the kind's key).
 export const PRESETS_KEY_BY_TYPE: ReadonlyMap<string, string> = new Map(
@@ -357,7 +351,6 @@ function stylesWhere<T>(pick: (d: ConstraintDef) => T | undefined): Record<strin
   return out
 }
 
-export const LINE_STYLES: Record<string, ConstraintLineStyleDef> = stylesWhere((d) => d.lineStyle)
 export const SHAPE_STYLES: Record<string, ConstraintShapeStyle> = stylesWhere((d) => d.shapeStyle)
 export const TEXT_STYLES: Record<string, ConstraintTextStyle> = stylesWhere((d) => d.textStyle)
 export const DIAGONAL_STYLES: Record<string, { color: string; strokeWidth: number; opacity: number }> =
@@ -385,7 +378,7 @@ export const CONSTRAINT_LINE_STYLES: Record<string, ConstraintLineStyle> = Objec
 
 // ── Derived: archive filter groups ─────────────────────────────────────────────
 
-export interface ConstraintFilterOption { value: string; label: string }
+interface ConstraintFilterOption { value: string; label: string }
 export interface ConstraintFilterGroup { label: string; options: ReadonlyArray<ConstraintFilterOption> }
 
 const FILTER_GROUP_ORDER: readonly FilterGroup[] = [

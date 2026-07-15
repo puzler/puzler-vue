@@ -9,7 +9,7 @@ import type {
 import { ListingSortEnum as Sort, MatchModeEnum as Match } from '@/graphql/generated/types'
 
 // The shape every listing query returns: a page of nodes plus pagination info.
-export interface Connection<TNode> {
+interface Connection<TNode> {
   nodes: TNode[]
   pageInfo: PageInfoFieldsFragment
 }

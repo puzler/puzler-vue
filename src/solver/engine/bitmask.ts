@@ -47,10 +47,6 @@ export function maxValue(mask: number): number {
   return value
 }
 
-export function hasValue(mask: number, value: number): boolean {
-  return (mask & valueBit(value)) !== 0
-}
-
 export function isSingle(mask: number): boolean {
   return mask !== 0 && (mask & (mask - 1)) === 0
 }
@@ -66,20 +62,4 @@ export function valuesList(mask: number): number[] {
     value += 1
   }
   return out
-}
-
-// Mask of all values strictly less than `value`.
-export function maskBelow(value: number): number {
-  return (1 << (value - 1)) - 1
-}
-
-// Mask of all values strictly greater than `value`, bounded to `size`.
-export function maskAbove(value: number, size: number): number {
-  return allValuesMask(size) & ~((1 << value) - 1)
-}
-
-// Mask of values strictly between lo and hi (exclusive of both).
-export function maskBetweenExclusive(lo: number, hi: number): number {
-  if (hi - lo < 2) return 0
-  return maskBelow(hi) & ~maskBelow(lo + 1)
 }

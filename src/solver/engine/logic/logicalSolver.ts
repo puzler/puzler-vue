@@ -22,7 +22,6 @@ import {
 } from './techniques'
 
 // Re-exported for callers that still import it from here.
-export { cellName } from '../geometry'
 import { cellName as nameOf } from '../geometry'
 
 // Describe (and consume) the board's commit-time propagation log: weak links

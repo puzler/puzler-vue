@@ -64,7 +64,7 @@ export interface SerializedPreset {
 
 // Setter-declared rules-text facts for the fog solver, grouped by constraint
 // family. Only-true keys serialize; the section is omitted when empty.
-export interface SerializedSolverHelpers {
+interface SerializedSolverHelpers {
   arrows?: { singleCellBulbs?: boolean; noCrossings?: boolean; oneArrowPerBulb?: boolean }
   killerCages?: { maybeDisconnected?: boolean }
 }

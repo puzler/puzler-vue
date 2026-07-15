@@ -22,7 +22,7 @@ function stepIsVisible(s: DriveStep): boolean {
 }
 
 /** True while a tour is on screen (driver adds .driver-active to <body>). */
-export function isTourActive(): boolean {
+function isTourActive(): boolean {
   return document.body.classList.contains('driver-active')
 }
 

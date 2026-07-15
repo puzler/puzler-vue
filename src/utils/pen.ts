@@ -14,7 +14,7 @@
 import { CELL_SIZE, PADDING } from '@/composables/useGrid'
 import type { PenMark, PenState, PenTarget } from '@/types/grid'
 
-export type PenLattice = 'center' | 'corner'
+type PenLattice = 'center' | 'corner'
 
 export interface PenNode {
   key: string

@@ -52,8 +52,8 @@ export const GRID_TOKEN_KEYS = [
 export type ChromeTokenKey = (typeof CHROME_TOKEN_KEYS)[number]
 export type GridTokenKey = (typeof GRID_TOKEN_KEYS)[number]
 
-export type ChromeTokens = Partial<Record<ChromeTokenKey, string>>
-export type GridTokens = Partial<Record<GridTokenKey, string>>
+type ChromeTokens = Partial<Record<ChromeTokenKey, string>>
+type GridTokens = Partial<Record<GridTokenKey, string>>
 
 export interface ThemeAppearance {
   chrome: ChromeTokens
@@ -96,7 +96,7 @@ export {
   CONSTRAINT_STYLE_REGISTRY, constraintFamily,
 } from '@/constraints/registry'
 export type {
-  ConstraintStyleFamily, ConstraintStyleCategory, ConstraintStyleMeta, ConstraintStyleKey,
+  ConstraintStyleFamily, ConstraintStyleCategory, ConstraintStyleKey,
 } from '@/constraints/registry'
 
 const CONSTRAINT_KEY_SET = new Set<string>(Object.keys(CONSTRAINT_STYLE_REGISTRY))
@@ -104,7 +104,7 @@ const CONSTRAINT_KEY_SET = new Set<string>(Object.keys(CONSTRAINT_STYLE_REGISTRY
 // ── Theme + collection ──────────────────────────────────────────────────────────
 
 export type BuiltInThemeId = 'classic' | 'light' | 'dark' | 'high_contrast'
-export const BUILTIN_THEME_IDS: BuiltInThemeId[] = ['classic', 'light', 'dark', 'high_contrast']
+const BUILTIN_THEME_IDS: BuiltInThemeId[] = ['classic', 'light', 'dark', 'high_contrast']
 const BUILTIN_ID_SET = new Set<string>(BUILTIN_THEME_IDS)
 
 export function isBuiltInThemeId(id: string): id is BuiltInThemeId {
@@ -175,9 +175,9 @@ function structuredCloneConstraints(
 // Clamp ranges keep "wonky" user choices renderable. Units are per-family: line stroke is in
 // raw SVG units (default 8), shape/text sizes are fractions of a cell (default ~0.3–0.65).
 
-export const OPACITY_RANGE = { min: 0, max: 1 } as const
-export const LINE_WIDTH_RANGE = { min: 1, max: 24 } as const     // svg units
-export const FRACTION_RANGE = { min: 0.05, max: 0.95 } as const  // fraction of cell
+const OPACITY_RANGE = { min: 0, max: 1 } as const
+const LINE_WIDTH_RANGE = { min: 1, max: 24 } as const     // svg units
+const FRACTION_RANGE = { min: 0.05, max: 0.95 } as const  // fraction of cell
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min
@@ -219,10 +219,6 @@ export function luminance(color: string): number {
 // separated no matter how the user themed the fill beneath it (dark fill → light halo).
 export function haloFor(bg: string): string {
   return luminance(bg) > 0.5 ? '#1a1a1a' : '#ffffff'
-}
-
-export function contrastInk(bg: string): string {
-  return luminance(bg) > 0.55 ? '#1a1a1a' : '#f5f5f5'
 }
 
 // ── Normalization / migration ─────────────────────────────────────────────────
@@ -320,7 +316,7 @@ export function normalizeTheme(raw: unknown, fallbackId: string): Theme {
   }
 }
 
-export const DEFAULT_THEME_COLLECTION: ThemeCollection = {
+const DEFAULT_THEME_COLLECTION: ThemeCollection = {
   version: THEME_SCHEMA_VERSION,
   activeThemeId: 'classic',
   enableCustomStyles: true,

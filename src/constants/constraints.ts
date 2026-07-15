@@ -9,7 +9,6 @@
 import { CONSTRAINT_FILTER_GROUPS } from '@/constraints/registry'
 
 export { CONSTRAINT_FILTER_GROUPS } from '@/constraints/registry'
-export type { ConstraintFilterOption, ConstraintFilterGroup } from '@/constraints/registry'
 
 // Flat value→label list, kept for callers that just need to label a selected
 // constraint (e.g. the toolbar's active-filter chips).

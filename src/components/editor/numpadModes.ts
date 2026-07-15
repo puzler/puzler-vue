@@ -27,7 +27,7 @@ export interface GridSize {
 // setting: 16 was the historical grid cap, so anything bigger is a
 // gattai-scale board that is unusable without zoom — and every pre-existing
 // puzzle keeps its exact tool set.
-export const PAN_AUTO_THRESHOLD = 16
+const PAN_AUTO_THRESHOLD = 16
 
 export function panToolAvailable(settings: PlayerSettings, size: GridSize): boolean {
   return settings.enablePanTool || size.rows > PAN_AUTO_THRESHOLD || size.cols > PAN_AUTO_THRESHOLD

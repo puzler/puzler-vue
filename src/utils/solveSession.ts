@@ -53,6 +53,9 @@ interface SolveProgress {
   pen: PenState
   // Letter-tool numpad toggle (additive like `pen`; absent → false).
   letterMode: boolean
+  // Killer-cage helper strikes, keyed by stable cage identity (additive like
+  // `pen`; absent → empty).
+  eliminatedCageCombos: Record<string, string[]>
 }
 
 export interface SolveSnapshot {
@@ -69,6 +72,7 @@ export interface SolverEditorLike {
   inputMode: SolverInputMode
   penState: PenState
   letterMode: boolean
+  eliminatedCageCombos: Record<string, string[]>
   setInputMode: (m: SolverInputMode) => void
   serializeHistory: () => SerializedHistory
   hydrateHistory: (h: SerializedHistory | null) => void
@@ -129,6 +133,7 @@ export function serializeSession(
       palettePage: palette.pageIndex,
       pen: clonePenState(editor.penState),
       letterMode: editor.letterMode,
+      eliminatedCageCombos: cloneCageCombos(editor.eliminatedCageCombos),
     },
   }
 }
@@ -151,6 +156,7 @@ export function applySession(
   editor.setInputMode(snap.progress.inputMode)
   editor.penState = clonePenState(snap.progress.pen)
   editor.letterMode = snap.progress.letterMode
+  editor.eliminatedCageCombos = cloneCageCombos(snap.progress.eliminatedCageCombos)
   editor.hydrateHistory(snap.progress.history)
   palette.setPageIndex(snap.progress.palettePage)
   timer.restore(snap.progress.elapsed, snap.progress.holds)
@@ -161,7 +167,8 @@ export function isEmptySnapshot(snap: SolveSnapshot): boolean {
     Object.keys(snap.cellState).length === 0 &&
     snap.progress.elapsed === 0 &&
     snap.progress.history.undo.length === 0 &&
-    isEmptyPenState(snap.progress.pen)
+    isEmptyPenState(snap.progress.pen) &&
+    Object.keys(snap.progress.eliminatedCageCombos).length === 0
   )
 }
 
@@ -336,6 +343,26 @@ function normalizeHistory(raw: unknown): SerializedHistory {
   return { undo: normalizeDiffArray(r.undo), redo: normalizeDiffArray(r.redo) }
 }
 
+// Cage-strike records tolerate arbitrary snapshot garbage: only string keys
+// mapping to arrays of digit-list combo keys ("2,9") survive.
+function normalizeCageCombos(raw: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  if (!isObject(raw)) return out
+  for (const key of Object.keys(raw)) {
+    const v = raw[key]
+    if (!Array.isArray(v)) continue
+    const combos = v.filter((c): c is string => typeof c === 'string' && /^\d+(,\d+)*$/.test(c))
+    if (combos.length > 0) out[key] = combos
+  }
+  return out
+}
+
+function cloneCageCombos(record: Record<string, string[]>): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const key of Object.keys(record)) out[key] = [...record[key]]
+  return out
+}
+
 function normalizeProgress(raw: unknown): SolveProgress {
   const r = isObject(raw) ? raw : {}
   const rawMode = r.inputMode
@@ -355,6 +382,7 @@ function normalizeProgress(raw: unknown): SolveProgress {
     palettePage: typeof r.palettePage === 'number' && r.palettePage >= 0 ? Math.floor(r.palettePage) : 0,
     pen: normalizePenState(r.pen),
     letterMode: r.letterMode === true,
+    eliminatedCageCombos: normalizeCageCombos(r.eliminatedCageCombos),
   }
 }
 

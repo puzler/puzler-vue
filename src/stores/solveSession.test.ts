@@ -44,6 +44,7 @@ function localSnapshot(savedAt: number): SolveSnapshot {
       palettePage: 0,
       pen: { segments: {}, cellMarks: {}, edgeMarks: {} },
       letterMode: false,
+      eliminatedCageCombos: {},
     },
   }
 }

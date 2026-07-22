@@ -50,6 +50,24 @@ describe('playerSettings overrides', () => {
     expect(stored.hideTimer ?? false).toBe(false)
   })
 
+  it('competition enforcement beats player-enabled math helpers', () => {
+    // The math helpers gate on `effective`, so an enforced false must win even
+    // when the player switched a helper on themselves.
+    const player = usePlayerSettingsStore()
+    player.settings.enableSumHelper = true
+    player.settings.enableKillerHelper = true
+    player.settings.enableSelectionCalculator = true
+    player.setOverrides({
+      enableSumHelper: false,
+      enableKillerHelper: false,
+      enableSelectionCalculator: false,
+    })
+    expect(player.effective.enableSumHelper).toBe(false)
+    expect(player.effective.enableKillerHelper).toBe(false)
+    expect(player.effective.enableSelectionCalculator).toBe(false)
+    expect(player.isEnforced('enableSumHelper')).toBe(true)
+  })
+
   it('reset clears user prefs but keeps enforcement', () => {
     const player = usePlayerSettingsStore()
     player.setOverrides({ hideTimer: true })

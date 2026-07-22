@@ -94,6 +94,29 @@ export const useEditorStore = defineStore('editor', () => {
     lattice: 'center' | 'corner'
     pass: 'draw' | 'erase' | null
   } | null>(null)
+  // ── Killer cage helper strikes ────────────────────────────────────────────
+  // Combos the solver manually ruled out in the killer cage helper, keyed by
+  // the cage's stable identity (sorted cells + sum — instance ids regenerate
+  // every load) and persisted with the solve session, additive like `pen`.
+  // Arrays are replaced immutably so the autosave watch fires. Stays out of
+  // undo history, like palette page.
+  const eliminatedCageCombos = ref<Record<string, string[]>>({})
+  function toggleCageComboStrike(instanceId: string, comboKey: string) {
+    const current = eliminatedCageCombos.value[instanceId] ?? []
+    const next = current.includes(comboKey)
+      ? current.filter((k) => k !== comboKey)
+      : [...current, comboKey]
+    const record = { ...eliminatedCageCombos.value }
+    if (next.length === 0) delete record[instanceId]
+    else record[instanceId] = next
+    eliminatedCageCombos.value = record
+  }
+  function clearCageComboStrikes(instanceId: string) {
+    if (!(instanceId in eliminatedCageCombos.value)) return
+    const record = { ...eliminatedCageCombos.value }
+    delete record[instanceId]
+    eliminatedCageCombos.value = record
+  }
   // ── Letter tool ────────────────────────────────────────────────────────────
   // Numpad-level toggle: while on (and the tool is enabled in settings), the
   // digit keys become A-J and every unmodified keyboard letter is grid input.
@@ -334,12 +357,23 @@ export const useEditorStore = defineStore('editor', () => {
     // setters build custom "houses" on rules-off grids.
     const uniquePairs = new Set<string>()
     const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
+    // Fog-safe twin for the math helpers: groups touching any fogged cell are
+    // omitted, so a hidden cage/line can never tighten a sum readout and leak
+    // its existence. Structural sight (rows/cols/regions/variants) is public
+    // knowledge from the rules text and stays in both predicates.
+    const fogged = fogEnabled.value && mode.value === 'solving' ? foggedCells.value : null
+    const uniquePairsFogSafe = fogged && fogged.size > 0 ? new Set<string>() : null
     for (const instance of cosmeticInstances.value) {
       const extract = constraintDef(instance.type)?.uniqueness
       if (!extract) continue
       for (const group of extract(instance.data)) {
+        const fogSafe = uniquePairsFogSafe !== null && !group.some((cell) => fogged!.has(cell))
         for (let i = 0; i < group.length; i++) {
-          for (let j = i + 1; j < group.length; j++) uniquePairs.add(pairKey(group[i], group[j]))
+          for (let j = i + 1; j < group.length; j++) {
+            const pair = pairKey(group[i], group[j])
+            uniquePairs.add(pair)
+            if (fogSafe) uniquePairsFogSafe!.add(pair)
+          }
         }
       }
     }
@@ -361,13 +395,13 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Symmetric "A sees B" predicate. Callers pass parsed coordinates they already
     // hold (the hot path runs over every cell pair).
-    const seesRC = (
+    const makeSees = (pairs: Set<string>) => (
       keyA: string, rowA: number, colA: number,
       keyB: string, rowB: number, colB: number,
     ): boolean => {
       if (autoLines && (rowA === rowB || colA === colB)) return true
       if (sudoku && gridStore.areSameRegion(keyA, keyB)) return true
-      if (uniquePairs.size > 0 && uniquePairs.has(pairKey(keyA, keyB))) return true
+      if (pairs.size > 0 && pairs.has(pairKey(keyA, keyB))) return true
       if (moveNeighbours(keyA, rowA, colA)?.has(keyB)) return true
       if (mainDiag && rowA === colA && rowB === colB) return true
       if (antiDiag && rowA + colA === size - 1 && rowB + colB === size - 1) return true
@@ -378,7 +412,10 @@ export const useEditorStore = defineStore('editor', () => {
       return false
     }
 
-    return { seesRC }
+    const seesRC = makeSees(uniquePairs)
+    const seesRCFogSafe = uniquePairsFogSafe === null ? seesRC : makeSees(uniquePairsFogSafe)
+
+    return { seesRC, seesRCFogSafe }
   })
 
   // ── Fog of War (derived, never persisted) ─────────────────────────────────
@@ -1979,6 +2016,9 @@ export const useEditorStore = defineStore('editor', () => {
     const keys = Object.keys(solverCellStates.value)
     const pen = penState.value
     const hasPen = !isEmptyPenState(pen)
+    // Cage-helper strikes clear alongside the board; deliberately not part of
+    // the undo entry (strikes stay out of history, like the palette page).
+    if (Object.keys(eliminatedCageCombos.value).length > 0) eliminatedCageCombos.value = {}
     if (keys.length === 0 && !hasPen) return
     const before = snapshotCells(keys)
     const after: Record<string, CellState | null> = {}
@@ -2026,6 +2066,7 @@ export const useEditorStore = defineStore('editor', () => {
     inputMode.value = 'digit'
     keyboardModeOverride.value = null
     penState.value = EMPTY_PEN_STATE()
+    eliminatedCageCombos.value = {}
     penTarget.value = 'centers'
     penColorIndex.value = 1
     pendingPenStroke.value = null
@@ -2828,6 +2869,10 @@ export const useEditorStore = defineStore('editor', () => {
     pendingPenStroke,
     letterMode,
     letterModeActive,
+    eliminatedCageCombos,
+    toggleCageComboStrike,
+    clearCageComboStrikes,
+    cellVisibility,
     setLetterMode,
     placeLetterForSelection,
     setPenTarget,
@@ -2857,6 +2902,7 @@ export const useEditorStore = defineStore('editor', () => {
     fogHashSalt,
     fogSolverHelpers,
     fogEnabled,
+    filledDigitCells,
     fogLightCells,
     fogVerifiedCells,
     foggedCells,

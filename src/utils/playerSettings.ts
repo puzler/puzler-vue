@@ -27,6 +27,11 @@ export interface PlayerSettings {
   enableLineTool: boolean
   enableLetterTool: boolean
   enablePanTool: boolean
+  // Helpers (math aids; competitions can enforce these off so players do the
+  // math themselves)
+  enableSelectionCalculator: boolean
+  enableKillerHelper: boolean
+  enableSumHelper: boolean
 }
 
 const KEY = 'puzler:player-settings'
@@ -46,6 +51,9 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   enableLineTool: false,
   enableLetterTool: false,
   enablePanTool: false,
+  enableSelectionCalculator: false,
+  enableKillerHelper: false,
+  enableSumHelper: false,
 }
 
 // Merge an arbitrary (possibly partial / server-sourced) object over the

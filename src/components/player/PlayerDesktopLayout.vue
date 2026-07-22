@@ -6,6 +6,7 @@ import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import ZoomControls from '@/components/grid/ZoomControls.vue'
 import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import PlayerSidePanel from '@/components/player/PlayerSidePanel.vue'
+import HelperDrawer from '@/components/player/helpers/HelperDrawer.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
@@ -29,6 +30,7 @@ defineEmits<{
 
 <template>
   <div class="flex-1 flex overflow-hidden min-h-0">
+    <HelperDrawer />
     <main
       data-tour="player-grid"
       class="relative flex-1 bg-canvas overflow-hidden min-h-0"

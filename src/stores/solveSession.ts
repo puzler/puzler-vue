@@ -88,6 +88,10 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
   // peer's pen — collaborators' pen marks are their own scratch (a dedicated
   // presence message could lift that later).
   let penBaselineJson = JSON.stringify(editor.penState)
+  // Cage-helper strikes as the server last saw them, for the same reason as
+  // the pen baseline: strikes-only edits must still trigger a push. Like pen,
+  // strikes are snapshot-persisted but relay-local (never adopted from peers).
+  let cageStrikesBaselineJson = JSON.stringify(editor.eliminatedCageCombos)
   // The board as we last relayed it to peers over the live channel; the next
   // relay sends only the diff against this.
   let lastRelay: Record<string, CellState> = {}
@@ -164,6 +168,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     playId.value = id
     baseline = snapshotNow()?.cellState ?? {}
     penBaselineJson = JSON.stringify(editor.penState)
+    cageStrikesBaselineJson = JSON.stringify(editor.eliminatedCageCombos)
     lastRelay = cloneCellStates(baseline)
     goLive()
     void pushServer()
@@ -221,6 +226,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       // already know this state too (they hydrate from the same server play).
       baseline = snapshotNow()?.cellState ?? {}
       penBaselineJson = JSON.stringify(editor.penState)
+      cageStrikesBaselineJson = JSON.stringify(editor.eliminatedCageCombos)
       lastRelay = cloneCellStates(baseline)
       goLive()
     } catch {
@@ -342,6 +348,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       lastServerJson = json
       baseline = snap.cellState // server now has exactly this
       penBaselineJson = JSON.stringify(snap.progress.pen)
+      cageStrikesBaselineJson = JSON.stringify(snap.progress.eliminatedCageCombos)
       lastSavedAt = snap.progress.savedAt
     } catch {
       /* leave baseline/lastServerJson untouched so the next change retries */
@@ -363,7 +370,8 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
       void scheduleRelay() // fast path to peers (no-op when nothing cell-level changed)
       if (
         hasLocalChanges(editor.solverCellStates, baseline) ||
-        JSON.stringify(editor.penState) !== penBaselineJson
+        JSON.stringify(editor.penState) !== penBaselineJson ||
+        JSON.stringify(editor.eliminatedCageCombos) !== cageStrikesBaselineJson
       ) {
         void debouncedServerSave()
       }
@@ -415,6 +423,7 @@ export const useSolveSessionStore = defineStore('solveSession', () => {
     lastSavedAt = 0
     baseline = {}
     penBaselineJson = JSON.stringify(editor.penState)
+    cageStrikesBaselineJson = JSON.stringify(editor.eliminatedCageCombos)
     lastRelay = {}
     if (progressSub) {
       progressSub.unsubscribe()

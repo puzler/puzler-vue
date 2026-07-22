@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple } from '@mdi/js'
+import { computed, ref } from 'vue'
+import { mdiBookOpenVariant, mdiRestart, mdiCheckCircleOutline, mdiCogOutline, mdiAccountMultiple, mdiCalculatorVariantOutline } from '@mdi/js'
 import SudokuGrid from '@/components/grid/SudokuGrid.vue'
 import ZoomControls from '@/components/grid/ZoomControls.vue'
 import SolverNumpad from '@/components/editor/SolverNumpad.vue'
@@ -12,9 +12,25 @@ import PausedOverlay from '@/components/player/PausedOverlay.vue'
 import LiveSyncBadge from '@/components/player/LiveSyncBadge.vue'
 import PlayersPanel from '@/components/player/PlayersPanel.vue'
 import ConnectionStatus from '@/components/player/ConnectionStatus.vue'
+import HelperSheet from '@/components/player/helpers/HelperSheet.vue'
 import { useEditorStore } from '@/stores/editor'
+import { usePlayerSettingsStore } from '@/stores/playerSettings'
+import { useHelpersAvailable } from '@/composables/useMathHelpers'
 
 const editor = useEditorStore()
+const player = usePlayerSettingsStore()
+const helpersAvailable = useHelpersAvailable()
+
+// The helper sheet is layout-local UI (not a modal PlayerView owns): it slides
+// over the numpad while the grid stays interactive above it.
+const showHelpers = ref(false)
+const helpersEnabled = computed(
+  () =>
+    helpersAvailable.value &&
+    (player.effective.enableSelectionCalculator ||
+      player.effective.enableKillerHelper ||
+      player.effective.enableSumHelper),
+)
 
 const props = defineProps<{
   title: string
@@ -33,23 +49,38 @@ const emit = defineEmits<{ 'toggle-pause': []; 'reset': []; 'show-rules': []; 'c
 // with a thin action rail down the side (rules opens the modal, reset, …).
 const BTN = 'w-9 h-9 flex items-center justify-center rounded-lg text-soft hover:bg-line/60 active:bg-line transition-colors'
 
-type Action = 'show-rules' | 'check' | 'settings' | 'reset'
-const fire = emit as unknown as (e: Action) => void
-const RAIL = computed<{ icon: string; label: string; title: string; event: Action }[]>(() => [
-  { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', event: 'show-rules' },
-  {
-    icon: mdiCheckCircleOutline,
-    label: props.checkLabel ?? 'Check solution',
-    title: props.checkLabel ?? 'Check solution',
-    event: 'check',
-  },
-  { icon: mdiCogOutline, label: 'Settings', title: 'Settings', event: 'settings' },
-  { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', event: 'reset' },
-])
+interface RailItem { icon: string; label: string; title: string; tour?: string; pressed?: boolean; run: () => void }
+const RAIL = computed<RailItem[]>(() => {
+  const items: RailItem[] = [
+    { icon: mdiBookOpenVariant, label: 'Show rules', title: 'Rules', tour: 'player-rules', run: () => emit('show-rules') },
+    {
+      icon: mdiCheckCircleOutline,
+      label: props.checkLabel ?? 'Check solution',
+      title: props.checkLabel ?? 'Check solution',
+      tour: 'player-check',
+      run: () => emit('check'),
+    },
+    { icon: mdiCogOutline, label: 'Settings', title: 'Settings', run: () => emit('settings') },
+    { icon: mdiRestart, label: 'Reset puzzle', title: 'Reset puzzle', run: () => emit('reset') },
+  ]
+  if (props.collaborationEnabled) {
+    items.push({ icon: mdiAccountMultiple, label: 'Collaborate', title: 'Collaborate', run: () => emit('collaborate') })
+  }
+  if (helpersEnabled.value) {
+    items.push({
+      icon: mdiCalculatorVariantOutline,
+      label: 'Math helpers',
+      title: 'Helpers',
+      pressed: showHelpers.value,
+      run: () => { showHelpers.value = !showHelpers.value },
+    })
+  }
+  return items
+})
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="relative flex-1 flex flex-col overflow-hidden">
     <header class="px-3 py-2 border-b border-line bg-paper shrink-0 flex items-center gap-2">
       <BackToPuzzleLink
         icon-only
@@ -106,27 +137,16 @@ const RAIL = computed<{ icon: string; label: string; title: string; event: Actio
       >
         <button
           v-for="b in RAIL"
-          :key="b.event"
-          :data-tour="b.event === 'show-rules' ? 'player-rules' : b.event === 'check' ? 'player-check' : undefined"
+          :key="b.label"
+          :data-tour="b.tour"
           :class="BTN"
           :title="b.title"
           :aria-label="b.label"
-          @click="fire(b.event)"
+          :aria-pressed="b.pressed"
+          @click="b.run()"
         >
           <MdiIcon
             :path="b.icon"
-            :size="20"
-          />
-        </button>
-        <button
-          v-if="collaborationEnabled"
-          :class="BTN"
-          title="Collaborate"
-          aria-label="Collaborate"
-          @click="$emit('collaborate')"
-        >
-          <MdiIcon
-            :path="mdiAccountMultiple"
             :size="20"
           />
         </button>
@@ -138,5 +158,10 @@ const RAIL = computed<{ icon: string; label: string; title: string; event: Actio
         <SolverNumpad class="w-full h-full" />
       </div>
     </div>
+
+    <HelperSheet
+      v-if="helpersEnabled && showHelpers"
+      @close="showHelpers = false"
+    />
   </div>
 </template>

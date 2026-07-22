@@ -49,6 +49,14 @@ export const PLAYER_SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    title: 'Helpers',
+    items: [
+      { key: 'enableSelectionCalculator', label: 'Selection calculator', hint: 'Show the possible sum of the selected cells' },
+      { key: 'enableKillerHelper', label: 'Killer cage helper', hint: 'List possible combinations for the selected cage' },
+      { key: 'enableSumHelper', label: 'Sum combinations', hint: 'Look up distinct-digit combinations for a size and total' },
+    ],
+  },
+  {
     title: 'Collaboration',
     items: [
       { key: 'enableCollaborationMode', label: 'Enable collaboration mode', hint: 'Share an in-progress puzzle and solve together in real time' },

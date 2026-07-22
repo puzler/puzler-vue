@@ -268,7 +268,7 @@ watch(
 // Elapsed time isn't watched (it ticks every second); it rides along on the next
 // content change and is captured on flush (tab-hide / unload / navigation).
 watch(
-  () => [editor.solverCellStates, editor.selection, editor.inputMode, editor.penState, timerPaused.value],
+  () => [editor.solverCellStates, editor.selection, editor.inputMode, editor.penState, editor.eliminatedCageCombos, timerPaused.value],
   () => solveSession.scheduleSave(),
   { deep: true },
 )

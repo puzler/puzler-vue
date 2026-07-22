@@ -68,6 +68,7 @@ function minimalSnapshot(savedAt: number, cells = 0): SolveSnapshot {
       palettePage: 0,
       pen: { segments: {}, cellMarks: {}, edgeMarks: {} },
       letterMode: false,
+      eliminatedCageCombos: {},
     },
   }
 }
@@ -364,6 +365,46 @@ describe('letters in snapshots', () => {
     const legacy = minimalSnapshot(10, 0) as unknown as { progress: Record<string, unknown> }
     delete legacy.progress.letterMode
     expect(normalizeSnapshot(JSON.parse(JSON.stringify(legacy)))?.progress.letterMode).toBe(false)
+  })
+
+  it('cage strikes round-trip; a strikes-only session is NOT empty; legacy/garbage tolerated', () => {
+    const raw = minimalSnapshot(0, 0)
+    expect(isEmptySnapshot(raw)).toBe(true)
+    raw.progress.eliminatedCageCombos = { 'cage-1': ['2,9', '3,8'] }
+    expect(isEmptySnapshot(raw)).toBe(false)
+    const snap = normalizeSnapshot(JSON.parse(JSON.stringify(raw)))
+    expect(snap?.progress.eliminatedCageCombos).toEqual({ 'cage-1': ['2,9', '3,8'] })
+
+    // Legacy snapshot without the field -> empty record, same schema version.
+    const legacy = minimalSnapshot(10, 0) as unknown as { progress: Record<string, unknown> }
+    delete legacy.progress.eliminatedCageCombos
+    const normalized = normalizeSnapshot(JSON.parse(JSON.stringify(legacy)))
+    expect(normalized).not.toBeNull()
+    expect(normalized!.progress.eliminatedCageCombos).toEqual({})
+
+    // Garbage entries are dropped, valid ones kept.
+    const messy = minimalSnapshot(10, 0) as unknown as { progress: Record<string, unknown> }
+    messy.progress.eliminatedCageCombos = {
+      good: ['1,2,3'],
+      notArray: 'nope',
+      mixed: ['4,5', 42, 'not a combo'],
+      empty: [],
+    }
+    const cleaned = normalizeSnapshot(JSON.parse(JSON.stringify(messy)))
+    expect(cleaned!.progress.eliminatedCageCombos).toEqual({ good: ['1,2,3'], mixed: ['4,5'] })
+  })
+
+  it('serializeSession round-trips cage strikes through the editor', () => {
+    const e1 = useEditorStore()
+    e1.toggleCageComboStrike('cage-7', '1,5,9')
+    e1.toggleCageComboStrike('cage-7', '2,4,9')
+    e1.toggleCageComboStrike('cage-7', '1,5,9') // un-strike again
+    const snap = JSON.parse(JSON.stringify(serializeSession(e1, makeFakeTimer(), useColorPaletteStore(), null)))
+
+    setActivePinia(createPinia())
+    const e2 = useEditorStore()
+    applySession(e2, makeFakeTimer(), useColorPaletteStore(), snap)
+    expect(e2.eliminatedCageCombos).toEqual({ 'cage-7': ['2,4,9'] })
   })
 
   it('the collaboration relay preserves letter cells', () => {
